@@ -1,0 +1,643 @@
+Created At: 2026-08-20T10:00:48+05:30
+Completed At: 2026-08-20T10:00:48+05:30
+File Path: `file:///c:/Users/Shuai/Desktop/Snooker%20Club%20Apk/lib/features/games/presentation/screens/manual_game_setup_screen.dart`
+Total Lines: 635
+Total Bytes: 21435
+Showing lines 1 to 635
+The following code has been modified to include a line number before every line, in the format: <line_number>: <original_line>. Please note that any changes targeting the original code should remove the line number, colon, and leading space.
+1: import 'package:cloud_firestore/cloud_firestore.dart';
+2: import 'package:flutter/material.dart';
+3: import 'package:flutter_riverpod/flutter_riverpod.dart';
+4: import 'package:gap/gap.dart';
+5: import 'package:intl/intl.dart';
+6: import 'package:snooker_club/core/theme/app_colors.dart';
+7: import 'package:snooker_club/features/games/domain/config/pricing_config.dart';
+8: import 'package:snooker_club/features/settings/providers/settings_providers.dart';
+9: import 'package:snooker_club/features/games/domain/models/game_models.dart';
+10: import 'package:snooker_club/features/games/providers/games_providers.dart';
+11: import 'package:snooker_club/core/widgets/inputs/app_text_field.dart';
+12: 
+13: class ManualGameSetupScreen extends ConsumerStatefulWidget {
+14:   final String employeeId;
+15: 
+16:   const ManualGameSetupScreen({
+17:     super.key,
+18:     required this.employeeId,
+19:   });
+20: 
+21:   @override
+22:   ConsumerState<ManualGameSetupScreen> createState() => _ManualGameSetupScreenState();
+23: }
+24: 
+25: class _ManualGameSetupScreenState extends ConsumerState<ManualGameSetupScreen> {
+26:   int _step = 0; 
+27:   final int _maxSteps = 5;
+28: 
+29:   // Step 0: Table Selection
+30:   TableModel? _selectedTable;
+31: 
+32:   // Step 1: Start Time
+33:   bool _useActualTime = true; // true = Option A (Time Picker), false = Option B (Elapsed Hours/Mins)
+34:   TimeOfDay? _actualStartTime;
+35:   final TextEditingController _elapsedHoursController = TextEditingController();
+36:   final TextEditingController _elapsedMinsController = TextEditingController();
+37: 
+38:   // Step 2: Mode & Players
+39:   GameMode _mode = GameMode.solo;
+40:   final List<TextEditingController> _teamAControllers = [TextEditingController()];
+41:   final List<TextEditingController> _teamBControllers = [TextEditingController()];
+42: 
+43:   // Step 3: Billing & Match Type
+44:   BillingType? _billingType;
+45:   MatchType _matchType = TablePricingConfig.defaultMatchType;
+46: 
+47:   // Step 4: Frame Setup
+48:   int _totalFrames = 1;
+49:   int _currentFrame = 1;
+50:   int _elapsedCurrentFrameMins = 0;
+51: 
+52:   bool _isLoading = false;
+53: 
+54:   @override
+55:   void dispose() {
+56:     _elapsedHoursController.dispose();
+57:     _elapsedMinsController.dispose();
+58:     for (final c in _teamAControllers) c.dispose();
+59:     for (final c in _teamBControllers) c.dispose();
+60:     super.dispose();
+61:   }
+62: 
+63:   void _showError(String message) {
+64:     ScaffoldMessenger.of(context).showSnackBar(
+65:       SnackBar(content: Text(message), backgroundColor: AppColors.error),
+66:     );
+67:   }
+68: 
+69:   // ─────────────────────────────────────────────
+70:   // UI Builders
+71:   // ─────────────────────────────────────────────
+72: 
+73:   Widget _buildStep0TableSelection(ThemeData theme, List<TableModel> tables) {
+74:     final availableTables = tables.where((t) => t.status == TableStatus.available).toList();
+75: 
+76:     if (availableTables.isEmpty) {
+77:       return Center(
+78:         child: Column(
+79:           mainAxisAlignment: MainAxisAlignment.center,
+80:           children: [
+81:             Icon(Icons.event_seat, size: 64, color: theme.colorScheme.onSurfaceVariant),
+82:             const Gap(16),
+83:             Text('No Tables Available', style: theme.textTheme.titleLarge),
+84:             const Gap(8),
+85:             Text('All tables are currently occupied.',
+86:                 style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
+87:           ],
+88:         ),
+89:       );
+90:     }
+91: 
+92:     return Column(
+93:       crossAxisAlignment: CrossAxisAlignment.start,
+94:       children: [
+95:         Text('Select an available table to resume a game on.', style: theme.textTheme.bodyMedium),
+96:         const Gap(16),
+97:         ...availableTables.map((t) {
+98:           final isSelected = _selectedTable?.id == t.id;
+99:           return GestureDetector(
+100:             onTap: () => setState(() => _selectedTable = t),
+101:             child: _SelectionTile(
+102:               title: t.name,
+103:               subtitle: t.type.displayName,
+104:               isSelected: isSelected,
+105:             ),
+106:           );
+107:         }),
+108:       ],
+109:     );
+110:   }
+111: 
+112:   Widget _buildStep1TimeSelection(ThemeData theme) {
+113:     return Column(
+114:       crossAxisAlignment: CrossAxisAlignment.start,
+115:       children: [
+116:         Text('When did the game actually start?', style: theme.textTheme.bodyMedium),
+117:         const Gap(16),
+118:         Row(
+119:           children: [
+120:             Expanded(
+121:               child: GestureDetector(
+122:                 onTap: () => setState(() => _useActualTime = true),
+123:                 child: _SelectionTile(title: 'Actual Time', subtitle: 'e.g. 5:30 PM', isSelected: _useActualTime),
+124:               ),
+125:             ),
+126:             const Gap(12),
+127:             Expanded(
+128:               child: GestureDetector(
+129:                 onTap: () => setState(() => _useActualTime = false),
+130:                 child: _SelectionTile(title: 'Elapsed Time', subtitle: 'e.g. 45 mins ago', isSelected: !_useActualTime),
+131:               ),
+132:             ),
+133:           ],
+134:         ),
+135:         const Gap(24),
+136:         if (_useActualTime) ...[
+137:           Text('Select Time', style: theme.textTheme.titleMedium),
+138:           const Gap(12),
+139:           OutlinedButton.icon(
+140:             onPressed: () async {
+141:               final t = await showTimePicker(
+142:                 context: context,
+143:                 initialTime: _actualStartTime ?? TimeOfDay.now(),
+144:               );
+145:               if (t != null) {
+146:                 setState(() => _actualStartTime = t);
+147:               }
+148:             },
+149:             icon: const Icon(Icons.access_time),
+150:             label: Text(_actualStartTime?.format(context) ?? 'Choose Time'),
+151:             style: OutlinedButton.styleFrom(
+152:               padding: const EdgeInsets.symmetric(vertical: 16),
+153:               alignment: Alignment.centerLeft,
+154:             ),
+155:           )
+156:         ] else ...[
+157:           Text('Time Already Played', style: theme.textTheme.titleMedium),
+158:           const Gap(12),
+159:           Row(
+160:             children: [
+161:               Expanded(
+162:                 child: AppTextField(
+163:                   controller: _elapsedHoursController,
+164:                   label: 'Hours',
+165:                   keyboardType: TextInputType.number,
+166:                 ),
+167:               ),
+168:               const Gap(16),
+169:               Expanded(
+170:                 child: AppTextField(
+171:                   controller: _elapsedMinsController,
+172:                   label: 'Minutes',
+173:                   keyboardType: TextInputType.number,
+174:                 ),
+175:               ),
+176:             ],
+177:           )
+178:         ],
+179:       ],
+180:     );
+181:   }
+182: 
+183:   Widget _buildStep2Players(ThemeData theme) {
+184:     return Column(
+185:       crossAxisAlignment: CrossAxisAlignment.start,
+186:       children: [
+187:         Row(
+188:           children: [
+189:             Expanded(
+190:               child: GestureDetector(
+191:                 onTap: () => setState(() => _mode = GameMode.solo),
+192:                 child: _SelectionTile(
+193:                   title: 'Solo',
+194:                   subtitle: '1v1 Match',
+195:                   isSelected: _mode == GameMode.solo,
+196:                 ),
+197:               ),
+198:             ),
+199:             const Gap(12),
+200:             Expanded(
+201:               child: GestureDetector(
+202:                 onTap: () => setState(() => _mode = GameMode.team),
+203:                 child: _SelectionTile(
+204:                   title: 'Team',
+205:                   subtitle: 'Multiplayer',
+206:                   isSelected: _mode == GameMode.team,
+207:                 ),
+208:               ),
+209:             ),
+210:           ],
+211:         ),
+212:         const Gap(24),
+213:         Text(
+214:           _mode == GameMode.solo ? 'Players' : 'Team A',
+215:           style: theme.textTheme.titleMedium,
+216:         ),
+217:         const Gap(8),
+218:         ...List.generate(_teamAControllers.length, (i) {
+219:           return Padding(
+220:             padding: const EdgeInsets.only(bottom: 8.0),
+221:             child: AppTextField(
+222:               controller: _teamAControllers[i],
+223:               label: 'Player ${i + 1} Name',
+224:             ),
+225:           );
+226:         }),
+227:         if (_mode == GameMode.team && _teamAControllers.length < 3)
+228:           TextButton.icon(
+229:             onPressed: () => setState(() => _teamAControllers.add(TextEditingController())),
+230:             icon: const Icon(Icons.add),
+231:             label: const Text('Add Player'),
+232:           ),
+233:         if (_mode == GameMode.team) ...[
+234:           const Gap(16),
+235:           Text('Team B', style: theme.textTheme.titleMedium),
+236:           const Gap(8),
+237:           ...List.generate(_teamBControllers.length, (i) {
+238:             return Padding(
+239:               padding: const EdgeInsets.only(bottom: 8.0),
+240:               child: AppTextField(
+241:                 controller: _teamBControllers[i],
+242:                 label: 'Player ${i + 1} Name',
+243:               ),
+244:             );
+245:           }),
+246:           if (_teamBControllers.length < 3)
+247:             TextButton.icon(
+248:               onPressed: () => setState(() => _teamBControllers.add(TextEditingController())),
+249:               icon: const Icon(Icons.add),
+250:               label: const Text('Add Player'),
+251:             ),
+252:         ],
+253:       ],
+254:     );
+255:   }
+256: 
+257:   Widget _buildStep3Billing(ThemeData theme) {
+258:     return Column(
+259:       crossAxisAlignment: CrossAxisAlignment.start,
+260:       children: [
+261:         Text('Billing Type', style: theme.textTheme.titleMedium),
+262:         const Gap(12),
+263:         ...BillingType.values.map((type) {
+264:           return GestureDetector(
+265:             onTap: () => setState(() => _billingType = type),
+266:             child: _SelectionTile(
+267:               title: type.displayName,
+268:               isSelected: _billingType == type,
+269:             ),
+270:           );
+271:         }),
+272:         const Gap(16),
+273:         Text('Match Type', style: theme.textTheme.titleMedium),
+274:         const Gap(12),
+275:         Row(
+276:           children: MatchType.values.map((type) {
+277:             return Expanded(
+278:               child: Padding(
+279:                 padding: const EdgeInsets.only(right: 8.0),
+280:                 child: GestureDetector(
+281:                   onTap: () => setState(() => _matchType = type),
+282:                   child: _SelectionTile(
+283:                     title: type.displayName,
+284:                     isSelected: _matchType == type,
+285:                   ),
+286:                 ),
+287:               ),
+288:             );
+289:           }).toList(),
+290:         ),
+291:       ],
+292:     );
+293:   }
+294: 
+295:   Widget _buildStep4Frames(ThemeData theme) {
+296:     return Column(
+297:       crossAxisAlignment: CrossAxisAlignment.start,
+298:       children: [
+299:         Text('Frame Setup', style: theme.textTheme.titleMedium),
+300:         const Gap(8),
+301:         Text('Since this is a per-frame game, specify the current frame.', style: theme.textTheme.bodySmall),
+302:         const Gap(24),
+303:         Row(
+304:           children: [
+305:             Expanded(
+306:               child: AppTextField(
+307:                 controller: TextEditingController(text: _totalFrames.toString()),
+308:                 label: 'Total Frames',
+309:                 keyboardType: TextInputType.number,
+310:                 onChanged: (v) {
+311:                   final n = int.tryParse(v);
+312:                   if (n != null && n > 0) _totalFrames = n;
+313:                 },
+314:               ),
+315:             ),
+316:             const Gap(16),
+317:             Expanded(
+318:               child: AppTextField(
+319:                 controller: TextEditingController(text: _currentFrame.toString()),
+320:                 label: 'Current Frame #',
+321:                 keyboardType: TextInputType.number,
+322:                 onChanged: (v) {
+323:                   final n = int.tryParse(v);
+324:                   if (n != null && n > 0) _currentFrame = n;
+325:                 },
+326:               ),
+327:             ),
+328:           ],
+329:         ),
+330:         const Gap(16),
+331:         AppTextField(
+332:           controller: TextEditingController(text: _elapsedCurrentFrameMins.toString()),
+333:           label: 'Mins elapsed in Current Frame',
+334:           keyboardType: TextInputType.number,
+335:           onChanged: (v) {
+336:             final n = int.tryParse(v);
+337:             if (n != null && n >= 0) _elapsedCurrentFrameMins = n;
+338:           },
+339:         ),
+340:       ],
+341:     );
+342:   }
+343: 
+344:   // ─────────────────────────────────────────────
+345:   // Action Handlers
+346:   // ─────────────────────────────────────────────
+347: 
+348:   void _handleNext() {
+349:     if (_step == 0 && _selectedTable == null) {
+350:       _showError('Please select a table.');
+351:       return;
+352:     }
+353: 
+354:     if (_step == 1) {
+355:       if (_useActualTime && _actualStartTime == null) {
+356:         _showError('Please select the actual start time.');
+357:         return;
+358:       }
+359:       if (!_useActualTime) {
+360:         final h = int.tryParse(_elapsedHoursController.text) ?? 0;
+361:         final m = int.tryParse(_elapsedMinsController.text) ?? 0;
+362:         if (h == 0 && m == 0) {
+363:           _showError('Please enter the elapsed time.');
+364:           return;
+365:         }
+366:       }
+367:     }
+368: 
+369:     if (_step == 2) {
+370:       final teamANames = _teamAControllers.map((c) => c.text.trim()).where((n) => n.isNotEmpty).toList();
+371:       if (teamANames.isEmpty) {
+372:         _showError('At least one player name is required.');
+373:         return;
+374:       }
+375:       if (_mode == GameMode.team) {
+376:         final teamBNames = _teamBControllers.map((c) => c.text.trim()).where((n) => n.isNotEmpty).toList();
+377:         if (teamBNames.isEmpty) {
+378:           _showError('Team B must have at least one player.');
+379:           return;
+380:         }
+381:       }
+382:     }
+383: 
+384:     if (_step == 3 && _billingType == null) {
+385:       _showError('Please select a billing type.');
+386:       return;
+387:     }
+388: 
+389:     if (_step == 3 && _billingType != BillingType.perFrame) {
+390:       _startManualGame(); // Skip frame step if not per frame
+391:       return;
+392:     }
+393: 
+394:     if (_step == 4) {
+395:       if (_currentFrame > _totalFrames) {
+396:         _showError('Current frame cannot exceed total frames.');
+397:         return;
+398:       }
+399:       _startManualGame();
+400:       return;
+401:     }
+402: 
+403:     setState(() => _step++);
+404:   }
+405: 
+406:   DateTime _calculateStartTime() {
+407:     final now = DateTime.now();
+408:     if (_useActualTime && _actualStartTime != null) {
+409:       var d = DateTime(now.year, now.month, now.day, _actualStartTime!.hour, _actualStartTime!.minute);
+410:       if (d.isAfter(now)) {
+411:         // If they selected a time like 11 PM but it's 1 AM, assume yesterday
+412:         d = d.subtract(const Duration(days: 1));
+413:       }
+414:       return d;
+415:     } else {
+416:       final h = int.tryParse(_elapsedHoursController.text) ?? 0;
+417:       final m = int.tryParse(_elapsedMinsController.text) ?? 0;
+418:       return now.subtract(Duration(hours: h, minutes: m));
+419:     }
+420:   }
+421: 
+422:   Future<void> _startManualGame() async {
+423:     setState(() => _isLoading = true);
+424: 
+425:     final now = DateTime.now();
+426:     final startTime = _calculateStartTime();
+427: 
+428:     if (startTime.isAfter(now)) {
+429:       _showError('Start time cannot be in the future.');
+430:       setState(() => _isLoading = false);
+431:       return;
+432:     }
+433: 
+434:     final teamA = _teamAControllers.map((c) => c.text.trim()).where((n) => n.isNotEmpty).toList();
+435:     final teamB = _mode == GameMode.team ? _teamBControllers.map((c) => c.text.trim()).where((n) => n.isNotEmpty).toList() : <String>[];
+436: 
+437:     final docRef = FirebaseFirestore.instance.collection('games').doc();
+438: 
+439:     List<GameRound> rounds = [];
+440:     int framesPlayed = 0;
+441: 
+442:     if (_billingType == BillingType.perFrame) {
+443:       framesPlayed = _currentFrame - 1;
+444:       // Add dummy rounds for previously completed frames
+445:       for (int i = 1; i <= framesPlayed; i++) {
+446:         rounds.add(GameRound(
+447:           roundNumber: i,
+448:           roundCost: 0,
+449:           startTime: startTime,
+450:           endTime: startTime,
+451:           durationSeconds: 0,
+452:         ));
+453:       }
+454:       // Add current running round
+455:       rounds.add(GameRound(
+456:         roundNumber: _currentFrame,
+457:         roundCost: 0, // Calculated dynamically later
+458:         startTime: now.subtract(Duration(minutes: _elapsedCurrentFrameMins)),
+459:       ));
+460:     }
+461: 
+462:     final appSettings = ref.read(appSettingsProvider);
+463: 
+464:     final session = GameSession(
+465:       id: docRef.id,
+466:       tableId: _selectedTable!.id,
+467:       tableName: _selectedTable!.name,
+468:       tableType: _selectedTable!.type,
+469:       mode: _mode,
+470:       billingType: _billingType!,
+471:       matchType: _matchType,
+472:       teamA: teamA,
+473:       teamB: teamB,
+474:       status: TableStatus.running,
+475:       startTime: startTime,
+476:       totalFrames: _totalFrames,
+477:       framesPlayed: framesPlayed,
+478:       rounds: rounds,
+479:       employeeId: widget.employeeId,
+480:       date: DateFormat('yyyy-MM-dd').format(startTime),
+481:       isManualEntry: true,
+482:       recordedTime: now,
+483:       pricingSnapshot: appSettings.pricing,
+484:       gameSettingsSnapshot: appSettings.game,
+485:     );
+486: 
+487:     try {
+488:       await ref.read(gameSessionControllerProvider.notifier).startGame(session);
+489:       if (mounted) Navigator.of(context).pop(true);
+490:     } catch (e) {
+491:       if (mounted) _showError('Failed to start manual game: $e');
+492:     } finally {
+493:       if (mounted) setState(() => _isLoading = false);
+494:     }
+495:   }
+496: 
+497:   @override
+498:   Widget build(BuildContext context) {
+499:     final theme = Theme.of(context);
+500:     final tables = ref.watch(resolvedTablesProvider);
+501:     final stepTitles = ['Select Table', 'Start Time', 'Players', 'Billing', 'Frame Setup'];
+502:     final showFrames = _billingType == BillingType.perFrame;
+503:     final totalSteps = showFrames ? 5 : 4;
+504: 
+505:     return Scaffold(
+506:       appBar: AppBar(
+507:         title: const Text('Manual Game Entry'),
+508:         leading: IconButton(
+509:           icon: const Icon(Icons.close),
+510:           onPressed: () => Navigator.of(context).pop(),
+511:         ),
+512:       ),
+513:       body: Column(
+514:         children: [
+515:           // Step Progress
+516:           Padding(
+517:             padding: const EdgeInsets.all(20),
+518:             child: Row(
+519:               children: List.generate(totalSteps, (i) {
+520:                 return Expanded(
+521:                   child: Container(
+522:                     height: 4,
+523:                     margin: EdgeInsets.only(right: i < totalSteps - 1 ? 4 : 0),
+524:                     decoration: BoxDecoration(
+525:                       color: i <= _step ? AppColors.primary : theme.colorScheme.outlineVariant,
+526:                       borderRadius: BorderRadius.circular(4),
+527:                     ),
+528:                   ),
+529:                 );
+530:               }),
+531:             ),
+532:           ),
+533:           Text(
+534:             'Step ${_step + 1} of $totalSteps — ${stepTitles[_step]}',
+535:             style: theme.textTheme.labelMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+536:           ),
+537:           const Gap(16),
+538:           // Content
+539:           Expanded(
+540:             child: SingleChildScrollView(
+541:               padding: const EdgeInsets.symmetric(horizontal: 20),
+542:               child: Builder(builder: (context) {
+543:                 switch (_step) {
+544:                   case 0: return _buildStep0TableSelection(theme, tables);
+545:                   case 1: return _buildStep1TimeSelection(theme);
+546:                   case 2: return _buildStep2Players(theme);
+547:                   case 3: return _buildStep3Billing(theme);
+548:                   case 4: return _buildStep4Frames(theme);
+549:                   default: return const SizedBox();
+550:                 }
+551:               }),
+552:             ),
+553:           ),
+554:           // Actions
+555:           Padding(
+556:             padding: const EdgeInsets.all(20),
+557:             child: Row(
+558:               children: [
+559:                 if (_step > 0)
+560:                   Expanded(
+561:                     child: OutlinedButton(
+562:                       onPressed: () => setState(() => _step--),
+563:                       child: const Text('Back'),
+564:                     ),
+565:                   ),
+566:                 if (_step > 0) const Gap(12),
+567:                 Expanded(
+568:                   flex: 2,
+569:                   child: FilledButton(
+570:                     onPressed: _isLoading ? null : _handleNext,
+571:                     child: _isLoading
+572:                         ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
+573:                         : Text(_step == totalSteps - 1 ? 'Start Game' : 'Next'),
+574:                   ),
+575:                 ),
+576:               ],
+577:             ),
+578:           ),
+579:         ],
+580:       ),
+581:     );
+582:   }
+583: }
+584: 
+585: class _SelectionTile extends StatelessWidget {
+586:   final String title;
+587:   final String? subtitle;
+588:   final bool isSelected;
+589: 
+590:   const _SelectionTile({
+591:     required this.title,
+592:     this.subtitle,
+593:     required this.isSelected,
+594:   });
+595: 
+596:   @override
+597:   Widget build(BuildContext context) {
+598:     final theme = Theme.of(context);
+599:     return Container(
+600:       margin: const EdgeInsets.only(bottom: 10),
+601:       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+602:       decoration: BoxDecoration(
+603:         color: isSelected ? AppColors.primary.withValues(alpha: 0.08) : theme.colorScheme.surfaceContainerHighest,
+604:         borderRadius: BorderRadius.circular(12),
+605:         border: isSelected ? Border.all(color: AppColors.primary, width: 1.5) : Border.all(color: Colors.transparent),
+606:       ),
+607:       child: Row(
+608:         children: [
+609:           Expanded(
+610:             child: Column(
+611:               crossAxisAlignment: CrossAxisAlignment.start,
+612:               children: [
+613:                 Text(
+614:                   title,
+615:                   style: theme.textTheme.titleSmall?.copyWith(
+616:                     color: isSelected ? AppColors.primary : theme.colorScheme.onSurface,
+617:                   ),
+618:                 ),
+619:                 if (subtitle != null) ...[
+620:                   const Gap(2),
+621:                   Text(
+622:                     subtitle!,
+623:                     style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+624:                   ),
+625:                 ],
+626:               ],
+627:             ),
+628:           ),
+629:           if (isSelected) const Icon(Icons.check_circle, color: AppColors.primary),
+630:         ],
+631:       ),
+632:     );
+633:   }
+634: }
+635: 
+The above content shows the entire, complete file contents of the requested file.

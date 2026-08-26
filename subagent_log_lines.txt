@@ -1,0 +1,9 @@
+﻿
+C:\Users\Shuai\.gemini\antigravity\brain\b2ce8c82-43b5-4975-b062-ada293a26729\.system_generated\logs\transcript_full.js
+onl:20:{"step_index":26,"source":"MODEL","type":"GENERIC","status":"DONE","created_at":"2026-08-26T05:16:30Z","content"
+:"Created At: 2026-08-26T10:46:30+05:30\nCompleted At: 2026-08-26T10:46:31+05:30\n{\"name\":\"bill_details_screen.dart\
+",\"sizeBytes\":\"31768\"}\n{\"name\":\"billing_screen.dart\",\"sizeBytes\":\"38343\"}\n{\"name\":\"games_screen.dart\"
+,\"sizeBytes\":\"6400\"}\n{\"name\":\"manual_game_setup_screen.dart\",\"sizeBytes\":\"27915\"}\n{\"name\":\"table_detai
+ls_screen.dart\",\"sizeBytes\":\"55041\"}\n\nSummary: This directory contains 0 subdirectories and 5 files."}
+
+

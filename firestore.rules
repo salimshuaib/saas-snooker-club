@@ -1,0 +1,75 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isSuperAdmin() {
+      return request.auth != null && 
+             'email' in request.auth.token && 
+             request.auth.token.email == 'vibecodewithahmad@gmail.com';
+    }
+
+    function getUserClubId() {
+      return exists(/databases/$(database)/documents/user_clubs/$(request.auth.uid)) 
+             ? get(/databases/$(database)/documents/user_clubs/$(request.auth.uid)).data.clubId 
+             : null;
+    }
+
+    function belongsToClub(clubId) {
+      return isAuthenticated() && getUserClubId() == clubId;
+    }
+
+    // Platform configs
+    match /platform/{configId} {
+      allow read: if true; 
+      allow write: if false; 
+    }
+
+    // Legacy app_config (should be migrated to platform eventually)
+    match /settings/app_config {
+      allow read: if true;
+      allow write: if isSuperAdmin();
+    }
+
+    // Connection ping test
+    match /_connection_test/{docId} {
+      allow write: if true;
+    }
+
+    // User-Club mappings
+    match /user_clubs/{userId} {
+      allow read: if isAuthenticated() && request.auth.uid == userId || isSuperAdmin();
+      allow create: if isSuperAdmin() || belongsToClub(request.resource.data.clubId);
+      allow update: if isSuperAdmin() || (belongsToClub(resource.data.clubId) && belongsToClub(request.resource.data.clubId));
+      allow delete: if isSuperAdmin() || belongsToClub(resource.data.clubId);
+    }
+    
+    // Clubs and their nested collections
+    match /clubs/{clubId} {
+      allow read: if belongsToClub(clubId) || isSuperAdmin();
+      allow write: if belongsToClub(clubId) || isSuperAdmin();
+      
+      // All subcollections inside a club
+      match /{document=**} {
+        allow read, write: if belongsToClub(clubId) || isSuperAdmin();
+      }
+    }
+
+    // Collection Group Queries for Transactions and Payments
+    match /{path=**}/transactions/{transactionId} {
+      allow read: if isAuthenticated() && resource.data.clubId == getUserClubId();
+    }
+
+    match /{path=**}/payments/{paymentId} {
+      allow read: if isAuthenticated() && resource.data.clubId == getUserClubId();
+    }
+    
+    // Allow debug logs for everyone
+    match /debug_logs/{logId} {
+      allow create: if true;
+    }
+  }
+}

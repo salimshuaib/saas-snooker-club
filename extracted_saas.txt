@@ -1,0 +1,30 @@
+Created At: 2026-08-26T21:36:52+05:30
+Completed At: 2026-08-26T21:36:53+05:30
+
+The command exited with code 0.
+Output:
+
+> 25: class _ManualGameSetupScreenState extends ConsumerState<ManualGameSetupScreen> {
+  26:   int _step = 0; 
+  27:   final int _maxSteps = 5;
+  28: 
+  29:   // Step 0: Table Selection
+  30:   TableModel? _selectedTable;
+  31: 
+  32:   // Step 1: Start Time
+  33:   bool _useActualTime = true; // true = Option A (Time Picker), false = Option B (Elapsed Hours/Mins)
+  34:   TimeOfDay? _actualStartTime;
+  35:   final TextEditingController _elapsedHoursController = TextEditingController();
+  36:   final TextEditingController _elapsedMinsController = TextEditingController();
+  37: 
+  38:   // Step 2: Mode & Players
+  39:   GameMode _mode = GameMode.solo;
+  40:   final List<TextEditingController> _teamAControllers = [TextEditingController()];
+  41:   final List<TextEditingController> _teamBControllers = [TextEditingController()];
+  42: 
+  43:   // Step 3: Billing & Match Type
+  44:   BillingType? _billingType;
+  45:   MatchType _matchType = TablePricingConfig.defaultMatchType;
+
+
+

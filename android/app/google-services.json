@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "476933292121",
+    "project_id": "saas-snooker-club",
+    "storage_bucket": "saas-snooker-club.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:476933292121:android:6c9176cc5ae2d72136f148",
+        "android_client_info": {
+          "package_name": "com.example.snooker_club"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCZHvdaUQHqrNrHeu3jjZABjbl8dRzV39M"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

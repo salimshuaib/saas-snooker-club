@@ -1,0 +1,4 @@
+app_id: 4dab8f57-8b6c-4e29-b3b2-3611ad4ec31a
+flavors:
+  production: 4dab8f57-8b6c-4e29-b3b2-3611ad4ec31a
+  preview: 4dab8f57-8b6c-4e29-b3b2-3611ad4ec31a
