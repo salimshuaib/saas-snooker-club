@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:gap/gap.dart';
 import 'package:intl/intl.dart';
 import 'package:snooker_club/core/providers/app_providers.dart';
+import 'package:snooker_club/core/providers/club_scope_provider.dart';
 import 'package:snooker_club/core/routes/route_names.dart';
 import 'package:snooker_club/core/theme/app_colors.dart';
 import 'package:snooker_club/core/widgets/cards/info_card.dart';
@@ -36,6 +37,8 @@ class DashboardScreen extends ConsumerWidget {
     // Get actual staff member from state
     final currentStaff = ref.watch(currentStaffProvider).value;
     final employeeName = currentStaff?.name ?? 'Admin User';
+    
+    final clubAsync = ref.watch(clubProfileProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -47,7 +50,7 @@ class DashboardScreen extends ConsumerWidget {
             context.push(RouteNames.more);
           },
         ),
-        title: Text(AppLocalizations.of(context)!.appTitle),
+        title: Text(clubAsync.value?.clubName ?? AppLocalizations.of(context)!.appTitle),
         actions: [
           Center(
             child: Padding(
@@ -136,7 +139,7 @@ class DashboardScreen extends ConsumerWidget {
                               Text(
                                 updateState.updateMessage.isNotEmpty
                                     ? updateState.updateMessage
-                                    : 'A new version of Sharma Billiards is ready to install.',
+                                    : 'A new version of S&B Manager is ready to install.',
                                 style: theme.textTheme.bodySmall?.copyWith(
                                   color: theme.colorScheme.onSurfaceVariant,
                                 ),

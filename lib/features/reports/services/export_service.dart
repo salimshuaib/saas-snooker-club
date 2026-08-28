@@ -11,6 +11,7 @@ import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:snooker_club/core/providers/app_providers.dart';
+import 'package:snooker_club/core/providers/club_scope_provider.dart';
 import 'package:snooker_club/features/analytics/providers/analytics_providers.dart';
 import 'package:snooker_club/features/reports/services/export_providers.dart';
 
@@ -112,7 +113,8 @@ class ExportService {
         if (context.mounted) {
           _hideLoading(context);
           ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Excel Generated Successfully')));
-          Share.shareXFiles([xfile], text: 'Sharma Billiards Financial Excel Report');
+          final clubName = ref.read(clubProfileProvider).value?.clubName ?? 'S&B Manager';
+          Share.shareXFiles([xfile], text: '$clubName Financial Excel Report');
         }
       }
     } catch (e) {
@@ -133,6 +135,8 @@ class ExportService {
       final font = await PdfGoogleFonts.robotoRegular();
       final boldFont = await PdfGoogleFonts.robotoBold();
 
+      final clubName = ref.read(clubProfileProvider).value?.clubName ?? 'S&B Manager';
+
       final pdf = pw.Document();
 
       pdf.addPage(pw.MultiPage(
@@ -144,7 +148,7 @@ class ExportService {
         build: (pw.Context ctx) {
           final symbol = currency.symbol;
           return [
-            pw.Header(level: 0, child: pw.Text('Sharma Billiards - Financial Report', style: pw.TextStyle(fontSize: 24, fontWeight: pw.FontWeight.bold))),
+            pw.Header(level: 0, child: pw.Text('$clubName - Financial Report', style: pw.TextStyle(fontSize: 24, fontWeight: pw.FontWeight.bold))),
             pw.Text('Date Range: ${DateFormat("yyyy-MM-dd").format(range.start)} to ${DateFormat("yyyy-MM-dd").format(range.end)}'),
             pw.Text('Generated: ${DateFormat("yyyy-MM-dd HH:mm").format(DateTime.now())}'),
             pw.SizedBox(height: 20),
@@ -204,7 +208,8 @@ class ExportService {
       if (context.mounted) {
         _hideLoading(context);
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('PDF Generated Successfully')));
-        Share.shareXFiles([xfile], text: 'Sharma Billiards Financial Report');
+        final clubName = ref.read(clubProfileProvider).value?.clubName ?? 'S&B Manager';
+        Share.shareXFiles([xfile], text: '$clubName Financial Report');
       }
     } catch (e) {
       if (context.mounted) {
@@ -259,7 +264,8 @@ class ExportService {
       if (context.mounted) {
         _hideLoading(context);
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('CSV Generated Successfully')));
-        Share.shareXFiles([xfile], text: 'Sharma Billiards Games CSV Export');
+        final clubName = ref.read(clubProfileProvider).value?.clubName ?? 'S&B Manager';
+        Share.shareXFiles([xfile], text: '$clubName Games CSV Export');
       }
     } catch (e) {
       if (context.mounted) {

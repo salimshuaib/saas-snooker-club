@@ -406,6 +406,71 @@ class NotificationSettings {
   }
 }
 
+class FeatureFlags {
+  final bool raceEnabled;
+  final bool rummyEnabled;
+  final bool inventoryEnabled;
+  final bool quickSalesEnabled;
+  final bool creditEnabled;
+  final bool perMinuteEnabled;
+  final bool perFrameEnabled;
+
+  const FeatureFlags({
+    this.raceEnabled = true,
+    this.rummyEnabled = true,
+    this.inventoryEnabled = true,
+    this.quickSalesEnabled = true,
+    this.creditEnabled = true,
+    this.perMinuteEnabled = true,
+    this.perFrameEnabled = true,
+  });
+
+  FeatureFlags copyWith({
+    bool? raceEnabled,
+    bool? rummyEnabled,
+    bool? inventoryEnabled,
+    bool? quickSalesEnabled,
+    bool? creditEnabled,
+    bool? perMinuteEnabled,
+    bool? perFrameEnabled,
+  }) {
+    return FeatureFlags(
+      raceEnabled: raceEnabled ?? this.raceEnabled,
+      rummyEnabled: rummyEnabled ?? this.rummyEnabled,
+      inventoryEnabled: inventoryEnabled ?? this.inventoryEnabled,
+      quickSalesEnabled: quickSalesEnabled ?? this.quickSalesEnabled,
+      creditEnabled: creditEnabled ?? this.creditEnabled,
+      perMinuteEnabled: perMinuteEnabled ?? this.perMinuteEnabled,
+      perFrameEnabled: perFrameEnabled ?? this.perFrameEnabled,
+    );
+  }
+
+  Map<String, dynamic> toMap() {
+    return {
+      'raceEnabled': raceEnabled,
+      'rummyEnabled': rummyEnabled,
+      'inventoryEnabled': inventoryEnabled,
+      'quickSalesEnabled': quickSalesEnabled,
+      'creditEnabled': creditEnabled,
+      'perMinuteEnabled': perMinuteEnabled,
+      'perFrameEnabled': perFrameEnabled,
+    };
+  }
+
+  factory FeatureFlags.fromMap(Map<String, dynamic>? map) {
+    if (map == null) return const FeatureFlags();
+    return FeatureFlags(
+      raceEnabled: map['raceEnabled'] as bool? ?? true,
+      rummyEnabled: map['rummyEnabled'] as bool? ?? true,
+      inventoryEnabled: map['inventoryEnabled'] as bool? ?? true,
+      quickSalesEnabled: map['quickSalesEnabled'] as bool? ?? true,
+      creditEnabled: map['creditEnabled'] as bool? ?? true,
+      perMinuteEnabled: map['perMinuteEnabled'] as bool? ?? true,
+      perFrameEnabled: map['perFrameEnabled'] as bool? ?? true,
+    );
+  }
+}
+
 class AppSettings {
   final BusinessSettings business;
   final GameSettings game;
@@ -413,6 +478,7 @@ class AppSettings {
   final InventorySettings inventory;
   final SecuritySettings security;
   final NotificationSettings notifications;
+  final FeatureFlags features;
   final DateTime? lastSyncTime;
 
   const AppSettings({
@@ -422,6 +488,7 @@ class AppSettings {
     this.inventory = const InventorySettings(),
     this.security = const SecuritySettings(),
     this.notifications = const NotificationSettings(),
+    this.features = const FeatureFlags(),
     this.lastSyncTime,
   });
 
@@ -432,6 +499,7 @@ class AppSettings {
     InventorySettings? inventory,
     SecuritySettings? security,
     NotificationSettings? notifications,
+    FeatureFlags? features,
     DateTime? lastSyncTime,
   }) {
     return AppSettings(
@@ -441,6 +509,7 @@ class AppSettings {
       inventory: inventory ?? this.inventory,
       security: security ?? this.security,
       notifications: notifications ?? this.notifications,
+      features: features ?? this.features,
       lastSyncTime: lastSyncTime ?? this.lastSyncTime,
     );
   }
@@ -453,6 +522,7 @@ class AppSettings {
       'inventory': inventory.toMap(),
       'security': security.toMap(),
       'notifications': notifications.toMap(),
+      'features': features.toMap(),
       'lastSyncTime': lastSyncTime?.toIso8601String(),
     };
   }
@@ -466,7 +536,9 @@ class AppSettings {
       inventory: InventorySettings.fromMap(map['inventory'] as Map<String, dynamic>?),
       security: SecuritySettings.fromMap(map['security'] as Map<String, dynamic>?),
       notifications: NotificationSettings.fromMap(map['notifications'] as Map<String, dynamic>?),
+      features: FeatureFlags.fromMap(map['features'] as Map<String, dynamic>?),
       lastSyncTime: map['lastSyncTime'] != null ? DateTime.tryParse(map['lastSyncTime'] as String) : null,
     );
   }
 }
+

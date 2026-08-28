@@ -9,7 +9,7 @@ class AppLocalizationsHi extends AppLocalizations {
   AppLocalizationsHi([String locale = 'hi']) : super(locale);
 
   @override
-  String get appTitle => '?????? ????';
+  String get appTitle => 'S&B Manager';
 
   @override
   String get login => '??? ?? ????';

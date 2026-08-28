@@ -133,3 +133,17 @@ class AppSettingsNotifier extends Notifier<AppSettings> {
     await ref.read(settingsRepositoryProvider).clearLocalCache();
   }
 }
+
+final clubFeatureProvider = Provider.family<bool, String>((ref, featureKey) {
+  final settings = ref.watch(appSettingsProvider);
+  switch (featureKey) {
+    case 'raceEnabled': return settings.features.raceEnabled;
+    case 'rummyEnabled': return settings.features.rummyEnabled;
+    case 'inventoryEnabled': return settings.features.inventoryEnabled;
+    case 'quickSalesEnabled': return settings.features.quickSalesEnabled;
+    case 'creditEnabled': return settings.features.creditEnabled;
+    case 'perMinuteEnabled': return settings.features.perMinuteEnabled;
+    case 'perFrameEnabled': return settings.features.perFrameEnabled;
+    default: return true;
+  }
+});
