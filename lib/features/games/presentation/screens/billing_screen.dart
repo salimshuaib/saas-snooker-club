@@ -95,23 +95,17 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
       }
     } else if (_session.gameType == GameType.race) {
       if (_session.mode == GameMode.solo) {
-        // Race Solo: All losers (0 points) split the bill
-        final losers = _session.allPlayers.where((p) => (_session.playerPoints?[p] ?? 0) == 0).toList();
-        if (losers.isNotEmpty) {
-          final split = totalToSplit / losers.length;
-          for (final p in losers) liabilities[p] = split;
+        if (_raceSelectedPayingPlayer != null) {
+          liabilities[_raceSelectedPayingPlayer!] = totalToSplit;
         }
       } else {
-        // Race Team: Losing team (0 points) splits bill
-        final teamAPts = _session.playerPoints?['Team A'] ?? 0;
-        final teamBPts = _session.playerPoints?['Team B'] ?? 0;
-        final losingTeam = teamAPts <= teamBPts
-            ? _session.teamA
-            : _session.teamB;
-        if (losingTeam.isNotEmpty) {
-          final split = totalToSplit / losingTeam.length;
-          for (final p in losingTeam) {
-            liabilities[p] = split;
+        if (_raceSelectedWinnerTeam != null) {
+          final losingTeam = _raceSelectedWinnerTeam == 'Team A' ? _session.teamB : _session.teamA;
+          if (losingTeam.isNotEmpty) {
+            final split = totalToSplit / losingTeam.length;
+            for (final p in losingTeam) {
+              liabilities[p] = split;
+            }
           }
         }
       }
@@ -411,7 +405,7 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
                 children: _session.mode == GameMode.team
                     ? [
                         _WinnerTile(
-                          label: 'Team A ()',
+                          label: 'Team A (${_session.teamA.join(", ")})',
                           isSelected: _raceSelectedWinnerTeam == 'Team A',
                           onTap: () {
                             setState(() => _raceSelectedWinnerTeam = 'Team A');
@@ -419,7 +413,7 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
                           },
                         ),
                         _WinnerTile(
-                          label: 'Team B ()',
+                          label: 'Team B (${_session.teamB.join(", ")})',
                           isSelected: _raceSelectedWinnerTeam == 'Team B',
                           onTap: () {
                             setState(() => _raceSelectedWinnerTeam = 'Team B');
