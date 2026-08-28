@@ -310,19 +310,19 @@ String _getTrendLabel(DateTime date, AnalyticsTimeFilter filter) {
 // â”€â”€â”€ Complete Analytics Provider â”€â”€â”€
 
 CompleteAnalyticsData getCompleteAnalyticsData(dynamic ref) {
-  final timeRange = ref.watch(analyticsTimeRangeProvider);
-  final outstanding = ref.watch(totalOutstandingCreditProvider);
+  final AnalyticsTimeRange timeRange = ref.watch(analyticsTimeRangeProvider);
+  final double outstanding = ref.watch(totalOutstandingCreditProvider);
   
-  final games = ref.watch(analyticsGamesStreamProvider).value ?? [];
-  final quickSales = ref.watch(analyticsQuickSalesStreamProvider).value ?? [];
-  final payments = ref.watch(analyticsPaymentsStreamProvider).value ?? [];
+  final List<GameSession> games = ref.watch(analyticsGamesStreamProvider).value ?? <GameSession>[];
+  final List<QuickSale> quickSales = ref.watch(analyticsQuickSalesStreamProvider).value ?? <QuickSale>[];
+  final List<PaymentHistory> payments = ref.watch(analyticsPaymentsStreamProvider).value ?? <PaymentHistory>[];
   
-  final prevGames = ref.watch(previousGamesStreamProvider).value ?? [];
-  final prevQuickSales = ref.watch(previousQuickSalesStreamProvider).value ?? [];
-  final prevPayments = ref.watch(previousPaymentsStreamProvider).value ?? [];
+  final List<GameSession> prevGames = ref.watch(previousGamesStreamProvider).value ?? <GameSession>[];
+  final List<QuickSale> prevQuickSales = ref.watch(previousQuickSalesStreamProvider).value ?? <QuickSale>[];
+  final List<PaymentHistory> prevPayments = ref.watch(previousPaymentsStreamProvider).value ?? <PaymentHistory>[];
   
-  final inventoryList = ref.watch(inventoryItemsProvider).value ?? [];
-  final allCustomers = ref.watch(allCustomersProvider).value ?? [];
+  final List<InventoryItem> inventoryList = ref.watch(inventoryItemsProvider).value ?? <InventoryItem>[];
+  final List<PlayerProfile> allCustomers = ref.watch(allCustomersProvider).value ?? <PlayerProfile>[];
 
   final revenueOverview = _computeRevenue(games, quickSales, payments, outstanding);
   final prevOverview = _computeRevenue(prevGames, prevQuickSales, prevPayments, outstanding);
