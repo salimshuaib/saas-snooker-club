@@ -35,7 +35,11 @@ class SettingsRepository {
           return const AppSettings();
         })
         .handleError((error) {
-          AppLogger.error('Error streaming settings from Firestore: $error');
+          if (error is FirebaseException && error.code == 'permission-denied') {
+            AppLogger.info('Settings stream closed due to logout (permission-denied)');
+          } else {
+            AppLogger.error('Error streaming settings from Firestore: $error');
+          }
         });
   }
 

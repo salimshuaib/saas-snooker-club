@@ -36,29 +36,41 @@ class _MainScreenState extends ConsumerState<MainScreen> {
     });
   }
 
+  final List<ProviderSubscription> _subscriptions = [];
+
   @override
   void initState() {
     super.initState();
-    ref.listenManual<String?>(clubIdProvider, (previous, next) {
-      if (next != null) {
-        _triggerInitialization(next);
-      }
-    }, fireImmediately: true);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _subscriptions.add(ref.listenManual<String?>(clubIdProvider, (previous, next) {
+        if (next != null) {
+          _triggerInitialization(next);
+        }
+      }, fireImmediately: true));
 
-    // Keep critical providers active at the root level to prevent 
-    // Riverpod TickerMode crashes when switching GoRouter tabs or dialogs.
-    // Using listenManual bypasses TickerMode pausing completely.
-    ref.listenManual(tablesProvider, (_, __) {});
-    ref.listenManual(resolvedTablesProvider, (_, __) {});
-    ref.listenManual(runningTablesCountProvider, (_, __) {});
-    ref.listenManual(availableTablesCountProvider, (_, __) {});
-    ref.listenManual(appSettingsProvider, (_, __) {});
-    ref.listenManual(todaysGamesRevenueStreamProvider, (_, __) {});
-    ref.listenManual(pendingCreditsProvider, (_, __) {});
-    ref.listenManual(todaysQuickSalesCountProvider, (_, __) {});
-    ref.listenManual(inventoryItemsProvider, (_, __) {});
-    ref.listenManual(currentStaffProvider, (_, __) {});
-    ref.listenManual(updateStateProvider, (_, __) {});
+      // Keep critical providers active at the root level to prevent 
+      // Riverpod TickerMode crashes when switching GoRouter tabs or dialogs.
+      // Using listenManual bypasses TickerMode pausing completely.
+      _subscriptions.add(ref.listenManual(tablesProvider, (_, __) {}));
+      _subscriptions.add(ref.listenManual(resolvedTablesProvider, (_, __) {}));
+      _subscriptions.add(ref.listenManual(runningTablesCountProvider, (_, __) {}));
+      _subscriptions.add(ref.listenManual(availableTablesCountProvider, (_, __) {}));
+      _subscriptions.add(ref.listenManual(appSettingsProvider, (_, __) {}));
+      _subscriptions.add(ref.listenManual(todaysGamesRevenueStreamProvider, (_, __) {}));
+      _subscriptions.add(ref.listenManual(pendingCreditsProvider, (_, __) {}));
+      _subscriptions.add(ref.listenManual(todaysQuickSalesCountProvider, (_, __) {}));
+      _subscriptions.add(ref.listenManual(inventoryItemsProvider, (_, __) {}));
+      _subscriptions.add(ref.listenManual(currentStaffProvider, (_, __) {}));
+      _subscriptions.add(ref.listenManual(updateStateProvider, (_, __) {}));
+    });
+  }
+
+  @override
+  void dispose() {
+    for (final sub in _subscriptions) {
+      sub.close();
+    }
+    super.dispose();
   }
 
   void _onItemTapped(int index) {
