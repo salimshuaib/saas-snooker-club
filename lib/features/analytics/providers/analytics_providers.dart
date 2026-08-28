@@ -309,7 +309,7 @@ String _getTrendLabel(DateTime date, AnalyticsTimeFilter filter) {
 
 // â”€â”€â”€ Complete Analytics Provider â”€â”€â”€
 
-CompleteAnalyticsData getCompleteAnalyticsData(Ref ref) {
+CompleteAnalyticsData getCompleteAnalyticsData(dynamic ref) {
   final timeRange = ref.watch(analyticsTimeRangeProvider);
   final outstanding = ref.watch(totalOutstandingCreditProvider);
   
@@ -619,5 +619,5 @@ CompleteAnalyticsData getCompleteAnalyticsData(Ref ref) {
       grossProfit: revenueOverview.totalBilled - totalCogs,
     ),
   );
-});
+}
 
