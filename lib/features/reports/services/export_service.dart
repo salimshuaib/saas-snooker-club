@@ -21,7 +21,7 @@ class ExportService {
     try {
       final range = ref.read(analyticsTimeRangeProvider);
       
-      final analyticsData = ref.read(completeAnalyticsProvider);
+      final analyticsData = getCompleteAnalyticsData(ref);
       final gamesAsync = ref.read(analyticsGamesStreamProvider);
       final quickSalesAsync = ref.read(analyticsQuickSalesStreamProvider);
       final creditsAsync = ref.read(reportCreditsStreamProvider);
@@ -130,7 +130,7 @@ class ExportService {
     try {
       final currency = ref.read(currencyProvider);
       final range = ref.read(analyticsTimeRangeProvider);
-      final analyticsData = ref.read(completeAnalyticsProvider);
+      final analyticsData = getCompleteAnalyticsData(ref);
 
       final font = await PdfGoogleFonts.robotoRegular();
       final boldFont = await PdfGoogleFonts.robotoBold();

@@ -15,7 +15,7 @@ class ReportsScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final currency = ref.watch(currencyProvider);
-    final analyticsData = ref.watch(completeAnalyticsProvider);
+    final analyticsData = getCompleteAnalyticsData(ref);
 
     return Scaffold(
       backgroundColor: AppColors.darkBackground,

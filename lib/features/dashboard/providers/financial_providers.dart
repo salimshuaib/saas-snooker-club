@@ -3,6 +3,6 @@ import 'package:snooker_club/features/analytics/providers/analytics_providers.da
 import 'package:snooker_club/features/analytics/domain/models/analytics_models.dart';
 
 final financialSummaryProvider = Provider<AsyncValue<RevenueOverviewData>>((ref) {
-  final data = ref.watch(completeAnalyticsProvider);
+  final data = getCompleteAnalyticsData(ref);
   return AsyncValue.data(data.revenueOverview);
 });

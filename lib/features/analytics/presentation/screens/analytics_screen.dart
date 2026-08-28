@@ -25,7 +25,7 @@ class AnalyticsScreen extends ConsumerStatefulWidget {
 class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen> {
   @override
   Widget build(BuildContext context) {
-    final asyncData = ref.watch(completeAnalyticsProvider);
+    final asyncData = getCompleteAnalyticsData(ref);
     final currency = ref.watch(currencyProvider);
 
     return DefaultTabController(

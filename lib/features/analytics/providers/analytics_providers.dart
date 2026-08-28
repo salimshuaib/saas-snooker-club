@@ -309,7 +309,7 @@ String _getTrendLabel(DateTime date, AnalyticsTimeFilter filter) {
 
 // â”€â”€â”€ Complete Analytics Provider â”€â”€â”€
 
-final completeAnalyticsProvider = Provider<CompleteAnalyticsData>((ref) {
+CompleteAnalyticsData getCompleteAnalyticsData(Ref ref) {
   final timeRange = ref.watch(analyticsTimeRangeProvider);
   final outstanding = ref.watch(totalOutstandingCreditProvider);
   
