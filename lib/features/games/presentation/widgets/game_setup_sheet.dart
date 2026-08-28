@@ -483,6 +483,9 @@ class _GameSetupSheetState extends ConsumerState<GameSetupSheet> {
 
       final now = DateTime.now();
       final dateStr = '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
+      
+      final appSettings = ref.read(appSettingsProvider);
+
       final gameSession = GameSession(
         date: dateStr,
         id: FirebaseFirestore.instance.collection('games').doc().id,
@@ -506,6 +509,8 @@ class _GameSetupSheetState extends ConsumerState<GameSetupSheet> {
         pauseTimes: const [],
         resumeTimes: const [],
         customPrice: _isCustomPrice ? double.tryParse(_customPriceController.text) : null,
+        pricingSnapshot: appSettings.pricing,
+        gameSettingsSnapshot: appSettings.game,
       );
 
       final creditRepo = ref.read(creditRepositoryProvider);

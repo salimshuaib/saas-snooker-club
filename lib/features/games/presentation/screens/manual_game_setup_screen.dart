@@ -502,16 +502,13 @@ class _ManualGameSetupScreenState extends ConsumerState<ManualGameSetupScreen> {
     }
 
     final appSettings = ref.read(appSettingsProvider);
-    var pricingSnapshot = appSettings.pricing;
+    final pricingSnapshot = appSettings.pricing;
+    double? customPrice;
 
     if (actualBillingType == BillingType.perMinute && _useCustomPrice) {
-      final customPrice = double.tryParse(_customPriceController.text);
-      if (customPrice != null && customPrice > 0) {
-        pricingSnapshot = pricingSnapshot.copyWith(
-          snookerPerMinute: customPrice,
-          indianPoolPerMinute: customPrice,
-          americanPoolPerMinute: customPrice,
-        );
+      final parsed = double.tryParse(_customPriceController.text);
+      if (parsed != null && parsed > 0) {
+        customPrice = parsed;
       }
     }
 
@@ -540,6 +537,7 @@ class _ManualGameSetupScreenState extends ConsumerState<ManualGameSetupScreen> {
       recordedTime: now,
       pricingSnapshot: pricingSnapshot,
       gameSettingsSnapshot: appSettings.game,
+      customPrice: customPrice,
     );
 
     setState(() => _isLoading = false);

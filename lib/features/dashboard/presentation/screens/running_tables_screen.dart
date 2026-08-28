@@ -131,12 +131,21 @@ class _RunningGameDetails extends ConsumerWidget {
       pricingConfig: game.pricingSnapshot ?? appSettings.pricing,
       gameConfig: game.gameSettingsSnapshot ?? appSettings.game,
       completedRounds: game.rounds,
+      customPrice: game.customPrice,
     );
     final ordersTotal = game.orders.fold(0.0, (sum, order) => sum + order.total);
     final liveBill = breakdown.totalCharge + ordersTotal;
 
     final players = game.allPlayers.isEmpty ? 'No Players Assigned' : game.allPlayers.join(', ');
     final isRunning = table.status == TableStatus.running;
+
+    String billingTypeStr = game.billingType.displayName;
+    if (game.billingType == BillingType.perMinute) {
+      final rate = game.customPrice ?? TablePricingConfig.getPerMinutePrice(
+        game.tableType, game.gameType, game.pricingSnapshot ?? appSettings.pricing
+      );
+      billingTypeStr += ' (₹${rate.toStringAsFixed(2)}/min)';
+    }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -183,7 +192,7 @@ class _RunningGameDetails extends ConsumerWidget {
         ),
         const Gap(6),
         Text(
-          '${table.type.displayName} • ${game.matchType.displayName} • ${game.billingType.displayName}',
+          '${table.type.displayName} • ${game.matchType.displayName} • $billingTypeStr',
           style: theme.textTheme.bodySmall?.copyWith(
             color: theme.colorScheme.onSurfaceVariant,
             fontWeight: FontWeight.w600,

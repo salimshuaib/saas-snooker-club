@@ -486,8 +486,13 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
                         '${TablePricingConfig.frameGracePeriodMinutes} Mins / Frame',
                   ),
                 ] else ...[
+                  if (_session.billingType == BillingType.perMinute)
+                    _InfoRow(
+                      label: 'Rate',
+                      value: '₹${(_session.customPrice ?? TablePricingConfig.getPerMinutePrice(_session.tableType, _session.gameType, _session.pricingSnapshot ?? appSettings.pricing)).toStringAsFixed(2)} / min',
+                    ),
                   _InfoRow(
-                    label: 'Package Charge',
+                    label: 'Base Charge',
                     value: '₹${_baseGameCharge.toStringAsFixed(2)}',
                   ),
                 ],

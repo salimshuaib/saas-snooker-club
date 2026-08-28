@@ -414,6 +414,7 @@ class _ActiveGameCardState extends ConsumerState<_ActiveGameCard> {
                   pricingConfig: game.pricingSnapshot ?? appSettings.pricing,
                   gameConfig: game.gameSettingsSnapshot ?? appSettings.game,
                   completedRounds: game.rounds,
+                  customPrice: game.customPrice,
                 );
                 final h = (seconds ~/ 3600).toString().padLeft(2, '0');
                 final m = ((seconds % 3600) ~/ 60).toString().padLeft(2, '0');
@@ -436,11 +437,22 @@ class _ActiveGameCardState extends ConsumerState<_ActiveGameCard> {
                             letterSpacing: 2,
                           ),
                         ),
-                        Text(
-                          game.billingType.displayName,
-                          style: theme.textTheme.labelSmall?.copyWith(
-                            color: theme.colorScheme.onSurfaceVariant,
-                          ),
+                        Builder(
+                          builder: (context) {
+                            String displayStr = game.billingType.displayName;
+                            if (game.billingType == BillingType.perMinute) {
+                              final rate = game.customPrice ?? TablePricingConfig.getPerMinutePrice(
+                                game.tableType, game.gameType, game.pricingSnapshot ?? appSettings.pricing
+                              );
+                              displayStr += ' • ₹${rate.toStringAsFixed(2)}/min';
+                            }
+                            return Text(
+                              displayStr,
+                              style: theme.textTheme.labelSmall?.copyWith(
+                                color: theme.colorScheme.onSurfaceVariant,
+                              ),
+                            );
+                          }
                         ),
                       ],
                     ),
@@ -845,7 +857,7 @@ class _ActiveGameCardState extends ConsumerState<_ActiveGameCard> {
     final int overtimeMins = overtimeSecs > 0
         ? (overtimeSecs / 60.0).ceil()
         : 0;
-    final double perMinRate = TablePricingConfig.getPerMinutePrice(
+    final double perMinRate = game.customPrice ?? TablePricingConfig.getPerMinutePrice(
       game.tableType,
       game.gameType,
       pricing,
