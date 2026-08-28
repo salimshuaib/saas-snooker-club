@@ -256,6 +256,7 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final appSettings = ref.watch(appSettingsProvider);
     final currentSum = _customLiabilities.values.fold<double>(
       0.0,
       (s, v) => s + v,
