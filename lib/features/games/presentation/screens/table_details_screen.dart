@@ -869,6 +869,15 @@ class _ActiveGameCardState extends ConsumerState<_ActiveGameCard> {
   }
 
   Future<void> _handleEndGame(GameSession game, BuildContext context) async {
+    if (game.gameType == GameType.race) {
+      if (mounted && context.mounted) {
+        await Navigator.of(context).push(
+          MaterialPageRoute(builder: (_) => BillingScreen(session: game)),
+        );
+      }
+      return;
+    }
+
     if (game.billingType == BillingType.perFrame) {
       if (game.matchType == MatchType.loserPays) {
         if (!context.mounted) return;
@@ -1006,7 +1015,8 @@ class _ActiveGameCardState extends ConsumerState<_ActiveGameCard> {
 
 class _RoundCompletionDialog extends StatefulWidget {
   final GameSession game;
-  const _RoundCompletionDialog({required this.game});
+  final bool isRace;
+  const _RoundCompletionDialog({required this.game, this.isRace = false});
 
   @override
   State<_RoundCompletionDialog> createState() => _RoundCompletionDialogState();

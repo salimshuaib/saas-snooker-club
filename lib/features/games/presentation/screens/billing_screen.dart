@@ -28,6 +28,9 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
   late Map<String, double> _customLiabilities;
   bool _isProcessing = false;
   
+  String? _raceSelectedWinnerTeam;
+  String? _raceSelectedPayingPlayer;
+  
   late TextEditingController _finalAmountController;
   bool _isFinalAmountInitialized = false;
   
@@ -45,6 +48,14 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
     _playerPaymentMethods = {
       for (final p in _session.allPlayers) p: PaymentMethod.cash,
     };
+    if (_session.gameType == GameType.race) {
+      if (_session.mode == GameMode.team) {
+        _raceSelectedWinnerTeam = 'Team A';
+      } else if (_session.allPlayers.isNotEmpty) {
+        // By default, the first player pays
+        _raceSelectedPayingPlayer = _session.allPlayers.first;
+      }
+    }
     // Initialization of _customLiabilities will happen in didChangeDependencies
     // to safely access ref.read for pricing breakdown
   }
@@ -84,19 +95,14 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
       }
     } else if (_session.gameType == GameType.race) {
       if (_session.mode == GameMode.solo) {
-        // Race Solo: Loser (lowest points) pays 100%
-        String? loser;
-        int lowestPoints = 999999;
-        for (final p in _session.allPlayers) {
-          final pts = _session.playerPoints?[p] ?? 0;
-          if (pts < lowestPoints) {
-            lowestPoints = pts;
-            loser = p;
-          }
+        // Race Solo: All losers (0 points) split the bill
+        final losers = _session.allPlayers.where((p) => (_session.playerPoints?[p] ?? 0) == 0).toList();
+        if (losers.isNotEmpty) {
+          final split = totalToSplit / losers.length;
+          for (final p in losers) liabilities[p] = split;
         }
-        if (loser != null) liabilities[loser] = totalToSplit;
       } else {
-        // Race Team: Losing team (lowest points) splits bill
+        // Race Team: Losing team (0 points) splits bill
         final teamAPts = _session.playerPoints?['Team A'] ?? 0;
         final teamBPts = _session.playerPoints?['Team B'] ?? 0;
         final losingTeam = teamAPts <= teamBPts
@@ -185,6 +191,7 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
       pricingConfig: _session.pricingSnapshot ?? appSettings.pricing,
       gameConfig: _session.gameSettingsSnapshot ?? appSettings.game,
       completedRounds: _session.rounds,
+      customPrice: _session.customPrice,
     );
   }
 
@@ -386,6 +393,49 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
                               label: p,
                               isSelected: _winnerId == p,
                               onTap: () => setState(() => _winnerId = p),
+                            ),
+                          )
+                          .toList(),
+              ),
+              const Gap(16),
+            ],
+
+            // ── Race Winner Selection ──
+            if (_session.gameType == GameType.race) ...[
+              Text(
+                _session.mode == GameMode.team ? 'Who Won?' : 'Who Will Pay?',
+                style: theme.textTheme.titleMedium,
+              ),
+              const Gap(8),
+              _SectionCard(
+                children: _session.mode == GameMode.team
+                    ? [
+                        _WinnerTile(
+                          label: 'Team A ()',
+                          isSelected: _raceSelectedWinnerTeam == 'Team A',
+                          onTap: () {
+                            setState(() => _raceSelectedWinnerTeam = 'Team A');
+                            _initializeLiabilities();
+                          },
+                        ),
+                        _WinnerTile(
+                          label: 'Team B ()',
+                          isSelected: _raceSelectedWinnerTeam == 'Team B',
+                          onTap: () {
+                            setState(() => _raceSelectedWinnerTeam = 'Team B');
+                            _initializeLiabilities();
+                          },
+                        ),
+                      ]
+                    : _session.allPlayers
+                          .map(
+                            (p) => _WinnerTile(
+                              label: p,
+                              isSelected: _raceSelectedPayingPlayer == p,
+                              onTap: () {
+                                setState(() => _raceSelectedPayingPlayer = p);
+                                _initializeLiabilities();
+                              },
                             ),
                           )
                           .toList(),
