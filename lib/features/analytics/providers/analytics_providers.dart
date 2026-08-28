@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
@@ -163,24 +163,30 @@ final analyticsPreviousTimeRangeProvider = Provider<AnalyticsTimeRange>((ref) {
 
 // â”€â”€â”€ Current Streams â”€â”€â”€
 
-final analyticsGamesStreamProvider = StreamProvider<List<GameSession>>((ref) {
+final analyticsGamesStreamProvider = StreamProvider<List<GameSession>>((ref) async* {
   final tr = ref.watch(analyticsTimeRangeProvider);
-  return ref.watch(gamesRepositoryProvider).watchGamesByDateRange(tr.start, tr.end);
+  await Future.microtask(() {});
+  yield* ref.watch(gamesRepositoryProvider).watchGamesByDateRange(tr.start, tr.end);
 });
 
-final analyticsQuickSalesStreamProvider = StreamProvider<List<QuickSale>>((ref) {
+final analyticsQuickSalesStreamProvider = StreamProvider<List<QuickSale>>((ref) async* {
   final tr = ref.watch(analyticsTimeRangeProvider);
-  return ref.watch(quickSalesRepositoryProvider).watchQuickSalesByDateRange(tr.start, tr.end);
+  await Future.microtask(() {});
+  yield* ref.watch(quickSalesRepositoryProvider).watchQuickSalesByDateRange(tr.start, tr.end);
 });
 
-final analyticsPaymentsStreamProvider = StreamProvider<List<PaymentHistory>>((ref) {
+final analyticsPaymentsStreamProvider = StreamProvider<List<PaymentHistory>>((ref) async* {
   final tr = ref.watch(analyticsTimeRangeProvider);
   final clubId = ref.watch(clubIdProvider);
   final db = ref.watch(firestoreServiceProvider).db;
   
-  if (clubId == null) return const Stream.empty();
+  if (clubId == null) {
+    yield* const Stream.empty();
+    return;
+  }
   
-  return db
+  await Future.microtask(() {});
+  yield* db
       .collectionGroup('payments')
       .where('clubId', isEqualTo: clubId)
       .where('date', isGreaterThanOrEqualTo: Timestamp.fromDate(tr.start))
@@ -191,24 +197,30 @@ final analyticsPaymentsStreamProvider = StreamProvider<List<PaymentHistory>>((re
 
 // â”€â”€â”€ Previous Streams â”€â”€â”€
 
-final previousGamesStreamProvider = StreamProvider<List<GameSession>>((ref) {
+final previousGamesStreamProvider = StreamProvider<List<GameSession>>((ref) async* {
   final tr = ref.watch(analyticsPreviousTimeRangeProvider);
-  return ref.watch(gamesRepositoryProvider).watchGamesByDateRange(tr.start, tr.end);
+  await Future.microtask(() {});
+  yield* ref.watch(gamesRepositoryProvider).watchGamesByDateRange(tr.start, tr.end);
 });
 
-final previousQuickSalesStreamProvider = StreamProvider<List<QuickSale>>((ref) {
+final previousQuickSalesStreamProvider = StreamProvider<List<QuickSale>>((ref) async* {
   final tr = ref.watch(analyticsPreviousTimeRangeProvider);
-  return ref.watch(quickSalesRepositoryProvider).watchQuickSalesByDateRange(tr.start, tr.end);
+  await Future.microtask(() {});
+  yield* ref.watch(quickSalesRepositoryProvider).watchQuickSalesByDateRange(tr.start, tr.end);
 });
 
-final previousPaymentsStreamProvider = StreamProvider<List<PaymentHistory>>((ref) {
+final previousPaymentsStreamProvider = StreamProvider<List<PaymentHistory>>((ref) async* {
   final tr = ref.watch(analyticsPreviousTimeRangeProvider);
   final clubId = ref.watch(clubIdProvider);
   final db = ref.watch(firestoreServiceProvider).db;
   
-  if (clubId == null) return const Stream.empty();
+  if (clubId == null) {
+    yield* const Stream.empty();
+    return;
+  }
   
-  return db
+  await Future.microtask(() {});
+  yield* db
       .collectionGroup('payments')
       .where('clubId', isEqualTo: clubId)
       .where('date', isGreaterThanOrEqualTo: Timestamp.fromDate(tr.start))

@@ -1,4 +1,4 @@
-﻿import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:snooker_club/core/providers/app_providers.dart';
 import 'package:snooker_club/features/inventory/data/inventory_repository.dart';
 import 'package:snooker_club/features/inventory/domain/models/inventory_models.dart';
@@ -11,10 +11,14 @@ final inventoryRepositoryProvider = Provider<InventoryRepository>((ref) {
   return InventoryRepository(ref.watch(firestoreServiceProvider).db, clubId: clubId);
 });
 
-final inventoryItemsProvider = StreamProvider<List<InventoryItem>>((ref) {
+final inventoryItemsProvider = StreamProvider<List<InventoryItem>>((ref) async* {
   final repo = ref.watch(inventoryRepositoryProvider);
-  if (repo.clubId == null) return const Stream.empty();
-  return repo.watchInventory();
+  if (repo.clubId == null) {
+    yield* const Stream.empty();
+    return;
+  }
+  await Future.microtask(() {});
+  yield* repo.watchInventory();
 });
 
 // A provider for selected date in stock history
