@@ -1,4 +1,4 @@
-﻿import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:snooker_club/features/team/providers/team_providers.dart';
 import 'package:snooker_club/core/config/app_environment.dart';
@@ -677,7 +677,7 @@ class GamesRepository {
         amount: amountToPay,
         type: CreditTransactionType.game,
         title: 'Game on Table ${session.tableName}',
-        subtitle: 'Billed Amount: Ã¢â€šÂ¹${session.grandTotal?.toStringAsFixed(2)}',
+        subtitle: 'Billed Amount: ₹${amountToPay.toStringAsFixed(2)}',
       );
     }
 

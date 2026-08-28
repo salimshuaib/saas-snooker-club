@@ -352,7 +352,7 @@ class _GamesTab extends StatelessWidget {
               child: ListTile(
                 title: Text('${game.tableName} (${game.tableType.displayName})'),
                 subtitle: Text(DateFormat('MMM d, y h:mm a').format(game.startTime)),
-                trailing: Text(CurrencyHelper.format(game.grandTotal ?? 0, currency)),
+                trailing: Text(CurrencyHelper.format(game.finalAmount ?? game.grandTotal ?? 0, currency)),
                 onTap: () {
                   Navigator.of(context).push(
                     MaterialPageRoute(

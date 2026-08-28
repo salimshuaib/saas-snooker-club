@@ -288,13 +288,31 @@ class _BillDetailsScreenState extends ConsumerState<BillDetailsScreen> {
                     ),
                     Text(
                       '₹${(session.grandTotal ?? 0).toStringAsFixed(2)}',
-                      style: theme.textTheme.titleLarge?.copyWith(
-                        color: AppColors.primary,
+                      style: theme.textTheme.titleMedium?.copyWith(
                         fontWeight: FontWeight.w700,
                       ),
                     ),
                   ],
                 ),
+                if (session.finalAmount != null) ...[
+                  const Gap(8),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'Final Billed',
+                        style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+                      ),
+                      Text(
+                        '₹${session.finalAmount!.toStringAsFixed(2)}',
+                        style: theme.textTheme.titleLarge?.copyWith(
+                          color: AppColors.primary,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
               ],
             ),
             const Gap(24),
@@ -391,7 +409,7 @@ class _BillDetailsScreenState extends ConsumerState<BillDetailsScreen> {
                     ),
                     _InfoRow(
                       label: 'Remaining',
-                      value: '₹${(session.remainingAmount ?? (session.grandTotal ?? 0.0)).toStringAsFixed(2)}',
+                      value: '₹${(session.remainingAmount ?? (session.finalAmount ?? session.grandTotal ?? 0.0)).toStringAsFixed(2)}',
                       valueColor: AppColors.creditStatus,
                     ),
                   ],

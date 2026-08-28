@@ -99,7 +99,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                           // Calculate Cash/UPI revenues
                           final gamesRevenue = games
                               .where((g) => g.status == TableStatus.available)
-                              .fold(0.0, (sum, g) => sum + (g.grandTotal ?? 0.0));
+                              .fold(0.0, (sum, g) => sum + (g.finalAmount ?? g.grandTotal ?? 0.0));
                           
                           final quickSalesRevenue = quickSales
                               .fold(0.0, (sum, s) => sum + s.totalAmount);
@@ -109,7 +109,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                           // Credit tracking for information
                           final gamesCredit = games
                               .where((g) => g.status == TableStatus.available && g.paymentMethod == PaymentMethod.credit)
-                              .fold(0.0, (sum, g) => sum + (g.grandTotal ?? 0.0));
+                              .fold(0.0, (sum, g) => sum + (g.finalAmount ?? g.grandTotal ?? 0.0));
                           final quickSalesCredit = quickSales
                               .where((s) => s.paymentMethod == PaymentMethod.credit)
                               .fold(0.0, (sum, s) => sum + s.totalAmount);

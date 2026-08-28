@@ -63,7 +63,7 @@ class ExportService {
           TextCellValue(g.endTime?.toIso8601String() ?? ''),
           TextCellValue(g.tableId),
           IntCellValue(g.endTime != null ? g.endTime!.difference(g.startTime).inMinutes : 0),
-          DoubleCellValue(g.grandTotal ?? 0.0),
+          DoubleCellValue(g.finalAmount ?? g.grandTotal ?? 0.0),
           TextCellValue(paymentMethods),
           TextCellValue(g.status.name),
         ]);
@@ -237,7 +237,7 @@ class ExportService {
           g.endTime?.toIso8601String() ?? '',
           g.tableId,
           (g.endTime != null ? g.endTime!.difference(g.startTime).inMinutes : 0),
-          (g.grandTotal ?? 0.0),
+          (g.finalAmount ?? g.grandTotal ?? 0.0),
           paymentMethods,
           g.status.name,
         ]);

@@ -1392,9 +1392,9 @@ class _HistoryCard extends StatelessWidget {
             Column(
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
-                if (game.grandTotal != null)
+                if ((game.finalAmount ?? game.grandTotal) != null)
                   Text(
-                    '₹${game.grandTotal!.toStringAsFixed(0)}',
+                    '₹${(game.finalAmount ?? game.grandTotal)!.toStringAsFixed(0)}',
                     style: theme.textTheme.titleSmall?.copyWith(
                       fontWeight: FontWeight.w700,
                       color: AppColors.primary,

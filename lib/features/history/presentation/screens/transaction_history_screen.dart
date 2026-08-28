@@ -262,7 +262,7 @@ class _GameTransactionTile extends StatelessWidget {
     final endTime = session.endTime ?? DateTime.now();
     final timeStr = DateFormat('hh:mm a').format(endTime);
     final players = session.allPlayers.isEmpty ? 'No Player Added' : session.allPlayers.join(', ');
-    final amount = session.grandTotal ?? 0.0;
+    final amount = session.finalAmount ?? session.grandTotal ?? 0.0;
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),

@@ -1,4 +1,4 @@
-﻿import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:snooker_club/core/constants/firebase_constants.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
@@ -251,7 +251,7 @@ final todaysGamesRevenueStreamProvider = StreamProvider<double>((ref) {
   ) {
     return games
         .where((g) => g.status == TableStatus.available)
-        .fold(0.0, (sum, g) => sum + (g.grandTotal ?? 0.0));
+        .fold(0.0, (sum, g) => sum + (g.finalAmount ?? g.grandTotal ?? 0.0));
   });
 });
 
@@ -266,7 +266,7 @@ final selectedDateGamesRevenueStreamProvider = StreamProvider<double>((ref) {
   ) {
     return games
         .where((g) => g.status == TableStatus.available)
-        .fold(0.0, (sum, g) => sum + (g.grandTotal ?? 0.0));
+        .fold(0.0, (sum, g) => sum + (g.finalAmount ?? g.grandTotal ?? 0.0));
   });
 });
 
@@ -341,7 +341,7 @@ final pendingCreditsProvider = StreamProvider<double>((ref) {
               g.status == TableStatus.available &&
               g.paymentMethod == PaymentMethod.credit,
         )
-        .fold(0.0, (sum, g) => sum + (g.grandTotal ?? 0.0));
+        .fold(0.0, (sum, g) => sum + (g.finalAmount ?? g.grandTotal ?? 0.0));
   });
 });
 

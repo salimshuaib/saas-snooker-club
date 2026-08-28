@@ -243,8 +243,10 @@ RevenueOverviewData _computeRevenue(List<GameSession> games, List<QuickSale> qui
   for (final g in games) {
     if (g.status != TableStatus.available || g.paymentStatus == 'pending') continue;
     
-    totalBilled += (g.grandTotal ?? 0.0);
-    totalGameBilled += (g.grandTotal ?? 0.0);
+    final actualPaid = g.finalAmount ?? g.grandTotal ?? 0.0;
+    
+    totalBilled += actualPaid;
+    totalGameBilled += actualPaid;
     
     final ppm = g.playerPaymentMethods;
     if (ppm != null && ppm.isNotEmpty) {
@@ -256,9 +258,9 @@ RevenueOverviewData _computeRevenue(List<GameSession> games, List<QuickSale> qui
       }
     } else {
       final method = g.paymentMethod ?? PaymentMethod.cash;
-      if (method == PaymentMethod.cash) cashCollected += (g.grandTotal ?? 0.0);
-      else if (method == PaymentMethod.upi) upiCollected += (g.grandTotal ?? 0.0);
-      else if (method == PaymentMethod.credit) creditCreated += (g.grandTotal ?? 0.0);
+      if (method == PaymentMethod.cash) cashCollected += actualPaid;
+      else if (method == PaymentMethod.upi) upiCollected += actualPaid;
+      else if (method == PaymentMethod.credit) creditCreated += actualPaid;
     }
   }
 
@@ -364,7 +366,7 @@ CompleteAnalyticsData getCompleteAnalyticsData(dynamic ref) {
     if (g.status != TableStatus.available || g.paymentStatus == 'pending') continue;
     
     // Revenue & Category
-    final double gTotal = g.grandTotal ?? 0.0;
+    final double gTotal = g.finalAmount ?? g.grandTotal ?? 0.0;
     
     final cat = gameCatMap.putIfAbsent(g.tableType.displayName, () => GameCategoryData(categoryName: g.tableType.displayName, totalBilled: 0, transactionCount: 0, averageTransactionValue: 0));
     gameCatMap[g.tableType.displayName] = GameCategoryData(
