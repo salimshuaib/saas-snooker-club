@@ -1,24 +1,63 @@
-import re
+﻿import re
 
-with open('lib/features/games/presentation/screens/billing_screen.dart', 'r', encoding='utf-8') as f:
+path = r'C:\Users\Shuai\Desktop\Saas Snooker Club\lib\features\games\presentation\screens\billing_screen.dart'
+with open(path, 'r', encoding='utf-8') as f:
     content = f.read()
 
-# Only _BillingScreenState has _customLiabilities and _grandTotal
-# We need to remove it from the other widgets
+target = '''      } else if (_session.gameType == GameType.race) {
+        if (_session.mode == GameMode.solo) {
+          // Race Solo: Loser (lowest points) pays 100%
+          String? loser;
+          int lowestPoints = 999999;
+          for (final p in _session.allPlayers) {
+            final pts = _session.playerPoints?[p] ?? 0;
+            if (pts < lowestPoints) {
+              lowestPoints = pts;
+              loser = p;
+            }
+          }
+          if (loser != null) liabilities[loser] = totalToSplit;
+        } else {
+          // Race Team: Losing team (lowest points) splits bill
+          final teamAPts = _session.playerPoints?['Team A'] ?? 0;
+          final teamBPts = _session.playerPoints?['Team B'] ?? 0;
+          final losingTeam = teamAPts <= teamBPts
+              ? _session.teamA
+              : _session.teamB;
+          if (losingTeam.isNotEmpty) {
+            final split = totalToSplit / losingTeam.length;
+            for (final p in losingTeam) {
+              liabilities[p] = split;
+            }
+          }
+        }
+      }'''
 
-bad_lines = '''    final currentSum = _customLiabilities.values.fold<double>(0.0, (s, v) => s + v);
-    final isBalanced = (_grandTotal - currentSum).abs() < 0.5;
-'''
+replacement = '''      } else if (_session.gameType == GameType.race) {
+        if (_session.mode == GameMode.solo) {
+          // Race Solo: All losers (0 points) split the bill
+          final losers = _session.allPlayers.where((p) => (_session.playerPoints?[p] ?? 0) == 0).toList();
+          if (losers.isNotEmpty) {
+            final split = totalToSplit / losers.length;
+            for (final p in losers) liabilities[p] = split;
+          }
+        } else {
+          // Race Team: Losing team (0 points) splits bill
+          final teamAPts = _session.playerPoints?['Team A'] ?? 0;
+          final teamBPts = _session.playerPoints?['Team B'] ?? 0;
+          final losingTeam = teamAPts <= teamBPts
+              ? _session.teamA
+              : _session.teamB;
+          if (losingTeam.isNotEmpty) {
+            final split = totalToSplit / losingTeam.length;
+            for (final p in losingTeam) {
+              liabilities[p] = split;
+            }
+          }
+        }
+      }'''
 
-# We will split by class, or just specifically replace it in those classes.
-content = content.replace(f'class _SectionCard extends StatelessWidget {{\n  const _SectionCard({{required this.children}});\n\n  final List<Widget> children;\n\n  @override\n  Widget build(BuildContext context) {{\n{bad_lines}', 
-                          f'class _SectionCard extends StatelessWidget {{\n  const _SectionCard({{required this.children}});\n\n  final List<Widget> children;\n\n  @override\n  Widget build(BuildContext context) {{\n')
+content = content.replace(target, replacement)
 
-content = content.replace(f'class _InfoRow extends StatelessWidget {{\n  final String label;\n  final String value;\n\n  const _InfoRow({{required this.label, required this.value}});\n\n  @override\n  Widget build(BuildContext context) {{\n{bad_lines}', 
-                          f'class _InfoRow extends StatelessWidget {{\n  final String label;\n  final String value;\n\n  const _InfoRow({{required this.label, required this.value}});\n\n  @override\n  Widget build(BuildContext context) {{\n')
-
-content = content.replace(f'class _WinnerTile extends StatelessWidget {{\n  final String title;\n  final bool isSelected;\n  final VoidCallback onTap;\n\n  const _WinnerTile({{\n    required this.title,\n    required this.isSelected,\n    required this.onTap,\n  }});\n\n  @override\n  Widget build(BuildContext context) {{\n{bad_lines}', 
-                          f'class _WinnerTile extends StatelessWidget {{\n  final String title;\n  final bool isSelected;\n  final VoidCallback onTap;\n\n  const _WinnerTile({{\n    required this.title,\n    required this.isSelected,\n    required this.onTap,\n  }});\n\n  @override\n  Widget build(BuildContext context) {{\n')
-
-with open('lib/features/games/presentation/screens/billing_screen.dart', 'w', encoding='utf-8') as f:
+with open(path, 'w', encoding='utf-8') as f:
     f.write(content)

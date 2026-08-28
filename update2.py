@@ -1,18 +1,44 @@
-import re
+﻿path = r'c:\Users\Shuai\Desktop\Saas Snooker Club\lib\features\games\domain\config\pricing_config.dart'
+with open(path, 'r', encoding='utf-8') as f:
+    content = f.read()
 
-def fix():
-    path = 'lib/features/history/presentation/screens/transaction_history_screen.dart'
-    with open(path, 'r', encoding='utf-8') as f:
-        content = f.read()
+content = content.replace('''    required GameSettings gameConfig,
+    List<GameRound> completedRounds = const [],
+  }) {
+    final price = getPrice(tableType, gameType, billingType, pricingConfig);
+    if (price == null) {''', '''    required GameSettings gameConfig,
+    List<GameRound> completedRounds = const [],
+    double? customPrice,
+  }) {
+    final price = customPrice ?? getPrice(tableType, gameType, billingType, pricingConfig);
+    if (price == null) {''')
 
-    # Remove the FinancialSummaryCard SliverToBoxAdapter block using regex
-    content = re.sub(r'// â”€â”€â”€ Revenue Breakdown Card â”€â”€â”€\s*SliverToBoxAdapter\(\s*child:\s*Padding\(\s*padding:\s*const EdgeInsets\.all\(16\),\s*child:\s*const FinancialSummaryCard\(\s*forSelectedDate:\s*true,\s*isInteractive:\s*false,\s*\),\s*\),\s*\),', '', content, flags=re.DOTALL)
-    
-    # Remove the import
-    content = content.replace("import 'package:snooker_club/features/dashboard/presentation/widgets/financial_summary_card.dart';", "")
+content = content.replace('''    final double perSecondRate =
+        getPerMinutePrice(tableType, gameType, pricingConfig) / 60.0;
+    final bool overtimeEnabled = gameConfig.enableOvertimeBilling;''', '''    final double perMinuteRate = (billingType == BillingType.perMinute && customPrice != null)
+        ? customPrice
+        : getPerMinutePrice(tableType, gameType, pricingConfig);
+    final double perSecondRate = perMinuteRate / 60.0;
+    final bool overtimeEnabled = gameConfig.enableOvertimeBilling;''')
 
-    with open(path, 'w', encoding='utf-8') as f:
-        f.write(content)
+content = content.replace('''    required GameSettings gameConfig,
+    List<GameRound> completedRounds = const [],
+  }) {
+    final price = getDynamicPrice(resourcePricing, billingType, gameType);
+    if (price == null) {''', '''    required GameSettings gameConfig,
+    List<GameRound> completedRounds = const [],
+    double? customPrice,
+  }) {
+    final price = customPrice ?? getDynamicPrice(resourcePricing, billingType, gameType);
+    if (price == null) {''')
 
-if __name__ == '__main__':
-    fix()
+content = content.replace('''    final double perSecondRate =
+        getDynamicPerMinutePrice(resourcePricing, gameType) / 60.0;
+    final bool overtimeEnabled = gameConfig.enableOvertimeBilling;''', '''    final double perMinuteRate = (billingType == BillingType.perMinute && customPrice != null)
+        ? customPrice
+        : getDynamicPerMinutePrice(resourcePricing, gameType);
+    final double perSecondRate = perMinuteRate / 60.0;
+    final bool overtimeEnabled = gameConfig.enableOvertimeBilling;''')
+
+with open(path, 'w', encoding='utf-8') as f:
+    f.write(content)

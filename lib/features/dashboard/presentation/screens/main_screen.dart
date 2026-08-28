@@ -1,3 +1,4 @@
+import 'package:snooker_club/core/providers/club_scope_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -23,12 +24,41 @@ class MainScreen extends ConsumerStatefulWidget {
 }
 
 class _MainScreenState extends ConsumerState<MainScreen> {
+  bool _hasInitialized = false;
+
+  void _triggerInitialization(String clubId) {
+    if (_hasInitialized) return;
+    _hasInitialized = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(gamesRepositoryProvider).seedTablesIfEmpty();
+      ref.read(settingsRepositoryProvider).migrateTablesPricing();
+      ref.read(inventorySeederProvider)();
+    });
+  }
+
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      ref.read(inventorySeederProvider)();
-    });
+    ref.listenManual<String?>(clubIdProvider, (previous, next) {
+      if (next != null) {
+        _triggerInitialization(next);
+      }
+    }, fireImmediately: true);
+
+    // Keep critical providers active at the root level to prevent 
+    // Riverpod TickerMode crashes when switching GoRouter tabs or dialogs.
+    // Using listenManual bypasses TickerMode pausing completely.
+    ref.listenManual(tablesProvider, (_, __) {});
+    ref.listenManual(resolvedTablesProvider, (_, __) {});
+    ref.listenManual(runningTablesCountProvider, (_, __) {});
+    ref.listenManual(availableTablesCountProvider, (_, __) {});
+    ref.listenManual(appSettingsProvider, (_, __) {});
+    ref.listenManual(todaysGamesRevenueStreamProvider, (_, __) {});
+    ref.listenManual(pendingCreditsProvider, (_, __) {});
+    ref.listenManual(todaysQuickSalesCountProvider, (_, __) {});
+    ref.listenManual(inventoryItemsProvider, (_, __) {});
+    ref.listenManual(currentStaffProvider, (_, __) {});
+    ref.listenManual(updateStateProvider, (_, __) {});
   }
 
   void _onItemTapped(int index) {
@@ -49,20 +79,7 @@ class _MainScreenState extends ConsumerState<MainScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // Keep critical providers active at the root level to prevent 
-    // Riverpod TickerMode crashes when switching GoRouter tabs.
-    // We must watch the derived stream providers too so they don't pause!
-    ref.watch(tablesProvider);
-    ref.watch(resolvedTablesProvider);
-    ref.watch(runningTablesCountProvider);
-    ref.watch(availableTablesCountProvider);
-    ref.watch(appSettingsProvider);
-    ref.watch(todaysGamesRevenueStreamProvider);
-    ref.watch(pendingCreditsProvider);
-    ref.watch(todaysQuickSalesCountProvider);
-    ref.watch(inventoryItemsProvider);
-    ref.watch(currentStaffProvider);
-    ref.watch(updateStateProvider);
+
 
     final theme = Theme.of(context);
     final currentIndex = widget.navigationShell.currentIndex;

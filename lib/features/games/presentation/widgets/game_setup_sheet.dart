@@ -41,12 +41,22 @@ class _GameSetupSheetState extends ConsumerState<GameSetupSheet> {
   BillingType _billingType = BillingType.perMinute;
   MatchType _matchType = MatchType.loserPays;
   int _totalFrames = 1;
+  
+  // Custom Pricing
+  bool _isCustomPrice = false;
+  final TextEditingController _customPriceController = TextEditingController();
 
   // Players
   final List<PlayerSelection?> _teamASelections = [null];
   final List<PlayerSelection?> _teamBSelections = [null];
 
   bool _isLoading = false;
+
+  @override
+  void dispose() {
+    _customPriceController.dispose();
+    super.dispose();
+  }
 
   @override
   void initState() {
@@ -149,19 +159,7 @@ class _GameSetupSheetState extends ConsumerState<GameSetupSheet> {
                   },
                 ),
                 
-                // TARGET POINTS (RACE)
-                if (_gameType == GameType.race) ...[
-                  const Gap(16),
-                  AppTextField(
-                    controller: TextEditingController(text: _targetPoints?.toString() ?? ''),
-                    label: 'Target Points',
-                    keyboardType: TextInputType.number,
-                    onChanged: (v) {
-                      final n = int.tryParse(v);
-                      if (n != null && n > 0) _targetPoints = n;
-                    },
-                  ),
-                ],
+
                 
                 const Gap(24),
 
@@ -220,6 +218,33 @@ class _GameSetupSheetState extends ConsumerState<GameSetupSheet> {
                     ),
                   ],
                 ),
+
+
+                if (_gameType == GameType.standard && _billingType == BillingType.perMinute) ...[
+                  const Gap(24),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text('Set Custom Price', style: theme.textTheme.labelMedium),
+                      Switch(
+                        value: _isCustomPrice,
+                        onChanged: (val) {
+                          setState(() {
+                            _isCustomPrice = val;
+                          });
+                        },
+                      ),
+                    ],
+                  ),
+                  if (_isCustomPrice) ...[
+                    const Gap(8),
+                    AppTextField(
+                      controller: _customPriceController,
+                      hint: 'Custom price per minute',
+                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    ),
+                  ],
+                ],
 
                 if (_gameType == GameType.standard && _billingType == BillingType.perFrame) ...[
                     const Gap(24),
@@ -480,6 +505,7 @@ class _GameSetupSheetState extends ConsumerState<GameSetupSheet> {
         orders: const [],
         pauseTimes: const [],
         resumeTimes: const [],
+        customPrice: _isCustomPrice ? double.tryParse(_customPriceController.text) : null,
       );
 
       final creditRepo = ref.read(creditRepositoryProvider);

@@ -1,10 +1,15 @@
 import 'dart:io';
 
 void main() {
-  var file = File('lib/features/analytics/presentation/widgets/inventory_and_product_analytics_section.dart');
+  var file = File(
+    'lib/features/analytics/presentation/widgets/inventory_and_product_analytics_section.dart',
+  );
   var content = file.readAsStringSync();
 
-  content = content.replaceAll('final InventoryInsightsData inventoryInsights;', '');
+  content = content.replaceAll(
+    'final InventoryInsightsData inventoryInsights;',
+    '',
+  );
   content = content.replaceAll('required this.inventoryInsights,', '');
 
   // Remove the '8. Inventory Valuation & Category Insights' block
@@ -15,7 +20,7 @@ void main() {
         ),
         const SizedBox(height: AppSpacing.md),
         _buildInventoryInsightsCard(context, isDark),''';
-  
+
   content = content.replaceFirst(insightsBlock, '');
 
   // BestSellingProductItem properties

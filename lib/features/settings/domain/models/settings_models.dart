@@ -132,6 +132,17 @@ class PricingSettings {
   final double americanPoolRacePerMinute;
   final double snookerRummyPerMinute;
 
+  final double ps5HalfHour;
+  final double ps5OneHour;
+  final double pcHalfHour;
+  final double pcOneHour;
+  final double carromHalfHour;
+  final double carromOneHour;
+  final double foosballHalfHour;
+  final double foosballOneHour;
+  final double chessHalfHour;
+  final double chessOneHour;
+
   const PricingSettings({
     this.snookerPerMinute = 4.50,
     this.snookerHalfHour = 135.00,
@@ -148,6 +159,16 @@ class PricingSettings {
     this.indianPoolRacePerMinute = 3.00,
     this.americanPoolRacePerMinute = 4.00,
     this.snookerRummyPerMinute = 4.00,
+    this.ps5HalfHour = 100.00,
+    this.ps5OneHour = 200.00,
+    this.pcHalfHour = 80.00,
+    this.pcOneHour = 150.00,
+    this.carromHalfHour = 50.00,
+    this.carromOneHour = 90.00,
+    this.foosballHalfHour = 60.00,
+    this.foosballOneHour = 100.00,
+    this.chessHalfHour = 30.00,
+    this.chessOneHour = 50.00,
   });
 
   PricingSettings copyWith({
@@ -166,6 +187,16 @@ class PricingSettings {
     double? indianPoolRacePerMinute,
     double? americanPoolRacePerMinute,
     double? snookerRummyPerMinute,
+    double? ps5HalfHour,
+    double? ps5OneHour,
+    double? pcHalfHour,
+    double? pcOneHour,
+    double? carromHalfHour,
+    double? carromOneHour,
+    double? foosballHalfHour,
+    double? foosballOneHour,
+    double? chessHalfHour,
+    double? chessOneHour,
   }) {
     return PricingSettings(
       snookerPerMinute: snookerPerMinute ?? this.snookerPerMinute,
@@ -183,6 +214,16 @@ class PricingSettings {
       indianPoolRacePerMinute: indianPoolRacePerMinute ?? this.indianPoolRacePerMinute,
       americanPoolRacePerMinute: americanPoolRacePerMinute ?? this.americanPoolRacePerMinute,
       snookerRummyPerMinute: snookerRummyPerMinute ?? this.snookerRummyPerMinute,
+      ps5HalfHour: ps5HalfHour ?? this.ps5HalfHour,
+      ps5OneHour: ps5OneHour ?? this.ps5OneHour,
+      pcHalfHour: pcHalfHour ?? this.pcHalfHour,
+      pcOneHour: pcOneHour ?? this.pcOneHour,
+      carromHalfHour: carromHalfHour ?? this.carromHalfHour,
+      carromOneHour: carromOneHour ?? this.carromOneHour,
+      foosballHalfHour: foosballHalfHour ?? this.foosballHalfHour,
+      foosballOneHour: foosballOneHour ?? this.foosballOneHour,
+      chessHalfHour: chessHalfHour ?? this.chessHalfHour,
+      chessOneHour: chessOneHour ?? this.chessOneHour,
     );
   }
 
@@ -203,6 +244,16 @@ class PricingSettings {
       'indianPoolRacePerMinute': indianPoolRacePerMinute,
       'americanPoolRacePerMinute': americanPoolRacePerMinute,
       'snookerRummyPerMinute': snookerRummyPerMinute,
+      'ps5HalfHour': ps5HalfHour,
+      'ps5OneHour': ps5OneHour,
+      'pcHalfHour': pcHalfHour,
+      'pcOneHour': pcOneHour,
+      'carromHalfHour': carromHalfHour,
+      'carromOneHour': carromOneHour,
+      'foosballHalfHour': foosballHalfHour,
+      'foosballOneHour': foosballOneHour,
+      'chessHalfHour': chessHalfHour,
+      'chessOneHour': chessOneHour,
     };
   }
 
@@ -224,6 +275,16 @@ class PricingSettings {
       indianPoolRacePerMinute: (map['indianPoolRacePerMinute'] as num?)?.toDouble() ?? 3.00,
       americanPoolRacePerMinute: (map['americanPoolRacePerMinute'] as num?)?.toDouble() ?? 4.00,
       snookerRummyPerMinute: (map['snookerRummyPerMinute'] as num?)?.toDouble() ?? 4.00,
+      ps5HalfHour: (map['ps5HalfHour'] as num?)?.toDouble() ?? 100.00,
+      ps5OneHour: (map['ps5OneHour'] as num?)?.toDouble() ?? 200.00,
+      pcHalfHour: (map['pcHalfHour'] as num?)?.toDouble() ?? 80.00,
+      pcOneHour: (map['pcOneHour'] as num?)?.toDouble() ?? 150.00,
+      carromHalfHour: (map['carromHalfHour'] as num?)?.toDouble() ?? 50.00,
+      carromOneHour: (map['carromOneHour'] as num?)?.toDouble() ?? 90.00,
+      foosballHalfHour: (map['foosballHalfHour'] as num?)?.toDouble() ?? 60.00,
+      foosballOneHour: (map['foosballOneHour'] as num?)?.toDouble() ?? 100.00,
+      chessHalfHour: (map['chessHalfHour'] as num?)?.toDouble() ?? 30.00,
+      chessOneHour: (map['chessOneHour'] as num?)?.toDouble() ?? 50.00,
     );
   }
 }

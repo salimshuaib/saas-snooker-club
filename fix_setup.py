@@ -1,27 +1,24 @@
-import re
+﻿import re
 
-with open('lib/features/games/presentation/widgets/game_setup_sheet.dart', 'r', encoding='utf-8') as f:
+path = r'C:\Users\Shuai\Desktop\Saas Snooker Club\lib\features\games\presentation\widgets\game_setup_sheet.dart'
+with open(path, 'r', encoding='utf-8') as f:
     content = f.read()
 
-# Fix AppTextField -> TextField
-content = content.replace("AppTextField(", "TextField(")
+target = '''                // TARGET POINTS (RACE)
+                if (_gameType == GameType.race) ...[
+                  const Gap(16),
+                  AppTextField(
+                    controller: TextEditingController(text: _targetPoints?.toString() ?? ''),
+                    label: 'Target Points',
+                    keyboardType: TextInputType.number,
+                    onChanged: (v) {
+                      final n = int.tryParse(v);
+                      if (n != null && n > 0) _targetPoints = n;
+                    },
+                  ),
+                ],'''
 
-# Fix onAdd / onRemove ternaries
-content = content.replace("onAdd: _teamASelections.length < 10 ? () => setState(() => _teamASelections.add(null)) : null,", 
-                          "onAdd: () { if (_teamASelections.length < 10) setState(() => _teamASelections.add(null)); },")
-content = content.replace("onRemove: _teamASelections.length > 2 ? (i) => setState(() => _teamASelections.removeAt(i)) : null,", 
-                          "onRemove: (i) { if (_teamASelections.length > 2) setState(() => _teamASelections.removeAt(i)); },")
+content = content.replace(target, '')
 
-content = content.replace("onAdd: _teamASelections.length < 5 ? () => setState(() => _teamASelections.add(null)) : null,", 
-                          "onAdd: () { if (_teamASelections.length < 5) setState(() => _teamASelections.add(null)); },")
-content = content.replace("onRemove: _teamASelections.length > 1 ? (i) => setState(() => _teamASelections.removeAt(i)) : null,", 
-                          "onRemove: (i) { if (_teamASelections.length > 1) setState(() => _teamASelections.removeAt(i)); },")
-
-content = content.replace("onAdd: _teamBSelections.length < 5 ? () => setState(() => _teamBSelections.add(null)) : null,", 
-                          "onAdd: () { if (_teamBSelections.length < 5) setState(() => _teamBSelections.add(null)); },")
-content = content.replace("onRemove: _teamBSelections.length > 1 ? (i) => setState(() => _teamBSelections.removeAt(i)) : null,", 
-                          "onRemove: (i) { if (_teamBSelections.length > 1) setState(() => _teamBSelections.removeAt(i)); },")
-
-
-with open('lib/features/games/presentation/widgets/game_setup_sheet.dart', 'w', encoding='utf-8') as f:
+with open(path, 'w', encoding='utf-8') as f:
     f.write(content)

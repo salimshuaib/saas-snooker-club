@@ -1,10 +1,12 @@
 import 'dart:io';
 
 void main() {
-  final file = File('lib/features/settings/presentation/screens/settings_screen.dart');
+  final file = File(
+    'lib/features/settings/presentation/screens/settings_screen.dart',
+  );
   final lines = file.readAsLinesSync();
   final newLines = lines.sublist(0, 392);
-  
+
   newLines.addAll([
     "  void _showCurrencyPicker(BuildContext context, WidgetRef ref, Currency currentCurrency) {",
     "    showModalBottomSheet(",
@@ -41,6 +43,6 @@ void main() {
     "  }",
     "}",
   ]);
-  
+
   file.writeAsStringSync(newLines.join('\n'));
 }

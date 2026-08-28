@@ -124,31 +124,31 @@ final appRouterProvider = Provider<GoRouter>((ref) {
     routes: [
       GoRoute(
         path: RouteNames.subscriptionExpired,
-        builder: (context, state) => const SubscriptionExpiredScreen(),
+        builder: (context, state) => const TickerMode(enabled: true, child: const SubscriptionExpiredScreen()),
       ),
       GoRoute(
         path: RouteNames.noClub,
-        builder: (context, state) => const NoClubScreen(),
+        builder: (context, state) => const TickerMode(enabled: true, child: const NoClubScreen()),
       ),
       GoRoute(
         path: RouteNames.splash,
-        builder: (context, state) => const SplashScreen(),
+        builder: (context, state) => const TickerMode(enabled: true, child: const SplashScreen()),
       ),
       GoRoute(
         path: RouteNames.login,
-        builder: (context, state) => const LoginScreen(),
+        builder: (context, state) => const TickerMode(enabled: true, child: const LoginScreen()),
       ),
       GoRoute(
         path: RouteNames.team,
-        builder: (context, state) => const TeamScreen(),
+        builder: (context, state) => const TickerMode(enabled: true, child: const TeamScreen()),
       ),
       GoRoute(
         path: RouteNames.forceUpdate,
-        builder: (context, state) => const ForceUpdateScreen(),
+        builder: (context, state) => const TickerMode(enabled: true, child: const ForceUpdateScreen()),
       ),
       GoRoute(
         path: RouteNames.financialReview,
-        builder: (context, state) => const FinancialReviewScreen(),
+        builder: (context, state) => const TickerMode(enabled: true, child: const FinancialReviewScreen()),
       ),
 
       // ─── Bottom Navigation Shell ───
@@ -163,7 +163,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             routes: [
               GoRoute(
                 path: RouteNames.dashboard,
-                builder: (context, state) => const DashboardScreen(),
+                builder: (context, state) => const TickerMode(enabled: true, child: const DashboardScreen()),
               ),
             ],
           ),
@@ -174,7 +174,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             routes: [
               GoRoute(
                 path: RouteNames.history,
-                builder: (context, state) => const TransactionHistoryScreen(),
+                builder: (context, state) => const TickerMode(enabled: true, child: const TransactionHistoryScreen()),
               ),
             ],
           ),
@@ -182,7 +182,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: RouteNames.games,
-        builder: (context, state) => const GamesScreen(),
+        builder: (context, state) => const TickerMode(enabled: true, child: const GamesScreen()),
         routes: [
           GoRoute(
             path: 'table',
@@ -205,7 +205,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: RouteNames.inventory,
-        builder: (context, state) => const InventoryScreen(),
+        builder: (context, state) => const TickerMode(enabled: true, child: const InventoryScreen()),
         routes: [
           GoRoute(
             path: 'inventory-details',
@@ -216,21 +216,21 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           ),
           GoRoute(
             path: 'inventory-history',
-            builder: (context, state) => const InventoryHistoryScreen(),
+            builder: (context, state) => const TickerMode(enabled: true, child: const InventoryHistoryScreen()),
           ),
         ],
       ),
       GoRoute(
         path: RouteNames.more,
-        builder: (context, state) => const MoreScreen(),
+        builder: (context, state) => const TickerMode(enabled: true, child: const MoreScreen()),
         routes: [
           GoRoute(
             path: 'quick-sales',
-            builder: (context, state) => const QuickSalesScreen(),
+            builder: (context, state) => const TickerMode(enabled: true, child: const QuickSalesScreen()),
             routes: [
               GoRoute(
                 path: 'new',
-                builder: (context, state) => const NewQuickSaleScreen(),
+                builder: (context, state) => const TickerMode(enabled: true, child: const NewQuickSaleScreen()),
               ),
               GoRoute(
                 path: 'details',
@@ -243,11 +243,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           ),
           GoRoute(
             path: 'analytics',
-            builder: (context, state) => const AnalyticsScreen(),
+            builder: (context, state) => const TickerMode(enabled: true, child: const AnalyticsScreen()),
           ),
           GoRoute(
             path: 'credit',
-            builder: (context, state) => const CreditScreen(),
+            builder: (context, state) => const TickerMode(enabled: true, child: const CreditScreen()),
             routes: [
               GoRoute(
                 path: 'details',
@@ -260,11 +260,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           ),
           GoRoute(
             path: 'reports',
-            builder: (context, state) => const ReportsScreen(),
+            builder: (context, state) => const TickerMode(enabled: true, child: const ReportsScreen()),
           ),
           GoRoute(
             path: 'settings',
-            builder: (context, state) => const SettingsScreen(),
+            builder: (context, state) => const TickerMode(enabled: true, child: const SettingsScreen()),
           ),
         ],
       ),

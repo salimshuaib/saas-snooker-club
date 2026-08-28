@@ -1,4 +1,4 @@
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+﻿import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:snooker_club/features/authentication/providers/auth_providers.dart';
 import 'package:snooker_club/features/team/data/team_repository.dart';
 import 'package:snooker_club/features/team/domain/models/staff_member.dart';
@@ -12,7 +12,7 @@ final teamRepositoryProvider = Provider<TeamRepository>((ref) {
 
 final teamMembersStreamProvider = StreamProvider<List<StaffMember>>((ref) {
   final repo = ref.watch(teamRepositoryProvider);
-  if (repo.clubId == null) return Stream.value([]);
+  if (repo.clubId == null) return const Stream.empty();
   return repo.watchTeamMembers();
 });
 
@@ -51,6 +51,11 @@ final currentStaffProvider = StreamProvider<StaffMember?>((ref) async* {
       }
     }
   } catch (e, st) {
+    if (e.toString().contains('permission-denied')) {
+      // Harmless race condition on logout: Firestore terminates the stream before Riverpod cleans it up.
+      yield null;
+      return;
+    }
     print('Error in currentStaffProvider: $e\n$st');
     // Yield a fallback owner so the UI doesn't completely break while testing locally
     // IF permission is denied because rules aren't deployed yet.
@@ -126,3 +131,4 @@ final currentStaffPermissionsProvider = Provider<StaffPermissions>((ref) {
   final currentStaff = ref.watch(currentStaffProvider).value;
   return StaffPermissions.fromRole(currentStaff?.role);
 });
+

@@ -324,14 +324,7 @@ class _RepeatGameSheetState extends ConsumerState<RepeatGameSheet> {
           if (val != null) setState(() => _gameType = val);
         },
       ),
-      if (_gameType == GameType.race) ...[
-        const Gap(16),
-        AppTextField(
-          controller: TextEditingController(text: _targetPoints?.toString() ?? ''),
-          label: 'Target Points', keyboardType: TextInputType.number,
-          onChanged: (v) { final n = int.tryParse(v); if (n != null && n > 0) _targetPoints = n; },
-        ),
-      ],
+
       const Gap(24),
       if (_gameType == GameType.standard) ...[
         Text('Billing Type', style: theme.textTheme.labelMedium),
@@ -352,7 +345,7 @@ class _RepeatGameSheetState extends ConsumerState<RepeatGameSheet> {
       const Gap(16),
       _buildSummaryRow('Table', _selectedTable?.name ?? 'None'),
       _buildSummaryRow('Game Type', _gameType == GameType.standard ? 'Standard' : _gameType == GameType.race ? 'Race' : 'Rummy'),
-      if (_gameType == GameType.race) _buildSummaryRow('Target Points', _targetPoints?.toString() ?? '-'),
+
       _buildSummaryRow('Billing', _gameType == GameType.standard ? _billingType.displayName : 'Per Minute (Fixed)'),
       const Gap(12),
       Text('Players', style: theme.textTheme.labelMedium),

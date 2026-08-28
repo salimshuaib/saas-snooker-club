@@ -1,4 +1,4 @@
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+﻿import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:snooker_club/features/analytics/providers/analytics_providers.dart';
 import 'package:snooker_club/features/credit/domain/models/credit_models.dart';
@@ -8,7 +8,7 @@ final reportCreditsStreamProvider = StreamProvider<List<CreditTransaction>>((ref
   final range = ref.watch(analyticsTimeRangeProvider);
   final clubId = ref.watch(clubIdProvider);
   
-  if (clubId == null) return Stream.value([]);
+  if (clubId == null) return const Stream.empty();
   
   return FirebaseFirestore.instance
       .collectionGroup('transactions')
@@ -20,3 +20,4 @@ final reportCreditsStreamProvider = StreamProvider<List<CreditTransaction>>((ref
         return snap.docs.map((doc) => CreditTransaction.fromMap(doc.id, doc.data())).toList();
       });
 });
+

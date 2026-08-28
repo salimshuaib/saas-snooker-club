@@ -267,19 +267,7 @@ class _ManualGameSetupScreenState extends ConsumerState<ManualGameSetupScreen> {
           },
         ),
 
-        // TARGET POINTS (RACE)
-        if (_gameType == GameType.race) ...[
-          const Gap(16),
-          AppTextField(
-            controller: TextEditingController(text: _targetPoints?.toString() ?? ''),
-            label: 'Target Points',
-            keyboardType: TextInputType.number,
-            onChanged: (v) {
-              final n = int.tryParse(v);
-              if (n != null && n > 0) _targetPoints = n;
-            },
-          ),
-        ],
+
 
         const Gap(24),
 
@@ -430,10 +418,7 @@ class _ManualGameSetupScreenState extends ConsumerState<ManualGameSetupScreen> {
       return;
     }
 
-    if (_step == 3 && _gameType == GameType.race && (_targetPoints == null || _targetPoints! <= 0)) {
-      _showError('Please enter valid target points.');
-      return;
-    }
+
 
     final isPerFrame = _gameType == GameType.standard && _billingType == BillingType.perFrame;
     if (_step == 3 && !isPerFrame) {

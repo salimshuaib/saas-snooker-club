@@ -37,6 +37,18 @@ class _PricingEditSheetState extends ConsumerState<PricingEditSheet> {
   late final TextEditingController _american1hController;
   late final TextEditingController _americanRaceMinController;
 
+  // Other Games
+  late final TextEditingController _ps530mController;
+  late final TextEditingController _ps51hController;
+  late final TextEditingController _pc30mController;
+  late final TextEditingController _pc1hController;
+  late final TextEditingController _carrom30mController;
+  late final TextEditingController _carrom1hController;
+  late final TextEditingController _foosball30mController;
+  late final TextEditingController _foosball1hController;
+  late final TextEditingController _chess30mController;
+  late final TextEditingController _chess1hController;
+
   bool _isSaving = false;
 
   @override
@@ -60,6 +72,17 @@ class _PricingEditSheetState extends ConsumerState<PricingEditSheet> {
     _american30mController = TextEditingController(text: p.americanPoolHalfHour.toStringAsFixed(2));
     _american1hController = TextEditingController(text: p.americanPoolOneHour.toStringAsFixed(2));
     _americanRaceMinController = TextEditingController(text: p.americanPoolRacePerMinute.toStringAsFixed(2));
+
+    _ps530mController = TextEditingController(text: p.ps5HalfHour.toStringAsFixed(2));
+    _ps51hController = TextEditingController(text: p.ps5OneHour.toStringAsFixed(2));
+    _pc30mController = TextEditingController(text: p.pcHalfHour.toStringAsFixed(2));
+    _pc1hController = TextEditingController(text: p.pcOneHour.toStringAsFixed(2));
+    _carrom30mController = TextEditingController(text: p.carromHalfHour.toStringAsFixed(2));
+    _carrom1hController = TextEditingController(text: p.carromOneHour.toStringAsFixed(2));
+    _foosball30mController = TextEditingController(text: p.foosballHalfHour.toStringAsFixed(2));
+    _foosball1hController = TextEditingController(text: p.foosballOneHour.toStringAsFixed(2));
+    _chess30mController = TextEditingController(text: p.chessHalfHour.toStringAsFixed(2));
+    _chess1hController = TextEditingController(text: p.chessOneHour.toStringAsFixed(2));
   }
 
   @override
@@ -81,6 +104,17 @@ class _PricingEditSheetState extends ConsumerState<PricingEditSheet> {
     _american30mController.dispose();
     _american1hController.dispose();
     _americanRaceMinController.dispose();
+
+    _ps530mController.dispose();
+    _ps51hController.dispose();
+    _pc30mController.dispose();
+    _pc1hController.dispose();
+    _carrom30mController.dispose();
+    _carrom1hController.dispose();
+    _foosball30mController.dispose();
+    _foosball1hController.dispose();
+    _chess30mController.dispose();
+    _chess1hController.dispose();
     super.dispose();
   }
 
@@ -111,6 +145,16 @@ class _PricingEditSheetState extends ConsumerState<PricingEditSheet> {
         americanPoolHalfHour: double.parse(_american30mController.text.trim()),
         americanPoolOneHour: double.parse(_american1hController.text.trim()),
         americanPoolRacePerMinute: double.parse(_americanRaceMinController.text.trim()),
+        ps5HalfHour: double.parse(_ps530mController.text.trim()),
+        ps5OneHour: double.parse(_ps51hController.text.trim()),
+        pcHalfHour: double.parse(_pc30mController.text.trim()),
+        pcOneHour: double.parse(_pc1hController.text.trim()),
+        carromHalfHour: double.parse(_carrom30mController.text.trim()),
+        carromOneHour: double.parse(_carrom1hController.text.trim()),
+        foosballHalfHour: double.parse(_foosball30mController.text.trim()),
+        foosballOneHour: double.parse(_foosball1hController.text.trim()),
+        chessHalfHour: double.parse(_chess30mController.text.trim()),
+        chessOneHour: double.parse(_chess1hController.text.trim()),
       );
 
       await ref.read(appSettingsProvider.notifier).updatePricingSettings(updated);
@@ -244,6 +288,56 @@ class _PricingEditSheetState extends ConsumerState<PricingEditSheet> {
                         Expanded(child: _buildTextField('Race / min', _americanRaceMinController)),
                         const Gap(12),
                         const Expanded(child: SizedBox()),
+                      ],
+                    ),
+                    const Gap(24),
+                    _buildSectionHeader('PS5', Icons.gamepad, Colors.deepPurple),
+                    const Gap(12),
+                    Row(
+                      children: [
+                        Expanded(child: _buildTextField('Half Hour (30m)', _ps530mController)),
+                        const Gap(12),
+                        Expanded(child: _buildTextField('One Hour (1h)', _ps51hController)),
+                      ],
+                    ),
+                    const Gap(24),
+                    _buildSectionHeader('PC', Icons.computer, Colors.cyan),
+                    const Gap(12),
+                    Row(
+                      children: [
+                        Expanded(child: _buildTextField('Half Hour (30m)', _pc30mController)),
+                        const Gap(12),
+                        Expanded(child: _buildTextField('One Hour (1h)', _pc1hController)),
+                      ],
+                    ),
+                    const Gap(24),
+                    _buildSectionHeader('Carrom', Icons.crop_square, Colors.brown),
+                    const Gap(12),
+                    Row(
+                      children: [
+                        Expanded(child: _buildTextField('Half Hour (30m)', _carrom30mController)),
+                        const Gap(12),
+                        Expanded(child: _buildTextField('One Hour (1h)', _carrom1hController)),
+                      ],
+                    ),
+                    const Gap(24),
+                    _buildSectionHeader('Foosball', Icons.sports_soccer, Colors.green),
+                    const Gap(12),
+                    Row(
+                      children: [
+                        Expanded(child: _buildTextField('Half Hour (30m)', _foosball30mController)),
+                        const Gap(12),
+                        Expanded(child: _buildTextField('One Hour (1h)', _foosball1hController)),
+                      ],
+                    ),
+                    const Gap(24),
+                    _buildSectionHeader('Chess', Icons.extension, Colors.grey),
+                    const Gap(12),
+                    Row(
+                      children: [
+                        Expanded(child: _buildTextField('Half Hour (30m)', _chess30mController)),
+                        const Gap(12),
+                        Expanded(child: _buildTextField('One Hour (1h)', _chess1hController)),
                       ],
                     ),
                     const Gap(24),

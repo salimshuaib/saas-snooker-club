@@ -5,13 +5,15 @@ void main() {
   var content = file.readAsStringSync();
 
   // Find _computeRevenue function
-  var startStr = "RevenueOverviewData _computeRevenue(List<GameSession> games, List<QuickSale> quickSales, List<PaymentHistory> payments, double outstanding) {";
+  var startStr =
+      "RevenueOverviewData _computeRevenue(List<GameSession> games, List<QuickSale> quickSales, List<PaymentHistory> payments, double outstanding) {";
   var endStr = "  return RevenueOverviewData(";
-  
+
   var startIndex = content.indexOf(startStr);
   var endIndex = content.indexOf(endStr);
-  
-  var newFunc = '''RevenueOverviewData _computeRevenue(List<GameSession> games, List<QuickSale> quickSales, List<PaymentHistory> payments, double outstanding) {
+
+  var newFunc =
+      '''RevenueOverviewData _computeRevenue(List<GameSession> games, List<QuickSale> quickSales, List<PaymentHistory> payments, double outstanding) {
   double totalBilled = 0;
   double totalGameBilled = 0;
   double totalQuickSaleBilled = 0;
@@ -63,7 +65,10 @@ void main() {
   }
 
   // Also fix the perMinBilled += g.grandTotal ?? 0.0; issue which was missing a parens
-  content = content.replaceAll('else perMinBilled += g.grandTotal ?? 0.0;', 'else perMinBilled += (g.grandTotal ?? 0.0);');
+  content = content.replaceAll(
+    'else perMinBilled += g.grandTotal ?? 0.0;',
+    'else perMinBilled += (g.grandTotal ?? 0.0);',
+  );
 
   // And the Unused local variable i
   content = content.replaceAll('final i = e.key;', '');

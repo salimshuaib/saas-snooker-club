@@ -4,7 +4,8 @@ void main() {
   var file = File('lib/features/credit/data/credit_repository.dart');
   var content = file.readAsStringSync();
 
-  var insertAfter = "Stream<List<PaymentHistory>> watchPaymentHistory(String customerId) {";
+  var insertAfter =
+      "Stream<List<PaymentHistory>> watchPaymentHistory(String customerId) {";
   var searchIndex = content.indexOf(insertAfter);
   if (searchIndex == -1) {
     print("Method not found");

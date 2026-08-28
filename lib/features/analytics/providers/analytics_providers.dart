@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
@@ -16,7 +16,7 @@ import 'package:snooker_club/features/inventory/providers/inventory_providers.da
 import 'package:snooker_club/features/quick_sales/domain/models/quick_sale_models.dart';
 import 'package:snooker_club/features/quick_sales/providers/quick_sales_providers.dart';
 
-// ─── State Notifiers ───
+// â”€â”€â”€ State Notifiers â”€â”€â”€
 
 class AnalyticsTimeFilterNotifier extends Notifier<AnalyticsTimeFilter> {
   @override
@@ -53,7 +53,7 @@ final analyticsCustomDateRangeProvider = NotifierProvider<AnalyticsCustomDateRan
   () => AnalyticsCustomDateRangeNotifier(),
 );
 
-// ─── Time Range Calculator ───
+// â”€â”€â”€ Time Range Calculator â”€â”€â”€
 
 AnalyticsTimeRange _calculateTimeRange(AnalyticsTimeFilter filter, DateTimeRange? custom, bool isPrevious) {
   final now = DateTime.now();
@@ -161,7 +161,7 @@ final analyticsPreviousTimeRangeProvider = Provider<AnalyticsTimeRange>((ref) {
   );
 });
 
-// ─── Current Streams ───
+// â”€â”€â”€ Current Streams â”€â”€â”€
 
 final analyticsGamesStreamProvider = StreamProvider<List<GameSession>>((ref) {
   final tr = ref.watch(analyticsTimeRangeProvider);
@@ -178,7 +178,7 @@ final analyticsPaymentsStreamProvider = StreamProvider<List<PaymentHistory>>((re
   final clubId = ref.watch(clubIdProvider);
   final db = ref.watch(firestoreServiceProvider).db;
   
-  if (clubId == null) return Stream.value([]);
+  if (clubId == null) return const Stream.empty();
   
   return db
       .collectionGroup('payments')
@@ -189,7 +189,7 @@ final analyticsPaymentsStreamProvider = StreamProvider<List<PaymentHistory>>((re
       .map((snap) => snap.docs.map((d) => PaymentHistory.fromMap(d.id, d.data())).toList());
 });
 
-// ─── Previous Streams ───
+// â”€â”€â”€ Previous Streams â”€â”€â”€
 
 final previousGamesStreamProvider = StreamProvider<List<GameSession>>((ref) {
   final tr = ref.watch(analyticsPreviousTimeRangeProvider);
@@ -206,7 +206,7 @@ final previousPaymentsStreamProvider = StreamProvider<List<PaymentHistory>>((ref
   final clubId = ref.watch(clubIdProvider);
   final db = ref.watch(firestoreServiceProvider).db;
   
-  if (clubId == null) return Stream.value([]);
+  if (clubId == null) return const Stream.empty();
   
   return db
       .collectionGroup('payments')
@@ -217,7 +217,7 @@ final previousPaymentsStreamProvider = StreamProvider<List<PaymentHistory>>((ref
       .map((snap) => snap.docs.map((d) => PaymentHistory.fromMap(d.id, d.data())).toList());
 });
 
-// ─── Common Logic (Single Source of Truth) ───
+// â”€â”€â”€ Common Logic (Single Source of Truth) â”€â”€â”€
 
 RevenueOverviewData _computeRevenue(List<GameSession> games, List<QuickSale> quickSales, List<PaymentHistory> payments, double outstanding) {
   double totalBilled = 0;
@@ -295,7 +295,7 @@ String _getTrendLabel(DateTime date, AnalyticsTimeFilter filter) {
   }
 }
 
-// ─── Complete Analytics Provider ───
+// â”€â”€â”€ Complete Analytics Provider â”€â”€â”€
 
 final completeAnalyticsProvider = Provider<CompleteAnalyticsData>((ref) {
   final timeRange = ref.watch(analyticsTimeRangeProvider);
@@ -608,3 +608,4 @@ final completeAnalyticsProvider = Provider<CompleteAnalyticsData>((ref) {
     ),
   );
 });
+

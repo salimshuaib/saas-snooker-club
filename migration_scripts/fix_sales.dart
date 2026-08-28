@@ -9,7 +9,7 @@ void main() {
     print('Start not found');
     return;
   }
-  
+
   var before = content.substring(0, startIndex);
 
   var replacement = '''Future<void> updateQuickSalePaymentMethod({

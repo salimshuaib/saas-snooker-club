@@ -15,26 +15,28 @@ void main() {
     );
     final container = ProviderContainer(
       overrides: [
-        appVersionConfigProvider.overrideWith((ref) => Stream.value(
-          AppVersionConfig(
-            minimumRequiredVersion: '1.0.5',
-            latestVersion: '1.0.5',
-            forceUpdate: true,
-            updateUrl: 'test',
-            updateMessage: 'test',
-          )
-        )),
-      ]
+        appVersionConfigProvider.overrideWith(
+          (ref) => Stream.value(
+            AppVersionConfig(
+              minimumRequiredVersion: '1.0.5',
+              latestVersion: '1.0.5',
+              forceUpdate: true,
+              updateUrl: 'test',
+              updateMessage: 'test',
+            ),
+          ),
+        ),
+      ],
     );
-    
+
     // Wait for async providers to load
     await container.read(packageInfoProvider.future);
-    
+
     // Listen to force the stream to execute
     final sub = container.listen(updateStateProvider, (_, __) {});
-    
+
     await Future.delayed(Duration(milliseconds: 200));
-    
+
     final state = container.read(updateStateProvider);
     print('isForceUpdateRequired: ${state.isForceUpdateRequired}');
     print('currentVersion: ${state.currentVersion}');

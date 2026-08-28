@@ -48,52 +48,55 @@ class GamesRepository {
     }
   }
 
-  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
   // Tables
-  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
 
   /// Real-time stream of all tables.
   Stream<List<TableModel>> watchTables() {
-    return _tablesRef
-        .orderBy('order')
-        .snapshots()
-        .map(
-          (snapshot) => snapshot.docs
-              .map(
-                (doc) => TableModel.fromMap(doc.data() as Map<String, dynamic>),
-              )
-              .toList(),
-        );
+    return _tablesRef.snapshots().map((snapshot) {
+      final tables = snapshot.docs
+          .map((doc) => TableModel.fromMap(doc.data() as Map<String, dynamic>))
+          .toList();
+      tables.sort((a, b) => a.order.compareTo(b.order));
+      return tables;
+    });
   }
 
   /// Seed initial tables if collection is empty.
   /// Called at app startup. Idempotent â€” safe to call multiple times.
+  Future<void> addTable(TableModel table) async {
+    if (AppConfig.guardWrite('GamesRepository.addTable')) return;
+    await _tablesRef.doc(table.id).set(table.toMap());
+  }
+
+  Future<void> deleteTable(String tableId) async {
+    if (AppConfig.guardWrite('GamesRepository.deleteTable')) return;
+    await _tablesRef.doc(tableId).delete();
+  }
+
   Future<void> seedTablesIfEmpty() async {
     if (AppConfig.guardWrite('GamesRepository.seedTablesIfEmpty')) return;
     try {
-      final snapshot = await _tablesRef.get();
-      final existingIds = snapshot.docs.map((d) => d.id).toSet();
+      final snapshot = await _tablesRef.limit(1).get();
+      if (snapshot.docs.isNotEmpty) {
+        return; // Club already has tables, don't interfere with their configuration.
+      }
 
       final tables = TablesConfig.defaultTables;
-      final missingTables = tables
-          .where((t) => !existingIds.contains(t.id))
-          .toList();
-
-      if (missingTables.isEmpty) return; // all tables already seeded
 
       AppLogger.info(
-        'Syncing missing tables: ${missingTables.length} tables...',
+        'Seeding default tables for new club: ${tables.length} tables...',
       );
       final batch = _db.batch();
       for (int i = 0; i < tables.length; i++) {
-        // We write/merge all of them to ensure correct order/data
         batch.set(_tablesRef.doc(tables[i].id), {
           ...tables[i].toMap(),
           'order': i,
-        }, SetOptions(merge: true));
+        });
       }
       await batch.commit();
-      AppLogger.info('Missing tables synced successfully.');
+      AppLogger.info('Default tables seeded successfully.');
     } on FirebaseException catch (e) {
       if (e.code == 'permission-denied') {
         AppLogger.warning(
@@ -120,9 +123,9 @@ class GamesRepository {
     });
   }
 
-  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
   // Game Sessions
-  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
 
   /// Real-time stream of games for a given table and date.
   Future<List<GameSession>> getGamesForPlayer(
@@ -463,7 +466,7 @@ class GamesRepository {
             type: CreditTransactionType.game,
             referenceId: session.id,
             title: 'Game on Table ${session.tableName}',
-            subtitle: 'Split Match (â‚¹${amount.toStringAsFixed(2)})',
+            subtitle: 'Split Match (Ã¢â€šÂ¹${amount.toStringAsFixed(2)})',
             paymentMethod: paymentMethod,
           );
         }
@@ -477,7 +480,7 @@ class GamesRepository {
         type: CreditTransactionType.game,
         referenceId: session.id,
         title: 'Game on Table ${session.tableName}',
-        subtitle: 'Billed Amount: â‚¹${amountToPay.toStringAsFixed(2)}',
+        subtitle: 'Billed Amount: Ã¢â€šÂ¹${amountToPay.toStringAsFixed(2)}',
         paymentMethod: session.paymentMethod!,
       );
     }
@@ -674,7 +677,7 @@ class GamesRepository {
         amount: amountToPay,
         type: CreditTransactionType.game,
         title: 'Game on Table ${session.tableName}',
-        subtitle: 'Billed Amount: â‚¹${session.grandTotal?.toStringAsFixed(2)}',
+        subtitle: 'Billed Amount: Ã¢â€šÂ¹${session.grandTotal?.toStringAsFixed(2)}',
       );
     }
 
@@ -693,7 +696,7 @@ class GamesRepository {
             type: CreditTransactionType.game,
             title: 'Game on Table ${session.tableName}',
             subtitle:
-                'T.P. Match Split Liability (â‚¹${amount.toStringAsFixed(2)})',
+                'T.P. Match Split Liability (Ã¢â€šÂ¹${amount.toStringAsFixed(2)})',
           );
         }
       }
@@ -769,7 +772,7 @@ class GamesRepository {
             type: CreditTransactionType.game,
             referenceId: session.id,
             title: 'Game on Table ${session.tableName}',
-            subtitle: 'Split Liability (â‚¹${amount.toStringAsFixed(2)})',
+            subtitle: 'Split Liability (Ã¢â€šÂ¹${amount.toStringAsFixed(2)})',
             paymentMethod: newMethod,
           );
           if (oldMethod == PaymentMethod.credit && newMethod != PaymentMethod.credit) {
@@ -865,4 +868,16 @@ class GamesRepository {
     }
   }
 }
+
+
+  Stream<List<OtherGameResource>> watchOtherGames() {
+    return const Stream.empty();
+  }
+
+  Stream<List<OtherGameResource>> watchAllOtherGamesManagement() {
+    return const Stream.empty();
+  }
+
+  Future<void> addOtherGame(OtherGameResource resource) async {}
+  Future<void> updateOtherGame(OtherGameResource resource) async {}
 

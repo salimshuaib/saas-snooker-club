@@ -1,3 +1,4 @@
+import 'package:snooker_club/features/settings/presentation/screens/resource_management_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -105,6 +106,17 @@ class SettingsScreen extends ConsumerWidget {
                   _buildTableCountBadge('Indian Pool', tables.where((t) => t.type == TableType.indianPool).length, Colors.amber, context),
                   _buildTableCountBadge('American Pool', tables.where((t) => t.type == TableType.americanPool).length, Colors.blue, context),
                 ],
+              ),
+              const Gap(16),
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton.icon(
+                  onPressed: () {
+                    Navigator.push(context, MaterialPageRoute(builder: (_) => const ResourceManagementScreen()));
+                  },
+                  icon: const Icon(Icons.settings_suggest),
+                  label: const Text('Manage Games & Tables'),
+                ),
               ),
               const Gap(8),
             ],

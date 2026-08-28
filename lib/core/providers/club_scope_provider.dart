@@ -1,4 +1,4 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
+﻿import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:snooker_club/core/models/club.dart';
 import 'package:snooker_club/features/authentication/providers/auth_providers.dart';
@@ -13,7 +13,7 @@ class UserClub {
 
 final userClubProvider = StreamProvider<UserClub?>((ref) {
   final user = ref.watch(authStateProvider).value;
-  if (user == null) return Stream.value(null);
+  if (user == null) return const Stream.empty();
 
   return FirebaseFirestore.instance
       .collection(FirebaseConstants.userClubsCollection)
@@ -36,7 +36,7 @@ final clubIdProvider = Provider<String?>((ref) {
 
 final clubProfileProvider = StreamProvider<Club?>((ref) {
   final clubId = ref.watch(clubIdProvider);
-  if (clubId == null) return Stream.value(null);
+  if (clubId == null) return const Stream.empty();
 
   return FirebaseFirestore.instance
       .collection(FirebaseConstants.clubsCollection)
@@ -93,3 +93,4 @@ final platformConfigProvider = StreamProvider<PlatformConfig>((ref) {
     return PlatformConfig.fromMap(doc.data()!);
   });
 });
+

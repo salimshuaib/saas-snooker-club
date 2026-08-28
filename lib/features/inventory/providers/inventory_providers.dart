@@ -13,7 +13,7 @@ final inventoryRepositoryProvider = Provider<InventoryRepository>((ref) {
 
 final inventoryItemsProvider = StreamProvider<List<InventoryItem>>((ref) {
   final repo = ref.watch(inventoryRepositoryProvider);
-  if (repo.clubId == null) return Stream.value([]);
+  if (repo.clubId == null) return const Stream.empty();
   return repo.watchInventory();
 });
 
@@ -29,7 +29,7 @@ class StockHistoryDateNotifier extends Notifier<DateTime> {
 
 final stockHistoryProvider = StreamProvider<List<StockHistory>>((ref) {
   final repo = ref.watch(inventoryRepositoryProvider);
-  if (repo.clubId == null) return Stream.value([]);
+  if (repo.clubId == null) return const Stream.empty();
   final date = ref.watch(stockHistoryDateProvider);
   return repo.watchStockHistory(date);
 });
@@ -77,4 +77,5 @@ final inventorySeederProvider = Provider((ref) {
     await repo.seedInitialInventory(InitialInventory.items);
   };
 });
+
 

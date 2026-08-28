@@ -112,4 +112,5 @@ class SettingsRepository {
     }
     return const AppSettings();
   }
+  Future<void> migrateTablesPricing() async {}
 }

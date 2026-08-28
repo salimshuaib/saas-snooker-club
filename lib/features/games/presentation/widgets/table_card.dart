@@ -122,6 +122,15 @@ class TableCard extends ConsumerWidget {
         return Icons.circle_outlined;
       case TableType.americanPool:
         return Icons.sports_golf;
+      case TableType.ps5:
+      case TableType.pc:
+        return Icons.gamepad;
+      case TableType.carrom:
+      case TableType.foosball:
+      case TableType.chess:
+        return Icons.sports_esports;
+      default:
+        return Icons.table_bar;
     }
   }
 }

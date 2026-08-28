@@ -9,7 +9,12 @@ import 'package:snooker_club/features/settings/domain/models/settings_models.dar
 enum TableType {
   snooker,
   indianPool,
-  americanPool;
+  americanPool,
+  ps5,
+  pc,
+  carrom,
+  foosball,
+  chess;
 
   String get displayName {
     switch (this) {
@@ -19,6 +24,16 @@ enum TableType {
         return 'Indian Pool';
       case TableType.americanPool:
         return 'American Pool';
+      case TableType.ps5:
+        return 'PS5';
+      case TableType.pc:
+        return 'PC';
+      case TableType.carrom:
+        return 'Carrom';
+      case TableType.foosball:
+        return 'Foosball';
+      case TableType.chess:
+        return 'Chess';
     }
   }
 }
@@ -123,6 +138,7 @@ class TableModel {
   final TableType type;
   final TableStatus status;
   final String? activeGameId;
+  final int order;
 
   const TableModel({
     required this.id,
@@ -130,21 +146,24 @@ class TableModel {
     required this.type,
     this.status = TableStatus.available,
     this.activeGameId,
+    this.order = 0,
   });
 
   TableModel copyWith({
-        String? id,
+    String? id,
     String? name,
     TableType? type,
     TableStatus? status,
     String? activeGameId,
+    int? order,
   }) {
     return TableModel(
-            id: id ?? this.id,
+      id: id ?? this.id,
       name: name ?? this.name,
       type: type ?? this.type,
       status: status ?? this.status,
       activeGameId: activeGameId ?? this.activeGameId,
+      order: order ?? this.order,
     );
   }
 
@@ -155,6 +174,7 @@ class TableModel {
       'type': type.name,
       'status': status.name,
       'activeGameId': activeGameId,
+      'order': order,
     };
   }
 
@@ -171,6 +191,7 @@ class TableModel {
         orElse: () => TableStatus.available,
       ),
       activeGameId: map['activeGameId'] as String?,
+      order: map['order'] as int? ?? 0,
     );
   }
 }
@@ -408,6 +429,7 @@ class GameSession {
   final DateTime? recordedTime;
   final PricingSettings? pricingSnapshot;
   final GameSettings? gameSettingsSnapshot;
+  final double? customPrice;
 
   const GameSession({
     this.createdByUserId,
@@ -460,6 +482,7 @@ class GameSession {
     this.recordedTime,
     this.pricingSnapshot,
     this.gameSettingsSnapshot,
+    this.customPrice,
   });
 
   /// All players involved (team A + team B)
@@ -561,6 +584,7 @@ class GameSession {
     DateTime? recordedTime,
     PricingSettings? pricingSnapshot,
     GameSettings? gameSettingsSnapshot,
+    double? customPrice,
   }) {
     return GameSession(
       createdByUserId: createdByUserId ?? this.createdByUserId,
@@ -613,6 +637,7 @@ class GameSession {
       recordedTime: recordedTime ?? this.recordedTime,
       pricingSnapshot: pricingSnapshot ?? this.pricingSnapshot,
       gameSettingsSnapshot: gameSettingsSnapshot ?? this.gameSettingsSnapshot,
+      customPrice: customPrice ?? this.customPrice,
     );
   }
 
@@ -666,6 +691,7 @@ class GameSession {
       'recordedTime': recordedTime != null ? Timestamp.fromDate(recordedTime!) : null,
       'pricingSnapshot': pricingSnapshot?.toMap(),
       'gameSettingsSnapshot': gameSettingsSnapshot?.toMap(),
+      'customPrice': customPrice,
     };
   }
 
@@ -781,8 +807,39 @@ class GameSession {
       gameSettingsSnapshot: map['gameSettingsSnapshot'] != null
           ? GameSettings.fromMap(map['gameSettingsSnapshot'])
           : null,
+      customPrice: (map['customPrice'] as num?)?.toDouble(),
     );
   }
 }
 
 
+
+// Stub for OtherGameResource
+class OtherGameResource {
+  final String id;
+  final String name;
+  final TableStatus status;
+  final bool isActive;
+  final String category;
+  final Map<String, double> pricing;
+
+  OtherGameResource({
+    required this.id,
+    required this.name,
+    required this.status,
+    required this.isActive,
+    required this.category,
+    required this.pricing,
+  });
+
+  factory OtherGameResource.fromMap(Map<String, dynamic> map) {
+    return OtherGameResource(
+      id: map['id'] ?? '',
+      name: map['name'] ?? '',
+      status: TableStatus.available,
+      isActive: map['isActive'] ?? true,
+      category: map['category'] ?? '',
+      pricing: {},
+    );
+  }
+}
