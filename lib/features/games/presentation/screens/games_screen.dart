@@ -165,6 +165,7 @@ class _GamesScreenState extends ConsumerState<GamesScreen> {
           ),
           const Gap(16),
         ],
+        const Gap(80),
       ],
     );
   }

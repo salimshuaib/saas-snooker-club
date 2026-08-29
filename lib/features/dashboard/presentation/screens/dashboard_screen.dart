@@ -357,7 +357,7 @@ class DashboardScreen extends ConsumerWidget {
                   ),
                 ],
               ),
-              const Gap(32),
+              const Gap(100),
             ],
           ),
         ),

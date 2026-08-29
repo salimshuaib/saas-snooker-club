@@ -171,7 +171,7 @@ class TransactionHistoryScreen extends ConsumerWidget {
                   },
                 ),
 
-                const SliverToBoxAdapter(child: Gap(32)),
+                const SliverToBoxAdapter(child: Gap(100)),
               ],
             ),
           ),

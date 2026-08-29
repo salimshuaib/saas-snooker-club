@@ -343,7 +343,7 @@ class _GamesTab extends StatelessWidget {
           return const Center(child: Text('No game history found.'));
         }
         return ListView.builder(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 80),
           itemCount: games.length,
           itemBuilder: (context, index) {
             final game = games[index];
@@ -384,7 +384,7 @@ class _QuickSalesTab extends StatelessWidget {
           return const Center(child: Text('No quick sales found.'));
         }
         return ListView.builder(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 80),
           itemCount: sales.length,
           itemBuilder: (context, index) {
             final sale = sales[index];
@@ -427,7 +427,7 @@ class _TransactionsTab extends ConsumerWidget {
           return const Center(child: Text('No transaction history.'));
         }
         return ListView.builder(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 80),
           itemCount: transactions.length,
           itemBuilder: (context, index) {
             final tx = transactions[index];
