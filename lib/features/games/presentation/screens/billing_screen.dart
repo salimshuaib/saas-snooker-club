@@ -34,6 +34,8 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
   late TextEditingController _finalAmountController;
   bool _isFinalAmountInitialized = false;
   
+  final Map<String, TextEditingController> _liabilityControllers = {};
+
   // Custom split
   final Map<String, double> _customSplit = {};
 
@@ -63,6 +65,9 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
   @override
   void dispose() {
     _finalAmountController.dispose();
+    for (final c in _liabilityControllers.values) {
+      c.dispose();
+    }
     super.dispose();
   }
 
@@ -102,10 +107,7 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
         if (_raceSelectedWinnerTeam != null) {
           final losingTeam = _raceSelectedWinnerTeam == 'Team A' ? _session.teamB : _session.teamA;
           if (losingTeam.isNotEmpty) {
-            final split = totalToSplit / losingTeam.length;
-            for (final p in losingTeam) {
-              liabilities[p] = split;
-            }
+            liabilities[losingTeam.first] = totalToSplit;
           }
         }
       }
@@ -162,6 +164,19 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
         for (final p in _session.allPlayers) {
           liabilities[p] = (liabilities[p] ?? 0.0) + adj;
         }
+      }
+    }
+
+    for (final p in _session.allPlayers) {
+      final amount = liabilities[p] ?? 0.0;
+      final textValue = amount == 0
+          ? '0'
+          : amount.toStringAsFixed(amount.truncateToDouble() == amount ? 0 : 2);
+          
+      if (!_liabilityControllers.containsKey(p)) {
+        _liabilityControllers[p] = TextEditingController(text: textValue);
+      } else if (_liabilityControllers[p]!.text != textValue) {
+        _liabilityControllers[p]!.text = textValue;
       }
     }
 
@@ -559,6 +574,7 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
                             setState(() {
                               _customSplit.clear();
                             });
+                            _initializeLiabilities();
                           },
                         ),
                       ),
@@ -747,11 +763,7 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
                       SizedBox(
                         width: 120,
                         child: TextFormField(
-                          initialValue: amount == 0
-                              ? '0'
-                              : amount.toStringAsFixed(
-                                  amount.truncateToDouble() == amount ? 0 : 2,
-                                ),
+                          controller: _liabilityControllers[player],
                           keyboardType: const TextInputType.numberWithOptions(
                             decimal: true,
                           ),

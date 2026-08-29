@@ -36,6 +36,14 @@ enum TableType {
         return 'Chess';
     }
   }
+
+  bool get isOtherGame {
+    return this == TableType.ps5 ||
+           this == TableType.pc ||
+           this == TableType.carrom ||
+           this == TableType.foosball ||
+           this == TableType.chess;
+  }
 }
 
 enum GameType {
@@ -651,6 +659,7 @@ class GameSession {
       'tableId': tableId,
       'tableName': tableName,
       'tableType': tableType.name,
+      'gameCategory': tableType.isOtherGame ? 'other_game' : 'table_game',
       'gameType': gameType.name,
       'targetPoints': targetPoints,
       'playerPoints': playerPoints,
@@ -789,6 +798,8 @@ class GameSession {
       overtimeCharge: (map['overtimeCharge'] as num?)?.toDouble(),
       ordersTotal: (map['ordersTotal'] as num?)?.toDouble(),
       grandTotal: (map['grandTotal'] as num?)?.toDouble(),
+      roundedAmount: (map['roundedAmount'] as num?)?.toDouble(),
+      finalAmount: (map['finalAmount'] as num?)?.toDouble(),
       employeeId: map['employeeId'] as String?,
       date: map['date'] as String,
       auditLogs: (map['auditLogs'] as List<dynamic>?)

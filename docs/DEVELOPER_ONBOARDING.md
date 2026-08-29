@@ -1,3 +1,4 @@
+
 # Developer Onboarding Guide: SaaS Snooker Club
 
 Welcome to the SaaS Snooker Club codebase! This document is designed to give a new developer or technical expert a comprehensive understanding of how the application is architected, how data flows, and the critical rules to follow when maintaining or expanding the app.

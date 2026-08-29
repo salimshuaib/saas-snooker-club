@@ -63,6 +63,7 @@ class _GameSetupSheetState extends ConsumerState<GameSetupSheet> {
   void initState() {
     super.initState();
     _tableType = widget.table.type;
+    _billingType = TablePricingConfig.supportedBillingTypes(_tableType, _gameType).first;
   }
 
   @override
@@ -131,6 +132,7 @@ class _GameSetupSheetState extends ConsumerState<GameSetupSheet> {
                   ),
                   items: GameType.values
                       .where((type) {
+                        if (_tableType.isOtherGame) return type == GameType.standard;
                         if (type == GameType.rummy && _tableType != TableType.snooker) {
                           return false;
                         }
@@ -150,6 +152,10 @@ class _GameSetupSheetState extends ConsumerState<GameSetupSheet> {
                     if (val != null) {
                       setState(() {
                         _gameType = val;
+                        final validBillingTypes = TablePricingConfig.supportedBillingTypes(_tableType, _gameType);
+                        if (!validBillingTypes.contains(_billingType)) {
+                          _billingType = validBillingTypes.first;
+                        }
                         // Reset player counts to minimums
                         if (val != GameType.standard && _teamASelections.length < 2) {
                           _teamASelections.clear();
@@ -182,8 +188,7 @@ class _GameSetupSheetState extends ConsumerState<GameSetupSheet> {
                                 isDense: true,
                                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                               ),
-                              items: BillingType.values
-                                .where((t) => !(widget.table.type == TableType.snooker && t == BillingType.perFrame))
+                              items: TablePricingConfig.supportedBillingTypes(_tableType, _gameType)
                                 .map((t) => DropdownMenuItem(
                                 value: t,
                                 child: Text(t.displayName),
@@ -193,35 +198,36 @@ class _GameSetupSheetState extends ConsumerState<GameSetupSheet> {
                           ],
                         ),
                       ),
-                      const Gap(16),
+                      if (!_tableType.isOtherGame) const Gap(16),
                     ],
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text('Match Type', style: theme.textTheme.labelMedium),
-                          const Gap(8),
-                          DropdownButtonFormField<MatchType>(
-                            isExpanded: true,
-                            value: _matchType,
-                            decoration: InputDecoration(
-                              isDense: true,
-                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                    if (!_tableType.isOtherGame)
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('Match Type', style: theme.textTheme.labelMedium),
+                            const Gap(8),
+                            DropdownButtonFormField<MatchType>(
+                              isExpanded: true,
+                              value: _matchType,
+                              decoration: InputDecoration(
+                                isDense: true,
+                                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                              ),
+                              items: MatchType.values.map((t) => DropdownMenuItem(
+                                value: t,
+                                child: Text(t.displayName),
+                              )).toList(),
+                              onChanged: (v) => setState(() => _matchType = v!),
                             ),
-                            items: MatchType.values.map((t) => DropdownMenuItem(
-                              value: t,
-                              child: Text(t.displayName),
-                            )).toList(),
-                            onChanged: (v) => setState(() => _matchType = v!),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
-                    ),
                   ],
                 ),
 
 
-                if (_gameType == GameType.standard && _billingType == BillingType.perMinute) ...[
+                if (!_tableType.isOtherGame && _gameType == GameType.standard && _billingType == BillingType.perMinute) ...[
                   const Gap(24),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -247,7 +253,7 @@ class _GameSetupSheetState extends ConsumerState<GameSetupSheet> {
                   ],
                 ],
 
-                if (_gameType == GameType.standard && _billingType == BillingType.perFrame) ...[
+                if (!_tableType.isOtherGame && _gameType == GameType.standard && _billingType == BillingType.perFrame) ...[
                     const Gap(24),
                     Text('Total Frames', style: theme.textTheme.labelMedium),
                     const Gap(8),
@@ -499,8 +505,8 @@ class _GameSetupSheetState extends ConsumerState<GameSetupSheet> {
         status: TableStatus.running,
         targetPoints: _targetPoints,
         billingType: actualBillingType,
-        matchType: _matchType,
-        totalFrames: (_gameType == GameType.standard && actualBillingType == BillingType.perFrame) ? _totalFrames : 1,
+        matchType: _tableType.isOtherGame ? MatchType.friendly : _matchType,
+        totalFrames: (_gameType == GameType.standard && actualBillingType == BillingType.perFrame && !_tableType.isOtherGame) ? _totalFrames : 1,
         framesPlayed: 0,
         teamA: teamAIds,
         teamB: teamBIds,
@@ -509,7 +515,7 @@ class _GameSetupSheetState extends ConsumerState<GameSetupSheet> {
         orders: const [],
         pauseTimes: const [],
         resumeTimes: const [],
-        customPrice: _isCustomPrice ? double.tryParse(_customPriceController.text) : null,
+        customPrice: (_isCustomPrice && !_tableType.isOtherGame) ? double.tryParse(_customPriceController.text) : null,
         pricingSnapshot: appSettings.pricing,
         gameSettingsSnapshot: appSettings.game,
       );
