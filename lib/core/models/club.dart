@@ -12,6 +12,7 @@ class Club {
   final String themeColor;
   final bool isActive;
   final String? suspensionMessage;
+  final double? subscriptionPrice;
   final DateTime? subscriptionStartDate;
   final DateTime? subscriptionEndDate;
   final DateTime? lastPaymentDate;
@@ -29,6 +30,7 @@ class Club {
     required this.themeColor,
     required this.isActive,
     this.suspensionMessage,
+    this.subscriptionPrice,
     this.subscriptionStartDate,
     this.subscriptionEndDate,
     this.lastPaymentDate,
@@ -48,6 +50,7 @@ class Club {
       themeColor: map['themeColor'] as String? ?? '#1B5E20',
       isActive: map['isActive'] as bool? ?? true,
       suspensionMessage: map['suspensionMessage'] as String?,
+      subscriptionPrice: (map['subscriptionPrice'] as num?)?.toDouble(),
       subscriptionStartDate: (map['subscriptionStartDate'] as Timestamp?)?.toDate(),
       subscriptionEndDate: (map['subscriptionEndDate'] as Timestamp?)?.toDate(),
       lastPaymentDate: (map['lastPaymentDate'] as Timestamp?)?.toDate(),
@@ -67,6 +70,7 @@ class Club {
       'themeColor': themeColor,
       'isActive': isActive,
       'suspensionMessage': suspensionMessage,
+      'subscriptionPrice': subscriptionPrice,
       'subscriptionStartDate': subscriptionStartDate != null ? Timestamp.fromDate(subscriptionStartDate!) : null,
       'subscriptionEndDate': subscriptionEndDate != null ? Timestamp.fromDate(subscriptionEndDate!) : null,
       'lastPaymentDate': lastPaymentDate != null ? Timestamp.fromDate(lastPaymentDate!) : null,

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gap/gap.dart';
+import 'package:qr_flutter/qr_flutter.dart';
 import 'package:snooker_club/core/providers/subscription_provider.dart';
 import 'package:snooker_club/core/theme/app_colors.dart';
 import 'package:snooker_club/features/authentication/data/auth_repository.dart';
@@ -12,6 +13,11 @@ class SubscriptionExpiredScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final subscriptionState = ref.watch(subscriptionStateProvider);
     final theme = Theme.of(context);
+    final price = subscriptionState.price;
+    final upiId = subscriptionState.upiId;
+    
+    // Generate UPI URL: upi://pay?pa=<upi_id>&pn=Snooker%20Club&am=<amount>&cu=INR
+    final upiUrl = 'upi://pay?pa=$upiId&pn=SaaS%20Snooker&am=$price&cu=INR';
 
     return Scaffold(
       backgroundColor: AppColors.darkBackground,
@@ -59,32 +65,34 @@ class SubscriptionExpiredScreen extends ConsumerWidget {
                   child: Column(
                     children: [
                       Text(
-                        'Amount Due: ₹${subscriptionState.price.toStringAsFixed(0)}/month',
+                        'Amount Due: ₹${price.toStringAsFixed(0)}/month',
                         style: theme.textTheme.titleLarge?.copyWith(
                           fontWeight: FontWeight.bold,
                           color: AppColors.primary,
                         ),
                       ),
                       const Gap(24),
-                      if (subscriptionState.qrCodeUrl != null && subscriptionState.qrCodeUrl!.isNotEmpty)
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(8),
-                          child: Image.network(
-                            subscriptionState.qrCodeUrl!,
-                            width: 200,
-                            height: 200,
-                            fit: BoxFit.cover,
-                            errorBuilder: (context, error, stackTrace) =>
-                                const Icon(Icons.qr_code_2, size: 200, color: Colors.grey),
+                      if (upiId != null && upiId.isNotEmpty)
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: QrImageView(
+                            data: upiUrl,
+                            version: QrVersions.auto,
+                            size: 200.0,
+                            backgroundColor: Colors.white,
                           ),
                         )
                       else
                         const Icon(Icons.qr_code_2, size: 150, color: Colors.grey),
                       
                       const Gap(16),
-                      if (subscriptionState.upiId != null)
+                      if (upiId != null)
                         Text(
-                          'UPI ID: ${subscriptionState.upiId}',
+                          'Scan to Pay (UPI: $upiId)',
                           style: theme.textTheme.bodyLarge?.copyWith(
                             fontWeight: FontWeight.w500,
                           ),
