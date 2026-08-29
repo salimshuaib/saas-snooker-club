@@ -1063,6 +1063,8 @@ class _RoundCompletionDialogState extends State<_RoundCompletionDialog> {
         } else if (remaining.isNotEmpty &&
             (_selectedLoser == null || _selectedLoser == winner)) {
           _selectedLoser = remaining.first;
+        } else if (remaining.isEmpty) {
+          _selectedLoser = winner;
         }
       }
     });
