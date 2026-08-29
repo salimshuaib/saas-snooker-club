@@ -25,11 +25,16 @@ final subscriptionStateProvider = Provider<SubscriptionState>((ref) {
   final clubProfile = ref.watch(clubProfileProvider).value;
   final platformConfig = ref.watch(platformConfigProvider).value;
 
+  final rawUpi = platformConfig?.upiId;
+  final upiId = (rawUpi != null && rawUpi.isNotEmpty) ? rawUpi : '9643061442@ptaxis';
+  
+  final price = clubProfile?.subscriptionPrice ?? platformConfig?.subscriptionPrice ?? 2999.0;
+
   return SubscriptionState(
     isActive: clubProfile?.isActive ?? true, // default to true if no club yet, routing handles no-club
     qrCodeUrl: platformConfig?.paymentQrUrl,
-    price: clubProfile?.subscriptionPrice ?? platformConfig?.subscriptionPrice ?? 2999,
-    upiId: platformConfig?.upiId ?? '9643061442@ptaxis',
+    price: price,
+    upiId: upiId,
     supportPhone: platformConfig?.supportPhone,
     supportEmail: platformConfig?.supportEmail,
     suspensionMessage: clubProfile?.suspensionMessage,
