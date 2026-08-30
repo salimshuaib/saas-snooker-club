@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gap/gap.dart';
 import 'package:go_router/go_router.dart';
@@ -14,26 +14,51 @@ class AvailableTablesScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final tables = ref.watch(resolvedTablesProvider);
     final availableTables = tables.where((t) => t.status == TableStatus.available).toList();
+    
+    final billiardsTables = availableTables.where((t) => !t.type.isOtherGame).toList();
+    final otherGamesTables = availableTables.where((t) => t.type.isOtherGame).toList();
 
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Available Tables'),
-        centerTitle: false,
+    return DefaultTabController(
+      length: 2,
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text('Available Tables'),
+          centerTitle: false,
+          bottom: const TabBar(
+            labelColor: AppColors.primary,
+            unselectedLabelColor: Colors.grey,
+            indicatorColor: AppColors.primary,
+            tabs: [
+              Tab(text: 'Tables'),
+              Tab(text: 'Other Games'),
+            ],
+          ),
+        ),
+        body: TabBarView(
+          children: [
+            _buildList(billiardsTables),
+            _buildList(otherGamesTables),
+          ],
+        ),
       ),
-      body: availableTables.isEmpty
-          ? const EmptyStateWidget(
-              icon: Icons.table_restaurant,
-              title: 'No Available Tables',
-              subtitle: 'All tables are currently engaged or running games.',
-            )
-          : ListView.builder(
-              padding: const EdgeInsets.all(16),
-              itemCount: availableTables.length,
-              itemBuilder: (context, index) {
-                final table = availableTables[index];
-                return _AvailableTableTile(table: table);
-              },
-            ),
+    );
+  }
+
+  Widget _buildList(List<TableModel> tables) {
+    if (tables.isEmpty) {
+      return const EmptyStateWidget(
+        icon: Icons.table_restaurant,
+        title: 'No Available Tables',
+        subtitle: 'All tables in this category are currently engaged or not created.',
+      );
+    }
+    return ListView.builder(
+      padding: const EdgeInsets.all(16),
+      itemCount: tables.length,
+      itemBuilder: (context, index) {
+        final table = tables[index];
+        return _AvailableTableTile(table: table);
+      },
     );
   }
 }
@@ -93,7 +118,7 @@ class _AvailableTableTile extends StatelessWidget {
                       ),
                       const Gap(4),
                       Text(
-                        'Assigned Game: ${table.type.displayName}',
+                        'Assigned Game: \',
                         style: theme.textTheme.bodyMedium?.copyWith(
                           color: theme.colorScheme.onSurfaceVariant,
                           fontWeight: FontWeight.w500,
