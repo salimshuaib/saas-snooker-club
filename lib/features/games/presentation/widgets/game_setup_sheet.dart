@@ -11,6 +11,8 @@ import 'package:snooker_club/features/credit/providers/credit_providers.dart';
 import 'package:snooker_club/features/credit/presentation/widgets/player_search_field.dart';
 import 'package:snooker_club/features/credit/domain/models/credit_models.dart';
 import 'package:snooker_club/core/widgets/inputs/app_text_field.dart';
+import 'package:flutter/services.dart';
+import 'package:snooker_club/features/games/utils/game_validation_utils.dart';
 
 
 extension GameModeExtension on GameMode {
@@ -257,9 +259,10 @@ class _GameSetupSheetState extends ConsumerState<GameSetupSheet> {
                     const Gap(24),
                     Text('Total Frames', style: theme.textTheme.labelMedium),
                     const Gap(8),
-                                        AppTextField(
+                    AppTextField(
                       hint: 'e.g. 1',
                       keyboardType: TextInputType.number,
+                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                       onChanged: (val) => _totalFrames = int.tryParse(val) ?? 1,
                     ),
                   ],
@@ -389,6 +392,42 @@ class _GameSetupSheetState extends ConsumerState<GameSetupSheet> {
   }
 
   Future<void> _startGame() async {
+    // â”€â”€â”€ VALIDATIONS â”€â”€â”€
+    
+    // 1. Frame validation
+    if (!_tableType.isOtherGame && _gameType == GameType.standard && _billingType == BillingType.perFrame) {
+      if (_totalFrames <= 0) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Frame count must be a valid number greater than 0.')),
+        );
+        return;
+      }
+    }
+
+    // 2. Duplicate Players Check
+    final duplicateError = GameValidationUtils.validateDuplicatePlayersWithinGame(
+      _teamASelections, 
+      _mode == GameMode.team ? _teamBSelections : []
+    );
+    
+    if (duplicateError != null) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(duplicateError)));
+      return;
+    }
+
+    // 3. Active Elsewhere Check
+    final activeElsewhereError = await GameValidationUtils.checkPlayerActiveElsewhere(
+      [..._teamASelections, if (_mode == GameMode.team) ..._teamBSelections], 
+      ref, 
+      widget.table.id
+    );
+
+    if (activeElsewhereError != null) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(activeElsewhereError)));
+      return;
+    }
+
     setState(() => _isLoading = true);
 
     try {

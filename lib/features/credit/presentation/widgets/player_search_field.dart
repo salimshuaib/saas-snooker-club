@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:snooker_club/features/credit/domain/models/credit_models.dart';
 import 'package:snooker_club/features/credit/providers/credit_providers.dart';
@@ -57,6 +58,9 @@ class _PlayerSearchFieldState extends ConsumerState<PlayerSearchField> {
         return TextField(
           controller: controller,
           focusNode: focusNode,
+          inputFormatters: [
+            FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z0-9 ]')),
+          ],
           decoration: InputDecoration(
             hintText: widget.hint,
             filled: true,

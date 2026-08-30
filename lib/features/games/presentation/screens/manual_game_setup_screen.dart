@@ -13,6 +13,8 @@ import 'package:snooker_club/features/games/presentation/screens/billing_screen.
 import 'package:snooker_club/features/credit/presentation/widgets/player_search_field.dart';
 import 'package:snooker_club/features/credit/providers/credit_providers.dart';
 import 'package:snooker_club/features/credit/domain/models/credit_models.dart';
+import 'package:flutter/services.dart';
+import 'package:snooker_club/features/games/utils/game_validation_utils.dart';
 
 class ManualGameSetupScreen extends ConsumerStatefulWidget {
   final String employeeId;
@@ -343,6 +345,7 @@ class _ManualGameSetupScreenState extends ConsumerState<ManualGameSetupScreen> {
                 controller: TextEditingController(text: _totalFrames.toString()),
                 label: 'Total Frames',
                 keyboardType: TextInputType.number,
+                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                 onChanged: (v) {
                   final n = int.tryParse(v);
                   if (n != null && n > 0) _totalFrames = n;
@@ -439,6 +442,37 @@ class _ManualGameSetupScreenState extends ConsumerState<ManualGameSetupScreen> {
   }
 
   Future<void> _startManualGame() async {
+    // 1. Frame validation
+    if (_gameType == GameType.standard && _billingType == BillingType.perFrame) {
+      if (_totalFrames <= 0) {
+        _showError('Frame count must be a valid number greater than 0.');
+        return;
+      }
+    }
+
+    // 2. Duplicate Players Check
+    final duplicateError = GameValidationUtils.validateDuplicatePlayersWithinGame(
+      _teamASelections, 
+      _mode == GameMode.team ? _teamBSelections : []
+    );
+    
+    if (duplicateError != null) {
+      _showError(duplicateError);
+      return;
+    }
+
+    // 3. Active Elsewhere Check
+    final activeElsewhereError = await GameValidationUtils.checkPlayerActiveElsewhere(
+      [..._teamASelections, if (_mode == GameMode.team) ..._teamBSelections], 
+      ref, 
+      _selectedTable!.id
+    );
+
+    if (activeElsewhereError != null) {
+      _showError(activeElsewhereError);
+      return;
+    }
+
     setState(() => _isLoading = true);
 
     final actualBillingType = _gameType == GameType.standard ? _billingType! : BillingType.perMinute;

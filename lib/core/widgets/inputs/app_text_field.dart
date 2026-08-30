@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 /// Styled text input field.
 class AppTextField extends StatelessWidget {
@@ -17,6 +18,7 @@ class AppTextField extends StatelessWidget {
   final ValueChanged<String>? onFieldSubmitted;
   final TextInputAction? textInputAction;
   final FocusNode? focusNode;
+  final List<TextInputFormatter>? inputFormatters;
 
   const AppTextField({
     super.key,
@@ -35,6 +37,7 @@ class AppTextField extends StatelessWidget {
     this.onFieldSubmitted,
     this.textInputAction,
     this.focusNode,
+    this.inputFormatters,
   });
 
   @override
@@ -65,6 +68,7 @@ class AppTextField extends StatelessWidget {
           onTap: onTap,
           onFieldSubmitted: onFieldSubmitted,
           textInputAction: textInputAction,
+          inputFormatters: inputFormatters,
           decoration: InputDecoration(
             hintText: hint,
             prefixIcon: prefixIcon,

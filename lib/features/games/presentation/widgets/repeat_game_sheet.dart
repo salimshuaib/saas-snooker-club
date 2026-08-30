@@ -3,15 +3,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gap/gap.dart';
 import 'package:snooker_club/core/theme/app_colors.dart';
-import 'package:snooker_club/features/games/domain/config/pricing_config.dart';
 import 'package:snooker_club/features/games/domain/models/game_models.dart';
 import 'package:snooker_club/features/games/providers/games_providers.dart';
 import 'package:snooker_club/features/credit/providers/credit_providers.dart';
 import 'package:snooker_club/features/credit/presentation/widgets/player_search_field.dart';
 import 'package:snooker_club/features/credit/domain/models/credit_models.dart';
-import 'package:snooker_club/core/widgets/inputs/app_text_field.dart';
 import 'package:snooker_club/features/team/providers/team_providers.dart';
 import 'package:snooker_club/core/models/audit_log.dart';
+import 'package:snooker_club/features/games/utils/game_validation_utils.dart';
 
 class RepeatGameSheet extends ConsumerStatefulWidget {
   final GameSession originalSession;
@@ -373,6 +372,39 @@ class _RepeatGameSheetState extends ConsumerState<RepeatGameSheet> {
   }
 
   Future<void> _startGame() async {
+    // 1. Frame validation
+    if (_gameType == GameType.standard && _billingType == BillingType.perFrame) {
+      if (_totalFrames <= 0) {
+        if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Frame count must be a valid number greater than 0.')));
+        return;
+      }
+    }
+
+    // 2. Duplicate Players Check
+    final duplicateError = GameValidationUtils.validateDuplicatePlayersWithinGame(
+      _teamASelections, 
+      _mode == GameMode.team ? _teamBSelections : []
+    );
+    
+    if (duplicateError != null) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(duplicateError)));
+      return;
+    }
+
+    // 3. Active Elsewhere Check
+    if (_selectedTable != null) {
+      final activeElsewhereError = await GameValidationUtils.checkPlayerActiveElsewhere(
+        [..._teamASelections, if (_mode == GameMode.team) ..._teamBSelections], 
+        ref, 
+        _selectedTable!.id
+      );
+
+      if (activeElsewhereError != null) {
+        if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(activeElsewhereError)));
+        return;
+      }
+    }
+
     setState(() => _isLoading = true);
 
     try {
