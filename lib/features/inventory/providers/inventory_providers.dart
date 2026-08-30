@@ -14,11 +14,10 @@ final inventoryRepositoryProvider = Provider<InventoryRepository>((ref) {
 final inventoryItemsProvider = StreamProvider<List<InventoryItem>>((ref) async* {
   final repo = ref.watch(inventoryRepositoryProvider);
   if (repo.clubId == null) {
-    yield* const Stream.empty();
+    yield [];
     return;
   }
-  await Future.microtask(() {});
-  yield* repo.watchInventory();
+    yield* repo.watchInventory();
 });
 
 // A provider for selected date in stock history
@@ -33,7 +32,7 @@ class StockHistoryDateNotifier extends Notifier<DateTime> {
 
 final stockHistoryProvider = StreamProvider<List<StockHistory>>((ref) {
   final repo = ref.watch(inventoryRepositoryProvider);
-  if (repo.clubId == null) return const Stream.empty();
+  if (repo.clubId == null) return Stream.value([]);
   final date = ref.watch(stockHistoryDateProvider);
   return repo.watchStockHistory(date);
 });

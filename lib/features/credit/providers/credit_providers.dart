@@ -14,28 +14,27 @@ final creditRepositoryProvider = Provider<CreditRepository>((ref) {
 final allCustomersProvider = StreamProvider<List<PlayerProfile>>((ref) async* {
   final repo = ref.watch(creditRepositoryProvider);
   if (repo.clubId == null) {
-    yield* const Stream.empty();
+    yield [];
     return;
   }
-  await Future.microtask(() {});
-  yield* repo.watchAllCustomers();
+    yield* repo.watchAllCustomers();
 });
 
 final pendingTransactionsProvider = StreamProvider.autoDispose.family<List<CreditTransaction>, String>((ref, customerId) {
   final repo = ref.watch(creditRepositoryProvider);
-  if (repo.clubId == null) return const Stream.empty();
+  if (repo.clubId == null) return Stream.value([]);
   return repo.watchPendingTransactions(customerId);
 });
 
 final allTransactionsProvider = StreamProvider.autoDispose.family<List<CreditTransaction>, String>((ref, customerId) {
   final repo = ref.watch(creditRepositoryProvider);
-  if (repo.clubId == null) return const Stream.empty();
+  if (repo.clubId == null) return Stream.value([]);
   return repo.watchAllTransactions(customerId);
 });
 
 final paymentHistoryProvider = StreamProvider.autoDispose.family<List<PaymentHistory>, String>((ref, customerId) {
   final repo = ref.watch(creditRepositoryProvider);
-  if (repo.clubId == null) return const Stream.empty();
+  if (repo.clubId == null) return Stream.value([]);
   return repo.watchPaymentHistory(customerId);
 });
 
@@ -136,7 +135,7 @@ final globalCreditSearchProvider = NotifierProvider<GlobalCreditSearch, String>(
 final globalRawTransactionsProvider = StreamProvider<List<CreditTransaction>>((ref) {
   final selectedDate = ref.watch(globalCreditDateFilterProvider);
   final repo = ref.watch(creditRepositoryProvider);
-  if (repo.clubId == null) return const Stream.empty();
+  if (repo.clubId == null) return Stream.value([]);
   return repo.watchAllTransactionsGlobal(selectedDate);
 });
 

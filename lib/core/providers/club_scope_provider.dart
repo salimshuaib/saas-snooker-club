@@ -13,7 +13,7 @@ class UserClub {
 
 final userClubProvider = StreamProvider<UserClub?>((ref) {
   final user = ref.watch(authStateProvider).value;
-  if (user == null) return const Stream.empty();
+  if (user == null) return Stream.value(null);
 
   return FirebaseFirestore.instance
       .collection(FirebaseConstants.userClubsCollection)
@@ -36,7 +36,7 @@ final clubIdProvider = Provider<String?>((ref) {
 
 final clubProfileProvider = StreamProvider<Club?>((ref) {
   final clubId = ref.watch(clubIdProvider);
-  if (clubId == null) return const Stream.empty();
+  if (clubId == null) return Stream.value(null);
 
   return FirebaseFirestore.instance
       .collection(FirebaseConstants.clubsCollection)
@@ -89,7 +89,7 @@ final platformConfigProvider = StreamProvider<PlatformConfig>((ref) {
       .doc('config')
       .snapshots()
       .map((doc) {
-    if (!doc.exists || doc.data() == null) return const PlatformConfig();
+    if (!doc.exists || doc.data() == null) return Stream.value(const PlatformConfig());
     return PlatformConfig.fromMap(doc.data()!);
   });
 });

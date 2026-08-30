@@ -165,14 +165,12 @@ final analyticsPreviousTimeRangeProvider = Provider<AnalyticsTimeRange>((ref) {
 
 final analyticsGamesStreamProvider = StreamProvider<List<GameSession>>((ref) async* {
   final tr = ref.watch(analyticsTimeRangeProvider);
-  await Future.microtask(() {});
-  yield* ref.watch(gamesRepositoryProvider).watchGamesByDateRange(tr.start, tr.end);
+    yield* ref.watch(gamesRepositoryProvider).watchGamesByDateRange(tr.start, tr.end);
 });
 
 final analyticsQuickSalesStreamProvider = StreamProvider<List<QuickSale>>((ref) async* {
   final tr = ref.watch(analyticsTimeRangeProvider);
-  await Future.microtask(() {});
-  yield* ref.watch(quickSalesRepositoryProvider).watchQuickSalesByDateRange(tr.start, tr.end);
+    yield* ref.watch(quickSalesRepositoryProvider).watchQuickSalesByDateRange(tr.start, tr.end);
 });
 
 final analyticsPaymentsStreamProvider = StreamProvider<List<PaymentHistory>>((ref) async* {
@@ -181,12 +179,11 @@ final analyticsPaymentsStreamProvider = StreamProvider<List<PaymentHistory>>((re
   final db = ref.watch(firestoreServiceProvider).db;
   
   if (clubId == null) {
-    yield* const Stream.empty();
+    yield [];
     return;
   }
   
-  await Future.microtask(() {});
-  yield* db
+    yield* db
       .collectionGroup('payments')
       .where('clubId', isEqualTo: clubId)
       .where('date', isGreaterThanOrEqualTo: Timestamp.fromDate(tr.start))
@@ -199,14 +196,12 @@ final analyticsPaymentsStreamProvider = StreamProvider<List<PaymentHistory>>((re
 
 final previousGamesStreamProvider = StreamProvider<List<GameSession>>((ref) async* {
   final tr = ref.watch(analyticsPreviousTimeRangeProvider);
-  await Future.microtask(() {});
-  yield* ref.watch(gamesRepositoryProvider).watchGamesByDateRange(tr.start, tr.end);
+    yield* ref.watch(gamesRepositoryProvider).watchGamesByDateRange(tr.start, tr.end);
 });
 
 final previousQuickSalesStreamProvider = StreamProvider<List<QuickSale>>((ref) async* {
   final tr = ref.watch(analyticsPreviousTimeRangeProvider);
-  await Future.microtask(() {});
-  yield* ref.watch(quickSalesRepositoryProvider).watchQuickSalesByDateRange(tr.start, tr.end);
+    yield* ref.watch(quickSalesRepositoryProvider).watchQuickSalesByDateRange(tr.start, tr.end);
 });
 
 final previousPaymentsStreamProvider = StreamProvider<List<PaymentHistory>>((ref) async* {
@@ -215,12 +210,11 @@ final previousPaymentsStreamProvider = StreamProvider<List<PaymentHistory>>((ref
   final db = ref.watch(firestoreServiceProvider).db;
   
   if (clubId == null) {
-    yield* const Stream.empty();
+    yield [];
     return;
   }
   
-  await Future.microtask(() {});
-  yield* db
+    yield* db
       .collectionGroup('payments')
       .where('clubId', isEqualTo: clubId)
       .where('date', isGreaterThanOrEqualTo: Timestamp.fromDate(tr.start))
