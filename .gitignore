@@ -42,3 +42,7 @@ app.*.map.json
 serviceAccountKey.json
 node_modules/
 admin_dashboard/
+
+# Environment Variables
+.env
+.env.*
