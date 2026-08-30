@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gap/gap.dart';
 import 'package:go_router/go_router.dart';
@@ -90,8 +90,6 @@ By checking "I Agree" and proceeding, you acknowledge that you have read, unders
           id: '',
           name: 'Snooker $i',
           type: TableType.snooker,
-          hourlyRate: snookerRate,
-          createdAt: DateTime.now(),
         );
         await gamesRepo.addTable(table);
       }
@@ -101,15 +99,24 @@ By checking "I Agree" and proceeding, you acknowledge that you have read, unders
         final table = TableModel(
           id: '',
           name: 'Pool $i',
-          type: TableType.pool,
-          hourlyRate: poolRate,
-          createdAt: DateTime.now(),
+          type: TableType.americanPool,
         );
         await gamesRepo.addTable(table);
       }
 
+      // Update Settings Pricing
+      final settingsRepo = ref.read(settingsRepositoryProvider);
+      final currentSettings = await settingsRepo.getSettings();
+      final updatedSettings = currentSettings.copyWith(
+        pricing: currentSettings.pricing.copyWith(
+          snookerOneHour: snookerRate,
+          americanPoolOneHour: poolRate,
+        ),
+      );
+      await settingsRepo.saveSettings(updatedSettings);
+
       // Complete Onboarding
-      await ref.read(settingsRepositoryProvider).completeOnboarding();
+      await settingsRepo.completeOnboarding();
 
       if (mounted) {
         context.go(RouteNames.dashboard);
