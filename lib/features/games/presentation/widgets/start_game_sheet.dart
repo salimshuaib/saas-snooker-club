@@ -1,4 +1,4 @@
-import 'package:snooker_club/l10n/app_localizations.dart';
+﻿import 'package:snooker_club/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:snooker_club/core/theme/app_colors.dart';
@@ -16,10 +16,11 @@ class StartGameSheet extends ConsumerWidget {
     final tables = ref.watch(resolvedTablesProvider);
     final availableTables = tables.where((t) => t.status == TableStatus.available).toList();
     
-    // Group tables
-    final snookerTables = availableTables.where((t) => t.type == TableType.snooker).toList();
-    final indianPoolTables = availableTables.where((t) => t.type == TableType.indianPool).toList();
-    final americanPoolTables = availableTables.where((t) => t.type == TableType.americanPool).toList();
+    // Group tables dynamically
+    final groupedTables = <TableType, List<TableModel>>{};
+    for (final table in availableTables) {
+      groupedTables.putIfAbsent(table.type, () => []).add(table);
+    }
 
     // staff
     final currentStaff = ref.watch(currentStaffProvider).value;
@@ -33,43 +34,81 @@ class StartGameSheet extends ConsumerWidget {
         color: theme.colorScheme.surface,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          // Header
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  'Select Table',
-                  style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
-                ),
-                IconButton(
-                  icon: const Icon(Icons.close),
-                  onPressed: () => Navigator.pop(context),
-                )
+      child: DefaultTabController(
+        length: 2,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // Header
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Select Table',
+                    style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close),
+                    onPressed: () => Navigator.pop(context),
+                  )
+                ],
+              ),
+            ),
+            TabBar(
+              labelColor: AppColors.primary,
+              unselectedLabelColor: theme.colorScheme.onSurfaceVariant,
+              indicatorColor: AppColors.primary,
+              tabs: const [
+                Tab(text: 'Tables'),
+                Tab(text: 'Other Games'),
               ],
             ),
-          ),
-          const Divider(),
-          
-          Expanded(
-            child: availableTables.isEmpty
-                ? const Center(child: Text("No available tables right now."))
-                : ListView(
-                    padding: const EdgeInsets.all(20),
-                    children: [
-                      _buildTableGroup("Snooker Tables", snookerTables, context, currentStaff?.id ?? '', theme),
-                      _buildTableGroup("Indian Pool Tables", indianPoolTables, context, currentStaff?.id ?? '', theme),
-                      _buildTableGroup("American Pool Tables", americanPoolTables, context, currentStaff?.id ?? '', theme),
-                    ],
-                  ),
-          ),
-        ],
+            const Divider(height: 1),
+            
+            Expanded(
+              child: availableTables.isEmpty
+                  ? const Center(child: Text("No available tables right now."))
+                  : TabBarView(
+                      children: [
+                        // Tables Tab
+                        ListView(
+                          padding: const EdgeInsets.all(20),
+                          children: _buildTabGroups([TableType.snooker, TableType.indianPool, TableType.americanPool], groupedTables, context, currentStaff?.id ?? '', theme),
+                        ),
+                        // Other Games Tab
+                        ListView(
+                          padding: const EdgeInsets.all(20),
+                          children: _buildTabGroups([TableType.ps5, TableType.pc, TableType.carrom, TableType.foosball, TableType.chess], groupedTables, context, currentStaff?.id ?? '', theme),
+                        ),
+                      ],
+                    ),
+            ),
+          ],
+        ),
       ),
     );
+  }
+
+  List<Widget> _buildTabGroups(List<TableType> types, Map<TableType, List<TableModel>> groupedTables, BuildContext context, String employeeId, ThemeData theme) {
+    return types.map((type) {
+      final tablesOfType = groupedTables[type] ?? [];
+      if (tablesOfType.isEmpty) return const SizedBox.shrink();
+      
+      String title;
+      switch (type) {
+        case TableType.snooker: title = 'Snooker Tables'; break;
+        case TableType.indianPool: title = 'Indian Pool Tables'; break;
+        case TableType.americanPool: title = 'American Pool Tables'; break;
+        case TableType.ps5: title = 'PS5 Consoles'; break;
+        case TableType.pc: title = 'Gaming PCs'; break;
+        case TableType.carrom: title = 'Carrom Boards'; break;
+        case TableType.foosball: title = 'Foosball Tables'; break;
+        case TableType.chess: title = 'Chess Boards'; break;
+      }
+      return _buildTableGroup(title, tablesOfType, context, employeeId, theme);
+    }).toList();
   }
 
   Widget _buildTableGroup(String title, List<TableModel> tables, BuildContext context, String employeeId, ThemeData theme) {
