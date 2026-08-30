@@ -51,7 +51,7 @@ String dateToString(DateTime date) => DateFormat('yyyy-MM-dd').format(date);
 /// it returns the default hardcoded tables so the UI always works.
 final tablesProvider = StreamProvider<List<TableModel>>((ref) {
   final repo = ref.watch(gamesRepositoryProvider);
-  if (repo.clubId == null) return Stream.value([]);
+  if (repo.clubId == null) return const Stream.empty();
   return repo.watchTables().handleError((_) {});
 });
 
@@ -74,7 +74,7 @@ final activeGameProvider = StreamProvider.autoDispose.family<GameSession?, Strin
   tableId,
 ) {
   final repo = ref.watch(gamesRepositoryProvider);
-  if (repo.clubId == null) return Stream.value(null);
+  if (repo.clubId == null) return const Stream.empty();
   return repo.watchActiveGame(tableId);
 });
 
@@ -88,7 +88,7 @@ final tableGamesProvider =
       args,
     ) {
       final repo = ref.watch(gamesRepositoryProvider);
-      if (repo.clubId == null) return Stream.value([]);
+      if (repo.clubId == null) return const Stream.empty();
       return repo.watchGamesByTableAndDate(args.tableId, args.date);
     });
 
@@ -245,7 +245,7 @@ final todaysGamesRevenueStreamProvider = StreamProvider<double>((ref) {
   final dateStr =
       '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
   final repo = ref.watch(gamesRepositoryProvider);
-  if (repo.clubId == null) return Stream.value(0.0);
+  if (repo.clubId == null) return const Stream.empty();
   return repo.watchAllGamesByDate(dateStr).map((
     games,
   ) {
@@ -260,7 +260,7 @@ final selectedDateGamesRevenueStreamProvider = StreamProvider<double>((ref) {
   final dateStr =
       '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
   final repo = ref.watch(gamesRepositoryProvider);
-  if (repo.clubId == null) return Stream.value(0.0);
+  if (repo.clubId == null) return const Stream.empty();
   return repo.watchAllGamesByDate(dateStr).map((
     games,
   ) {
@@ -277,7 +277,7 @@ final todaysCompletedPaidGamesProvider = StreamProvider<List<GameSession>>((
   final dateStr =
       '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
   final repo = ref.watch(gamesRepositoryProvider);
-  if (repo.clubId == null) return Stream.value([]);
+  if (repo.clubId == null) return const Stream.empty();
   return repo.watchAllGamesByDate(dateStr).map((
     games,
   ) {
@@ -292,7 +292,7 @@ final selectedDateCompletedPaidGamesProvider = StreamProvider<List<GameSession>>
   final dateStr =
       '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
   final repo = ref.watch(gamesRepositoryProvider);
-  if (repo.clubId == null) return Stream.value([]);
+  if (repo.clubId == null) return const Stream.empty();
   return repo.watchAllGamesByDate(dateStr).map((
     games,
   ) {
@@ -331,7 +331,7 @@ final pendingCreditsProvider = StreamProvider<double>((ref) {
   final dateStr =
       '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
   final repo = ref.watch(gamesRepositoryProvider);
-  if (repo.clubId == null) return Stream.value(0.0);
+  if (repo.clubId == null) return const Stream.empty();
   return repo.watchAllGamesByDate(dateStr).map((
     games,
   ) {

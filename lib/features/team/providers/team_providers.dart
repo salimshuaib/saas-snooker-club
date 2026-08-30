@@ -12,7 +12,7 @@ final teamRepositoryProvider = Provider<TeamRepository>((ref) {
 
 final teamMembersStreamProvider = StreamProvider<List<StaffMember>>((ref) {
   final repo = ref.watch(teamRepositoryProvider);
-  if (repo.clubId == null) return Stream.value([]);
+  if (repo.clubId == null) return const Stream.empty();
   return repo.watchTeamMembers();
 });
 

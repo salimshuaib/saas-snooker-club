@@ -878,11 +878,11 @@ class GamesRepository {
 
 
   Stream<List<OtherGameResource>> watchOtherGames() {
-    return Stream.value([]);
+    return const Stream.empty();
   }
 
   Stream<List<OtherGameResource>> watchAllOtherGamesManagement() {
-    return Stream.value([]);
+    return const Stream.empty();
   }
 
   Future<void> addOtherGame(OtherGameResource resource) async {}

@@ -8,7 +8,7 @@ final reportCreditsStreamProvider = StreamProvider<List<CreditTransaction>>((ref
   final range = ref.watch(analyticsTimeRangeProvider);
   final clubId = ref.watch(clubIdProvider);
   
-  if (clubId == null) return Stream.value([]);
+  if (clubId == null) return const Stream.empty();
   
   return FirebaseFirestore.instance
       .collectionGroup('transactions')

@@ -116,7 +116,7 @@ class CreditRepository {
   Stream<List<PaymentHistory>> watchAllPaymentsByDate(String dateStr) {
     // Parse dateStr (yyyy-mm-dd)
     final parts = dateStr.split('-');
-    if (parts.length != 3) return Stream.value([]);
+    if (parts.length != 3) return const Stream.empty();
     
     final year = int.tryParse(parts[0]) ?? 2024;
     final month = int.tryParse(parts[1]) ?? 1;

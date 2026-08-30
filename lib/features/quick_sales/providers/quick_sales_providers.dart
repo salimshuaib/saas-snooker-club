@@ -21,7 +21,7 @@ class QuickSalesDateNotifier extends Notifier<DateTime> {
 
 final quickSalesProvider = StreamProvider<List<QuickSale>>((ref) {
   final repo = ref.watch(quickSalesRepositoryProvider);
-  if (repo.clubId == null) return Stream.value([]);
+  if (repo.clubId == null) return const Stream.empty();
   final date = ref.watch(quickSalesDateProvider);
   return repo.watchQuickSales(date);
 });
@@ -29,14 +29,14 @@ final quickSalesProvider = StreamProvider<List<QuickSale>>((ref) {
 /// Dedicated stream provider for today's Quick Sales regardless of selected history date.
 final todaysQuickSalesStreamProvider = StreamProvider<List<QuickSale>>((ref) {
   final repo = ref.watch(quickSalesRepositoryProvider);
-  if (repo.clubId == null) return Stream.value([]);
+  if (repo.clubId == null) return const Stream.empty();
   final now = DateTime.now();
   return repo.watchQuickSales(now);
 });
 
 final selectedDateQuickSalesStreamProvider = StreamProvider<List<QuickSale>>((ref) {
   final repo = ref.watch(quickSalesRepositoryProvider);
-  if (repo.clubId == null) return Stream.value([]);
+  if (repo.clubId == null) return const Stream.empty();
   final selectedDate = ref.watch(revenueDetailsDateProvider);
   return repo.watchQuickSales(selectedDate);
 });
@@ -85,7 +85,7 @@ final todaysQuickSalesTotalProvider = Provider<double>((ref) {
 /// Provider for calculating Quick Sales revenue by a given specific Date string (yyyy-MM-dd) or DateTime.
 final dateQuickSalesProvider = StreamProvider.autoDispose.family<List<QuickSale>, DateTime>((ref, date) {
   final repo = ref.watch(quickSalesRepositoryProvider);
-  if (repo.clubId == null) return Stream.value([]);
+  if (repo.clubId == null) return const Stream.empty();
   return repo.watchQuickSales(date);
 });
 

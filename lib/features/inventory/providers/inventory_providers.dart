@@ -14,7 +14,8 @@ final inventoryRepositoryProvider = Provider<InventoryRepository>((ref) {
 final inventoryItemsProvider = StreamProvider<List<InventoryItem>>((ref) async* {
   final repo = ref.watch(inventoryRepositoryProvider);
   if (repo.clubId == null) {
-    yield [];
+    await Future.microtask(() {});
+    yield* const Stream.empty();
     return;
   }
     yield* repo.watchInventory();
@@ -32,7 +33,7 @@ class StockHistoryDateNotifier extends Notifier<DateTime> {
 
 final stockHistoryProvider = StreamProvider<List<StockHistory>>((ref) {
   final repo = ref.watch(inventoryRepositoryProvider);
-  if (repo.clubId == null) return Stream.value([]);
+  if (repo.clubId == null) return const Stream.empty();
   final date = ref.watch(stockHistoryDateProvider);
   return repo.watchStockHistory(date);
 });

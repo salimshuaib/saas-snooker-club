@@ -167,7 +167,8 @@ final analyticsGamesStreamProvider = StreamProvider<List<GameSession>>((ref) asy
   final tr = ref.watch(analyticsTimeRangeProvider);
   final repo = ref.watch(gamesRepositoryProvider);
   if (repo.clubId == null) {
-    yield [];
+    await Future.microtask(() {});
+    yield* const Stream.empty();
     return;
   }
   yield* repo.watchGamesByDateRange(tr.start, tr.end);
@@ -177,7 +178,8 @@ final analyticsQuickSalesStreamProvider = StreamProvider<List<QuickSale>>((ref) 
   final tr = ref.watch(analyticsTimeRangeProvider);
   final repo = ref.watch(quickSalesRepositoryProvider);
   if (repo.clubId == null) {
-    yield [];
+    await Future.microtask(() {});
+    yield* const Stream.empty();
     return;
   }
   yield* repo.watchQuickSalesByDateRange(tr.start, tr.end);
@@ -189,7 +191,8 @@ final analyticsPaymentsStreamProvider = StreamProvider<List<PaymentHistory>>((re
   final db = ref.watch(firestoreServiceProvider).db;
   
   if (clubId == null) {
-    yield [];
+    await Future.microtask(() {});
+    yield* const Stream.empty();
     return;
   }
   
@@ -208,7 +211,8 @@ final previousGamesStreamProvider = StreamProvider<List<GameSession>>((ref) asyn
   final tr = ref.watch(analyticsPreviousTimeRangeProvider);
   final repo = ref.watch(gamesRepositoryProvider);
   if (repo.clubId == null) {
-    yield [];
+    await Future.microtask(() {});
+    yield* const Stream.empty();
     return;
   }
   yield* repo.watchGamesByDateRange(tr.start, tr.end);
@@ -218,7 +222,8 @@ final previousQuickSalesStreamProvider = StreamProvider<List<QuickSale>>((ref) a
   final tr = ref.watch(analyticsPreviousTimeRangeProvider);
   final repo = ref.watch(quickSalesRepositoryProvider);
   if (repo.clubId == null) {
-    yield [];
+    await Future.microtask(() {});
+    yield* const Stream.empty();
     return;
   }
   yield* repo.watchQuickSalesByDateRange(tr.start, tr.end);
@@ -230,7 +235,8 @@ final previousPaymentsStreamProvider = StreamProvider<List<PaymentHistory>>((ref
   final db = ref.watch(firestoreServiceProvider).db;
   
   if (clubId == null) {
-    yield [];
+    await Future.microtask(() {});
+    yield* const Stream.empty();
     return;
   }
   
