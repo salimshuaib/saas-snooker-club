@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gap/gap.dart';
 import 'package:go_router/go_router.dart';
@@ -118,7 +118,7 @@ class _AvailableTableTile extends StatelessWidget {
                       ),
                       const Gap(4),
                       Text(
-                        'Assigned Game: \',
+                        'Assigned Game: ${table.type.displayName}',
                         style: theme.textTheme.bodyMedium?.copyWith(
                           color: theme.colorScheme.onSurfaceVariant,
                           fontWeight: FontWeight.w500,
