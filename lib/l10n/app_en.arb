@@ -1,6 +1,6 @@
 {
   "@@locale": "en",
-  "appTitle": "Sharma Billiards",
+  "appTitle": "S&B Manager",
   "@appTitle": { "description": "The application title" },
   "login": "Login",
   "logout": "Logout",

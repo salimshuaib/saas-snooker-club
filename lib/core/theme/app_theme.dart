@@ -3,7 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:snooker_club/core/theme/app_colors.dart';
 import 'package:snooker_club/core/theme/app_typography.dart';
 
-/// Centralized theme configuration for the Sharma Billiards application.
+/// Centralized theme configuration for the S&B Manager application.
 /// Provides both light and dark Material 3 themes.
 class AppTheme {
   AppTheme._();

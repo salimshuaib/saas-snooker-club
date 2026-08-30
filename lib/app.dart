@@ -20,7 +20,7 @@ class SnookerClubApp extends ConsumerWidget {
     final locale = ref.watch(localeProvider);
     final clubAsync = ref.watch(clubProfileProvider);
     
-    final clubName = clubAsync.value?.clubName ?? 'Sharma Billiards';
+    final clubName = clubAsync.value?.clubName ?? 'S&B Manager';
     final appTitle = AppConfig.isPreview ? '[PREVIEW] $clubName' : clubName;
 
     Widget app = MaterialApp.router(

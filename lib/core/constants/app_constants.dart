@@ -1,6 +1,6 @@
 class AppConstants {
   AppConstants._();
-  static const String appName = 'Sharma Billiards';
+  static const String appName = 'S&B Manager';
   static const String appVersion = '0.1.0';
   static const Duration splashDuration = Duration(seconds: 2);
   static const Duration animationDuration = Duration(milliseconds: 300);

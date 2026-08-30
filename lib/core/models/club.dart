@@ -43,7 +43,7 @@ class Club {
     return Club(
       id: id,
       clubName: map['clubName'] as String? ?? 'Unknown Club',
-      appName: map['appName'] as String? ?? 'Sharma Billiards',
+      appName: map['appName'] as String? ?? 'S&B Manager',
       ownerUid: map['ownerUid'] as String? ?? '',
       ownerName: map['ownerName'] as String? ?? '',
       ownerEmail: map['ownerEmail'] as String? ?? '',

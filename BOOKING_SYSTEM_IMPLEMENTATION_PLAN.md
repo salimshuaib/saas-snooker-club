@@ -1,10 +1,10 @@
 # BOOKING SYSTEM IMPLEMENTATION PLAN
 
 ## 1. Executive Summary
-The Table/Game Booking System for Sharma Billiards is designed to allow customers to reserve gaming resources (snooker tables, PS5, simulators, etc.) in advance. To protect the integrity of the existing highly-complex billing and game management engine, the Booking System will be built as an isolated, additive feature. **A booking is strictly a reservation, not an active game.** Games are only created when the club owner explicitly marks a customer as arrived and starts the game. This plan outlines a two-stage rollout (Version 1 and Version 2) ensuring safe, phased integration without destabilizing production code.
+The Table/Game Booking System for S&B Manager is designed to allow customers to reserve gaming resources (snooker tables, PS5, simulators, etc.) in advance. To protect the integrity of the existing highly-complex billing and game management engine, the Booking System will be built as an isolated, additive feature. **A booking is strictly a reservation, not an active game.** Games are only created when the club owner explicitly marks a customer as arrived and starts the game. This plan outlines a two-stage rollout (Version 1 and Version 2) ensuring safe, phased integration without destabilizing production code.
 
 ## 2. Existing Architecture Analysis
-Based on the current Sharma Billiards architecture:
+Based on the current S&B Manager architecture:
 - **Stack:** Flutter (Frontend) + Firebase Firestore (Backend Single Source of Truth).
 - **Data Isolation:** All data is strictly isolated under `clubs/{clubId}/*`.
 - **Game Engine:** Handles diverse and complex logic including standard games, race games, per-minute, per-frame, and package billing.
@@ -93,7 +93,7 @@ The system will dynamically calculate availability by querying the Single Source
 5. **HANDOFF:** Game is created in the `games` collection. Booking is updated with `gameId` and Status = `completed`.
 
 ## 8. Owner App Flow
-A dedicated "Bookings" tab will be added to the Sharma Billiards navigation.
+A dedicated "Bookings" tab will be added to the S&B Manager navigation.
 - **Dashboard Views:**
   - *Today:* Quick list of upcoming bookings for the current day.
   - *Upcoming:* Future reservations.
@@ -149,7 +149,7 @@ When the owner clicks **"Start Game From Booking"**:
   - *Risks:* None, entirely additive.
 - **PHASE 3: Owner Booking Dashboard**
   - Build the UI for the owner to view, accept, and cancel bookings.
-  - *Files Affected:* Sharma Billiards Main Navigation (Add tab).
+  - *Files Affected:* S&B Manager Main Navigation (Add tab).
 - **PHASE 4: Availability Engine**
   - Write the logic to check overlapping timestamps and active games.
   - *Testing Requirement:* Rigorous unit testing on time overlap logic.
@@ -192,4 +192,4 @@ Focus exclusively on the core loop: Customer books online -> Owner sees it in th
 **Version 2 (Enhancements):**
 Once Version 1 is stable, introduce advanced features like Calendar Views, No-Show analytics, Booking Reminders, and Advance Deposits.
 
-By strictly adhering to the principle that **"A booking reserves a resource, but only a Game record dictates billing and gameplay"**, the existing Sharma Billiards architecture will remain entirely safe and stable throughout this implementation.
+By strictly adhering to the principle that **"A booking reserves a resource, but only a Game record dictates billing and gameplay"**, the existing S&B Manager architecture will remain entirely safe and stable throughout this implementation.

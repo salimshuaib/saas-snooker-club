@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-/// Centralized color palette for the Sharma Billiards application.
+/// Centralized color palette for the S&B Manager application.
 /// All colors used throughout the app should be referenced from here.
 class AppColors {
   AppColors._();
