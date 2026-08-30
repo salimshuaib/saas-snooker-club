@@ -18,11 +18,11 @@ class OnboardingScreen extends ConsumerStatefulWidget {
 
 class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   bool _agreedToTerms = false;
-  int _snookerCount = 0;
-  int _poolCount = 0;
-  final _snookerRateCtrl = TextEditingController(text: "250");
-  final _poolRateCtrl = TextEditingController(text: "200");
   bool _isLoading = false;
+  
+  final Map<TableType, int> _counts = {
+    for (var type in TableType.values) type: 0,
+  };
 
   final String _userAgreementText = '''
 # SaaS Snooker Club Management - User Agreement (v1.0)
@@ -54,13 +54,6 @@ Our platform provides digital tools for club management, including table time-tr
 By checking "I Agree" and proceeding, you acknowledge that you have read, understood, and agree to these terms.
 ''';
 
-  @override
-  void dispose() {
-    _snookerRateCtrl.dispose();
-    _poolRateCtrl.dispose();
-    super.dispose();
-  }
-
   Future<void> _submit() async {
     if (!_agreedToTerms) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -69,53 +62,35 @@ By checking "I Agree" and proceeding, you acknowledge that you have read, unders
       return;
     }
 
-    if (_snookerCount == 0 && _poolCount == 0) {
+    final totalCount = _counts.values.fold(0, (sum, count) => sum + count);
+    if (totalCount == 0) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please add at least one table to continue.')),
+        const SnackBar(content: Text('Please add at least one table or game to continue.')),
       );
       return;
     }
-
-    final snookerRate = double.tryParse(_snookerRateCtrl.text) ?? 250.0;
-    final poolRate = double.tryParse(_poolRateCtrl.text) ?? 200.0;
 
     setState(() => _isLoading = true);
 
     try {
       final gamesRepo = ref.read(gamesRepositoryProvider);
 
-      // Add Snooker Tables
-      for (int i = 1; i <= _snookerCount; i++) {
-        final table = TableModel(
-          id: '',
-          name: 'Snooker $i',
-          type: TableType.snooker,
-        );
-        await gamesRepo.addTable(table);
+      for (final entry in _counts.entries) {
+        final type = entry.key;
+        final count = entry.value;
+        
+        for (int i = 1; i <= count; i++) {
+          final table = TableModel(
+            id: '',
+            name: '${type.displayName} $i',
+            type: type,
+          );
+          await gamesRepo.addTable(table);
+        }
       }
-
-      // Add Pool Tables
-      for (int i = 1; i <= _poolCount; i++) {
-        final table = TableModel(
-          id: '',
-          name: 'Pool $i',
-          type: TableType.americanPool,
-        );
-        await gamesRepo.addTable(table);
-      }
-
-      // Update Settings Pricing
-      final settingsRepo = ref.read(settingsRepositoryProvider);
-      final currentSettings = await settingsRepo.getSettings();
-      final updatedSettings = currentSettings.copyWith(
-        pricing: currentSettings.pricing.copyWith(
-          snookerOneHour: snookerRate,
-          americanPoolOneHour: poolRate,
-        ),
-      );
-      await settingsRepo.saveSettings(updatedSettings);
 
       // Complete Onboarding
+      final settingsRepo = ref.read(settingsRepositoryProvider);
       await settingsRepo.completeOnboarding();
 
       if (mounted) {
@@ -188,27 +163,35 @@ By checking "I Agree" and proceeding, you acknowledge that you have read, unders
                 'Add your tables so you can start tracking time immediately.',
                 style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant),
               ),
-              const Gap(24),
-              _buildTableConfigurator(
-                title: 'Snooker Tables',
-                count: _snookerCount,
-                rateCtrl: _snookerRateCtrl,
-                onAdd: () => setState(() => _snookerCount++),
-                onRemove: () => setState(() {
-                  if (_snookerCount > 0) _snookerCount--;
-                }),
+              const Gap(16),
+              DefaultTabController(
+                length: 2,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    TabBar(
+                      labelColor: AppColors.primary,
+                      unselectedLabelColor: theme.colorScheme.onSurfaceVariant,
+                      indicatorColor: AppColors.primary,
+                      tabs: const [
+                        Tab(text: 'Billiards'),
+                        Tab(text: 'Other Games'),
+                      ],
+                    ),
+                    const Gap(16),
+                    SizedBox(
+                      height: 450,
+                      child: TabBarView(
+                        children: [
+                          _buildTabContent([TableType.snooker, TableType.indianPool, TableType.americanPool]),
+                          _buildTabContent([TableType.ps5, TableType.pc, TableType.carrom, TableType.foosball, TableType.chess]),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
               ),
-              const Gap(24),
-              _buildTableConfigurator(
-                title: 'Pool Tables',
-                count: _poolCount,
-                rateCtrl: _poolRateCtrl,
-                onAdd: () => setState(() => _poolCount++),
-                onRemove: () => setState(() {
-                  if (_poolCount > 0) _poolCount--;
-                }),
-              ),
-              const Gap(48),
+              const Gap(16),
               ElevatedButton(
                 onPressed: _isLoading ? null : _submit,
                 style: ElevatedButton.styleFrom(
@@ -232,14 +215,21 @@ By checking "I Agree" and proceeding, you acknowledge that you have read, unders
     );
   }
 
-  Widget _buildTableConfigurator({
-    required String title,
-    required int count,
-    required TextEditingController rateCtrl,
-    required VoidCallback onAdd,
-    required VoidCallback onRemove,
-  }) {
+  Widget _buildTabContent(List<TableType> types) {
+    return ListView.separated(
+      itemCount: types.length,
+      separatorBuilder: (_, __) => const Gap(12),
+      itemBuilder: (context, index) {
+        final type = types[index];
+        return _buildTableConfigurator(type);
+      },
+    );
+  }
+
+  Widget _buildTableConfigurator(TableType type) {
     final theme = Theme.of(context);
+    final count = _counts[type] ?? 0;
+    
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -247,49 +237,37 @@ By checking "I Agree" and proceeding, you acknowledge that you have read, unders
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: theme.colorScheme.outlineVariant),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
+          Text(
+            type.displayName,
+            style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+          ),
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                title,
-                style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+              IconButton(
+                onPressed: () {
+                  if (count > 0) {
+                    setState(() => _counts[type] = count - 1);
+                  }
+                },
+                icon: const Icon(Icons.remove_circle_outline),
+                color: AppColors.error,
               ),
-              Row(
-                children: [
-                  IconButton(
-                    onPressed: onRemove,
-                    icon: const Icon(Icons.remove_circle_outline),
-                    color: AppColors.error,
-                  ),
-                  Text(
-                    '$count',
-                    style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
-                  ),
-                  IconButton(
-                    onPressed: onAdd,
-                    icon: const Icon(Icons.add_circle_outline),
-                    color: AppColors.success,
-                  ),
-                ],
+              Text(
+                '$count',
+                style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+              ),
+              IconButton(
+                onPressed: () {
+                  setState(() => _counts[type] = count + 1);
+                },
+                icon: const Icon(Icons.add_circle_outline),
+                color: AppColors.success,
               ),
             ],
           ),
-          if (count > 0) ...[
-            const Gap(16),
-            TextFormField(
-              controller: rateCtrl,
-              decoration: InputDecoration(
-                labelText: 'Default Hourly Rate (₹)',
-                prefixIcon: const Icon(Icons.currency_rupee, size: 16),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                isDense: true,
-              ),
-              keyboardType: TextInputType.number,
-            ),
-          ],
         ],
       ),
     );
