@@ -123,10 +123,55 @@ class _GamesScreenState extends ConsumerState<GamesScreen> {
     bool isToday,
     ThemeData theme,
   ) {
+    final billiardsTables = tables.where((t) => !t.type.isOtherGame).toList();
+    final otherGamesTables = tables.where((t) => t.type.isOtherGame).toList();
+
+    if (otherGamesTables.isEmpty) {
+      return _buildGridList(billiardsTables, selectedDate, isToday, theme);
+    }
+
+    return DefaultTabController(
+      length: 2,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          TabBar(
+            labelColor: theme.colorScheme.primary,
+            unselectedLabelColor: Colors.grey,
+            indicatorColor: theme.colorScheme.primary,
+            tabs: const [
+              Tab(text: 'Tables'),
+              Tab(text: 'Other Games'),
+            ],
+          ),
+          const Divider(height: 1),
+          Expanded(
+            child: TabBarView(
+              children: [
+                _buildGridList(billiardsTables, selectedDate, isToday, theme),
+                _buildGridList(otherGamesTables, selectedDate, isToday, theme),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildGridList(
+    List<TableModel> typeTables,
+    DateTime selectedDate,
+    bool isToday,
+    ThemeData theme,
+  ) {
     // Group tables by type
     final grouped = <TableType, List<TableModel>>{};
-    for (final table in tables) {
+    for (final table in typeTables) {
       grouped.putIfAbsent(table.type, () => []).add(table);
+    }
+
+    if (grouped.isEmpty) {
+      return const Center(child: Text("No tables available."));
     }
 
     return ListView(
