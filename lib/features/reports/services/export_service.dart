@@ -113,7 +113,7 @@ class ExportService {
         if (context.mounted) {
           _hideLoading(context);
           ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Excel Generated Successfully')));
-          final clubName = ref.read(clubProfileProvider).value?.clubName ?? 'S&B Manager';
+          final clubName = ref.read(clubProfileProvider).value?.clubName ?? 'Sharma Billiards';
           Share.shareXFiles([xfile], text: '$clubName Financial Excel Report');
         }
       }
@@ -135,7 +135,7 @@ class ExportService {
       final font = await PdfGoogleFonts.robotoRegular();
       final boldFont = await PdfGoogleFonts.robotoBold();
 
-      final clubName = ref.read(clubProfileProvider).value?.clubName ?? 'S&B Manager';
+      final clubName = ref.read(clubProfileProvider).value?.clubName ?? 'Sharma Billiards';
 
       final pdf = pw.Document();
 
@@ -208,7 +208,7 @@ class ExportService {
       if (context.mounted) {
         _hideLoading(context);
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('PDF Generated Successfully')));
-        final clubName = ref.read(clubProfileProvider).value?.clubName ?? 'S&B Manager';
+        final clubName = ref.read(clubProfileProvider).value?.clubName ?? 'Sharma Billiards';
         Share.shareXFiles([xfile], text: '$clubName Financial Report');
       }
     } catch (e) {
@@ -264,7 +264,7 @@ class ExportService {
       if (context.mounted) {
         _hideLoading(context);
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('CSV Generated Successfully')));
-        final clubName = ref.read(clubProfileProvider).value?.clubName ?? 'S&B Manager';
+        final clubName = ref.read(clubProfileProvider).value?.clubName ?? 'Sharma Billiards';
         Share.shareXFiles([xfile], text: '$clubName Games CSV Export');
       }
     } catch (e) {

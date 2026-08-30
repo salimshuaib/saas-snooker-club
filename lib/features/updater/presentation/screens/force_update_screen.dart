@@ -40,7 +40,7 @@ class ForceUpdateScreen extends ConsumerWidget {
               Text(
                 updateState.updateMessage.isNotEmpty
                     ? updateState.updateMessage
-                    : 'A new critical version of S&B Manager is available. Please update to continue using the app.',
+                    : 'A new critical version of Sharma Billiards is available. Please update to continue using the app.',
                 style: theme.textTheme.bodyLarge?.copyWith(
                   color: AppColors.darkOnSurfaceVariant,
                 ),

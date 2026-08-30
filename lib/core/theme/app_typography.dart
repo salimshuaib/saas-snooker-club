@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-/// Centralized typography system for the S&B Manager application.
+/// Centralized typography system for the Sharma Billiards application.
 /// Uses Inter font for a modern, professional appearance.
 class AppTypography {
   AppTypography._();

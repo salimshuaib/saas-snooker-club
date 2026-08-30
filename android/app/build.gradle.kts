@@ -37,12 +37,12 @@ android {
         create("production") {
             dimension = "environment"
             applicationId = "com.example.snooker_club"
-            resValue("string", "app_name", "S&amp;B Manager")
+            resValue("string", "app_name", "Sharma Billiards")
         }
         create("preview") {
             dimension = "environment"
             applicationId = "com.example.snooker_club.preview"
-            resValue("string", "app_name", "[PREVIEW] S&amp;B Manager")
+            resValue("string", "app_name", "[PREVIEW] Sharma Billiards")
         }
     }
 

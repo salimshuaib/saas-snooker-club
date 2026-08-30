@@ -8,7 +8,7 @@ class BusinessSettings {
   final String? logoUrl;
 
   const BusinessSettings({
-    this.clubName = 'S&B Manager',
+    this.clubName = 'Sharma Billiards',
     this.address = 'Main Club Complex, City Center',
     this.contactNumber = '+91 9876543210',
     this.gstNumber,
@@ -44,7 +44,7 @@ class BusinessSettings {
   factory BusinessSettings.fromMap(Map<String, dynamic>? map) {
     if (map == null) return const BusinessSettings();
     return BusinessSettings(
-      clubName: map['clubName'] as String? ?? 'S&B Manager',
+      clubName: map['clubName'] as String? ?? 'Sharma Billiards',
       address: map['address'] as String? ?? 'Main Club Complex, City Center',
       contactNumber: map['contactNumber'] as String? ?? '+91 9876543210',
       gstNumber: map['gstNumber'] as String?,

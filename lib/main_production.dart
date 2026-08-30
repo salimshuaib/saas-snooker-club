@@ -52,7 +52,7 @@ void main() async {
   final localStorageService = LocalStorageService();
   await localStorageService.initialize();
 
-  AppLogger.info('S&B Manager PRODUCTION app starting...');
+  AppLogger.info('Sharma Billiards PRODUCTION app starting...');
 
   runApp(
     ProviderScope(

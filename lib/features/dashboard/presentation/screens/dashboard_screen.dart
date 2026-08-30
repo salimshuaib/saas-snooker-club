@@ -139,7 +139,7 @@ class DashboardScreen extends ConsumerWidget {
                               Text(
                                 updateState.updateMessage.isNotEmpty
                                     ? updateState.updateMessage
-                                    : 'A new version of S&B Manager is ready to install.',
+                                    : 'A new version of Sharma Billiards is ready to install.',
                                 style: theme.textTheme.bodySmall?.copyWith(
                                   color: theme.colorScheme.onSurfaceVariant,
                                 ),

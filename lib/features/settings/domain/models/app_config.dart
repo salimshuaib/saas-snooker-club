@@ -20,7 +20,7 @@ class AppVersionConfig {
         latestVersion: '1.0.0',
         updateUrl: '',
         forceUpdate: false,
-        updateMessage: 'A new version of S&B Manager is available.',
+        updateMessage: 'A new version of Sharma Billiards is available.',
       );
     }
     return AppVersionConfig(
@@ -28,7 +28,7 @@ class AppVersionConfig {
       latestVersion: map['latest_version'] as String? ?? '1.0.0',
       updateUrl: map['update_url'] as String? ?? '',
       forceUpdate: map['force_update'] as bool? ?? false,
-      updateMessage: map['update_message'] as String? ?? 'A new version of S&B Manager is available.',
+      updateMessage: map['update_message'] as String? ?? 'A new version of Sharma Billiards is available.',
     );
   }
 
