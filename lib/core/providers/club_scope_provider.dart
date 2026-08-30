@@ -30,6 +30,9 @@ final userClubProvider = StreamProvider<UserClub?>((ref) {
 });
 
 final clubIdProvider = Provider<String?>((ref) {
+  final user = ref.watch(authStateProvider).value;
+  if (user == null) return null;
+  
   final userClub = ref.watch(userClubProvider).value;
   return userClub?.clubId;
 });

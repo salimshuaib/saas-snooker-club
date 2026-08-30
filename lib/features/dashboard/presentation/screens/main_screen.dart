@@ -90,7 +90,10 @@ class _MainScreenState extends ConsumerState<MainScreen> {
 
   @override
   Widget build(BuildContext context) {
-
+    final clubId = ref.watch(clubIdProvider);
+    if (clubId == null) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
 
     final theme = Theme.of(context);
     final currentIndex = widget.navigationShell.currentIndex;

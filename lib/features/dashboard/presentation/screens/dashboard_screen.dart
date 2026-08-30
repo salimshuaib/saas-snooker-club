@@ -37,6 +37,11 @@ class DashboardScreen extends ConsumerWidget {
     // Get actual staff member from state
     final currentStaff = ref.watch(currentStaffProvider).value;
     final employeeName = currentStaff?.name ?? 'Admin User';
+
+    final clubId = ref.watch(clubIdProvider);
+    if (clubId == null) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
     
     final clubAsync = ref.watch(clubProfileProvider);
 
