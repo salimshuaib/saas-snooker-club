@@ -36,10 +36,21 @@ class _MainScreenState extends ConsumerState<MainScreen> {
   }
 
   final List<ProviderSubscription> _subscriptions = [];
+  bool _isSwitchingClub = true;
 
   @override
   void initState() {
     super.initState();
+    
+    // Artificial delay to let Firebase fully sync and prevent synchronous cache emission exceptions
+    Future.delayed(const Duration(milliseconds: 500), () {
+      if (mounted) {
+        setState(() {
+          _isSwitchingClub = false;
+        });
+      }
+    });
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _subscriptions.add(ref.listenManual<String?>(clubIdProvider, (previous, next) {
         if (next != null) {
@@ -90,6 +101,10 @@ class _MainScreenState extends ConsumerState<MainScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (_isSwitchingClub) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+
     final clubId = ref.watch(clubIdProvider);
     if (clubId == null) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));

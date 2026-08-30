@@ -171,6 +171,7 @@ final analyticsGamesStreamProvider = StreamProvider<List<GameSession>>((ref) asy
     yield* const Stream.empty();
     return;
   }
+  await Future.delayed(const Duration(milliseconds: 100));
   yield* repo.watchGamesByDateRange(tr.start, tr.end);
 });
 
@@ -182,6 +183,7 @@ final analyticsQuickSalesStreamProvider = StreamProvider<List<QuickSale>>((ref) 
     yield* const Stream.empty();
     return;
   }
+  await Future.delayed(const Duration(milliseconds: 100));
   yield* repo.watchQuickSalesByDateRange(tr.start, tr.end);
 });
 
@@ -196,6 +198,7 @@ final analyticsPaymentsStreamProvider = StreamProvider<List<PaymentHistory>>((re
     return;
   }
   
+    await Future.delayed(const Duration(milliseconds: 100));
     yield* db
       .collectionGroup('payments')
       .where('clubId', isEqualTo: clubId)
@@ -226,6 +229,7 @@ final previousQuickSalesStreamProvider = StreamProvider<List<QuickSale>>((ref) a
     yield* const Stream.empty();
     return;
   }
+  await Future.delayed(const Duration(milliseconds: 100));
   yield* repo.watchQuickSalesByDateRange(tr.start, tr.end);
 });
 
@@ -240,6 +244,7 @@ final previousPaymentsStreamProvider = StreamProvider<List<PaymentHistory>>((ref
     return;
   }
   
+    await Future.delayed(const Duration(milliseconds: 100));
     yield* db
       .collectionGroup('payments')
       .where('clubId', isEqualTo: clubId)
