@@ -101,7 +101,7 @@ abstract class AppLocalizations {
   /// The application title
   ///
   /// In en, this message translates to:
-  /// **'Sharma Billiards'**
+  /// **'S&B Manager'**
   String get appTitle;
 
   /// No description provided for @login.
