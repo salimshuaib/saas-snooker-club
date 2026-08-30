@@ -277,7 +277,7 @@ final todaysCompletedPaidGamesProvider = StreamProvider<List<GameSession>>((
   final dateStr =
       '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
   final repo = ref.watch(gamesRepositoryProvider);
-  if (repo.clubId == null) return Stream.value(0.0);
+  if (repo.clubId == null) return Stream.value([]);
   return repo.watchAllGamesByDate(dateStr).map((
     games,
   ) {
@@ -292,7 +292,7 @@ final selectedDateCompletedPaidGamesProvider = StreamProvider<List<GameSession>>
   final dateStr =
       '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
   final repo = ref.watch(gamesRepositoryProvider);
-  if (repo.clubId == null) return Stream.value(0.0);
+  if (repo.clubId == null) return Stream.value([]);
   return repo.watchAllGamesByDate(dateStr).map((
     games,
   ) {

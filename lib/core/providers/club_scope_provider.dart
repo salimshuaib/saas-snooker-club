@@ -1,4 +1,4 @@
-﻿import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:snooker_club/core/models/club.dart';
 import 'package:snooker_club/features/authentication/providers/auth_providers.dart';
@@ -89,7 +89,7 @@ final platformConfigProvider = StreamProvider<PlatformConfig>((ref) {
       .doc('config')
       .snapshots()
       .map((doc) {
-    if (!doc.exists || doc.data() == null) return Stream.value(const PlatformConfig());
+    if (!doc.exists || doc.data() == null) return const PlatformConfig();
     return PlatformConfig.fromMap(doc.data()!);
   });
 });
