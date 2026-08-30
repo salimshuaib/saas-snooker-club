@@ -30,7 +30,6 @@ class _MainScreenState extends ConsumerState<MainScreen> {
     if (_hasInitialized) return;
     _hasInitialized = true;
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      ref.read(gamesRepositoryProvider).seedTablesIfEmpty();
       ref.read(settingsRepositoryProvider).migrateTablesPricing();
       ref.read(inventorySeederProvider)();
     });

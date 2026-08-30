@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:snooker_club/core/routes/route_names.dart';
 import 'package:snooker_club/features/analytics/presentation/screens/analytics_screen.dart';
 import 'package:snooker_club/features/authentication/presentation/screens/login_screen.dart';
+import 'package:snooker_club/features/authentication/presentation/screens/onboarding_screen.dart';
 import 'package:snooker_club/features/authentication/presentation/screens/splash_screen.dart';
 import 'package:snooker_club/features/authentication/providers/auth_providers.dart';
 import 'package:snooker_club/core/providers/update_provider.dart';
@@ -83,6 +84,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       final isOnForceUpdate = state.matchedLocation == RouteNames.forceUpdate;
       final isOnNoClub = state.matchedLocation == RouteNames.noClub;
       final isOnSubscriptionExpired = state.matchedLocation == RouteNames.subscriptionExpired;
+      final isOnOnboarding = state.matchedLocation == RouteNames.onboarding;
 
       if (updateState.isForceUpdateRequired) {
         return isOnForceUpdate ? null : RouteNames.forceUpdate;
@@ -108,20 +110,27 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         return isOnNoClub ? null : RouteNames.noClub;
       }
 
-      // Check Club Profile (Subscription)
+      // Check Club Profile (Subscription & Onboarding)
       if (clubProfileState.isLoading) return isOnSplash ? null : RouteNames.splash;
       final clubProfile = clubProfileState.value;
       if (clubProfile != null && !clubProfile.isActive) {
         return isOnSubscriptionExpired ? null : RouteNames.subscriptionExpired;
       }
+      if (clubProfile != null && !clubProfile.isOnboarded) {
+        return isOnOnboarding ? null : RouteNames.onboarding;
+      }
 
-      if (isOnSplash || isOnLogin || isOnNoClub || isOnSubscriptionExpired) {
+      if (isOnSplash || isOnLogin || isOnNoClub || isOnSubscriptionExpired || isOnOnboarding) {
         return RouteNames.dashboard;
       }
 
       return null;
     },
     routes: [
+      GoRoute(
+        path: RouteNames.onboarding,
+        builder: (context, state) => const TickerMode(enabled: true, child: const OnboardingScreen()),
+      ),
       GoRoute(
         path: RouteNames.subscriptionExpired,
         builder: (context, state) => const TickerMode(enabled: true, child: const SubscriptionExpiredScreen()),

@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:snooker_club/core/config/app_environment.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -57,6 +58,18 @@ class SettingsRepository {
       AppLogger.warning('Could not load settings from Firestore: $e. Falling back to local cache.');
     }
     return _loadFromLocalBackup();
+  }
+
+  Future<void> completeOnboarding() async {
+    if (AppConfig.guardWrite('SettingsRepository.completeOnboarding')) return;
+    if (clubId == null) throw Exception('clubId cannot be null');
+    final ref = _db.collection(FirebaseConstants.clubsCollection).doc(clubId);
+    await ref.update({
+      'isOnboarded': true,
+      'agreedToTermsAt': FieldValue.serverTimestamp(),
+      'agreedByUid': FirebaseAuth.instance.currentUser?.uid,
+      'agreementVersion': 'v1.0',
+    });
   }
 
   /// Save settings to Firestore and local cache.

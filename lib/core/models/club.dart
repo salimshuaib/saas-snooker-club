@@ -17,6 +17,7 @@ class Club {
   final DateTime? subscriptionEndDate;
   final DateTime? lastPaymentDate;
   final DateTime createdAt;
+  final bool isOnboarded;
 
   const Club({
     required this.id,
@@ -35,6 +36,7 @@ class Club {
     this.subscriptionEndDate,
     this.lastPaymentDate,
     required this.createdAt,
+    required this.isOnboarded,
   });
 
   factory Club.fromMap(Map<String, dynamic> map, String id) {
@@ -55,6 +57,7 @@ class Club {
       subscriptionEndDate: (map['subscriptionEndDate'] as Timestamp?)?.toDate(),
       lastPaymentDate: (map['lastPaymentDate'] as Timestamp?)?.toDate(),
       createdAt: (map['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
+      isOnboarded: map['isOnboarded'] as bool? ?? true,
     );
   }
 
@@ -75,6 +78,7 @@ class Club {
       'subscriptionEndDate': subscriptionEndDate != null ? Timestamp.fromDate(subscriptionEndDate!) : null,
       'lastPaymentDate': lastPaymentDate != null ? Timestamp.fromDate(lastPaymentDate!) : null,
       'createdAt': Timestamp.fromDate(createdAt),
+      'isOnboarded': isOnboarded,
     };
   }
 }

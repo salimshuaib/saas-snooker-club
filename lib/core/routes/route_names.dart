@@ -21,5 +21,6 @@ class RouteNames {
   static const String forceUpdate = '/force-update';
   static const String subscriptionExpired = '/subscription-expired';
   static const String noClub = '/no-club';
+  static const String onboarding = '/onboarding';
 }
 

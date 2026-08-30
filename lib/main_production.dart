@@ -9,6 +9,8 @@ import 'package:snooker_club/core/services/firestore_service.dart';
 import 'package:snooker_club/core/services/local_storage_service.dart';
 import 'package:snooker_club/core/utils/logger.dart';
 import 'package:snooker_club/firebase_options.dart';
+import 'package:firebase_crashlytics/firebase_crashlytics.dart';
+import 'dart:ui';
 
 /// Production entry point.
 /// Connects to real Firebase with full read/write access.
@@ -29,6 +31,16 @@ void main() async {
     options: DefaultFirebaseOptions.currentPlatform,
   );
   AppLogger.info('Firebase initialized successfully');
+
+  // Initialize Crashlytics
+  FlutterError.onError = (errorDetails) {
+    FirebaseCrashlytics.instance.recordFlutterFatalError(errorDetails);
+  };
+  // Pass all uncaught asynchronous errors that aren't handled by the Flutter framework to Crashlytics
+  PlatformDispatcher.instance.onError = (error, stack) {
+    FirebaseCrashlytics.instance.recordError(error, stack, fatal: true);
+    return true;
+  };
 
   // Enable Firestore offline persistence
   final firestoreService = FirestoreService();
