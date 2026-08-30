@@ -67,7 +67,14 @@ class GamesRepository {
   /// Called at app startup. Idempotent â€” safe to call multiple times.
   Future<void> addTable(TableModel table) async {
     if (AppConfig.guardWrite('GamesRepository.addTable')) return;
-    await _tablesRef.doc(table.id).set(table.toMap());
+    
+    if (table.id.isEmpty) {
+      final docRef = _tablesRef.doc();
+      final tableWithId = table.copyWith(id: docRef.id);
+      await docRef.set(tableWithId.toMap());
+    } else {
+      await _tablesRef.doc(table.id).set(table.toMap());
+    }
   }
 
   Future<void> deleteTable(String tableId) async {
