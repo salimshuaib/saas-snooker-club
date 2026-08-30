@@ -165,12 +165,22 @@ final analyticsPreviousTimeRangeProvider = Provider<AnalyticsTimeRange>((ref) {
 
 final analyticsGamesStreamProvider = StreamProvider<List<GameSession>>((ref) async* {
   final tr = ref.watch(analyticsTimeRangeProvider);
-    yield* ref.watch(gamesRepositoryProvider).watchGamesByDateRange(tr.start, tr.end);
+  final repo = ref.watch(gamesRepositoryProvider);
+  if (repo.clubId == null) {
+    yield [];
+    return;
+  }
+  yield* repo.watchGamesByDateRange(tr.start, tr.end);
 });
 
 final analyticsQuickSalesStreamProvider = StreamProvider<List<QuickSale>>((ref) async* {
   final tr = ref.watch(analyticsTimeRangeProvider);
-    yield* ref.watch(quickSalesRepositoryProvider).watchQuickSalesByDateRange(tr.start, tr.end);
+  final repo = ref.watch(quickSalesRepositoryProvider);
+  if (repo.clubId == null) {
+    yield [];
+    return;
+  }
+  yield* repo.watchQuickSalesByDateRange(tr.start, tr.end);
 });
 
 final analyticsPaymentsStreamProvider = StreamProvider<List<PaymentHistory>>((ref) async* {
@@ -196,12 +206,22 @@ final analyticsPaymentsStreamProvider = StreamProvider<List<PaymentHistory>>((re
 
 final previousGamesStreamProvider = StreamProvider<List<GameSession>>((ref) async* {
   final tr = ref.watch(analyticsPreviousTimeRangeProvider);
-    yield* ref.watch(gamesRepositoryProvider).watchGamesByDateRange(tr.start, tr.end);
+  final repo = ref.watch(gamesRepositoryProvider);
+  if (repo.clubId == null) {
+    yield [];
+    return;
+  }
+  yield* repo.watchGamesByDateRange(tr.start, tr.end);
 });
 
 final previousQuickSalesStreamProvider = StreamProvider<List<QuickSale>>((ref) async* {
   final tr = ref.watch(analyticsPreviousTimeRangeProvider);
-    yield* ref.watch(quickSalesRepositoryProvider).watchQuickSalesByDateRange(tr.start, tr.end);
+  final repo = ref.watch(quickSalesRepositoryProvider);
+  if (repo.clubId == null) {
+    yield [];
+    return;
+  }
+  yield* repo.watchQuickSalesByDateRange(tr.start, tr.end);
 });
 
 final previousPaymentsStreamProvider = StreamProvider<List<PaymentHistory>>((ref) async* {
