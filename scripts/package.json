@@ -11,6 +11,7 @@
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
+    "firebase": "^12.18.0",
     "firebase-admin": "^14.2.0",
     "js-yaml": "^5.2.3"
   }
