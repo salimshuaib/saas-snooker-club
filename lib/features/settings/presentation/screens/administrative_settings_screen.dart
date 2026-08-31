@@ -148,6 +148,7 @@ class AdministrativeSettingsScreen extends ConsumerWidget {
             ),
             children: [
               _buildInfoTile('Club Name', settings.business.clubName),
+                _buildInfoTile('Booking Link Slug', settings.business.slug?.isNotEmpty == true ? settings.business.slug! : 'Not set'),
               _buildInfoTile('Contact Number', settings.business.contactNumber.isEmpty ? 'Not set' : settings.business.contactNumber),
               _buildInfoTile('Address / Location', settings.business.address.isEmpty ? 'Not set' : settings.business.address),
             ],

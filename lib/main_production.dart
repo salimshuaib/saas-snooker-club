@@ -1,3 +1,4 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -32,6 +33,10 @@ void main() async {
     options: DefaultFirebaseOptions.currentPlatform,
   );
   AppLogger.info('Firebase initialized successfully');
+
+  // Debug: log persisted auth state
+  final persistedUser = FirebaseAuth.instance.currentUser;
+  AppLogger.info('Persisted user at startup: ${persistedUser?.email ?? "NONE (not logged in)"}');
 
   // Initialize Crashlytics
   if (!kIsWeb) {

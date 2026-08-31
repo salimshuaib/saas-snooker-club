@@ -1,4 +1,4 @@
-import 'package:snooker_club/features/games/domain/models/game_models.dart';
+﻿import 'package:snooker_club/features/games/domain/models/game_models.dart';
 
 class BusinessSettings {
   final String clubName;
@@ -6,6 +6,7 @@ class BusinessSettings {
   final String contactNumber;
   final String? gstNumber;
   final String? logoUrl;
+  final String? slug;
 
   const BusinessSettings({
     this.clubName = 'S&B Manager',
@@ -13,6 +14,7 @@ class BusinessSettings {
     this.contactNumber = '+91 9876543210',
     this.gstNumber,
     this.logoUrl,
+    this.slug,
   });
 
   BusinessSettings copyWith({
@@ -21,6 +23,7 @@ class BusinessSettings {
     String? contactNumber,
     String? gstNumber,
     String? logoUrl,
+    String? slug,
   }) {
     return BusinessSettings(
       clubName: clubName ?? this.clubName,
@@ -28,6 +31,7 @@ class BusinessSettings {
       contactNumber: contactNumber ?? this.contactNumber,
       gstNumber: gstNumber ?? this.gstNumber,
       logoUrl: logoUrl ?? this.logoUrl,
+      slug: slug ?? this.slug,
     );
   }
 
@@ -38,6 +42,7 @@ class BusinessSettings {
       'contactNumber': contactNumber,
       'gstNumber': gstNumber,
       'logoUrl': logoUrl,
+      'slug': slug,
     };
   }
 
@@ -49,6 +54,7 @@ class BusinessSettings {
       contactNumber: map['contactNumber'] as String? ?? '+91 9876543210',
       gstNumber: map['gstNumber'] as String?,
       logoUrl: map['logoUrl'] as String?,
+      slug: map['slug'] as String?,
     );
   }
 }
@@ -471,6 +477,77 @@ class FeatureFlags {
   }
 }
 
+
+class BookingSettings {
+  final bool isEnabled;
+  final int slotDurationMinutes;
+  final String openingTime;
+  final String closingTime;
+  final int advanceBookingDays;
+  final bool allowSameDayBooking;
+  final bool requireApproval;
+  final List<int> activeDays;
+
+  const BookingSettings({
+    this.isEnabled = false,
+    this.slotDurationMinutes = 30,
+    this.openingTime = '10:00',
+    this.closingTime = '23:00',
+    this.advanceBookingDays = 7,
+    this.allowSameDayBooking = true,
+    this.requireApproval = true,
+    this.activeDays = const [1, 2, 3, 4, 5, 6, 7], // 1=Mon, 7=Sun
+  });
+
+  BookingSettings copyWith({
+    bool? isEnabled,
+    int? slotDurationMinutes,
+    String? openingTime,
+    String? closingTime,
+    int? advanceBookingDays,
+    bool? allowSameDayBooking,
+    bool? requireApproval,
+    List<int>? activeDays,
+  }) {
+    return BookingSettings(
+      isEnabled: isEnabled ?? this.isEnabled,
+      slotDurationMinutes: slotDurationMinutes ?? this.slotDurationMinutes,
+      openingTime: openingTime ?? this.openingTime,
+      closingTime: closingTime ?? this.closingTime,
+      advanceBookingDays: advanceBookingDays ?? this.advanceBookingDays,
+      allowSameDayBooking: allowSameDayBooking ?? this.allowSameDayBooking,
+      requireApproval: requireApproval ?? this.requireApproval,
+      activeDays: activeDays ?? this.activeDays,
+    );
+  }
+
+  factory BookingSettings.fromMap(Map<String, dynamic>? map) {
+    if (map == null) return const BookingSettings();
+    return BookingSettings(
+      isEnabled: map['isEnabled'] as bool? ?? false,
+      slotDurationMinutes: map['slotDurationMinutes'] as int? ?? 30,
+      openingTime: map['openingTime'] as String? ?? '10:00',
+      closingTime: map['closingTime'] as String? ?? '23:00',
+      advanceBookingDays: map['advanceBookingDays'] as int? ?? 7,
+      allowSameDayBooking: map['allowSameDayBooking'] as bool? ?? true,
+      requireApproval: map['requireApproval'] as bool? ?? true,
+      activeDays: (map['activeDays'] as List<dynamic>?)?.map((e) => e as int).toList() ?? const [1, 2, 3, 4, 5, 6, 7],
+    );
+  }
+
+  Map<String, dynamic> toMap() {
+    return {
+      'isEnabled': isEnabled,
+      'slotDurationMinutes': slotDurationMinutes,
+      'openingTime': openingTime,
+      'closingTime': closingTime,
+      'advanceBookingDays': advanceBookingDays,
+      'allowSameDayBooking': allowSameDayBooking,
+      'requireApproval': requireApproval,
+      'activeDays': activeDays,
+    };
+  }
+}
 class AppSettings {
   final BusinessSettings business;
   final GameSettings game;
@@ -479,6 +556,7 @@ class AppSettings {
   final SecuritySettings security;
   final NotificationSettings notifications;
   final FeatureFlags features;
+  final BookingSettings booking;
   final DateTime? lastSyncTime;
 
   const AppSettings({
@@ -489,6 +567,7 @@ class AppSettings {
     this.security = const SecuritySettings(),
     this.notifications = const NotificationSettings(),
     this.features = const FeatureFlags(),
+      this.booking = const BookingSettings(),
     this.lastSyncTime,
   });
 
@@ -500,6 +579,7 @@ class AppSettings {
     SecuritySettings? security,
     NotificationSettings? notifications,
     FeatureFlags? features,
+      BookingSettings? booking,
     DateTime? lastSyncTime,
   }) {
     return AppSettings(
@@ -510,6 +590,7 @@ class AppSettings {
       security: security ?? this.security,
       notifications: notifications ?? this.notifications,
       features: features ?? this.features,
+      booking: booking ?? this.booking,
       lastSyncTime: lastSyncTime ?? this.lastSyncTime,
     );
   }
@@ -523,6 +604,7 @@ class AppSettings {
       'security': security.toMap(),
       'notifications': notifications.toMap(),
       'features': features.toMap(),
+      'booking': booking.toMap(),
       'lastSyncTime': lastSyncTime?.toIso8601String(),
     };
   }
@@ -537,6 +619,7 @@ class AppSettings {
       security: SecuritySettings.fromMap(map['security'] as Map<String, dynamic>?),
       notifications: NotificationSettings.fromMap(map['notifications'] as Map<String, dynamic>?),
       features: FeatureFlags.fromMap(map['features'] as Map<String, dynamic>?),
+      booking: BookingSettings.fromMap(map['booking'] as Map<String, dynamic>?),
       lastSyncTime: map['lastSyncTime'] != null ? DateTime.tryParse(map['lastSyncTime'] as String) : null,
     );
   }

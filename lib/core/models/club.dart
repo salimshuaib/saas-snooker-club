@@ -9,6 +9,7 @@ class Club {
   final String ownerEmail;
   final String ownerPhone;
   final String? logoUrl;
+  final String? slug;
   final String themeColor;
   final bool isActive;
   final String? suspensionMessage;
@@ -28,6 +29,7 @@ class Club {
     required this.ownerEmail,
     required this.ownerPhone,
     this.logoUrl,
+    this.slug,
     required this.themeColor,
     required this.isActive,
     this.suspensionMessage,
@@ -49,6 +51,7 @@ class Club {
       ownerEmail: map['ownerEmail'] as String? ?? '',
       ownerPhone: map['ownerPhone'] as String? ?? '',
       logoUrl: map['logoUrl'] as String?,
+      slug: map['slug'] as String?,
       themeColor: map['themeColor'] as String? ?? '#1B5E20',
       isActive: map['isActive'] as bool? ?? true,
       suspensionMessage: map['suspensionMessage'] as String?,
@@ -70,6 +73,7 @@ class Club {
       'ownerEmail': ownerEmail,
       'ownerPhone': ownerPhone,
       'logoUrl': logoUrl,
+      'slug': slug,
       'themeColor': themeColor,
       'isActive': isActive,
       'suspensionMessage': suspensionMessage,

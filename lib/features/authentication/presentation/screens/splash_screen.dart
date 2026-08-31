@@ -1,10 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:snooker_club/core/providers/club_scope_provider.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
-import 'package:snooker_club/core/constants/app_constants.dart';
-import 'package:snooker_club/core/providers/app_providers.dart';
-import 'package:snooker_club/core/routes/route_names.dart';
+
+
 import 'package:snooker_club/core/theme/app_colors.dart';
 
 class SplashScreen extends ConsumerStatefulWidget {
@@ -34,19 +32,6 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
       CurvedAnimation(parent: _controller, curve: Curves.easeOutBack),
     );
     _controller.forward();
-    _navigateAfterDelay();
-  }
-
-  Future<void> _navigateAfterDelay() async {
-    await Future.delayed(AppConstants.splashDuration);
-    if (!mounted) return;
-
-    final isLoggedIn = ref.read(isLoggedInProvider);
-    if (isLoggedIn) {
-      context.go(RouteNames.dashboard);
-    } else {
-      context.go(RouteNames.login);
-    }
   }
 
   @override

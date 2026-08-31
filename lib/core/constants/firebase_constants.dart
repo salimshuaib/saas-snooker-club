@@ -10,6 +10,7 @@ class FirebaseConstants {
   static const String inventoryCollection = 'inventory';
   static const String salesCollection = 'quick_sales';
   static const String creditsCollection = 'credits';
+  static const String bookingsCollection = 'bookings';
   static const String settingsCollection = 'settings';
   static const String clubsCollection = 'clubs';
   static const String userClubsCollection = 'user_clubs';

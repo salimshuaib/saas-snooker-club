@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:snooker_club/core/models/currency.dart';
-import 'package:snooker_club/core/services/auth_service.dart';
+
 import 'package:snooker_club/core/services/firestore_service.dart';
 import 'package:snooker_club/core/services/local_storage_service.dart';
 import 'package:snooker_club/core/services/storage_service.dart';
@@ -11,9 +11,7 @@ final localStorageServiceProvider = Provider<LocalStorageService>((ref) {
   return LocalStorageService();
 });
 
-final authServiceProvider = Provider<AuthService>((ref) {
-  return AuthService();
-});
+
 
 final firestoreServiceProvider = Provider<FirestoreService>((ref) {
   return FirestoreService();
@@ -71,30 +69,6 @@ class CurrencyNotifier extends Notifier<Currency> {
   }
 }
 
-// ─── Auth State ───
-final isLoggedInProvider = NotifierProvider<AuthStateNotifier, bool>(AuthStateNotifier.new);
-
-class AuthStateNotifier extends Notifier<bool> {
-  @override
-  bool build() {
-    final localStorage = ref.read(localStorageServiceProvider);
-    return localStorage.getIsLoggedIn();
-  }
-
-  Future<void> login(String username, String password) async {
-    final authService = ref.read(authServiceProvider);
-    await authService.login(username, password);
-    state = true;
-    await ref.read(localStorageServiceProvider).setIsLoggedIn(true);
-  }
-
-  Future<void> logout() async {
-    final authService = ref.read(authServiceProvider);
-    await authService.logout();
-    state = false;
-    await ref.read(localStorageServiceProvider).setIsLoggedIn(false);
-  }
-}
 
 // --- Revenue Details Date Provider ---
 /// Provider for the currently selected date on the Revenue Details screen.

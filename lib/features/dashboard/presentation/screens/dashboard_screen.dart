@@ -18,6 +18,10 @@ import 'package:snooker_club/features/dashboard/presentation/screens/running_tab
 import 'package:snooker_club/features/dashboard/presentation/screens/available_tables_screen.dart';
 import 'package:snooker_club/features/dashboard/presentation/screens/inventory_status_screen.dart';
 import 'package:snooker_club/features/dashboard/presentation/widgets/financial_summary_card.dart';
+import 'package:snooker_club/core/routes/route_names.dart';
+import 'package:go_router/go_router.dart';
+import 'package:snooker_club/features/bookings/data/bookings_repository.dart';
+import 'package:snooker_club/features/bookings/domain/models/booking_models.dart';
 import 'package:snooker_club/core/providers/update_provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -309,6 +313,11 @@ class DashboardScreen extends ConsumerWidget {
                 style: theme.textTheme.titleMedium,
               ),
               const Gap(16),
+              
+              // --- NEW BOOKING CARD ---
+              _BookingsDashboardCard(),
+              
+              const Gap(16),
               GridView.count(
                 crossAxisCount: 2,
                 shrinkWrap: true,
@@ -365,6 +374,70 @@ class DashboardScreen extends ConsumerWidget {
               const Gap(100),
             ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+
+class _BookingsDashboardCard extends ConsumerWidget {
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
+    final now = DateTime.now();
+    final activeBookingsAsync = ref.watch(dateBookingsStreamProvider(DateTime(now.year, now.month, now.day))); // Just getting today's bookings for the badge
+
+    return InkWell(
+      onTap: () => context.push(RouteNames.bookings),
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: theme.colorScheme.surface,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: theme.colorScheme.outlineVariant),
+          boxShadow: [
+            BoxShadow(
+              color: AppColors.error.withOpacity(0.1),
+              blurRadius: 8,
+              offset: const Offset(0, 4),
+            ),
+          ]
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: AppColors.error.withOpacity(0.1),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.calendar_month, color: AppColors.error),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Bookings', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 4),
+                  activeBookingsAsync.when(
+                    data: (bookings) {
+                      final pendingCount = bookings.where((b) => b.status == BookingStatus.pending).length;
+                      if (pendingCount > 0) {
+                        return Text('$pendingCount pending requests', style: theme.textTheme.bodySmall?.copyWith(color: AppColors.error, fontWeight: FontWeight.bold));
+                      }
+                      return Text('Manage table reservations', style: theme.textTheme.bodySmall);
+                    },
+                    loading: () => Text('Manage table reservations', style: theme.textTheme.bodySmall),
+                    error: (_, __) => Text('Manage table reservations', style: theme.textTheme.bodySmall),
+                  ),
+                ],
+              ),
+            ),
+            const Icon(Icons.chevron_right),
+          ],
         ),
       ),
     );

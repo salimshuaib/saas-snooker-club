@@ -14,6 +14,7 @@ import 'package:snooker_club/features/credit/presentation/screens/credit_screen.
 import 'package:snooker_club/features/credit/presentation/screens/player_profile_screen.dart';
 import 'package:snooker_club/features/credit/domain/models/credit_models.dart';
 import 'package:snooker_club/features/dashboard/presentation/screens/dashboard_screen.dart';
+import 'package:snooker_club/features/bookings/presentation/screens/booking_management_screen.dart';
 import 'package:snooker_club/features/dashboard/presentation/screens/financial_review_screen.dart';
 import 'package:snooker_club/features/dashboard/presentation/screens/main_screen.dart';
 import 'package:snooker_club/features/dashboard/presentation/screens/more_screen.dart';
@@ -46,24 +47,27 @@ final GlobalKey<NavigatorState> _historyNavigatorKey =
     GlobalKey<NavigatorState>(debugLabel: 'history');
 
 class RouterNotifier extends ChangeNotifier {
+  bool _isScheduled = false;
+  
   RouterNotifier(this._ref) {
-    _ref.listen(authStateProvider, (_, __) {
-      Future.microtask(() => notifyListeners());
-    });
-    _ref.listen(currentStaffProvider, (_, __) {
-      Future.microtask(() => notifyListeners());
-    });
-    _ref.listen(updateStateProvider, (_, __) {
-      Future.microtask(() => notifyListeners());
-    });
-    _ref.listen(userClubProvider, (_, __) {
-      Future.microtask(() => notifyListeners());
-    });
-    _ref.listen(clubProfileProvider, (_, __) {
-      Future.microtask(() => notifyListeners());
-    });
+    _ref.listen(authStateProvider, (_, __) => _scheduleNotify());
+    _ref.listen(currentStaffProvider, (_, __) => _scheduleNotify());
+    _ref.listen(updateStateProvider, (_, __) => _scheduleNotify());
+    _ref.listen(userClubProvider, (_, __) => _scheduleNotify());
+    _ref.listen(clubProfileProvider, (_, __) => _scheduleNotify());
   }
+  
   final Ref _ref;
+
+  void _scheduleNotify() {
+    if (!_isScheduled) {
+      _isScheduled = true;
+      Future.microtask(() {
+        _isScheduled = false;
+        notifyListeners();
+      });
+    }
+  }
 }
 
 final appRouterProvider = Provider<GoRouter>((ref) {
@@ -160,7 +164,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => const TickerMode(enabled: true, child: const FinancialReviewScreen()),
       ),
 
-      // ─── Bottom Navigation Shell ───
+      // â”€â”€â”€ Bottom Navigation Shell â”€â”€â”€
       StatefulShellRoute.indexedStack(
         builder: (context, state, navigationShell) {
           return MainScreen(navigationShell: navigationShell);
@@ -188,6 +192,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             ],
           ),
         ],
+      ),
+      GoRoute(
+        path: RouteNames.bookings,
+        builder: (context, state) => const TickerMode(enabled: true, child: BookingManagementScreen()),
       ),
       GoRoute(
         path: RouteNames.games,

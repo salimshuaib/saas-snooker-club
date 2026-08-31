@@ -1,8 +1,10 @@
+﻿import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gap/gap.dart';
 import 'package:snooker_club/features/settings/domain/models/settings_models.dart';
 import 'package:snooker_club/features/settings/providers/settings_providers.dart';
+import 'package:snooker_club/core/providers/club_scope_provider.dart';
 
 class BusinessEditSheet extends ConsumerStatefulWidget {
   final BusinessSettings initialSettings;
@@ -18,6 +20,7 @@ class _BusinessEditSheetState extends ConsumerState<BusinessEditSheet> {
   late final TextEditingController _nameController;
   late final TextEditingController _phoneController;
   late final TextEditingController _addressController;
+  late final TextEditingController _slugController;
   bool _isSaving = false;
 
   @override
@@ -26,6 +29,7 @@ class _BusinessEditSheetState extends ConsumerState<BusinessEditSheet> {
     _nameController = TextEditingController(text: widget.initialSettings.clubName);
     _phoneController = TextEditingController(text: widget.initialSettings.contactNumber);
     _addressController = TextEditingController(text: widget.initialSettings.address);
+    _slugController = TextEditingController(text: widget.initialSettings.slug ?? '');
   }
 
   @override
@@ -33,6 +37,7 @@ class _BusinessEditSheetState extends ConsumerState<BusinessEditSheet> {
     _nameController.dispose();
     _phoneController.dispose();
     _addressController.dispose();
+    _slugController.dispose();
     super.dispose();
   }
 
@@ -40,12 +45,26 @@ class _BusinessEditSheetState extends ConsumerState<BusinessEditSheet> {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _isSaving = true);
     try {
+      final slugValue = _slugController.text.trim().toLowerCase().replaceAll(RegExp(r'[^a-z0-9\-]'), '');
+      
       final updated = widget.initialSettings.copyWith(
         clubName: _nameController.text.trim(),
         contactNumber: _phoneController.text.trim(),
         address: _addressController.text.trim(),
+        slug: slugValue.isEmpty ? null : slugValue,
       );
+      
       await ref.read(appSettingsProvider.notifier).updateBusinessSettings(updated);
+      
+      // Update root club document with slug and clubName so the website can find it
+      final clubId = ref.read(clubIdProvider);
+      if (clubId != null) {
+         await FirebaseFirestore.instance.collection('clubs').doc(clubId).set({
+           'slug': slugValue.isEmpty ? null : slugValue,
+           'clubName': _nameController.text.trim(),
+         }, SetOptions(merge: true));
+      }
+
       if (mounted) {
         Navigator.of(context).pop();
         ScaffoldMessenger.of(context).showSnackBar(
@@ -56,7 +75,7 @@ class _BusinessEditSheetState extends ConsumerState<BusinessEditSheet> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error saving settings: $e'),
+            content: Text('Error saving settings: ' + e.toString()),
             backgroundColor: Theme.of(context).colorScheme.error,
           ),
         );
@@ -106,6 +125,17 @@ class _BusinessEditSheetState extends ConsumerState<BusinessEditSheet> {
                   prefixIcon: Icon(Icons.business),
                 ),
                 validator: (val) => val == null || val.trim().isEmpty ? 'Club Name is required' : null,
+              ),
+              const Gap(16),
+              TextFormField(
+                controller: _slugController,
+                decoration: const InputDecoration(
+                  labelText: 'Booking Link URL / Slug',
+                  hintText: 'e.g., my-club',
+                  helperText: 'Your link will be: .../?club=my-club',
+                  border: OutlineInputBorder(),
+                  prefixIcon: Icon(Icons.link),
+                ),
               ),
               const Gap(16),
               TextFormField(

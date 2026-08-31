@@ -16,6 +16,7 @@ class RouteNames {
   static const String settings = '/more/settings';
   static const String team = '/team';
   static const String history = '/history';
+  static const String bookings = '/bookings';
 
   static const String more = '/more';
   static const String forceUpdate = '/force-update';

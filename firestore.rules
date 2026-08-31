@@ -48,10 +48,26 @@ service cloud.firestore {
     
     // Clubs and their nested collections
     match /clubs/{clubId} {
-      allow read: if belongsToClub(clubId) || isSuperAdmin();
+      allow read: if true; // Public needs to read club basic info for booking website
       allow write: if belongsToClub(clubId) || isSuperAdmin();
       
-      // All subcollections inside a club
+            match /settings/{docId} {
+        allow read: if true; // Public needs to read settings for booking website
+        allow write: if belongsToClub(clubId) || isSuperAdmin();
+      }
+
+      match /tables/{tableId} {
+        allow read: if true; // Public needs to read available tables
+        allow write: if belongsToClub(clubId) || isSuperAdmin();
+      }
+
+      match /bookings/{bookingId} {
+        allow read: if true; // Public needs to read bookings for availability
+        allow create: if request.resource.data.status == 'pending' && request.resource.data.clubId == clubId;
+        allow update, delete: if belongsToClub(clubId) || isSuperAdmin();
+      }
+
+      // Other subcollections inside a club
       match /{document=**} {
         allow read, write: if belongsToClub(clubId) || isSuperAdmin();
       }
