@@ -347,12 +347,51 @@ class _GamesTab extends StatelessWidget {
           itemCount: games.length,
           itemBuilder: (context, index) {
             final game = games[index];
+            
+            final bool didAnotherPlayerPay = game.paidBy != null && 
+                game.paidBy!.trim().toLowerCase() != customer.name.trim().toLowerCase();
+                
             return Card(
               margin: const EdgeInsets.only(bottom: 8),
               child: ListTile(
                 title: Text('${game.tableName} (${game.tableType.displayName})'),
-                subtitle: Text(DateFormat('MMM d, y h:mm a').format(game.startTime)),
-                trailing: Text(CurrencyHelper.format(game.finalAmount ?? game.grandTotal ?? 0, currency)),
+                subtitle: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(DateFormat('MMM d, y h:mm a').format(game.startTime)),
+                    if (didAnotherPlayerPay) ...[
+                      const Gap(2),
+                      Text(
+                        'Paid by: ${game.paidBy}',
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.error,
+                          fontWeight: FontWeight.w500,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+                trailing: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text(
+                      CurrencyHelper.format(game.finalAmount ?? game.grandTotal ?? 0, currency),
+                      style: TextStyle(
+                        decoration: didAnotherPlayerPay ? TextDecoration.lineThrough : null,
+                        color: didAnotherPlayerPay ? Colors.grey : null,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                      ),
+                    ),
+                    if (didAnotherPlayerPay)
+                      const Text(
+                        'Not liable',
+                        style: TextStyle(color: Colors.grey, fontSize: 10),
+                      ),
+                  ],
+                ),
                 onTap: () {
                   Navigator.of(context).push(
                     MaterialPageRoute(
