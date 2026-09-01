@@ -10,27 +10,29 @@ import 'package:snooker_club/features/credit/providers/credit_providers.dart';
 /// upstream StreamProviders. It returns AsyncValue to properly propagate
 /// loading/error states.
 final financialSummaryProvider = Provider<AsyncValue<RevenueOverviewData>>((ref) {
-  // Check if any upstream stream providers are still loading to avoid
-  // synchronous rebuilds during the widget build phase (club switch crash).
+  // Watch all upstream stream providers unconditionally at the top.
   final gamesAsync = ref.watch(analyticsGamesStreamProvider);
   final quickSalesAsync = ref.watch(analyticsQuickSalesStreamProvider);
   final paymentsAsync = ref.watch(analyticsPaymentsStreamProvider);
-  
-  // These are watched internally by getCompleteAnalyticsData.
-  // We must ensure they are not loading before evaluating getCompleteAnalyticsData, 
-  // otherwise Riverpod throws a setState-during-build exception.
   final inventoryAsync = ref.watch(inventoryItemsProvider);
   final customersAsync = ref.watch(allCustomersProvider);
+  
+  final prevGamesAsync = ref.watch(previousGamesStreamProvider);
+  final prevQuickSalesAsync = ref.watch(previousQuickSalesStreamProvider);
+  final prevPaymentsAsync = ref.watch(previousPaymentsStreamProvider);
 
-  if (gamesAsync is AsyncLoading || 
-      quickSalesAsync is AsyncLoading || 
-      paymentsAsync is AsyncLoading ||
-      inventoryAsync is AsyncLoading ||
-      customersAsync is AsyncLoading) {
+  if (gamesAsync.isLoading || 
+      quickSalesAsync.isLoading || 
+      paymentsAsync.isLoading ||
+      inventoryAsync.isLoading ||
+      customersAsync.isLoading ||
+      prevGamesAsync.isLoading ||
+      prevQuickSalesAsync.isLoading ||
+      prevPaymentsAsync.isLoading) {
     return const AsyncValue.loading();
   }
 
-  if (gamesAsync is AsyncError) {
+  if (gamesAsync.hasError) {
     return AsyncValue.error(gamesAsync.error!, gamesAsync.stackTrace!);
   }
 

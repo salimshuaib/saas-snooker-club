@@ -11,14 +11,10 @@ final inventoryRepositoryProvider = Provider<InventoryRepository>((ref) {
   return InventoryRepository(ref.watch(firestoreServiceProvider).db, clubId: clubId);
 });
 
-final inventoryItemsProvider = StreamProvider<List<InventoryItem>>((ref) async* {
+final inventoryItemsProvider = StreamProvider<List<InventoryItem>>((ref) {
   final repo = ref.watch(inventoryRepositoryProvider);
-  if (repo.clubId == null) {
-    await Future.microtask(() {});
-    yield* const Stream.empty();
-    return;
-  }
-    yield* repo.watchInventory();
+  if (repo.clubId == null) return const Stream.empty();
+  return repo.watchInventory();
 });
 
 // A provider for selected date in stock history

@@ -11,14 +11,10 @@ final creditRepositoryProvider = Provider<CreditRepository>((ref) {
   return CreditRepository(FirebaseFirestore.instance, ref: ref, clubId: clubId);
 });
 
-final allCustomersProvider = StreamProvider<List<PlayerProfile>>((ref) async* {
+final allCustomersProvider = StreamProvider<List<PlayerProfile>>((ref) {
   final repo = ref.watch(creditRepositoryProvider);
-  if (repo.clubId == null) {
-    await Future.microtask(() {});
-    yield* const Stream.empty();
-    return;
-  }
-    yield* repo.watchAllCustomers();
+  if (repo.clubId == null) return const Stream.empty();
+  return repo.watchAllCustomers();
 });
 
 final pendingTransactionsProvider = StreamProvider.autoDispose.family<List<CreditTransaction>, String>((ref, customerId) {

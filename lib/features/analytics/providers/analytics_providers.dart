@@ -163,43 +163,28 @@ final analyticsPreviousTimeRangeProvider = Provider<AnalyticsTimeRange>((ref) {
 
 // â”€â”€â”€ Current Streams â”€â”€â”€
 
-final analyticsGamesStreamProvider = StreamProvider<List<GameSession>>((ref) async* {
+final analyticsGamesStreamProvider = StreamProvider<List<GameSession>>((ref) {
   final tr = ref.watch(analyticsTimeRangeProvider);
   final repo = ref.watch(gamesRepositoryProvider);
-  if (repo.clubId == null) {
-    await Future.microtask(() {});
-    yield* const Stream.empty();
-    return;
-  }
-  await Future.delayed(const Duration(milliseconds: 100));
-  yield* repo.watchGamesByDateRange(tr.start, tr.end);
+  if (repo.clubId == null) return const Stream.empty();
+  return repo.watchGamesByDateRange(tr.start, tr.end);
 });
 
-final analyticsQuickSalesStreamProvider = StreamProvider<List<QuickSale>>((ref) async* {
+final analyticsQuickSalesStreamProvider = StreamProvider<List<QuickSale>>((ref) {
   final tr = ref.watch(analyticsTimeRangeProvider);
   final repo = ref.watch(quickSalesRepositoryProvider);
-  if (repo.clubId == null) {
-    await Future.microtask(() {});
-    yield* const Stream.empty();
-    return;
-  }
-  await Future.delayed(const Duration(milliseconds: 100));
-  yield* repo.watchQuickSalesByDateRange(tr.start, tr.end);
+  if (repo.clubId == null) return const Stream.empty();
+  return repo.watchQuickSalesByDateRange(tr.start, tr.end);
 });
 
-final analyticsPaymentsStreamProvider = StreamProvider<List<PaymentHistory>>((ref) async* {
+final analyticsPaymentsStreamProvider = StreamProvider<List<PaymentHistory>>((ref) {
   final tr = ref.watch(analyticsTimeRangeProvider);
   final clubId = ref.watch(clubIdProvider);
   final db = ref.watch(firestoreServiceProvider).db;
   
-  if (clubId == null) {
-    await Future.microtask(() {});
-    yield* const Stream.empty();
-    return;
-  }
+  if (clubId == null) return const Stream.empty();
   
-    await Future.delayed(const Duration(milliseconds: 100));
-    yield* db
+  return db
       .collectionGroup('payments')
       .where('clubId', isEqualTo: clubId)
       .where('date', isGreaterThanOrEqualTo: Timestamp.fromDate(tr.start))
@@ -210,42 +195,28 @@ final analyticsPaymentsStreamProvider = StreamProvider<List<PaymentHistory>>((re
 
 // â”€â”€â”€ Previous Streams â”€â”€â”€
 
-final previousGamesStreamProvider = StreamProvider<List<GameSession>>((ref) async* {
+final previousGamesStreamProvider = StreamProvider<List<GameSession>>((ref) {
   final tr = ref.watch(analyticsPreviousTimeRangeProvider);
   final repo = ref.watch(gamesRepositoryProvider);
-  if (repo.clubId == null) {
-    await Future.microtask(() {});
-    yield* const Stream.empty();
-    return;
-  }
-  yield* repo.watchGamesByDateRange(tr.start, tr.end);
+  if (repo.clubId == null) return const Stream.empty();
+  return repo.watchGamesByDateRange(tr.start, tr.end);
 });
 
-final previousQuickSalesStreamProvider = StreamProvider<List<QuickSale>>((ref) async* {
+final previousQuickSalesStreamProvider = StreamProvider<List<QuickSale>>((ref) {
   final tr = ref.watch(analyticsPreviousTimeRangeProvider);
   final repo = ref.watch(quickSalesRepositoryProvider);
-  if (repo.clubId == null) {
-    await Future.microtask(() {});
-    yield* const Stream.empty();
-    return;
-  }
-  await Future.delayed(const Duration(milliseconds: 100));
-  yield* repo.watchQuickSalesByDateRange(tr.start, tr.end);
+  if (repo.clubId == null) return const Stream.empty();
+  return repo.watchQuickSalesByDateRange(tr.start, tr.end);
 });
 
-final previousPaymentsStreamProvider = StreamProvider<List<PaymentHistory>>((ref) async* {
+final previousPaymentsStreamProvider = StreamProvider<List<PaymentHistory>>((ref) {
   final tr = ref.watch(analyticsPreviousTimeRangeProvider);
   final clubId = ref.watch(clubIdProvider);
   final db = ref.watch(firestoreServiceProvider).db;
   
-  if (clubId == null) {
-    await Future.microtask(() {});
-    yield* const Stream.empty();
-    return;
-  }
+  if (clubId == null) return const Stream.empty();
   
-    await Future.delayed(const Duration(milliseconds: 100));
-    yield* db
+  return db
       .collectionGroup('payments')
       .where('clubId', isEqualTo: clubId)
       .where('date', isGreaterThanOrEqualTo: Timestamp.fromDate(tr.start))
