@@ -91,7 +91,7 @@ class _PlayerProfileScreenState extends ConsumerState<PlayerProfileScreen> {
                     child: TabBarView(
                       children: [
                         _TransactionsTab(customerId: currentCustomer.id, currency: currency),
-                        _GamesTab(gamesAsync: gamesAsync, currency: currency),
+                        _GamesTab(gamesAsync: gamesAsync, currency: currency, customer: currentCustomer),
                         _QuickSalesTab(quickSalesAsync: quickSalesAsync, currency: currency),
                       ],
                     ),
@@ -331,7 +331,8 @@ class _StatItem extends StatelessWidget {
 class _GamesTab extends StatelessWidget {
   final AsyncValue<List<GameSession>> gamesAsync;
   final dynamic currency;
-  const _GamesTab({required this.gamesAsync, required this.currency});
+  final PlayerProfile customer;
+  const _GamesTab({required this.gamesAsync, required this.currency, required this.customer});
 
   @override
   Widget build(BuildContext context) {
