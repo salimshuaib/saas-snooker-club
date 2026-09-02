@@ -20,6 +20,10 @@ final financialSummaryProvider = Provider<AsyncValue<RevenueOverviewData>>((ref)
   final prevGamesAsync = ref.watch(previousGamesStreamProvider);
   final prevQuickSalesAsync = ref.watch(previousQuickSalesStreamProvider);
   final prevPaymentsAsync = ref.watch(previousPaymentsStreamProvider);
+  
+  // Also watch the synchronous providers used by getCompleteAnalyticsData unconditionally
+  ref.watch(analyticsTimeRangeProvider);
+  ref.watch(totalOutstandingCreditProvider);
 
   if (gamesAsync.isLoading || 
       quickSalesAsync.isLoading || 
