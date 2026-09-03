@@ -11,6 +11,8 @@ import 'package:snooker_club/features/quick_sales/providers/quick_sales_provider
 import 'package:snooker_club/features/team/providers/team_providers.dart';
 import 'package:snooker_club/core/providers/update_provider.dart';
 
+import 'package:snooker_club/features/quick_sales/presentation/screens/new_quick_sale_screen.dart';
+
 class MainScreen extends ConsumerStatefulWidget {
   final StatefulNavigationShell navigationShell;
 
@@ -115,23 +117,7 @@ class _MainScreenState extends ConsumerState<MainScreen> {
 
     return Scaffold(
       body: widget.navigationShell,
-      floatingActionButton: Container(
-        height: 64,
-        width: 64,
-        margin: const EdgeInsets.only(top: 30),
-        child: FloatingActionButton(
-          onPressed: _showStartGameFlow,
-          backgroundColor: AppColors.primary,
-          foregroundColor: Colors.white,
-          elevation: 4,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(32)),
-          child: const Icon(Icons.add, size: 36),
-        ),
-      ),
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
       bottomNavigationBar: BottomAppBar(
-        shape: const CircularNotchedRectangle(),
-        notchMargin: 8.0,
         color: theme.colorScheme.surface,
         elevation: 8,
         padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
@@ -139,14 +125,27 @@ class _MainScreenState extends ConsumerState<MainScreen> {
           mainAxisAlignment: MainAxisAlignment.spaceAround,
           children: [
             _buildNavItem(
-              icon: Icons.dashboard_outlined,
-              activeIcon: Icons.dashboard,
-              label: 'Dashboard',
+              icon: Icons.table_restaurant_outlined,
+              activeIcon: Icons.table_restaurant,
+              label: 'Game Activity',
               isActive: currentIndex == 0,
               onTap: () => _onItemTapped(0),
               theme: theme,
             ),
-            const SizedBox(width: 48), // Space for FAB
+            _buildNavItem(
+              icon: Icons.flash_on_outlined,
+              activeIcon: Icons.flash_on,
+              label: 'Quick Sale',
+              isActive: false,
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const NewQuickSaleScreen()),
+                );
+              },
+              theme: theme,
+              customColor: Colors.orange,
+            ),
             _buildNavItem(
               icon: Icons.receipt_long_outlined,
               activeIcon: Icons.receipt_long,
@@ -168,8 +167,9 @@ class _MainScreenState extends ConsumerState<MainScreen> {
     required bool isActive,
     required VoidCallback onTap,
     required ThemeData theme,
+    Color? customColor,
   }) {
-    final color = isActive ? AppColors.primary : theme.colorScheme.onSurfaceVariant;
+    final color = customColor ?? (isActive ? AppColors.primary : theme.colorScheme.onSurfaceVariant);
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(8),

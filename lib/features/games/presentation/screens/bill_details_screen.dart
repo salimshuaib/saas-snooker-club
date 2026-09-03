@@ -266,53 +266,53 @@ class _BillDetailsScreenState extends ConsumerState<BillDetailsScreen> {
                     value: '₹${(session.overtimeCharge ?? 0).toStringAsFixed(2)}',
                   ),
                 ],
-                if (session.overtimeMinutes != null && session.overtimeMinutes! > 0) ...[
-                  const Divider(height: 16),
+                const Divider(height: 16),
+                _InfoRow(
+                  label: 'Calculated Game Charge',
+                  value: '₹${(session.gameCharge ?? 0).toStringAsFixed(2)}',
+                ),
+                if (session.gameDiscountAmount != null && session.gameDiscountAmount! > 0) ...[
+                  const Gap(8),
                   _InfoRow(
-                    label: 'Total Game Charge',
-                    value: '₹${(session.gameCharge ?? 0).toStringAsFixed(2)}',
+                    label: 'Game Discount',
+                    value: '- ₹${session.gameDiscountAmount!.toStringAsFixed(2)}',
+                    valueColor: AppColors.success,
+                  ),
+                  _InfoRow(
+                    label: 'Discount Percentage',
+                    value: '${(session.gameDiscountPercentage ?? 0).toStringAsFixed(1)}%',
+                    valueColor: AppColors.success,
+                  ),
+                  const Gap(8),
+                  _InfoRow(
+                    label: 'Discounted Game Charge',
+                    value: '₹${(session.discountedGameCharge ?? 0).toStringAsFixed(2)}',
                   ),
                 ],
-                if ((session.ordersTotal ?? 0) > 0)
+                if ((session.ordersTotal ?? 0) > 0) ...[
+                  const Divider(height: 16),
                   _InfoRow(
                     label: 'Orders Total',
                     value: '₹${session.ordersTotal!.toStringAsFixed(2)}',
                   ),
+                ],
                 const Divider(height: 16),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
-                      'Grand Total',
+                      'Final Billed Amount',
                       style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
                     ),
                     Text(
-                      '₹${(session.grandTotal ?? 0).toStringAsFixed(2)}',
-                      style: theme.textTheme.titleMedium?.copyWith(
+                      '₹${(session.finalAmount ?? session.grandTotal ?? 0).toStringAsFixed(2)}',
+                      style: theme.textTheme.titleLarge?.copyWith(
+                        color: AppColors.primary,
                         fontWeight: FontWeight.w700,
                       ),
                     ),
                   ],
                 ),
-                if (session.finalAmount != null) ...[
-                  const Gap(8),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        'Final Billed',
-                        style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
-                      ),
-                      Text(
-                        '₹${session.finalAmount!.toStringAsFixed(2)}',
-                        style: theme.textTheme.titleLarge?.copyWith(
-                          color: AppColors.primary,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
               ],
             ),
             const Gap(24),

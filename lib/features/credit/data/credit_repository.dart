@@ -1,4 +1,4 @@
-﻿import 'dart:math' as math;
+import 'dart:math' as math;
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:snooker_club/features/team/providers/team_providers.dart';
@@ -166,6 +166,11 @@ class CreditRepository {
       existingCustomer = await getCustomerByName(customerName);
     }
 
+    // Do not track any credit/transactions for default placeholder players
+    if (customerName.toLowerCase().startsWith('default ')) {
+      return;
+    }
+
     // Duplicate Credit Protection (Phase 3)
     if (!isTransfer && existingCustomer != null) {
       final existingTx = await _transactionsRef(existingCustomer.id)
@@ -233,6 +238,11 @@ class CreditRepository {
     if (AppConfig.guardWrite('CreditRepository.appendCreditToTransaction')) return;
     final query = await _creditsRef.where('name', isEqualTo: customerName).limit(1).get();
     final existingCustomerDoc = query.docs.isEmpty ? null : query.docs.first;
+
+    // Do not track any credit/transactions for default placeholder players
+    if (customerName.toLowerCase().startsWith('default ')) {
+      return;
+    }
 
     final customerRef = existingCustomerDoc != null 
         ? _creditsRef.doc(existingCustomerDoc.id) 

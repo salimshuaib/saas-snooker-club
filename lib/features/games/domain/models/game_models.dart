@@ -430,6 +430,9 @@ class GameSession {
   final double? grandTotal;
   final double? roundedAmount;
   final double? finalAmount;
+  final double? discountedGameCharge;
+  final double? gameDiscountAmount;
+  final double? gameDiscountPercentage;
   final String? employeeId;
   final String date; // YYYY-MM-DD for Firestore date queries
   final List<AuditLog> auditLogs;
@@ -483,6 +486,9 @@ class GameSession {
     this.grandTotal,
     this.roundedAmount,
     this.finalAmount,
+    this.discountedGameCharge,
+    this.gameDiscountAmount,
+    this.gameDiscountPercentage,
     this.employeeId,
     required this.date,
     this.auditLogs = const [],
@@ -585,6 +591,9 @@ class GameSession {
     double? grandTotal,
     double? roundedAmount,
     double? finalAmount,
+    double? discountedGameCharge,
+    double? gameDiscountAmount,
+    double? gameDiscountPercentage,
     String? employeeId,
     String? date,
     List<AuditLog>? auditLogs,
@@ -638,6 +647,9 @@ class GameSession {
       grandTotal: grandTotal ?? this.grandTotal,
       roundedAmount: roundedAmount ?? this.roundedAmount,
       finalAmount: finalAmount ?? this.finalAmount,
+      discountedGameCharge: discountedGameCharge ?? this.discountedGameCharge,
+      gameDiscountAmount: gameDiscountAmount ?? this.gameDiscountAmount,
+      gameDiscountPercentage: gameDiscountPercentage ?? this.gameDiscountPercentage,
       employeeId: employeeId ?? this.employeeId,
       date: date ?? this.date,
       auditLogs: auditLogs ?? this.auditLogs,
@@ -693,6 +705,11 @@ class GameSession {
       'overtimeCharge': overtimeCharge,
       'ordersTotal': ordersTotal,
       'grandTotal': grandTotal,
+      'roundedAmount': roundedAmount,
+      'finalAmount': finalAmount,
+      'discountedGameCharge': discountedGameCharge,
+      'gameDiscountAmount': gameDiscountAmount,
+      'gameDiscountPercentage': gameDiscountPercentage,
       'employeeId': employeeId,
       'date': date,
       'auditLogs': auditLogs.map((a) => a.toMap()).toList(),
@@ -800,6 +817,9 @@ class GameSession {
       grandTotal: (map['grandTotal'] as num?)?.toDouble(),
       roundedAmount: (map['roundedAmount'] as num?)?.toDouble(),
       finalAmount: (map['finalAmount'] as num?)?.toDouble(),
+      discountedGameCharge: (map['discountedGameCharge'] as num?)?.toDouble(),
+      gameDiscountAmount: (map['gameDiscountAmount'] as num?)?.toDouble(),
+      gameDiscountPercentage: (map['gameDiscountPercentage'] as num?)?.toDouble(),
       employeeId: map['employeeId'] as String?,
       date: map['date'] as String,
       auditLogs: (map['auditLogs'] as List<dynamic>?)

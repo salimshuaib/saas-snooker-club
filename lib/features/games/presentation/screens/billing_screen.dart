@@ -31,8 +31,13 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
   String? _raceSelectedWinnerTeam;
   String? _raceSelectedPayingPlayer;
   
+  late TextEditingController _discountedGameAmountController;
+  bool _isDiscountedAmountInitialized = false;
+
   late TextEditingController _finalAmountController;
   bool _isFinalAmountInitialized = false;
+
+  bool _isDiscountMode = false;
   
   final Map<String, TextEditingController> _liabilityControllers = {};
 
@@ -42,6 +47,7 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
   @override
   void initState() {
     super.initState();
+    _discountedGameAmountController = TextEditingController();
     _finalAmountController = TextEditingController();
     _session = widget.session.copyWith(endTime: DateTime.now());
     if (_session.matchType == MatchType.friendly) {
@@ -64,6 +70,7 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
 
   @override
   void dispose() {
+    _discountedGameAmountController.dispose();
     _finalAmountController.dispose();
     for (final c in _liabilityControllers.values) {
       c.dispose();
@@ -134,10 +141,18 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
           }
         }
       } else {
+        List<String> gamePayers = _session.allPlayers;
+        if (_session.matchType == MatchType.loserPays && _winnerId != null) {
+          if (_session.mode == GameMode.team) {
+            gamePayers = _winnerId == 'Team A' ? _session.teamB : _session.teamA;
+          } else {
+            gamePayers = _session.allPlayers.where((p) => p != _winnerId).toList();
+          }
+        }
         final split =
-            _gameCharge /
-            (_session.allPlayers.isEmpty ? 1 : _session.allPlayers.length);
-        for (final p in _session.allPlayers) {
+            (_isDiscountMode ? _discountedGameCharge : _gameCharge) /
+            (gamePayers.isEmpty ? 1 : gamePayers.length);
+        for (final p in gamePayers) {
           liabilities[p] = (liabilities[p] ?? 0.0) + split;
         }
       }
@@ -159,10 +174,14 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
         (s, v) => s + v,
       );
       final diff = totalToSplit - totalComputed;
-      if (diff.abs() > 0.01 && _session.allPlayers.isNotEmpty) {
-        final adj = diff / _session.allPlayers.length;
-        for (final p in _session.allPlayers) {
-          liabilities[p] = (liabilities[p] ?? 0.0) + adj;
+      if (diff.abs() > 0.01) {
+        final activePayers = liabilities.entries.where((e) => e.value > 0).map((e) => e.key).toList();
+        final targetPayers = activePayers.isNotEmpty ? activePayers : _session.allPlayers;
+        if (targetPayers.isNotEmpty) {
+          final adj = diff / targetPayers.length;
+          for (final p in targetPayers) {
+            liabilities[p] = (liabilities[p] ?? 0.0) + adj;
+          }
         }
       }
     }
@@ -212,16 +231,40 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
   double get _ordersTotal =>
       _session.orders.fold<double>(0, (s, o) => s + o.total);
 
+  double get _discountedGameCharge {
+    if (!_isDiscountedAmountInitialized) {
+      _discountedGameAmountController.text = _gameCharge.round().toStringAsFixed(0);
+      _isDiscountedAmountInitialized = true;
+    }
+    double val = double.tryParse(_discountedGameAmountController.text) ?? _gameCharge.roundToDouble();
+    if (val < 0) val = 0;
+    if (val > _gameCharge) val = _gameCharge;
+    return val;
+  }
+
+  double get _gameDiscountAmount {
+    return _gameCharge - _discountedGameCharge;
+  }
+
+  double get _gameDiscountPercentage {
+    if (_gameCharge <= 0) return 0;
+    return (_gameDiscountAmount / _gameCharge) * 100;
+  }
+
   double get _grandTotal => _gameCharge + _ordersTotal;
   
   double get _roundedTotal => (_grandTotal / 10).roundToDouble() * 10;
   
   double get _finalTotal {
-    if (!_isFinalAmountInitialized) {
-      _finalAmountController.text = _roundedTotal.toStringAsFixed(0);
-      _isFinalAmountInitialized = true;
+    if (_isDiscountMode) {
+      return _discountedGameCharge + _ordersTotal;
+    } else {
+      if (!_isFinalAmountInitialized) {
+        _finalAmountController.text = _roundedTotal.toStringAsFixed(0);
+        _isFinalAmountInitialized = true;
+      }
+      return double.tryParse(_finalAmountController.text) ?? _roundedTotal;
     }
-    return double.tryParse(_finalAmountController.text) ?? _roundedTotal;
   }
 
   String _formatDuration(int seconds) {
@@ -232,16 +275,13 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
   }
 
   int get _activePayerCount {
-    if ((_isMultiRoundTP || _session.gameType != GameType.standard)) {
-      return _customLiabilities.values.where((v) => v > 0).length;
-    }
     return _customLiabilities.values.where((v) => v > 0).length;
   }
 
   bool get _isMultiPayer => _activePayerCount > 1;
 
   bool get _hasCredit {
-    if ((_isMultiRoundTP || _session.gameType != GameType.standard)) {
+    if (_isMultiPayer) {
       return _playerPaymentMethods.entries.any(
         (e) =>
             e.value == PaymentMethod.credit &&
@@ -389,12 +429,18 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
                         _WinnerTile(
                           label: 'Team A (${_session.teamA.join(", ")})',
                           isSelected: _winnerId == 'Team A',
-                          onTap: () => setState(() => _winnerId = 'Team A'),
+                          onTap: () {
+                            setState(() => _winnerId = 'Team A');
+                            _initializeLiabilities();
+                          },
                         ),
                         _WinnerTile(
                           label: 'Team B (${_session.teamB.join(", ")})',
                           isSelected: _winnerId == 'Team B',
-                          onTap: () => setState(() => _winnerId = 'Team B'),
+                          onTap: () {
+                            setState(() => _winnerId = 'Team B');
+                            _initializeLiabilities();
+                          },
                         ),
                       ]
                     : _session.allPlayers
@@ -402,7 +448,10 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
                             (p) => _WinnerTile(
                               label: p,
                               isSelected: _winnerId == p,
-                              onTap: () => setState(() => _winnerId = p),
+                              onTap: () {
+                                setState(() => _winnerId = p);
+                                _initializeLiabilities();
+                              },
                             ),
                           )
                           .toList(),
@@ -519,20 +568,118 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
                   ),
                 ],
                 const Divider(height: 16),
-                _InfoRow(
-                  label: 'Total Game Charge',
-                  value: '₹${_gameCharge.toStringAsFixed(2)}',
-                ),
-                if (_ordersTotal > 0)
-                  _InfoRow(
-                    label: 'Orders Total',
-                    value: '₹${_ordersTotal.toStringAsFixed(2)}',
-                  ),
-                const Divider(height: 16),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(
+                    Text('Apply Game-Only Discount', style: theme.textTheme.titleSmall),
+                    Switch(
+                      value: _isDiscountMode,
+                      onChanged: (val) {
+                        setState(() {
+                          _isDiscountMode = val;
+                          _customSplit.clear();
+                        });
+                        _initializeLiabilities();
+                      },
+                    ),
+                  ],
+                ),
+                const Divider(height: 16),
+                if (_isDiscountMode) ...[
+                  _InfoRow(
+                    label: 'Calculated Game Charge',
+                    value: '₹${_gameCharge.toStringAsFixed(2)}',
+                  ),
+                  const Gap(12),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'Discounted Game Charge',
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      SizedBox(
+                        width: 120,
+                        child: TextFormField(
+                          controller: _discountedGameAmountController,
+                          keyboardType: TextInputType.number,
+                          textAlign: TextAlign.right,
+                          style: theme.textTheme.titleLarge?.copyWith(
+                            color: AppColors.primary,
+                            fontWeight: FontWeight.w700,
+                          ),
+                          decoration: InputDecoration(
+                            prefixText: '₹',
+                            isDense: true,
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                          ),
+                          onChanged: (val) {
+                            setState(() {
+                              _customSplit.clear();
+                            });
+                            _initializeLiabilities();
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
+                  if (_gameDiscountAmount > 0) ...[
+                    const Gap(8),
+                    _InfoRow(
+                      label: 'Game Discount',
+                      value: '- ₹${_gameDiscountAmount.toStringAsFixed(2)}',
+                      valueColor: AppColors.success,
+                    ),
+                    _InfoRow(
+                      label: 'Discount Percentage',
+                      value: '${_gameDiscountPercentage.toStringAsFixed(1)}%',
+                      valueColor: AppColors.success,
+                    ),
+                  ],
+                  if (_ordersTotal > 0) ...[
+                    const Divider(height: 16),
+                    _InfoRow(
+                      label: 'Orders Total',
+                      value: '₹${_ordersTotal.toStringAsFixed(2)}',
+                    ),
+                  ],
+                  const Divider(height: 16),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'Final Bill Amount',
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      Text(
+                        '₹${_finalTotal.toStringAsFixed(2)}',
+                        style: theme.textTheme.titleLarge?.copyWith(
+                          color: AppColors.primary,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ],
+                  ),
+                ] else ...[
+                  _InfoRow(
+                    label: 'Total Game Charge',
+                    value: '₹${_gameCharge.toStringAsFixed(2)}',
+                  ),
+                  if (_ordersTotal > 0)
+                    _InfoRow(
+                      label: 'Orders Total',
+                      value: '₹${_ordersTotal.toStringAsFixed(2)}',
+                    ),
+                  const Divider(height: 16),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
                         'Calculated Total',
                         style: theme.textTheme.titleSmall,
                       ),
@@ -578,14 +725,15 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
                           },
                         ),
                       ),
-                  ],
-                ),
+                    ],
+                  ),
+                ],
               ],
             ),
             const Gap(16),
 
             // ── Payment Method & Liability Distribution ──
-            if (_isMultiRoundTP || _session.gameType != GameType.standard) ...[
+            if (_isMultiPayer) ...[
               Text(
                 'Player Liabilities & Payment',
                 style: theme.textTheme.titleMedium,
@@ -881,8 +1029,7 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
       return;
     }
 
-    if (!_isMultiRoundTP &&
-        _session.gameType == GameType.standard &&
+    if (!_isMultiPayer &&
         _paymentMethod == PaymentMethod.credit &&
         _PlayerProfileName == null) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -894,6 +1041,33 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
       return;
     }
 
+    if (!_isMultiPayer && _paymentMethod == PaymentMethod.credit) {
+      if (_PlayerProfileName != null && _PlayerProfileName!.toLowerCase().startsWith('default ')) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Default players cannot use Credit. Please select Cash or UPI.'),
+            backgroundColor: AppColors.error,
+          ),
+        );
+        return;
+      }
+    }
+
+    if (_isMultiPayer) {
+      final hasDefaultCredit = _playerPaymentMethods.entries.any(
+        (e) => e.value == PaymentMethod.credit && e.key.toLowerCase().startsWith('default ')
+      );
+      if (hasDefaultCredit) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Default players cannot use Credit. Please select Cash or UPI.'),
+            backgroundColor: AppColors.error,
+          ),
+        );
+        return;
+      }
+    }
+
     setState(() => _isProcessing = true);
 
     final finalEndTime = _session.isManualEntry
@@ -902,7 +1076,7 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
     final finalDate = DateFormat('yyyy-MM-dd').format(finalEndTime);
 
     final finalSession =
-        (_isMultiRoundTP || _session.gameType != GameType.standard)
+        _isMultiPayer
         ? _session.copyWith(
             endTime: finalEndTime,
             status: TableStatus.available,
@@ -916,7 +1090,11 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
             grandTotal: _grandTotal,
             roundedAmount: _roundedTotal,
             finalAmount: _finalTotal,
+            discountedGameCharge: _isDiscountMode ? _discountedGameCharge : null,
+            gameDiscountAmount: _isDiscountMode ? _gameDiscountAmount : null,
+            gameDiscountPercentage: _isDiscountMode ? _gameDiscountPercentage : null,
             date: finalDate,
+            winnerId: _winnerId,
           )
         : _session.copyWith(
             endTime: finalEndTime,
@@ -934,6 +1112,9 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
             grandTotal: _grandTotal,
             roundedAmount: _roundedTotal,
             finalAmount: _finalTotal,
+            discountedGameCharge: _isDiscountMode ? _discountedGameCharge : null,
+            gameDiscountAmount: _isDiscountMode ? _gameDiscountAmount : null,
+            gameDiscountPercentage: _isDiscountMode ? _gameDiscountPercentage : null,
             date: finalDate,
           );
 
@@ -992,8 +1173,9 @@ class _SectionCard extends StatelessWidget {
 class _InfoRow extends StatelessWidget {
   final String label;
   final String value;
+  final Color? valueColor;
 
-  const _InfoRow({required this.label, required this.value});
+  const _InfoRow({required this.label, required this.value, this.valueColor});
 
   @override
   Widget build(BuildContext context) {
@@ -1013,6 +1195,7 @@ class _InfoRow extends StatelessWidget {
             value,
             style: theme.textTheme.bodyMedium?.copyWith(
               fontWeight: FontWeight.w600,
+              color: valueColor,
             ),
           ),
         ],
