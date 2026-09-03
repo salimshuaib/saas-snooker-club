@@ -10,6 +10,7 @@ import 'package:snooker_club/features/dashboard/presentation/screens/running_tab
 import 'package:snooker_club/features/dashboard/presentation/screens/available_tables_screen.dart' as snooker_available;
 import 'package:snooker_club/features/quick_sales/presentation/screens/new_quick_sale_screen.dart' as snooker_qs;
 import 'package:snooker_club/features/dashboard/presentation/screens/inventory_status_screen.dart' as snooker_inv;
+import 'package:snooker_club/features/credit/presentation/screens/credit_screen.dart' as snooker_credit;
 
 class MoreScreen extends ConsumerWidget {
   const MoreScreen({super.key});
@@ -95,6 +96,20 @@ class MoreScreen extends ConsumerWidget {
                 Navigator.push(
                   context,
                   MaterialPageRoute(builder: (context) => const snooker_financial.FinancialOverviewScreen()),
+                );
+              },
+            ),
+            const Gap(12),
+            
+            _MoreMenuItem(
+              icon: Icons.credit_score,
+              title: 'Credit Profiles',
+              subtitle: 'Manage player credit and ledger',
+              iconColor: Colors.deepPurple,
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const snooker_credit.CreditScreen()),
                 );
               },
             ),
