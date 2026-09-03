@@ -135,12 +135,20 @@ class _GameActivityCardState extends ConsumerState<GameActivityCard> {
 
   void _pauseGame(WidgetRef ref) async {
     if (widget.activeGame == null) return;
-    await ref.read(gamesRepositoryProvider).pauseGame(widget.activeGame!);
+    await ref.read(gamesRepositoryProvider).pauseGame(
+      widget.activeGame!.id,
+      widget.activeGame!.tableId,
+      DateTime.now(),
+    );
   }
 
   void _resumeGame(WidgetRef ref) async {
     if (widget.activeGame == null) return;
-    await ref.read(gamesRepositoryProvider).resumeGame(widget.activeGame!);
+    await ref.read(gamesRepositoryProvider).resumeGame(
+      widget.activeGame!.id,
+      widget.activeGame!.tableId,
+      DateTime.now(),
+    );
   }
   
   void _cancelGame(WidgetRef ref) async {
@@ -157,7 +165,11 @@ class _GameActivityCardState extends ConsumerState<GameActivityCard> {
       ),
     );
     if (confirm == true) {
-      await ref.read(gamesRepositoryProvider).cancelGame(widget.activeGame!);
+      await ref.read(gamesRepositoryProvider).cancelGame(
+        widget.activeGame!.id,
+        widget.activeGame!.tableId,
+        widget.activeGame!.orders,
+      );
     }
   }
 
