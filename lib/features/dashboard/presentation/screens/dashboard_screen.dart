@@ -103,8 +103,6 @@ class DashboardScreen extends ConsumerWidget {
           title: Text(clubAsync.value?.clubName ?? 'Game Activity'),
           actions: _buildAppBarActions(theme, employeeName),
           bottom: TabBar(
-            isScrollable: true,
-            tabAlignment: TabAlignment.start,
             indicatorColor: theme.colorScheme.primary,
             labelColor: theme.colorScheme.primary,
             unselectedLabelColor: theme.colorScheme.onSurfaceVariant,
