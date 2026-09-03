@@ -49,92 +49,119 @@ class DashboardScreen extends ConsumerWidget {
       }
     }
 
-    return Scaffold(
-      appBar: AppBar(
-        leading: IconButton(
-          icon: const Icon(Icons.menu),
-          color: theme.colorScheme.onSurface,
-          tooltip: 'Menu',
-          onPressed: () {
-            context.push(RouteNames.more);
-          },
+    final activeCategories = groupedTables.entries.where((entry) => entry.value.isNotEmpty).toList();
+
+    // Default Empty State
+    if (activeCategories.isEmpty) {
+      return Scaffold(
+        appBar: AppBar(
+          leading: IconButton(
+            icon: const Icon(Icons.menu),
+            color: theme.colorScheme.onSurface,
+            tooltip: 'Menu',
+            onPressed: () => context.push(RouteNames.more),
+          ),
+          title: Text(clubAsync.value?.clubName ?? 'Game Activity'),
+          actions: _buildAppBarActions(theme, employeeName),
         ),
-        title: Text(clubAsync.value?.clubName ?? 'Game Activity'),
-        actions: [
-          Center(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 8.0),
-              child: Text(
-                employeeName,
-                style: theme.textTheme.labelMedium?.copyWith(
-                  color: theme.colorScheme.primary,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ),
-          ),
-          const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 16.0),
-            child: CircleAvatar(
-              radius: 14,
-              backgroundColor: AppColors.primary,
-              child: Icon(Icons.person, size: 16, color: Colors.white),
-            ),
-          ),
-        ],
-      ),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+        body: Center(
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
+              const Icon(Icons.table_restaurant_outlined, size: 64, color: Colors.grey),
+              const Gap(16),
               Text(
-                'Game Activity',
-                style: theme.textTheme.headlineMedium?.copyWith(
-                  fontWeight: FontWeight.w700,
-                ),
+                'No tables or games added yet',
+                style: theme.textTheme.titleMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant),
               ),
-              const Gap(4),
-              Text(
-                '${tables.length} resources available • ${tables.where((t) => t.status != TableStatus.available).length} games running',
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant,
-                ),
+              const Gap(16),
+              FilledButton.icon(
+                onPressed: () => context.push(RouteNames.settings),
+                icon: const Icon(Icons.settings),
+                label: const Text('Add your first resource from Settings'),
               ),
-              const Gap(24),
-              
-              ...groupedTables.entries.where((entry) => entry.value.isNotEmpty).map((entry) {
-                return Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      entry.key,
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                        color: theme.colorScheme.primary,
-                      ),
-                    ),
-                    const Gap(12),
-                    ...entry.value.map((table) {
-                      return Consumer(
-                        builder: (context, ref, _) {
-                          final activeGameAsync = ref.watch(activeGameProvider(table.id));
-                          return GameActivityCard(
-                            table: table,
-                            activeGame: activeGameAsync.value,
-                          );
-                        },
-                      );
-                    }),
-                    const Gap(24),
-                  ],
-                );
-              }),
             ],
           ),
         ),
+      );
+    }
+
+    // Dynamic Tabs State
+    final categoriesKey = activeCategories.map((e) => e.key).join('-');
+    
+    return DefaultTabController(
+      key: ValueKey(categoriesKey),
+      length: activeCategories.length,
+      child: Scaffold(
+        appBar: AppBar(
+          leading: IconButton(
+            icon: const Icon(Icons.menu),
+            color: theme.colorScheme.onSurface,
+            tooltip: 'Menu',
+            onPressed: () => context.push(RouteNames.more),
+          ),
+          title: Text(clubAsync.value?.clubName ?? 'Game Activity'),
+          actions: _buildAppBarActions(theme, employeeName),
+          bottom: TabBar(
+            isScrollable: true,
+            tabAlignment: TabAlignment.start,
+            indicatorColor: theme.colorScheme.primary,
+            labelColor: theme.colorScheme.primary,
+            unselectedLabelColor: theme.colorScheme.onSurfaceVariant,
+            labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+            unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.normal, fontSize: 15),
+            tabs: activeCategories.map((e) => Tab(text: e.key)).toList(),
+          ),
+        ),
+        body: TabBarView(
+          children: activeCategories.map((entry) {
+            final categoryTables = entry.value;
+            return SafeArea(
+              child: ListView.builder(
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                itemCount: categoryTables.length,
+                itemBuilder: (context, index) {
+                  final table = categoryTables[index];
+                  return Consumer(
+                    builder: (context, ref, _) {
+                      final activeGameAsync = ref.watch(activeGameProvider(table.id));
+                      return GameActivityCard(
+                        table: table,
+                        activeGame: activeGameAsync.value,
+                      );
+                    },
+                  );
+                },
+              ),
+            );
+          }).toList(),
+        ),
       ),
     );
+  }
+
+  List<Widget> _buildAppBarActions(ThemeData theme, String employeeName) {
+    return [
+      Center(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 8.0),
+          child: Text(
+            employeeName,
+            style: theme.textTheme.labelMedium?.copyWith(
+              color: theme.colorScheme.primary,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+      ),
+      const Padding(
+        padding: EdgeInsets.symmetric(horizontal: 16.0),
+        child: CircleAvatar(
+          radius: 14,
+          backgroundColor: AppColors.primary,
+          child: Icon(Icons.person, size: 16, color: Colors.white),
+        ),
+      ),
+    ];
   }
 }
