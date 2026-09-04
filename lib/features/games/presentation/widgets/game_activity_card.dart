@@ -321,7 +321,10 @@ class _GameActivityCardState extends ConsumerState<GameActivityCard> {
                           onPressed: () => _endGame(context),
                           icon: const Icon(Icons.stop),
                           label: const Text('End Game', style: TextStyle(fontSize: 16)),
-                          style: FilledButton.styleFrom(backgroundColor: AppColors.primary),
+                          style: FilledButton.styleFrom(
+                            backgroundColor: AppColors.error,
+                            foregroundColor: Colors.white,
+                          ),
                         ),
                       ),
                     ],
