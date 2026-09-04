@@ -237,7 +237,39 @@ class _GameActivityCardState extends ConsumerState<GameActivityCard> {
       child: Column(
         children: [
           ListTile(
-            title: Text(widget.table.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+            title: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Expanded(
+                  child: Text(widget.table.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18), overflow: TextOverflow.ellipsis),
+                ),
+                if (isAvailable && (widget.table.type == TableType.indianPool || widget.table.type == TableType.americanPool))
+                  Container(
+                    height: 28,
+                    margin: const EdgeInsets.only(left: 8),
+                    decoration: BoxDecoration(
+                      color: theme.colorScheme.onSurface.withOpacity(0.08),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    padding: const EdgeInsets.all(2),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        _BillingToggleBtn(
+                          label: 'Per Min',
+                          isSelected: _billingType == BillingType.perMinute,
+                          onTap: () => setState(() => _billingType = BillingType.perMinute),
+                        ),
+                        _BillingToggleBtn(
+                          label: 'Per Frame',
+                          isSelected: _billingType == BillingType.perFrame,
+                          onTap: () => setState(() => _billingType = BillingType.perFrame),
+                        ),
+                      ],
+                    ),
+                  ),
+              ],
+            ),
             subtitle: Row(
               children: [
                 Icon(Icons.circle, color: statusColor, size: 10),
@@ -417,6 +449,42 @@ class _GameActivityCardState extends ConsumerState<GameActivityCard> {
               ),
             )
         ],
+      ),
+    );
+  }
+}
+
+class _BillingToggleBtn extends StatelessWidget {
+  final String label;
+  final bool isSelected;
+  final VoidCallback onTap;
+
+  const _BillingToggleBtn({
+    required this.label,
+    required this.isSelected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+        decoration: BoxDecoration(
+          color: isSelected ? theme.colorScheme.primary : Colors.transparent,
+          borderRadius: BorderRadius.circular(6),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+            color: isSelected ? theme.colorScheme.onPrimary : theme.colorScheme.onSurfaceVariant,
+          ),
+        ),
       ),
     );
   }
