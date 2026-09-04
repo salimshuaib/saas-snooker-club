@@ -113,28 +113,62 @@ class DashboardScreen extends ConsumerWidget {
         ),
         body: TabBarView(
           children: activeCategories.map((entry) {
+            final categoryName = entry.key;
             final categoryTables = entry.value;
+            
+            if (categoryName == 'Pool') {
+              final americanPools = categoryTables.where((t) => t.type == TableType.americanPool).toList();
+              final indianPools = categoryTables.where((t) => t.type == TableType.indianPool).toList();
+
+              return SafeArea(
+                child: ListView(
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                  children: [
+                    if (americanPools.isNotEmpty) ...[
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 12.0),
+                        child: Text('American Pool', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold, color: theme.colorScheme.onSurfaceVariant)),
+                      ),
+                      ...americanPools.map((table) => _buildTableCard(table)),
+                      const Gap(16),
+                    ],
+                    if (indianPools.isNotEmpty) ...[
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 12.0),
+                        child: Text('Indian Pool', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold, color: theme.colorScheme.onSurfaceVariant)),
+                      ),
+                      ...indianPools.map((table) => _buildTableCard(table)),
+                      const Gap(16),
+                    ],
+                  ],
+                ),
+              );
+            }
+
             return SafeArea(
               child: ListView.builder(
                 padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
                 itemCount: categoryTables.length,
                 itemBuilder: (context, index) {
-                  final table = categoryTables[index];
-                  return Consumer(
-                    builder: (context, ref, _) {
-                      final activeGameAsync = ref.watch(activeGameProvider(table.id));
-                      return GameActivityCard(
-                        table: table,
-                        activeGame: activeGameAsync.value,
-                      );
-                    },
-                  );
+                  return _buildTableCard(categoryTables[index]);
                 },
               ),
             );
           }).toList(),
         ),
       ),
+    );
+  }
+
+  Widget _buildTableCard(TableModel table) {
+    return Consumer(
+      builder: (context, ref, _) {
+        final activeGameAsync = ref.watch(activeGameProvider(table.id));
+        return GameActivityCard(
+          table: table,
+          activeGame: activeGameAsync.value,
+        );
+      },
     );
   }
 
