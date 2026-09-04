@@ -228,15 +228,16 @@ class _GameActivityCardState extends ConsumerState<GameActivityCard> {
     }
 
     return Card(
-      margin: const EdgeInsets.only(bottom: 12),
+      margin: const EdgeInsets.only(bottom: 16),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
-        side: BorderSide(color: statusColor.withValues(alpha: 0.5), width: 1.5),
+        side: BorderSide(color: statusColor.withOpacity(0.5), width: 1.5),
       ),
       elevation: 2,
       child: Column(
         children: [
           ListTile(
+            contentPadding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
             title: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -245,7 +246,7 @@ class _GameActivityCardState extends ConsumerState<GameActivityCard> {
                 ),
                 if (isAvailable && (widget.table.type == TableType.indianPool || widget.table.type == TableType.americanPool))
                   Container(
-                    height: 28,
+                    height: 32,
                     margin: const EdgeInsets.only(left: 8),
                     decoration: BoxDecoration(
                       color: theme.colorScheme.onSurface.withOpacity(0.08),
@@ -270,18 +271,21 @@ class _GameActivityCardState extends ConsumerState<GameActivityCard> {
                   ),
               ],
             ),
-            subtitle: Row(
-              children: [
-                Icon(Icons.circle, color: statusColor, size: 10),
-                const Gap(6),
-                Text(statusText, style: TextStyle(color: statusColor, fontWeight: FontWeight.w600)),
-                if (timeText.isNotEmpty) ...[
+            subtitle: Padding(
+              padding: const EdgeInsets.only(top: 8.0),
+              child: Row(
+                children: [
+                  Icon(Icons.circle, color: statusColor, size: 10),
                   const Gap(6),
-                  const Text('•'),
-                  const Gap(6),
-                  Text(timeText, style: const TextStyle(fontWeight: FontWeight.w700, fontFamily: 'Courier')),
+                  Text(statusText, style: TextStyle(color: statusColor, fontWeight: FontWeight.w600)),
+                  if (timeText.isNotEmpty) ...[
+                    const Gap(6),
+                    const Text('•'),
+                    const Gap(6),
+                    Text(timeText, style: const TextStyle(fontWeight: FontWeight.w700, fontFamily: 'Courier')),
+                  ],
                 ],
-              ],
+              ),
             ),
             trailing: isAvailable ? IconButton(
               icon: Icon(_isExpanded ? Icons.expand_less : Icons.expand_more),
@@ -290,7 +294,7 @@ class _GameActivityCardState extends ConsumerState<GameActivityCard> {
           ),
           if (isAvailable && !_isExpanded)
             Padding(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+              padding: const EdgeInsets.fromLTRB(16, 4, 16, 20),
               child: SizedBox(
                 width: double.infinity,
                 child: FilledButton(
@@ -305,7 +309,7 @@ class _GameActivityCardState extends ConsumerState<GameActivityCard> {
             ),
           if (isRunning || isPaused)
             Padding(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+              padding: const EdgeInsets.fromLTRB(16, 4, 16, 20),
               child: Column(
                 children: [
                   Row(
