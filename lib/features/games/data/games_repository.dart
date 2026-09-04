@@ -77,6 +77,15 @@ class GamesRepository {
     }
   }
 
+  Future<void> updateTableOrders(List<TableModel> tables) async {
+    if (AppConfig.guardWrite('GamesRepository.updateTableOrders')) return;
+    final batch = _db.batch();
+    for (int i = 0; i < tables.length; i++) {
+      batch.update(_tablesRef.doc(tables[i].id), {'order': i});
+    }
+    await batch.commit();
+  }
+
   Future<void> deleteTable(String tableId) async {
     if (AppConfig.guardWrite('GamesRepository.deleteTable')) return;
     await _tablesRef.doc(tableId).delete();

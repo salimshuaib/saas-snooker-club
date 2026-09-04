@@ -143,7 +143,24 @@ class DashboardScreen extends ConsumerWidget {
                           ),
                         ),
                       ),
-                    ...grouped[type]!.map((table) => _buildTableCard(table)),
+                    ReorderableListView(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      onReorder: (oldIndex, newIndex) {
+                        if (oldIndex < newIndex) newIndex -= 1;
+                        final list = List<TableModel>.from(grouped[type]!);
+                        final item = list.removeAt(oldIndex);
+                        list.insert(newIndex, item);
+                        ref.read(gamesRepositoryProvider).updateTableOrders(list);
+                      },
+                      children: [
+                        for (var table in grouped[type]!)
+                          Container(
+                            key: ValueKey(table.id),
+                            child: _buildTableCard(table),
+                          ),
+                      ],
+                    ),
                     const Gap(16),
                   ],
                 ],
