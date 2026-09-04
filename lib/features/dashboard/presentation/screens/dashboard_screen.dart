@@ -115,43 +115,38 @@ class DashboardScreen extends ConsumerWidget {
           children: activeCategories.map((entry) {
             final categoryName = entry.key;
             final categoryTables = entry.value;
-            
-            if (categoryName == 'Pool') {
-              final americanPools = categoryTables.where((t) => t.type == TableType.americanPool).toList();
-              final indianPools = categoryTables.where((t) => t.type == TableType.indianPool).toList();
 
-              return SafeArea(
-                child: ListView(
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-                  children: [
-                    if (americanPools.isNotEmpty) ...[
-                      Padding(
-                        padding: const EdgeInsets.only(bottom: 12.0),
-                        child: Text('American Pool', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold, color: theme.colorScheme.onSurfaceVariant)),
-                      ),
-                      ...americanPools.map((table) => _buildTableCard(table)),
-                      const Gap(16),
-                    ],
-                    if (indianPools.isNotEmpty) ...[
-                      Padding(
-                        padding: const EdgeInsets.only(bottom: 12.0),
-                        child: Text('Indian Pool', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold, color: theme.colorScheme.onSurfaceVariant)),
-                      ),
-                      ...indianPools.map((table) => _buildTableCard(table)),
-                      const Gap(16),
-                    ],
-                  ],
-                ),
-              );
+            // Group tables by their TableType
+            final Map<TableType, List<TableModel>> grouped = {};
+            for (var t in categoryTables) {
+              grouped.putIfAbsent(t.type, () => []).add(t);
             }
+            
+            // Sort by display name
+            final sortedTypes = grouped.keys.toList()
+              ..sort((a, b) => a.displayName.compareTo(b.displayName));
 
             return SafeArea(
-              child: ListView.builder(
+              child: ListView(
                 padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-                itemCount: categoryTables.length,
-                itemBuilder: (context, index) {
-                  return _buildTableCard(categoryTables[index]);
-                },
+                children: [
+                  for (var type in sortedTypes) ...[
+                    // Show header if category has multiple types or name doesn't match
+                    if (sortedTypes.length > 1 || categoryName != type.displayName)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 12.0),
+                        child: Text(
+                          type.displayName,
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.bold, 
+                            color: theme.colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ),
+                    ...grouped[type]!.map((table) => _buildTableCard(table)),
+                    const Gap(16),
+                  ],
+                ],
               ),
             );
           }).toList(),
