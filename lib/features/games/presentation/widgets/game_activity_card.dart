@@ -11,6 +11,7 @@ import 'package:snooker_club/features/settings/providers/settings_providers.dart
 import 'package:snooker_club/features/credit/providers/credit_providers.dart';
 import 'package:snooker_club/features/credit/domain/models/credit_models.dart';
 import 'package:snooker_club/features/games/presentation/screens/billing_screen.dart';
+import 'package:snooker_club/features/games/presentation/widgets/orders_sheet.dart';
 
 class GameActivityCard extends ConsumerStatefulWidget {
   final TableModel table;
@@ -183,6 +184,26 @@ class _GameActivityCardState extends ConsumerState<GameActivityCard> {
     );
   }
 
+  Future<void> _showOrdersSheet(BuildContext context) async {
+    if (widget.activeGame == null) return;
+    
+    final updated = await showModalBottomSheet<List<GameOrder>>(
+      context: context,
+      isScrollControlled: true,
+      builder: (_) => OrdersSheet(
+        players: widget.activeGame!.allPlayers,
+        currentOrders: widget.activeGame!.orders,
+      ),
+    );
+
+    if (updated != null && mounted) {
+      await ref.read(gameSessionControllerProvider.notifier).updateOrders(
+        widget.activeGame!.id,
+        updated,
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -276,23 +297,34 @@ class _GameActivityCardState extends ConsumerState<GameActivityCard> {
                       const Gap(8),
                       Expanded(
                         child: OutlinedButton.icon(
+                          onPressed: () => _showOrdersSheet(context),
+                          icon: const Icon(Icons.add_shopping_cart),
+                          label: const Text('Orders'),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const Gap(8),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton.icon(
                           onPressed: () => _cancelGame(ref),
                           icon: const Icon(Icons.cancel),
                           label: const Text('Cancel'),
                           style: OutlinedButton.styleFrom(foregroundColor: AppColors.error),
                         ),
                       ),
+                      const Gap(8),
+                      Expanded(
+                        child: FilledButton.icon(
+                          onPressed: () => _endGame(context),
+                          icon: const Icon(Icons.stop),
+                          label: const Text('End Game', style: TextStyle(fontSize: 16)),
+                          style: FilledButton.styleFrom(backgroundColor: AppColors.primary),
+                        ),
+                      ),
                     ],
-                  ),
-                  const Gap(8),
-                  SizedBox(
-                    width: double.infinity,
-                    child: FilledButton.icon(
-                      onPressed: () => _endGame(context),
-                      icon: const Icon(Icons.stop),
-                      label: const Text('End Game', style: TextStyle(fontSize: 16)),
-                      style: FilledButton.styleFrom(backgroundColor: AppColors.primary),
-                    ),
                   ),
                 ],
               ),
