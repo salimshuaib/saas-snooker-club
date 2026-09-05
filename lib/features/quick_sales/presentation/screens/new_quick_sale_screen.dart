@@ -128,7 +128,11 @@ class _NewQuickSaleScreenState extends ConsumerState<NewQuickSaleScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Sale completed successfully'), backgroundColor: AppColors.success),
         );
-        context.pop();
+        setState(() {
+          _cart.clear();
+          _customerNameController.clear();
+          _paymentMethod = PaymentMethod.cash;
+        });
       }
     } catch (e) {
       if (mounted) {

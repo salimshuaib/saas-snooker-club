@@ -15,9 +15,6 @@ import 'package:flutter/services.dart';
 import 'package:snooker_club/features/games/utils/game_validation_utils.dart';
 
 
-extension GameModeExtension on GameMode {
-  String get displayName => this == GameMode.team ? 'Team' : 'Solo';
-}
 
 class GameSetupSheet extends ConsumerStatefulWidget {
   final TableModel table;
@@ -150,6 +147,21 @@ class _GameSetupSheetState extends ConsumerState<GameSetupSheet> {
                         ),
                       )
                       .toList(),
+                  selectedItemBuilder: (BuildContext context) {
+                    return GameType.values
+                        .where((type) {
+                          if (_tableType.isOtherGame) return type == GameType.standard;
+                          if (type == GameType.rummy && _tableType != TableType.snooker) {
+                            return false;
+                          }
+                          return true;
+                        })
+                        .map((type) => Text(
+                              type.displayName,
+                              style: const TextStyle(fontWeight: FontWeight.w600),
+                            ))
+                        .toList();
+                  },
                   onChanged: (val) {
                     if (val != null) {
                       setState(() {
@@ -195,6 +207,11 @@ class _GameSetupSheetState extends ConsumerState<GameSetupSheet> {
                                 value: t,
                                 child: Text(t.displayName),
                               )).toList(),
+                              selectedItemBuilder: (BuildContext context) {
+                                return TablePricingConfig.supportedBillingTypes(_tableType, _gameType)
+                                    .map((t) => Text(t.displayName))
+                                    .toList();
+                              },
                               onChanged: (v) => setState(() => _billingType = v!),
                             ),
                           ],
@@ -220,6 +237,9 @@ class _GameSetupSheetState extends ConsumerState<GameSetupSheet> {
                                 value: t,
                                 child: Text(t.displayName),
                               )).toList(),
+                              selectedItemBuilder: (BuildContext context) {
+                                return MatchType.values.map((t) => Text(t.displayName)).toList();
+                              },
                               onChanged: (v) => setState(() => _matchType = v!),
                             ),
                           ],
@@ -364,7 +384,7 @@ class _GameSetupSheetState extends ConsumerState<GameSetupSheet> {
                     },
                   ),
                 ),
-                if (selections.length > 2)
+                if (selections.length > 1)
                   IconButton(
                     icon: const Icon(Icons.remove_circle_outline, color: AppColors.error),
                     onPressed: () {
@@ -467,6 +487,11 @@ class _GameSetupSheetState extends ConsumerState<GameSetupSheet> {
           resolvedIdentities[p.name] = p.id!;
           finalPlayerIds.add(p.id!);
         } else {
+          // Skip profile creation for placeholder 'Default' players
+          if (p.name.trim().toLowerCase().startsWith('default')) {
+            continue;
+          }
+
           final existingMatch = allProfiles.where((e) => e.name.toLowerCase() == p.name.trim().toLowerCase()).firstOrNull;
           if (existingMatch != null) {
             final bool? useExisting = await showDialog<bool>(
@@ -546,7 +571,7 @@ class _GameSetupSheetState extends ConsumerState<GameSetupSheet> {
         billingType: actualBillingType,
         matchType: _tableType.isOtherGame ? MatchType.friendly : _matchType,
         totalFrames: (_gameType == GameType.standard && actualBillingType == BillingType.perFrame && !_tableType.isOtherGame) ? _totalFrames : 1,
-        framesPlayed: 0,
+        framesPlayed: actualBillingType == BillingType.perFrame ? 1 : 0,
         teamA: teamAIds,
         teamB: teamBIds,
         playerIds: finalPlayerIds,

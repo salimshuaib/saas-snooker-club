@@ -117,44 +117,65 @@ class _MainScreenState extends ConsumerState<MainScreen> {
 
     return Scaffold(
       body: widget.navigationShell,
-      bottomNavigationBar: BottomAppBar(
-        color: theme.colorScheme.surface,
-        elevation: 8,
-        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceAround,
-          children: [
-            _buildNavItem(
-              icon: Icons.table_restaurant_outlined,
-              activeIcon: Icons.table_restaurant,
-              label: 'Game Activity',
-              isActive: currentIndex == 0,
-              onTap: () => _onItemTapped(0),
-              theme: theme,
+      bottomNavigationBar: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+          child: Container(
+            decoration: BoxDecoration(
+              color: theme.colorScheme.surface,
+              borderRadius: BorderRadius.circular(32),
+              border: Border.all(
+                color: theme.colorScheme.outlineVariant.withValues(alpha: 0.5),
+                width: 1,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.4),
+                  blurRadius: 16,
+                  offset: const Offset(0, 8),
+                ),
+              ],
             ),
-            _buildNavItem(
-              icon: Icons.flash_on_outlined,
-              activeIcon: Icons.flash_on,
-              label: 'Quick Sale',
-              isActive: false,
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => const NewQuickSaleScreen()),
-                );
-              },
-              theme: theme,
-              customColor: Colors.orange,
+            padding: const EdgeInsets.symmetric(horizontal: 4.0, vertical: 8.0),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                _buildNavItem(
+                  icon: Icons.table_restaurant_outlined,
+                  activeIcon: Icons.table_restaurant,
+                  label: 'Game Activity',
+                  isActive: currentIndex == 0,
+                  onTap: () => _onItemTapped(0),
+                  theme: theme,
+                ),
+                _buildNavItem(
+                  icon: Icons.flash_on_outlined,
+                  activeIcon: Icons.flash_on,
+                  label: 'Quick Sale',
+                  isActive: currentIndex == 1,
+                  onTap: () => _onItemTapped(1),
+                  theme: theme,
+                  isQuickSale: true,
+                ),
+                _buildNavItem(
+                  icon: Icons.receipt_long_outlined,
+                  activeIcon: Icons.receipt_long,
+                  label: 'History',
+                  isActive: currentIndex == 2,
+                  onTap: () => _onItemTapped(2),
+                  theme: theme,
+                ),
+                _buildNavItem(
+                  icon: Icons.bar_chart_outlined,
+                  activeIcon: Icons.bar_chart,
+                  label: 'Overview',
+                  isActive: currentIndex == 3,
+                  onTap: () => _onItemTapped(3),
+                  theme: theme,
+                ),
+              ],
             ),
-            _buildNavItem(
-              icon: Icons.receipt_long_outlined,
-              activeIcon: Icons.receipt_long,
-              label: 'History',
-              isActive: currentIndex == 1,
-              onTap: () => _onItemTapped(1),
-              theme: theme,
-            ),
-          ],
+          ),
         ),
       ),
     );
@@ -167,25 +188,45 @@ class _MainScreenState extends ConsumerState<MainScreen> {
     required bool isActive,
     required VoidCallback onTap,
     required ThemeData theme,
-    Color? customColor,
+    bool isQuickSale = false,
   }) {
-    final color = customColor ?? (isActive ? AppColors.primary : theme.colorScheme.onSurfaceVariant);
-    return InkWell(
+    const brassGold = Color(0xFFC89B3C);
+    const cream = Color(0xFFF6F1E4);
+    const snookerRed = Color(0xFFC0432B);
+    final mutedText = theme.colorScheme.onSurfaceVariant;
+
+    final iconColor = isActive 
+        ? (isQuickSale ? snookerRed : brassGold) 
+        : (isQuickSale ? snookerRed.withValues(alpha: 0.8) : mutedText);
+
+    final textColor = isActive ? cream : mutedText;
+    final bgColor = isActive 
+        ? (isQuickSale ? snookerRed.withValues(alpha: 0.15) : brassGold.withValues(alpha: 0.15)) 
+        : Colors.transparent;
+
+    return GestureDetector(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(8),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 0.0),
+      behavior: HitTestBehavior.opaque,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        curve: Curves.easeOutCubic,
+        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+        decoration: BoxDecoration(
+          color: bgColor,
+          borderRadius: BorderRadius.circular(24),
+        ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(isActive ? activeIcon : icon, color: color, size: 28),
-            const SizedBox(height: 2),
+            Icon(isActive ? activeIcon : icon, color: iconColor, size: 26),
+            const SizedBox(height: 4),
             Text(
               label,
               style: theme.textTheme.labelSmall?.copyWith(
-                color: color,
+                color: textColor,
                 fontWeight: isActive ? FontWeight.w600 : FontWeight.w500,
+                fontSize: 11,
               ),
             ),
           ],

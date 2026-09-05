@@ -2,16 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:gap/gap.dart';
 import 'package:snooker_club/core/routes/route_names.dart';
-import 'package:snooker_club/core/theme/app_colors.dart';
 import 'package:snooker_club/features/team/providers/team_providers.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:snooker_club/features/dashboard/presentation/screens/financial_overview_screen.dart' as snooker_financial;
-import 'package:snooker_club/features/dashboard/presentation/screens/running_tables_screen.dart' as snooker_running;
-import 'package:snooker_club/features/dashboard/presentation/screens/available_tables_screen.dart' as snooker_available;
-import 'package:snooker_club/features/quick_sales/presentation/screens/new_quick_sale_screen.dart' as snooker_qs;
-import 'package:snooker_club/features/dashboard/presentation/screens/inventory_status_screen.dart' as snooker_inv;
-import 'package:snooker_club/features/credit/presentation/screens/credit_screen.dart' as snooker_credit;
-
 class MoreScreen extends ConsumerWidget {
   const MoreScreen({super.key});
 
@@ -76,100 +68,6 @@ class MoreScreen extends ConsumerWidget {
                 );
               }
             ),
-
-            Text(
-              'CLUB OPERATIONS',
-              style: theme.textTheme.labelSmall?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
-                letterSpacing: 1.2,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const Gap(12),
-            
-            _MoreMenuItem(
-              icon: Icons.account_balance_wallet,
-              title: 'Financial Overview',
-              subtitle: 'Today\'s revenue and summary',
-              iconColor: Colors.green,
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => const snooker_financial.FinancialOverviewScreen()),
-                );
-              },
-            ),
-            const Gap(12),
-            
-            _MoreMenuItem(
-              icon: Icons.credit_score,
-              title: 'Credit Profiles',
-              subtitle: 'Manage player credit and ledger',
-              iconColor: Colors.deepPurple,
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => const snooker_credit.CreditScreen()),
-                );
-              },
-            ),
-            const Gap(12),
-            
-            _MoreMenuItem(
-              icon: Icons.table_restaurant,
-              title: 'Running Tables',
-              subtitle: 'View active games',
-              iconColor: Colors.blue,
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => const snooker_running.RunningTablesScreen()),
-                );
-              },
-            ),
-            const Gap(12),
-            
-            _MoreMenuItem(
-              icon: Icons.check_circle_outline,
-              title: 'Available Tables',
-              subtitle: 'View idle tables',
-              iconColor: Colors.teal,
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => const snooker_available.AvailableTablesScreen()),
-                );
-              },
-            ),
-            const Gap(12),
-            
-            _MoreMenuItem(
-              icon: Icons.flash_on,
-              title: 'Quick Sale',
-              subtitle: 'Food and beverage orders',
-              iconColor: Colors.orange,
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => const snooker_qs.NewQuickSaleScreen()),
-                );
-              },
-            ),
-            const Gap(12),
-            
-            _MoreMenuItem(
-              icon: Icons.warning_amber,
-              title: 'Inventory Alerts',
-              subtitle: 'Low stock warnings',
-              iconColor: Colors.red,
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => const snooker_inv.InventoryStatusScreen()),
-                );
-              },
-            ),
-            const Gap(24),
 
             Text(
               'TEAM & ADMINISTRATION',

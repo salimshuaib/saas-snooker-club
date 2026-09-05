@@ -17,6 +17,8 @@ class RouteNames {
   static const String team = '/team';
   static const String history = '/history';
   static const String bookings = '/bookings';
+  static const String overview = '/overview';
+  static const String quickSaleTab = '/quick-sale-tab';
 
   static const String more = '/more';
   static const String forceUpdate = '/force-update';

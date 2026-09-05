@@ -436,6 +436,11 @@ class _RepeatGameSheetState extends ConsumerState<RepeatGameSheet> {
           resolvedIdentities[p.name] = p.id!;
           finalPlayerIds.add(p.id!);
         } else {
+          // Skip profile creation for placeholder 'Default' players
+          if (p.name.trim().toLowerCase().startsWith('default')) {
+            continue;
+          }
+
           final existingMatch = allProfiles.where((e) => e.name.toLowerCase() == p.name.trim().toLowerCase()).firstOrNull;
           if (existingMatch != null) {
             resolvedIdentities[p.name] = existingMatch.id;
@@ -485,8 +490,8 @@ class _RepeatGameSheetState extends ConsumerState<RepeatGameSheet> {
         targetPoints: _targetPoints,
         billingType: actualBillingType,
         matchType: _gameType == GameType.standard ? _matchType : MatchType.friendly,
-        totalFrames: (_gameType == GameType.standard && actualBillingType == BillingType.perFrame) ? _totalFrames : 1,
-        framesPlayed: 0,
+        totalFrames: (_gameType == GameType.standard && actualBillingType == BillingType.perFrame && !_selectedTable!.type.isOtherGame) ? _totalFrames : 1,
+        framesPlayed: actualBillingType == BillingType.perFrame ? 1 : 0,
         teamA: teamAIds,
         teamB: teamBIds,
         playerIds: finalPlayerIds,

@@ -11,11 +11,13 @@ import 'package:snooker_club/core/models/currency.dart';
 class FinancialSummaryCard extends ConsumerWidget {
   final bool forSelectedDate;
   final bool isInteractive;
+  final VoidCallback? onTapOverride;
 
   const FinancialSummaryCard({
     super.key,
     this.forSelectedDate = false,
     this.isInteractive = true,
+    this.onTapOverride,
   });
 
   @override
@@ -29,9 +31,9 @@ class FinancialSummaryCard extends ConsumerWidget {
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: InkWell(
         borderRadius: BorderRadius.circular(16),
-        onTap: isInteractive ? () {
+        onTap: isInteractive ? (onTapOverride ?? () {
           context.push('/financial-review');
-        } : null,
+        }) : null,
         child: Padding(
           padding: const EdgeInsets.all(16.0),
           child: asyncSummary.when(

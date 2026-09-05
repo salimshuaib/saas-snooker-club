@@ -503,6 +503,11 @@ class _ManualGameSetupScreenState extends ConsumerState<ManualGameSetupScreen> {
       if (sel.id != null) {
         finalPlayerIds.add(sel.id!);
       } else {
+        // Skip profile creation for placeholder 'Default' players
+        if (sel.name.trim().toLowerCase().startsWith('default')) {
+          continue;
+        }
+
         final newId = FirebaseFirestore.instance.collection('credits').doc().id;
         final newProfile = PlayerProfile(
           id: newId,

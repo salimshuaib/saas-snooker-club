@@ -83,7 +83,19 @@ enum TableStatus {
   }
 }
 
-enum GameMode { team, solo }
+enum GameMode {
+  team,
+  solo;
+
+  String get displayName {
+    switch (this) {
+      case GameMode.team:
+        return 'Team';
+      case GameMode.solo:
+        return 'Solo';
+    }
+  }
+}
 
 enum BillingType {
   perMinute,

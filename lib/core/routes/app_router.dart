@@ -17,6 +17,7 @@ import 'package:snooker_club/features/dashboard/presentation/screens/dashboard_s
 import 'package:snooker_club/features/bookings/presentation/screens/booking_management_screen.dart';
 import 'package:snooker_club/features/dashboard/presentation/screens/financial_review_screen.dart';
 import 'package:snooker_club/features/dashboard/presentation/screens/main_screen.dart';
+import 'package:snooker_club/features/dashboard/presentation/screens/overview_screen.dart';
 import 'package:snooker_club/features/dashboard/presentation/screens/more_screen.dart';
 import 'package:snooker_club/features/games/domain/models/game_models.dart';
 import 'package:snooker_club/features/games/presentation/screens/games_screen.dart';
@@ -45,6 +46,10 @@ final GlobalKey<NavigatorState> _dashboardNavigatorKey =
     GlobalKey<NavigatorState>(debugLabel: 'dashboard');
 final GlobalKey<NavigatorState> _historyNavigatorKey =
     GlobalKey<NavigatorState>(debugLabel: 'history');
+final GlobalKey<NavigatorState> _quickSaleNavigatorKey =
+    GlobalKey<NavigatorState>(debugLabel: 'quickSale');
+final GlobalKey<NavigatorState> _overviewNavigatorKey =
+    GlobalKey<NavigatorState>(debugLabel: 'overview');
 
 class RouterNotifier extends ChangeNotifier {
   bool _isScheduled = false;
@@ -181,13 +186,35 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             ],
           ),
 
-          // Branch 1: History
+          // Branch 1: Quick Sale
+          StatefulShellBranch(
+            navigatorKey: _quickSaleNavigatorKey,
+            routes: [
+              GoRoute(
+                path: RouteNames.quickSaleTab,
+                builder: (context, state) => const TickerMode(enabled: true, child: NewQuickSaleScreen()),
+              ),
+            ],
+          ),
+
+          // Branch 2: History
           StatefulShellBranch(
             navigatorKey: _historyNavigatorKey,
             routes: [
               GoRoute(
                 path: RouteNames.history,
                 builder: (context, state) => const TickerMode(enabled: true, child: const TransactionHistoryScreen()),
+              ),
+            ],
+          ),
+
+          // Branch 2: Overview
+          StatefulShellBranch(
+            navigatorKey: _overviewNavigatorKey,
+            routes: [
+              GoRoute(
+                path: RouteNames.overview,
+                builder: (context, state) => const TickerMode(enabled: true, child: OverviewScreen()),
               ),
             ],
           ),
