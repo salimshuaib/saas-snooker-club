@@ -142,7 +142,35 @@ class DashboardScreen extends ConsumerWidget {
                           ),
                         ),
                       ),
-                    ...grouped[type]!.map((table) => _buildTableCard(table)),
+                    LayoutBuilder(
+                      builder: (context, constraints) {
+                        int crossAxisCount = 1;
+                        if (constraints.maxWidth >= 1100) {
+                          crossAxisCount = 3;
+                        } else if (constraints.maxWidth >= 650) {
+                          crossAxisCount = 2;
+                        }
+                        
+                        if (crossAxisCount == 1) {
+                          return Column(
+                            children: grouped[type]!.map((table) => _buildTableCard(table)).toList(),
+                          );
+                        }
+                        
+                        final double spacing = 16.0;
+                        final double totalSpacing = spacing * (crossAxisCount - 1);
+                        final double itemWidth = (constraints.maxWidth - totalSpacing) / crossAxisCount;
+                        
+                        return Wrap(
+                          spacing: spacing,
+                          crossAxisAlignment: WrapCrossAlignment.start,
+                          children: grouped[type]!.map((table) => SizedBox(
+                            width: itemWidth,
+                            child: _buildTableCard(table),
+                          )).toList(),
+                        );
+                      }
+                    ),
                     const Gap(16),
                   ],
                 ],
