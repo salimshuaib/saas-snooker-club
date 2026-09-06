@@ -654,7 +654,14 @@ class _GameActivityCardState extends ConsumerState<GameActivityCard> {
     final titleRow = Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(widget.table.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 20)),
+        Expanded(
+          child: Text(
+            widget.table.name, 
+            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+        const Gap(8),
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
           decoration: BoxDecoration(
@@ -737,34 +744,49 @@ class _GameActivityCardState extends ConsumerState<GameActivityCard> {
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       crossAxisAlignment: CrossAxisAlignment.end,
       children: [
-        Row(
-          children: [
-            Icon(Icons.timer_outlined, color: theme.colorScheme.primary, size: 22),
-            const Gap(8),
-            Text(
-              timeText,
-              style: TextStyle(
-                color: theme.colorScheme.primary,
-                fontWeight: FontWeight.bold,
-                fontSize: 20,
-                fontFamily: 'Courier',
+        Flexible(
+          child: Row(
+            children: [
+              Icon(Icons.timer_outlined, color: theme.colorScheme.primary, size: 22),
+              const Gap(8),
+              Flexible(
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(
+                    timeText,
+                    style: TextStyle(
+                      color: theme.colorScheme.primary,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 20,
+                      fontFamily: 'Courier',
+                    ),
+                  ),
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.end,
-          children: [
-            Text(
-              'CURRENT LIVE BILL',
-              style: TextStyle(color: theme.colorScheme.onSurfaceVariant, fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 0.5),
-            ),
-            const Gap(2),
-            Text(
-              '₹${_calculateLiveBill(ref).toStringAsFixed(2)}',
-              style: const TextStyle(color: AppColors.success, fontWeight: FontWeight.bold, fontSize: 24),
-            ),
-          ],
+        Flexible(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(
+                  'CURRENT LIVE BILL',
+                  style: TextStyle(color: theme.colorScheme.onSurfaceVariant, fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 0.5),
+                ),
+              ),
+              const Gap(2),
+              FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(
+                  '₹${_calculateLiveBill(ref).toStringAsFixed(2)}',
+                  style: const TextStyle(color: AppColors.success, fontWeight: FontWeight.bold, fontSize: 24),
+                ),
+              ),
+            ],
+          ),
         ),
       ],
     );
