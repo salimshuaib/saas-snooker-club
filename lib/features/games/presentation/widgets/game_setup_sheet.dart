@@ -62,7 +62,7 @@ class _GameSetupSheetState extends ConsumerState<GameSetupSheet> {
   void initState() {
     super.initState();
     _tableType = widget.table.type;
-    _billingType = TablePricingConfig.supportedBillingTypes(_tableType, _gameType).first;
+    _billingType = TablePricingConfig.supportedBillingTypes(widget.table, _gameType).first;
   }
 
   @override
@@ -166,7 +166,7 @@ class _GameSetupSheetState extends ConsumerState<GameSetupSheet> {
                     if (val != null) {
                       setState(() {
                         _gameType = val;
-                        final validBillingTypes = TablePricingConfig.supportedBillingTypes(_tableType, _gameType);
+                        final validBillingTypes = TablePricingConfig.supportedBillingTypes(widget.table, _gameType);
                         if (!validBillingTypes.contains(_billingType)) {
                           _billingType = validBillingTypes.first;
                         }
@@ -202,13 +202,13 @@ class _GameSetupSheetState extends ConsumerState<GameSetupSheet> {
                                 isDense: true,
                                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                               ),
-                              items: TablePricingConfig.supportedBillingTypes(_tableType, _gameType)
+                              items: TablePricingConfig.supportedBillingTypes(widget.table, _gameType)
                                 .map((t) => DropdownMenuItem(
                                 value: t,
                                 child: Text(t.displayName),
                               )).toList(),
                               selectedItemBuilder: (BuildContext context) {
-                                return TablePricingConfig.supportedBillingTypes(_tableType, _gameType)
+                                return TablePricingConfig.supportedBillingTypes(widget.table, _gameType)
                                     .map((t) => Text(t.displayName))
                                     .toList();
                               },
@@ -556,6 +556,9 @@ class _GameSetupSheetState extends ConsumerState<GameSetupSheet> {
       final dateStr = '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
       
       final appSettings = ref.read(appSettingsProvider);
+      final double? resolvedPrice = (_isCustomPrice && !_tableType.isOtherGame) 
+        ? double.tryParse(_customPriceController.text)
+        : TablePricingConfig.getPrice(widget.table, _gameType, actualBillingType, appSettings.pricing);
 
       final gameSession = GameSession(
         date: dateStr,
@@ -579,7 +582,7 @@ class _GameSetupSheetState extends ConsumerState<GameSetupSheet> {
         orders: const [],
         pauseTimes: const [],
         resumeTimes: const [],
-        customPrice: (_isCustomPrice && !_tableType.isOtherGame) ? double.tryParse(_customPriceController.text) : null,
+        customPrice: resolvedPrice,
         pricingSnapshot: appSettings.pricing,
         gameSettingsSnapshot: appSettings.game,
       );

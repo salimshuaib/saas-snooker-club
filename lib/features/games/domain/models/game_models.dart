@@ -152,6 +152,43 @@ enum PaymentMethod {
 // TableModel
 // ─────────────────────────────────────────────
 
+class TableBillingOption {
+  final bool enabled;
+  final double price;
+
+  const TableBillingOption({
+    required this.enabled,
+    required this.price,
+  });
+
+  TableBillingOption copyWith({
+    bool? enabled,
+    double? price,
+  }) {
+    return TableBillingOption(
+      enabled: enabled ?? this.enabled,
+      price: price ?? this.price,
+    );
+  }
+
+  Map<String, dynamic> toMap() {
+    return {
+      'enabled': enabled,
+      'price': price,
+    };
+  }
+
+  factory TableBillingOption.fromMap(Map<String, dynamic>? map) {
+    if (map == null) {
+      return const TableBillingOption(enabled: false, price: 0.0);
+    }
+    return TableBillingOption(
+      enabled: map['enabled'] as bool? ?? false,
+      price: (map['price'] as num?)?.toDouble() ?? 0.0,
+    );
+  }
+}
+
 class TableModel {
   final String id;
   final String name;
@@ -159,6 +196,7 @@ class TableModel {
   final TableStatus status;
   final String? activeGameId;
   final int order;
+  final Map<String, TableBillingOption>? billingOptions;
 
   const TableModel({
     required this.id,
@@ -167,6 +205,7 @@ class TableModel {
     this.status = TableStatus.available,
     this.activeGameId,
     this.order = 0,
+    this.billingOptions,
   });
 
   TableModel copyWith({
@@ -176,6 +215,7 @@ class TableModel {
     TableStatus? status,
     String? activeGameId,
     int? order,
+    Map<String, TableBillingOption>? billingOptions,
   }) {
     return TableModel(
       id: id ?? this.id,
@@ -184,6 +224,7 @@ class TableModel {
       status: status ?? this.status,
       activeGameId: activeGameId ?? this.activeGameId,
       order: order ?? this.order,
+      billingOptions: billingOptions ?? this.billingOptions,
     );
   }
 
@@ -195,10 +236,20 @@ class TableModel {
       'status': status.name,
       'activeGameId': activeGameId,
       'order': order,
+      if (billingOptions != null)
+        'billingOptions': billingOptions!.map((k, v) => MapEntry(k, v.toMap())),
     };
   }
 
   factory TableModel.fromMap(Map<String, dynamic> map) {
+    Map<String, TableBillingOption>? parsedOptions;
+    if (map['billingOptions'] != null) {
+      final Map<String, dynamic> rawOptions = Map<String, dynamic>.from(map['billingOptions'] as Map);
+      parsedOptions = rawOptions.map(
+        (key, value) => MapEntry(key, TableBillingOption.fromMap(value as Map<String, dynamic>?)),
+      );
+    }
+
     return TableModel(
       id: map['id'] as String,
       name: map['name'] as String,
@@ -212,6 +263,7 @@ class TableModel {
       ),
       activeGameId: map['activeGameId'] as String?,
       order: map['order'] as int? ?? 0,
+      billingOptions: parsedOptions,
     );
   }
 }

@@ -54,7 +54,7 @@ class _GameActivityCardState extends ConsumerState<GameActivityCard> {
   @override
   void initState() {
     super.initState();
-    _billingType = TablePricingConfig.supportedBillingTypes(widget.table.type, _gameType).first;
+    _billingType = TablePricingConfig.supportedBillingTypes(widget.table, _gameType).first;
     _startTimer();
   }
   
@@ -495,7 +495,7 @@ class _GameActivityCardState extends ConsumerState<GameActivityCard> {
                         onChanged: (v) {
                           setState(() {
                             _gameType = v!;
-                            final validBillingTypes = TablePricingConfig.supportedBillingTypes(widget.table.type, _gameType);
+                            final validBillingTypes = TablePricingConfig.supportedBillingTypes(widget.table, _gameType);
                             if (!validBillingTypes.contains(_billingType)) {
                               _billingType = validBillingTypes.first;
                             }
@@ -511,9 +511,9 @@ class _GameActivityCardState extends ConsumerState<GameActivityCard> {
                           isDense: true,
                           value: _billingType,
                           decoration: InputDecoration(border: OutlineInputBorder(borderRadius: BorderRadius.circular(8))),
-                          items: TablePricingConfig.supportedBillingTypes(widget.table.type, _gameType)
+                          items: TablePricingConfig.supportedBillingTypes(widget.table, _gameType)
                             .map((t) => DropdownMenuItem(value: t, child: Text(t.displayName))).toList(),
-                          selectedItemBuilder: (context) => TablePricingConfig.supportedBillingTypes(widget.table.type, _gameType)
+                          selectedItemBuilder: (context) => TablePricingConfig.supportedBillingTypes(widget.table, _gameType)
                             .map((t) => Text(t.displayName)).toList(),
                           onChanged: (v) => setState(() => _billingType = v!),
                         ),

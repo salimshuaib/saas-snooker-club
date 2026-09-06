@@ -86,6 +86,11 @@ class GamesRepository {
     await batch.commit();
   }
 
+  Future<void> updateTable(TableModel table) async {
+    if (AppConfig.guardWrite('GamesRepository.updateTable')) return;
+    await _tablesRef.doc(table.id).update(table.toMap());
+  }
+
   Future<void> deleteTable(String tableId) async {
     if (AppConfig.guardWrite('GamesRepository.deleteTable')) return;
     await _tablesRef.doc(tableId).delete();
