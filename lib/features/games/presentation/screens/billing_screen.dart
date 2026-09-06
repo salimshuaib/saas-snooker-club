@@ -323,8 +323,11 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
 
     return Scaffold(
       appBar: AppBar(title: const Text('Bill'), centerTitle: false),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
+      body: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 600),
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -848,6 +851,8 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
             ),
           ],
         ),
+      ),
+      ),
       ),
     );
   }
