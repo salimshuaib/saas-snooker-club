@@ -1,5 +1,7 @@
 import 'dart:async';
 import 'dart:ui';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -10,6 +12,7 @@ import 'package:snooker_club/core/providers/app_providers.dart';
 import 'package:snooker_club/core/services/firestore_service.dart';
 import 'package:snooker_club/core/services/local_storage_service.dart';
 import 'package:snooker_club/core/utils/logger.dart';
+import 'package:snooker_club/features/games/domain/config/tables_config.dart';
 import 'package:snooker_club/firebase_options_preview.dart';
 
 /// Preview entry point.
@@ -34,6 +37,51 @@ void main() {
         options: DefaultFirebaseOptionsPreview.currentPlatform,
       );
       AppLogger.info('Firebase initialized (STAGING/PREVIEW mode)');
+
+      // --- TEMPORARY PREVIEW CLUB SETUP ---
+      FirebaseAuth.instance.authStateChanges().listen((user) async {
+        if (user != null) {
+          final db = FirebaseFirestore.instance;
+          final clubId = 'preview_club_1';
+          
+          AppLogger.info('Setting up Preview Club for ${user.email}...');
+          
+          // 1. Create a dummy club
+          await db.collection('clubs').doc(clubId).set({
+            'name': 'Staging Club',
+            'createdAt': FieldValue.serverTimestamp(),
+            'isActive': true,
+            'subscriptionEndDate': Timestamp.fromDate(DateTime.now().add(const Duration(days: 365))),
+          }, SetOptions(merge: true));
+
+          // 2. Link this user to the club
+          await db.collection('user_clubs').doc(user.uid).set({
+            'clubId': clubId,
+            'role': 'owner',
+          }, SetOptions(merge: true));
+          
+          // 3. Create the staff record
+          await db.collection('clubs').doc(clubId).collection('team_members').doc(user.uid).set({
+            'name': 'Admin User',
+            'email': user.email,
+            'role': 'owner',
+            'status': 'active',
+          }, SetOptions(merge: true));
+
+          // 4. Seed default tables if they don't exist
+          final tablesRef = db.collection('clubs').doc(clubId).collection('tables');
+          final tablesSnapshot = await tablesRef.limit(1).get();
+          if (tablesSnapshot.docs.isEmpty) {
+            AppLogger.info('Seeding default tables for preview club...');
+            for (final table in TablesConfig.defaultTables) {
+              await tablesRef.doc(table.id).set(table.toMap());
+            }
+          }
+
+          AppLogger.info('SUCCESS: Preview Club configured successfully!');
+        }
+      });
+      // --- END TEMPORARY PREVIEW CLUB SETUP ---
 
       // Enable Firestore offline persistence
       final firestoreService = FirestoreService();

@@ -1,13 +1,32 @@
 {
   "project_info": {
-    "project_number": "942497869912",
-    "project_id": "snooker-club-dd5f0",
-    "storage_bucket": "snooker-club-dd5f0.firebasestorage.app"
+    "project_number": "313054408275",
+    "project_id": "saas-snooker-preview",
+    "storage_bucket": "saas-snooker-preview.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:942497869912:android:75c553e0bc4ffca591da2d",
+        "mobilesdk_app_id": "1:313054408275:android:aff8200f434b550a1960a6",
+        "android_client_info": {
+          "package_name": "com.example.snooker_club"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyATd_ec9mpoJlkF_ZY04dygrIAx-L7ekXY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:313054408275:android:ef6a4587a0d81be51960a6",
         "android_client_info": {
           "package_name": "com.example.snooker_club.preview"
         }
@@ -15,7 +34,7 @@
       "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyAYiKFVNIwmLgHliAyJgqYTE-ZEFinZthI"
+          "current_key": "AIzaSyATd_ec9mpoJlkF_ZY04dygrIAx-L7ekXY"
         }
       ],
       "services": {
