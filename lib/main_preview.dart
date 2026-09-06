@@ -10,18 +10,18 @@ import 'package:snooker_club/core/providers/app_providers.dart';
 import 'package:snooker_club/core/services/firestore_service.dart';
 import 'package:snooker_club/core/services/local_storage_service.dart';
 import 'package:snooker_club/core/utils/logger.dart';
-import 'package:snooker_club/firebase_options.dart';
+import 'package:snooker_club/firebase_options_preview.dart';
 
 /// Preview entry point.
-/// Connects to real Firebase for READS, but all WRITES are blocked.
-/// Use this to safely experiment with UI changes.
+/// Connects to a separate staging Firebase project.
+/// Safe to read and write without affecting production data.
 void main() {
   runZonedGuarded(
     () async {
       WidgetsFlutterBinding.ensureInitialized();
 
-      // Set environment to PREVIEW — this blocks all write operations
-      AppConfig.initialize(AppEnvironment.preview);
+      // Use production environment flag so writes aren't blocked by guardWrite
+      AppConfig.initialize(AppEnvironment.production);
 
       // Set preferred orientations
       await SystemChrome.setPreferredOrientations([
@@ -29,11 +29,11 @@ void main() {
         DeviceOrientation.portraitDown,
       ]);
 
-      // Initialize Firebase (needed for reads and plugin compatibility)
+      // Initialize Firebase with the PREVIEW staging project
       await Firebase.initializeApp(
-        options: DefaultFirebaseOptions.currentPlatform,
+        options: DefaultFirebaseOptionsPreview.currentPlatform,
       );
-      AppLogger.info('Firebase initialized (PREVIEW mode - writes blocked)');
+      AppLogger.info('Firebase initialized (STAGING/PREVIEW mode)');
 
       // Enable Firestore offline persistence
       final firestoreService = FirestoreService();
