@@ -834,7 +834,7 @@ class _ActiveGameCardState extends ConsumerState<_ActiveGameCard> {
     final pricing = game.pricingSnapshot ?? appSettings.pricing;
     final roundCost =
         TablePricingConfig.getPrice(
-          game.tableType,
+          TableModel(id: '', name: '', type: game.tableType),
           game.gameType,
           game.billingType,
           pricing,

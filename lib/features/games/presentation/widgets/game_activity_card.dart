@@ -694,7 +694,7 @@ class _GameActivityCardState extends ConsumerState<GameActivityCard> {
       final rate = game.customPrice ?? TablePricingConfig.getPerMinutePrice(game.tableType, game.gameType, pricingConfig);
       rateStr = ' (₹${rate.toStringAsFixed(2)}/min)';
     } else if (game.billingType == BillingType.perFrame) {
-      final rate = game.customPrice ?? TablePricingConfig.getPrice(game.tableType, game.gameType, game.billingType, pricingConfig);
+      final rate = game.customPrice ?? TablePricingConfig.getPrice(TableModel(id: '', name: '', type: game.tableType), game.gameType, game.billingType, pricingConfig);
       if (rate != null) rateStr = ' (₹${rate.toStringAsFixed(2)}/frame)';
     }
     

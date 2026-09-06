@@ -24,7 +24,7 @@ void main() {
     test('Verify centralized prices for Snooker', () {
       expect(
         TablePricingConfig.getPrice(
-          TableType.snooker,
+          TableModel(id: '', name: '', type: TableType.snooker),
           GameType.standard,
           BillingType.halfHour,
           testPricing,
@@ -33,7 +33,7 @@ void main() {
       );
       expect(
         TablePricingConfig.getPrice(
-          TableType.snooker,
+          TableModel(id: '', name: '', type: TableType.snooker),
           GameType.standard,
           BillingType.oneHour,
           testPricing,
@@ -53,7 +53,7 @@ void main() {
     test('Verify centralized prices for Indian Pool', () {
       expect(
         TablePricingConfig.getPrice(
-          TableType.indianPool,
+          TableModel(id: '', name: '', type: TableType.indianPool),
           GameType.standard,
           BillingType.halfHour,
           testPricing,
@@ -62,7 +62,7 @@ void main() {
       );
       expect(
         TablePricingConfig.getPrice(
-          TableType.indianPool,
+          TableModel(id: '', name: '', type: TableType.indianPool),
           GameType.standard,
           BillingType.oneHour,
           testPricing,
@@ -71,7 +71,7 @@ void main() {
       );
       expect(
         TablePricingConfig.getPrice(
-          TableType.indianPool,
+          TableModel(id: '', name: '', type: TableType.indianPool),
           GameType.standard,
           BillingType.perFrame,
           testPricing,
@@ -91,7 +91,7 @@ void main() {
     test('Verify centralized prices for American Pool', () {
       expect(
         TablePricingConfig.getPrice(
-          TableType.americanPool,
+          TableModel(id: '', name: '', type: TableType.americanPool),
           GameType.standard,
           BillingType.halfHour,
           testPricing,
@@ -100,7 +100,7 @@ void main() {
       );
       expect(
         TablePricingConfig.getPrice(
-          TableType.americanPool,
+          TableModel(id: '', name: '', type: TableType.americanPool),
           GameType.standard,
           BillingType.oneHour,
           testPricing,
@@ -109,7 +109,7 @@ void main() {
       );
       expect(
         TablePricingConfig.getPrice(
-          TableType.americanPool,
+          TableModel(id: '', name: '', type: TableType.americanPool),
           GameType.standard,
           BillingType.perFrame,
           testPricing,
