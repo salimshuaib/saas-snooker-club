@@ -874,6 +874,7 @@ class _GameActivityCardState extends ConsumerState<GameActivityCard> {
       gameConfig: widget.activeGame!.gameSettingsSnapshot ?? appSettings.game,
       completedRounds: widget.activeGame!.rounds,
       customPrice: widget.activeGame!.customPrice,
+      coinQuantity: widget.activeGame!.coinQuantity,
     );
     return breakdown.totalCharge;
   }

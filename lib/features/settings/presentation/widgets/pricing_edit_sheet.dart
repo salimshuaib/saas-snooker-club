@@ -52,21 +52,27 @@ class _PricingEditSheetState extends ConsumerState<PricingEditSheet> {
       
       _toggles[table.id]![key] = isEnabled;
       _controllers[table.id]![key] = TextEditingController(text: price.toStringAsFixed(2));
+      
+      if (table.type == TableType.ps5) {
+        for (int c = 1; c <= 4; c++) {
+          final cKey = '${key}_c$c';
+          final cPrice = existingOption?.controllerPrices?[c.toString()] ?? price;
+          _toggles[table.id]![cKey] = existingOption?.controllerPrices?.containsKey(c.toString()) ?? false;
+          _controllers[table.id]![cKey] = TextEditingController(text: cPrice.toStringAsFixed(2));
+        }
+      }
     }
   }
 
   bool _isDefaultEnabled(TableType type, String key) {
+    if (type == TableType.arcade) return key == 'perCoin';
     switch (type) {
       case TableType.snooker:
         return ['perMinute', 'halfHour', 'oneHour'].contains(key);
       case TableType.indianPool:
       case TableType.americanPool:
         return ['perFrame', 'perMinute', 'halfHour', 'oneHour'].contains(key);
-      case TableType.ps5:
-      case TableType.pc:
-      case TableType.carrom:
-      case TableType.foosball:
-      case TableType.chess:
+      default:
         return ['halfHour', 'oneHour'].contains(key);
     }
   }
@@ -114,6 +120,8 @@ class _PricingEditSheetState extends ConsumerState<PricingEditSheet> {
         if (key == 'halfHour') return p.chessHalfHour;
         if (key == 'oneHour') return p.chessOneHour;
         break;
+      default:
+        break;
     }
     return 0.0;
   }
@@ -137,6 +145,10 @@ class _PricingEditSheetState extends ConsumerState<PricingEditSheet> {
           {'key': 'oneHour', 'label': 'One Hour (1h)'},
           {'key': 'racePerMinute', 'label': 'Race / min'},
         ];
+      case TableType.arcade:
+        return [
+          {'key': 'perCoin', 'label': 'Price Per Coin'},
+        ];
       default:
         return [
           {'key': 'halfHour', 'label': 'Half Hour (30m)'},
@@ -155,6 +167,9 @@ class _PricingEditSheetState extends ConsumerState<PricingEditSheet> {
       case TableType.carrom: return Icons.crop_square;
       case TableType.foosball: return Icons.sports_soccer;
       case TableType.chess: return Icons.extension;
+      case TableType.tableTennis: return Icons.sports_tennis;
+      case TableType.steeringWheel: return Icons.directions_car;
+      case TableType.arcade: return Icons.videogame_asset;
     }
   }
 
@@ -168,6 +183,9 @@ class _PricingEditSheetState extends ConsumerState<PricingEditSheet> {
       case TableType.carrom: return Colors.brown;
       case TableType.foosball: return Colors.green;
       case TableType.chess: return Colors.grey;
+      case TableType.tableTennis: return Colors.orange;
+      case TableType.steeringWheel: return Colors.indigo;
+      case TableType.arcade: return Colors.pink;
     }
   }
 
@@ -192,14 +210,29 @@ class _PricingEditSheetState extends ConsumerState<PricingEditSheet> {
 
         Map<String, TableBillingOption> newBillingOptions = {};
         
-        for (final key in tableToggles.keys) {
+        final options = _getOptionsForTableType(table.type);
+        for (final key in options.map((o) => o['key']!)) {
           final isEnabled = tableToggles[key] ?? false;
           final priceStr = tableControllers[key]?.text.trim() ?? '0';
           final price = double.tryParse(priceStr) ?? 0.0;
           
+          Map<String, double>? controllerPrices;
+          if (table.type == TableType.ps5) {
+            controllerPrices = {};
+            for (int c = 1; c <= 4; c++) {
+              final cKey = '${key}_c$c';
+              if (tableToggles[cKey] == true) {
+                final cPrice = double.tryParse(tableControllers[cKey]?.text.trim() ?? '0') ?? 0.0;
+                controllerPrices[c.toString()] = cPrice;
+              }
+            }
+            if (controllerPrices.isEmpty) controllerPrices = null;
+          }
+          
           newBillingOptions[key] = TableBillingOption(
             enabled: isEnabled,
             price: price,
+            controllerPrices: controllerPrices,
           );
         }
         
@@ -263,12 +296,27 @@ class _PricingEditSheetState extends ConsumerState<PricingEditSheet> {
             ),
             const Gap(12),
             Expanded(
-              child: ListView.builder(
-                itemCount: tables.length,
-                itemBuilder: (context, index) {
-                  final table = tables[index];
-                  return _buildTablePricingCard(table, theme);
-                },
+              child: SingleChildScrollView(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    if (tables.where((t) => !t.type.isOtherGame).isNotEmpty) ...[
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 8.0, left: 4),
+                        child: Text('Table Games', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold, color: theme.colorScheme.primary)),
+                      ),
+                      ...tables.where((t) => !t.type.isOtherGame).map((t) => _buildTablePricingCard(t, theme)),
+                    ],
+                    if (tables.where((t) => t.type.isOtherGame).isNotEmpty) ...[
+                      const Gap(16),
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 8.0, left: 4),
+                        child: Text('Other Games', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold, color: theme.colorScheme.primary)),
+                      ),
+                      ...tables.where((t) => t.type.isOtherGame).map((t) => _buildTablePricingCard(t, theme)),
+                    ],
+                  ],
+                ),
               ),
             ),
             const Gap(16),
@@ -332,33 +380,67 @@ class _PricingEditSheetState extends ConsumerState<PricingEditSheet> {
               
               return Padding(
                 padding: const EdgeInsets.only(bottom: 12),
-                child: Row(
+                child: Column(
                   children: [
-                    Expanded(
-                      flex: 3,
-                      child: Row(
-                        children: [
-                          Switch(
-                            value: isEnabled,
-                            onChanged: (val) {
-                              setState(() {
-                                _toggles[table.id]![key] = val;
-                              });
-                            },
+                    Row(
+                      children: [
+                        Expanded(
+                          flex: 3,
+                          child: Row(
+                            children: [
+                              Switch(
+                                value: isEnabled,
+                                onChanged: (val) {
+                                  setState(() {
+                                    _toggles[table.id]![key] = val;
+                                  });
+                                },
+                              ),
+                              const Gap(8),
+                              Expanded(child: Text(label, style: const TextStyle(fontWeight: FontWeight.w500))),
+                            ],
                           ),
-                          const Gap(8),
-                          Expanded(child: Text(label, style: const TextStyle(fontWeight: FontWeight.w500))),
-                        ],
-                      ),
+                        ),
+                        const Gap(12),
+                        if (isEnabled && controller != null && table.type != TableType.ps5)
+                          Expanded(
+                            flex: 2,
+                            child: _buildTextField('Price', controller),
+                          )
+                        else
+                          const Expanded(flex: 2, child: SizedBox()),
+                      ],
                     ),
-                    const Gap(12),
-                    if (isEnabled && controller != null)
-                      Expanded(
-                        flex: 2,
-                        child: _buildTextField('Price', controller),
+                    if (isEnabled && table.type == TableType.ps5)
+                      Padding(
+                        padding: const EdgeInsets.only(left: 32.0, top: 8),
+                        child: Column(
+                          children: [1, 2, 3, 4].map((c) {
+                            final cKey = '${key}_c$c';
+                            final cEnabled = _toggles[table.id]?[cKey] ?? false;
+                            final cController = _controllers[table.id]?[cKey];
+                            return Padding(
+                              padding: const EdgeInsets.only(bottom: 8.0),
+                              child: Row(
+                                children: [
+                                  Switch(
+                                    value: cEnabled,
+                                    onChanged: (val) => setState(() => _toggles[table.id]![cKey] = val),
+                                  ),
+                                  const Gap(8),
+                                  Text('$c Controller${c > 1 ? 's' : ''}'),
+                                  const Spacer(),
+                                  if (cEnabled && cController != null)
+                                    SizedBox(
+                                      width: 100,
+                                      child: _buildTextField('Price', cController),
+                                    ),
+                                ],
+                              ),
+                            );
+                          }).toList(),
+                        ),
                       )
-                    else
-                      const Expanded(flex: 2, child: SizedBox()),
                   ],
                 ),
               );

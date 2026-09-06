@@ -208,7 +208,7 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
       _session.billingType == BillingType.perFrame &&
       _session.matchType == MatchType.loserPays;
 
-  GameChargeBreakdown get _breakdown {
+    GameChargeBreakdown get _breakdown {
     final appSettings = ref.read(appSettingsProvider);
     return TablePricingConfig.calculateCharge(
       tableType: _session.tableType,
@@ -220,6 +220,7 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
       gameConfig: _session.gameSettingsSnapshot ?? appSettings.game,
       completedRounds: _session.rounds,
       customPrice: _session.customPrice,
+      coinQuantity: _session.coinQuantity,
     );
   }
 

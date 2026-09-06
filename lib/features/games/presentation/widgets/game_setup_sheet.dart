@@ -12,6 +12,7 @@ import 'package:snooker_club/features/credit/presentation/widgets/player_search_
 import 'package:snooker_club/features/credit/domain/models/credit_models.dart';
 import 'package:snooker_club/core/widgets/inputs/app_text_field.dart';
 import 'package:flutter/services.dart';
+import 'package:snooker_club/features/games/presentation/screens/billing_screen.dart';
 import 'package:snooker_club/features/games/utils/game_validation_utils.dart';
 
 
@@ -49,6 +50,9 @@ class _GameSetupSheetState extends ConsumerState<GameSetupSheet> {
   // Players
   final List<PlayerSelection?> _teamASelections = [null];
   final List<PlayerSelection?> _teamBSelections = [null];
+  
+  int? _controllerCount;
+  int _coinQuantity = 1;
 
   bool _isLoading = false;
 
@@ -63,6 +67,15 @@ class _GameSetupSheetState extends ConsumerState<GameSetupSheet> {
     super.initState();
     _tableType = widget.table.type;
     _billingType = TablePricingConfig.supportedBillingTypes(widget.table, _gameType).first;
+    
+    if (_tableType == TableType.ps5) {
+      final billingKey = _billingType.name;
+      final controllers = widget.table.billingOptions?[billingKey]?.controllerPrices;
+      if (controllers != null && controllers.isNotEmpty) {
+        // Pick the first enabled controller count
+        _controllerCount = int.tryParse(controllers.keys.first);
+      }
+    }
   }
 
   @override
@@ -119,36 +132,33 @@ class _GameSetupSheetState extends ConsumerState<GameSetupSheet> {
             child: ListView(
               padding: const EdgeInsets.all(20),
               children: [
-                // Game Type Selection
-                Text('Game Type', style: theme.textTheme.labelMedium),
-                const Gap(8),
-                DropdownButtonFormField<GameType>(
-                  isExpanded: true,
-                  value: _gameType,
-                  decoration: InputDecoration(
-                    isDense: true,
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                if (_tableType == TableType.arcade) ...[
+                  Text('Coin Quantity', style: theme.textTheme.labelMedium),
+                  const Gap(8),
+                  TextFormField(
+                    initialValue: '1',
+                    keyboardType: TextInputType.number,
+                    inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                    decoration: InputDecoration(
+                      isDense: true,
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                      hintText: 'Amount of coins inserted',
+                    ),
+                    onChanged: (val) => _coinQuantity = int.tryParse(val) ?? 1,
                   ),
-                  items: GameType.values
-                      .where((type) {
-                        if (_tableType.isOtherGame) return type == GameType.standard;
-                        if (type == GameType.rummy && _tableType != TableType.snooker) {
-                          return false;
-                        }
-                        return true;
-                      })
-                      .map(
-                        (type) => DropdownMenuItem(
-                          value: type,
-                          child: Text(
-                            type.displayName,
-                            style: const TextStyle(fontWeight: FontWeight.w600),
-                          ),
-                        ),
-                      )
-                      .toList(),
-                  selectedItemBuilder: (BuildContext context) {
-                    return GameType.values
+                  const Gap(24),
+                ] else ...[
+                  // Game Type Selection
+                  Text('Game Type', style: theme.textTheme.labelMedium),
+                  const Gap(8),
+                  DropdownButtonFormField<GameType>(
+                    isExpanded: true,
+                    value: _gameType,
+                    decoration: InputDecoration(
+                      isDense: true,
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                    items: GameType.values
                         .where((type) {
                           if (_tableType.isOtherGame) return type == GameType.standard;
                           if (type == GameType.rummy && _tableType != TableType.snooker) {
@@ -156,97 +166,153 @@ class _GameSetupSheetState extends ConsumerState<GameSetupSheet> {
                           }
                           return true;
                         })
-                        .map((type) => Text(
+                        .map(
+                          (type) => DropdownMenuItem(
+                            value: type,
+                            child: Text(
                               type.displayName,
                               style: const TextStyle(fontWeight: FontWeight.w600),
-                            ))
-                        .toList();
-                  },
-                  onChanged: (val) {
-                    if (val != null) {
-                      setState(() {
-                        _gameType = val;
-                        final validBillingTypes = TablePricingConfig.supportedBillingTypes(widget.table, _gameType);
-                        if (!validBillingTypes.contains(_billingType)) {
-                          _billingType = validBillingTypes.first;
-                        }
-                        // Reset player counts to minimums
-                        if (val != GameType.standard && _teamASelections.length < 2) {
-                          _teamASelections.clear();
-                          _teamASelections.addAll([null, null]);
-                        }
-                      });
-                    }
-                  },
-                ),
-                
-
-                
-                const Gap(24),
-
-                // STANDARD CONFIG
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    if (_gameType == GameType.standard) ...[
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text('Billing Type', style: theme.textTheme.labelMedium),
-                            const Gap(8),
-                            DropdownButtonFormField<BillingType>(
-                              isExpanded: true,
-                              value: _billingType,
-                              decoration: InputDecoration(
-                                isDense: true,
-                                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                              ),
-                              items: TablePricingConfig.supportedBillingTypes(widget.table, _gameType)
-                                .map((t) => DropdownMenuItem(
-                                value: t,
-                                child: Text(t.displayName),
-                              )).toList(),
-                              selectedItemBuilder: (BuildContext context) {
-                                return TablePricingConfig.supportedBillingTypes(widget.table, _gameType)
-                                    .map((t) => Text(t.displayName))
-                                    .toList();
-                              },
-                              onChanged: (v) => setState(() => _billingType = v!),
                             ),
-                          ],
+                          ),
+                        )
+                        .toList(),
+                    selectedItemBuilder: (BuildContext context) {
+                      return GameType.values
+                          .where((type) {
+                            if (_tableType.isOtherGame) return type == GameType.standard;
+                            if (type == GameType.rummy && _tableType != TableType.snooker) {
+                              return false;
+                            }
+                            return true;
+                          })
+                          .map((type) => Text(
+                                type.displayName,
+                                style: const TextStyle(fontWeight: FontWeight.w600),
+                              ))
+                          .toList();
+                    },
+                    onChanged: (val) {
+                      if (val != null) {
+                        setState(() {
+                          _gameType = val;
+                          final validBillingTypes = TablePricingConfig.supportedBillingTypes(widget.table, _gameType);
+                          if (!validBillingTypes.contains(_billingType)) {
+                            _billingType = validBillingTypes.first;
+                          }
+                          // Reset player counts to minimums
+                          if (val != GameType.standard && _teamASelections.length < 2) {
+                            _teamASelections.clear();
+                            _teamASelections.addAll([null, null]);
+                          }
+                        });
+                      }
+                    },
+                  ),
+                  
+                  const Gap(24),
+  
+                  // STANDARD CONFIG
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      if (_gameType == GameType.standard) ...[
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text('Billing Type', style: theme.textTheme.labelMedium),
+                              const Gap(8),
+                              DropdownButtonFormField<BillingType>(
+                                isExpanded: true,
+                                value: _billingType,
+                                decoration: InputDecoration(
+                                  isDense: true,
+                                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                                ),
+                                items: TablePricingConfig.supportedBillingTypes(widget.table, _gameType)
+                                  .map((t) => DropdownMenuItem(
+                                  value: t,
+                                  child: Text(t.displayName),
+                                )).toList(),
+                                selectedItemBuilder: (BuildContext context) {
+                                  return TablePricingConfig.supportedBillingTypes(widget.table, _gameType)
+                                      .map((t) => Text(t.displayName))
+                                      .toList();
+                                },
+                                onChanged: (v) {
+                                  setState(() {
+                                    _billingType = v!;
+                                    if (_tableType == TableType.ps5) {
+                                      final controllers = widget.table.billingOptions?[_billingType.name]?.controllerPrices;
+                                      if (controllers != null && controllers.isNotEmpty) {
+                                        _controllerCount = int.tryParse(controllers.keys.first);
+                                      } else {
+                                        _controllerCount = null;
+                                      }
+                                    }
+                                  });
+                                },
+                              ),
+                            ],
+                          ),
                         ),
-                      ),
-                      if (!_tableType.isOtherGame) const Gap(16),
+                        if (!_tableType.isOtherGame) const Gap(16),
+                      ],
+                      if (!_tableType.isOtherGame)
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text('Match Type', style: theme.textTheme.labelMedium),
+                              const Gap(8),
+                              DropdownButtonFormField<MatchType>(
+                                isExpanded: true,
+                                value: _matchType,
+                                decoration: InputDecoration(
+                                  isDense: true,
+                                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                                ),
+                                items: MatchType.values.map((t) => DropdownMenuItem(
+                                  value: t,
+                                  child: Text(t.displayName),
+                                )).toList(),
+                                selectedItemBuilder: (BuildContext context) {
+                                  return MatchType.values.map((t) => Text(t.displayName)).toList();
+                                },
+                                onChanged: (v) => setState(() => _matchType = v!),
+                              ),
+                            ],
+                          ),
+                        ),
                     ],
-                    if (!_tableType.isOtherGame)
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text('Match Type', style: theme.textTheme.labelMedium),
-                            const Gap(8),
-                            DropdownButtonFormField<MatchType>(
-                              isExpanded: true,
-                              value: _matchType,
-                              decoration: InputDecoration(
-                                isDense: true,
-                                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                              ),
-                              items: MatchType.values.map((t) => DropdownMenuItem(
-                                value: t,
-                                child: Text(t.displayName),
-                              )).toList(),
-                              selectedItemBuilder: (BuildContext context) {
-                                return MatchType.values.map((t) => Text(t.displayName)).toList();
-                              },
-                              onChanged: (v) => setState(() => _matchType = v!),
-                            ),
-                          ],
+                  ),
+                  
+                  if (_tableType == TableType.ps5) ...[
+                    const Gap(16),
+                    Text('Controllers', style: theme.textTheme.labelMedium),
+                    const Gap(8),
+                    Builder(builder: (context) {
+                      final controllers = widget.table.billingOptions?[_billingType.name]?.controllerPrices?.keys.toList() ?? [];
+                      if (controllers.isEmpty) {
+                        return Text('No specific controller prices set', style: theme.textTheme.bodyMedium);
+                      }
+                      controllers.sort();
+                      return DropdownButtonFormField<int>(
+                        isExpanded: true,
+                        value: _controllerCount,
+                        decoration: InputDecoration(
+                          isDense: true,
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                         ),
-                      ),
+                        items: controllers.map((c) => DropdownMenuItem(
+                          value: int.tryParse(c),
+                          child: Text('$c Controller${c == '1' ? '' : 's'}'),
+                        )).toList(),
+                        onChanged: (v) => setState(() => _controllerCount = v),
+                      );
+                    }),
                   ],
-                ),
+                ],
 
 
                 if (!_tableType.isOtherGame && _gameType == GameType.standard && _billingType == BillingType.perMinute) ...[
@@ -558,7 +624,15 @@ class _GameSetupSheetState extends ConsumerState<GameSetupSheet> {
       final appSettings = ref.read(appSettingsProvider);
       final double? resolvedPrice = (_isCustomPrice && !_tableType.isOtherGame) 
         ? double.tryParse(_customPriceController.text)
-        : TablePricingConfig.getPrice(widget.table, _gameType, actualBillingType, appSettings.pricing);
+        : TablePricingConfig.getPrice(
+            widget.table, 
+            _gameType, 
+            actualBillingType, 
+            appSettings.pricing,
+            controllerCount: _controllerCount,
+          );
+
+      final isArcade = _tableType == TableType.arcade;
 
       final gameSession = GameSession(
         date: dateStr,
@@ -569,7 +643,7 @@ class _GameSetupSheetState extends ConsumerState<GameSetupSheet> {
         gameType: _gameType,
         mode: _mode,
         startTime: DateTime.now(),
-        status: TableStatus.running,
+        status: isArcade ? TableStatus.available : TableStatus.running,
         targetPoints: _targetPoints,
         billingType: actualBillingType,
         matchType: _tableType.isOtherGame ? MatchType.friendly : _matchType,
@@ -585,6 +659,8 @@ class _GameSetupSheetState extends ConsumerState<GameSetupSheet> {
         customPrice: resolvedPrice,
         pricingSnapshot: appSettings.pricing,
         gameSettingsSnapshot: appSettings.game,
+        controllerCount: _controllerCount,
+        coinQuantity: _tableType == TableType.arcade ? _coinQuantity : null,
       );
 
       final creditRepo = ref.read(creditRepositoryProvider);
@@ -592,6 +668,14 @@ class _GameSetupSheetState extends ConsumerState<GameSetupSheet> {
 
       if (mounted) {
         Navigator.pop(context);
+        if (isArcade) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => BillingScreen(session: gameSession),
+            ),
+          );
+        }
       }
 
       // Defer state-modifying writes to avoid Riverpod TickerMode exceptions during pop animation
@@ -600,7 +684,9 @@ class _GameSetupSheetState extends ConsumerState<GameSetupSheet> {
           for (final profile in newProfilesToCreate) {
             await creditRepo.savePlayerProfile(profile);
           }
-          await gamesRepo.startGame(gameSession);
+          if (!isArcade) {
+            await gamesRepo.startGame(gameSession);
+          }
         } catch (e) {
           debugPrint('Failed to start game in background: $e');
         }

@@ -75,7 +75,7 @@ class TablePricingConfig {
 
   /// Returns the price for a given table type, game type, and billing type.
   /// Returns null if the combination is not supported.
-  static double? getPrice(TableModel table, GameType gameType, BillingType billingType, PricingSettings fallbackConfig) {
+  static double? getPrice(TableModel table, GameType gameType, BillingType billingType, PricingSettings fallbackConfig, {int? controllerCount}) {
     // If the table has specific billing options configured
     if (table.billingOptions != null) {
       String? key;
@@ -84,11 +84,15 @@ class TablePricingConfig {
       } else if (gameType == GameType.rummy && billingType == BillingType.perMinute) {
         key = 'rummyPerMinute';
       } else {
-        key = billingType.name; // 'perMinute', 'halfHour', 'oneHour', 'perFrame'
+        key = billingType.name; // 'perMinute', 'halfHour', 'oneHour', 'perFrame', 'perCoin'
       }
 
       final option = table.billingOptions![key];
       if (option != null && option.enabled) {
+        if (controllerCount != null && option.controllerPrices != null) {
+          final controllerPrice = option.controllerPrices![controllerCount.toString()];
+          if (controllerPrice != null) return controllerPrice;
+        }
         return option.price;
       }
       return null; // Explicitly configured but disabled or missing
@@ -191,6 +195,7 @@ class TablePricingConfig {
       if (table.billingOptions!['perFrame']?.enabled == true) types.add(BillingType.perFrame);
       if (table.billingOptions!['halfHour']?.enabled == true) types.add(BillingType.halfHour);
       if (table.billingOptions!['oneHour']?.enabled == true) types.add(BillingType.oneHour);
+      if (table.billingOptions!['perCoin']?.enabled == true) types.add(BillingType.perCoin);
       return types;
     }
 
@@ -211,7 +216,11 @@ class TablePricingConfig {
       case TableType.carrom:
       case TableType.foosball:
       case TableType.chess:
+      case TableType.tableTennis:
+      case TableType.steeringWheel:
         return [BillingType.halfHour, BillingType.oneHour];
+      case TableType.arcade:
+        return [BillingType.perCoin];
       default:
         return [BillingType.perMinute, BillingType.halfHour, BillingType.oneHour];
     }
@@ -228,6 +237,7 @@ class TablePricingConfig {
     required GameSettings gameConfig,
     List<GameRound> completedRounds = const [],
     double? customPrice,
+    int? coinQuantity,
   }) {
     final dummyTable = TableModel(id: '', name: '', type: tableType);
     final price = customPrice ?? getPrice(dummyTable, gameType, billingType, pricingConfig); 
@@ -299,6 +309,13 @@ class TablePricingConfig {
           baseCharge: price,
           overtimeMinutes: overtimeMinutes,
           overtimeCharge: overtimeCharge,
+        );
+        
+      case BillingType.perCoin:
+        return GameChargeBreakdown(
+          baseCharge: price * (coinQuantity ?? 1),
+          overtimeMinutes: 0,
+          overtimeCharge: 0,
         );
     }
   }

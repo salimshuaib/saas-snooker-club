@@ -14,7 +14,10 @@ enum TableType {
   pc,
   carrom,
   foosball,
-  chess;
+  chess,
+  tableTennis,
+  steeringWheel,
+  arcade;
 
   String get displayName {
     switch (this) {
@@ -34,15 +37,19 @@ enum TableType {
         return 'Foosball';
       case TableType.chess:
         return 'Chess';
+      case TableType.tableTennis:
+        return 'Table Tennis';
+      case TableType.steeringWheel:
+        return 'Steering Wheel';
+      case TableType.arcade:
+        return 'Arcade';
     }
   }
 
   bool get isOtherGame {
-    return this == TableType.ps5 ||
-           this == TableType.pc ||
-           this == TableType.carrom ||
-           this == TableType.foosball ||
-           this == TableType.chess;
+    return this != TableType.snooker &&
+           this != TableType.indianPool &&
+           this != TableType.americanPool;
   }
 }
 
@@ -101,7 +108,8 @@ enum BillingType {
   perMinute,
   perFrame,
   halfHour,
-  oneHour;
+  oneHour,
+  perCoin;
 
   String get displayName {
     switch (this) {
@@ -110,9 +118,11 @@ enum BillingType {
       case BillingType.perFrame:
         return 'Per Frame';
       case BillingType.halfHour:
-        return 'Half Hour (30 min)';
+        return 'Half Hour';
       case BillingType.oneHour:
-        return 'One Hour (60 min)';
+        return '1 Hour';
+      case BillingType.perCoin:
+        return 'Per Coin';
     }
   }
 }
@@ -155,19 +165,23 @@ enum PaymentMethod {
 class TableBillingOption {
   final bool enabled;
   final double price;
+  final Map<String, double>? controllerPrices;
 
   const TableBillingOption({
     required this.enabled,
     required this.price,
+    this.controllerPrices,
   });
 
   TableBillingOption copyWith({
     bool? enabled,
     double? price,
+    Map<String, double>? controllerPrices,
   }) {
     return TableBillingOption(
       enabled: enabled ?? this.enabled,
       price: price ?? this.price,
+      controllerPrices: controllerPrices ?? this.controllerPrices,
     );
   }
 
@@ -175,6 +189,7 @@ class TableBillingOption {
     return {
       'enabled': enabled,
       'price': price,
+      if (controllerPrices != null) 'controllerPrices': controllerPrices,
     };
   }
 
@@ -185,6 +200,10 @@ class TableBillingOption {
     return TableBillingOption(
       enabled: map['enabled'] as bool? ?? false,
       price: (map['price'] as num?)?.toDouble() ?? 0.0,
+      controllerPrices: map['controllerPrices'] != null
+          ? Map<String, double>.from(
+              (map['controllerPrices'] as Map).map((k, v) => MapEntry(k.toString(), (v as num).toDouble())))
+          : null,
     );
   }
 }
@@ -666,6 +685,8 @@ class GameSession {
     PricingSettings? pricingSnapshot,
     GameSettings? gameSettingsSnapshot,
     double? customPrice,
+    int? controllerCount,
+    int? coinQuantity,
   }) {
     return GameSession(
       createdByUserId: createdByUserId ?? this.createdByUserId,
@@ -722,6 +743,8 @@ class GameSession {
       pricingSnapshot: pricingSnapshot ?? this.pricingSnapshot,
       gameSettingsSnapshot: gameSettingsSnapshot ?? this.gameSettingsSnapshot,
       customPrice: customPrice ?? this.customPrice,
+      controllerCount: controllerCount ?? this.controllerCount,
+      coinQuantity: coinQuantity ?? this.coinQuantity,
     );
   }
 
@@ -782,6 +805,8 @@ class GameSession {
       'pricingSnapshot': pricingSnapshot?.toMap(),
       'gameSettingsSnapshot': gameSettingsSnapshot?.toMap(),
       'customPrice': customPrice,
+      'controllerCount': controllerCount,
+      'coinQuantity': coinQuantity,
     };
   }
 
@@ -903,6 +928,8 @@ class GameSession {
           ? GameSettings.fromMap(map['gameSettingsSnapshot'])
           : null,
       customPrice: (map['customPrice'] as num?)?.toDouble(),
+      controllerCount: (map['controllerCount'] as num?)?.toInt(),
+      coinQuantity: (map['coinQuantity'] as num?)?.toInt(),
     );
   }
 }

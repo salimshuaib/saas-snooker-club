@@ -455,7 +455,7 @@ class GamesRepository {
       updateMap['remainingAmount'] = 0.0;
     }
 
-    if (session.isManualEntry) {
+    if (session.isManualEntry || session.tableType == TableType.arcade) {
       final fullMap = session.toMap();
       fullMap['status'] = TableStatus.available.name;
       if (session.paymentMethod == PaymentMethod.cash ||
@@ -466,7 +466,7 @@ class GamesRepository {
       }
       batch.set(_gamesRef.doc(session.id), fullMap);
     } else {
-      batch.update(_gamesRef.doc(session.id), updateMap);
+      batch.set(_gamesRef.doc(session.id), updateMap, SetOptions(merge: true));
       batch.update(_tablesRef.doc(session.tableId), {
         'status': TableStatus.available.name,
         'activeGameId': FieldValue.delete(),
