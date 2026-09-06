@@ -14,6 +14,8 @@ import 'package:snooker_club/core/providers/app_providers.dart';
 import 'package:snooker_club/core/providers/club_scope_provider.dart';
 import 'package:snooker_club/features/analytics/providers/analytics_providers.dart';
 import 'package:snooker_club/features/reports/services/export_providers.dart';
+import 'package:snooker_club/features/credit/domain/models/credit_models.dart';
+import 'package:snooker_club/features/credit/providers/credit_providers.dart';
 
 class ExportService {
   static Future<void> exportToExcel(BuildContext context, WidgetRef ref) async {
@@ -266,6 +268,85 @@ class ExportService {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('CSV Generated Successfully')));
         final clubName = ref.read(clubProfileProvider).value?.clubName ?? 'S&B Manager';
         Share.shareXFiles([xfile], text: '$clubName Games CSV Export');
+      }
+    } catch (e) {
+      if (context.mounted) {
+        _hideLoading(context);
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red));
+      }
+    }
+  }
+
+  static Future<void> exportDueCreditToPdf(BuildContext context, WidgetRef ref) async {
+    _showLoading(context);
+    try {
+      final currency = ref.read(currencyProvider);
+      final repo = ref.read(creditRepositoryProvider);
+      final customers = await repo.watchAllCustomers().first;
+      
+      final dueCustomers = customers.where((c) => c.outstandingAmount > 0).toList();
+      dueCustomers.sort((a, b) => b.outstandingAmount.compareTo(a.outstandingAmount));
+      
+      final font = await PdfGoogleFonts.robotoRegular();
+      final boldFont = await PdfGoogleFonts.robotoBold();
+      final clubName = ref.read(clubProfileProvider).value?.clubName ?? 'S&B Manager';
+      final symbol = currency.symbol;
+
+      final List<List<String>> tableData = [
+        ['Player Name', 'Mobile', 'Total Games', 'Total Paid', 'Outstanding Due']
+      ];
+      
+      for (final customer in dueCustomers) {
+        final txs = await repo.watchAllTransactions(customer.id).first;
+        final payments = await repo.watchPaymentHistory(customer.id).first;
+        
+        final gamesPlayed = txs.where((t) => t.type == CreditTransactionType.game).length;
+        final totalPaid = payments.fold<double>(0.0, (sum, p) => sum + p.amountPaid);
+        
+        tableData.add([
+          customer.name,
+          customer.mobileNumber ?? 'N/A',
+          gamesPlayed.toString(),
+          '$symbol${totalPaid.toStringAsFixed(0)}',
+          '$symbol${customer.outstandingAmount.toStringAsFixed(0)}',
+        ]);
+      }
+
+      final pdf = pw.Document();
+
+      pdf.addPage(pw.MultiPage(
+        pageFormat: PdfPageFormat.a4,
+        theme: pw.ThemeData.withFont(
+          base: font,
+          bold: boldFont,
+        ),
+        build: (pw.Context ctx) {
+          return [
+            pw.Header(level: 0, child: pw.Text('$clubName - Outstanding Credit Report', style: pw.TextStyle(fontSize: 24, fontWeight: pw.FontWeight.bold))),
+            pw.Text('Generated: ${DateFormat("MMM d, yyyy HH:mm").format(DateTime.now())}'),
+            pw.SizedBox(height: 20),
+            
+            pw.TableHelper.fromTextArray(
+              context: ctx,
+              cellAlignment: pw.Alignment.centerLeft,
+              headerStyle: pw.TextStyle(fontWeight: pw.FontWeight.bold),
+              data: tableData,
+            ),
+          ];
+        },
+      ));
+
+      final fileBytes = await pdf.save();
+      final xfile = XFile.fromData(
+        fileBytes,
+        name: 'outstanding_credit_report_${DateTime.now().millisecondsSinceEpoch}.pdf',
+        mimeType: 'application/pdf',
+      );
+      
+      if (context.mounted) {
+        _hideLoading(context);
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Credit Report PDF Generated Successfully')));
+        Share.shareXFiles([xfile], text: '$clubName Outstanding Credit Report');
       }
     } catch (e) {
       if (context.mounted) {
