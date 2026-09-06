@@ -151,8 +151,8 @@ class ExportService {
           final symbol = currency.symbol;
           return [
             pw.Header(level: 0, child: pw.Text('$clubName - Financial Report', style: pw.TextStyle(fontSize: 24, fontWeight: pw.FontWeight.bold))),
-            pw.Text('Date Range: ${DateFormat("yyyy-MM-dd").format(range.start)} to ${DateFormat("yyyy-MM-dd").format(range.end)}'),
-            pw.Text('Generated: ${DateFormat("yyyy-MM-dd HH:mm").format(DateTime.now())}'),
+            pw.Text('Date Range: ${DateFormat("MMM d, yyyy").format(range.start)} to ${DateFormat("MMM d, yyyy").format(range.end)}'),
+            pw.Text('Generated: ${DateFormat("MMMM d, yyyy 'at' h:mm a").format(DateTime.now())}', style: const pw.TextStyle(color: PdfColors.grey700)),
             pw.SizedBox(height: 20),
             
             pw.Header(level: 1, child: pw.Text('Financial Summary')),
@@ -323,7 +323,7 @@ class ExportService {
         build: (pw.Context ctx) {
           return [
             pw.Header(level: 0, child: pw.Text('$clubName - Outstanding Credit Report', style: pw.TextStyle(fontSize: 24, fontWeight: pw.FontWeight.bold))),
-            pw.Text('Generated: ${DateFormat("MMM d, yyyy HH:mm").format(DateTime.now())}'),
+            pw.Text('Generated: ${DateFormat("MMMM d, yyyy 'at' h:mm a").format(DateTime.now())}', style: const pw.TextStyle(color: PdfColors.grey700)),
             pw.SizedBox(height: 20),
             
             pw.TableHelper.fromTextArray(
