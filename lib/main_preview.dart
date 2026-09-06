@@ -70,12 +70,9 @@ void main() {
 
           // 4. Seed default tables if they don't exist
           final tablesRef = db.collection('clubs').doc(clubId).collection('tables');
-          final tablesSnapshot = await tablesRef.limit(1).get();
-          if (tablesSnapshot.docs.isEmpty) {
-            AppLogger.info('Seeding default tables for preview club...');
-            for (final table in TablesConfig.defaultTables) {
-              await tablesRef.doc(table.id).set(table.toMap());
-            }
+          AppLogger.info('Seeding default tables for preview club...');
+          for (final table in TablesConfig.defaultTables) {
+            await tablesRef.doc(table.id).set(table.toMap(), SetOptions(merge: true));
           }
 
           AppLogger.info('SUCCESS: Preview Club configured successfully!');
