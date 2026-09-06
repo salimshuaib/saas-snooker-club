@@ -1,4 +1,4 @@
-﻿import 'package:snooker_club/l10n/app_localizations.dart';
+import 'package:snooker_club/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:snooker_club/core/theme/app_colors.dart';
@@ -106,6 +106,9 @@ class StartGameSheet extends ConsumerWidget {
         case TableType.carrom: title = 'Carrom Boards'; break;
         case TableType.foosball: title = 'Foosball Tables'; break;
         case TableType.chess: title = 'Chess Boards'; break;
+        case TableType.tableTennis: title = 'Table Tennis'; break;
+        case TableType.steeringWheel: title = 'Steering Wheels'; break;
+        case TableType.arcade: title = 'Arcade Machines'; break;
       }
       return _buildTableGroup(title, tablesOfType, context, employeeId, theme);
     }).toList();

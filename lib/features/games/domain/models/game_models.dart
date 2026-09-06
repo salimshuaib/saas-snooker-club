@@ -524,6 +524,8 @@ class GameSession {
   final PricingSettings? pricingSnapshot;
   final GameSettings? gameSettingsSnapshot;
   final double? customPrice;
+  final int? controllerCount;
+  final int? coinQuantity;
 
   const GameSession({
     this.createdByUserId,
@@ -580,6 +582,8 @@ class GameSession {
     this.pricingSnapshot,
     this.gameSettingsSnapshot,
     this.customPrice,
+    this.controllerCount,
+    this.coinQuantity,
   });
 
   /// All players involved (team A + team B)

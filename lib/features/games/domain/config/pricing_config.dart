@@ -119,7 +119,7 @@ class TablePricingConfig {
           case BillingType.perMinute: return fallbackConfig.snookerPerMinute;
           case BillingType.halfHour: return fallbackConfig.snookerHalfHour;
           case BillingType.oneHour: return fallbackConfig.snookerOneHour;
-          case BillingType.perFrame: return null;
+          default: return null;
         }
       case TableType.indianPool:
         switch (billingType) {
@@ -127,6 +127,7 @@ class TablePricingConfig {
           case BillingType.perMinute: return fallbackConfig.indianPoolPerMinute;
           case BillingType.halfHour: return fallbackConfig.indianPoolHalfHour;
           case BillingType.oneHour: return fallbackConfig.indianPoolOneHour;
+          default: return null;
         }
       case TableType.americanPool:
         switch (billingType) {
@@ -134,6 +135,7 @@ class TablePricingConfig {
           case BillingType.perMinute: return fallbackConfig.americanPoolPerMinute;
           case BillingType.halfHour: return fallbackConfig.americanPoolHalfHour;
           case BillingType.oneHour: return fallbackConfig.americanPoolOneHour;
+          default: return null;
         }
       case TableType.ps5:
         switch (billingType) {
@@ -170,7 +172,7 @@ class TablePricingConfig {
           case BillingType.perMinute: return fallbackConfig.snookerPerMinute;
           case BillingType.halfHour: return fallbackConfig.snookerHalfHour;
           case BillingType.oneHour: return fallbackConfig.snookerOneHour;
-          case BillingType.perFrame: return null;
+          default: return null;
         }
     }
   }
