@@ -54,8 +54,6 @@ void main() async {
   final firestoreService = FirestoreService();
   await firestoreService.initialize();
 
-
-
   // Initialize local storage
   final localStorageService = LocalStorageService();
   await localStorageService.initialize();
