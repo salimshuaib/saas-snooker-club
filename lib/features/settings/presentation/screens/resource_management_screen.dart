@@ -36,13 +36,27 @@ class _ResourceManagementScreenState extends ConsumerState<ResourceManagementScr
           if (tables.isEmpty) {
             return const Center(child: Text('No resources found.'));
           }
-          return ListView.builder(
+          final mutableTables = List.of(tables);
+          
+          return ReorderableListView.builder(
             padding: const EdgeInsets.all(16),
-            itemCount: tables.length,
+            itemCount: mutableTables.length,
+            onReorder: (oldIndex, newIndex) async {
+              if (oldIndex < newIndex) {
+                newIndex -= 1;
+              }
+              final item = mutableTables.removeAt(oldIndex);
+              mutableTables.insert(newIndex, item);
+              
+              // Update orders in the backend
+              await ref.read(gamesRepositoryProvider).updateTableOrders(mutableTables);
+            },
             itemBuilder: (context, index) {
-              final table = tables[index];
+              final table = mutableTables[index];
               return Card(
+                key: ValueKey(table.id),
                 child: ListTile(
+                  leading: const Icon(Icons.drag_handle, color: Colors.grey),
                   title: Text(table.name),
                   subtitle: Text(table.type.displayName),
                   trailing: Row(
