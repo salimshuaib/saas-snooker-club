@@ -431,6 +431,7 @@ class GameSession {
   final String? winnerId; // player name or "Team A" / "Team B"
   final String? paidBy; // customer name paying (for credit)
   final PaymentMethod? paymentMethod;
+  final double? creditAmount;
   final String? paymentStatus; // e.g., 'Outstanding', 'Partially Paid', 'Paid'
   final double? paidAmount;
   final double? remainingAmount;
@@ -487,6 +488,7 @@ class GameSession {
     this.winnerId,
     this.paidBy,
     this.paymentMethod,
+    this.creditAmount,
     this.paymentStatus,
     this.paidAmount,
     this.remainingAmount,
@@ -592,6 +594,7 @@ class GameSession {
     String? winnerId,
     String? paidBy,
     PaymentMethod? paymentMethod,
+    double? creditAmount,
     String? paymentStatus,
     double? paidAmount,
     double? remainingAmount,
@@ -648,6 +651,7 @@ class GameSession {
       winnerId: winnerId ?? this.winnerId,
       paidBy: paidBy ?? this.paidBy,
       paymentMethod: paymentMethod ?? this.paymentMethod,
+      creditAmount: creditAmount ?? this.creditAmount,
       paymentStatus: paymentStatus ?? this.paymentStatus,
       paidAmount: paidAmount ?? this.paidAmount,
       remainingAmount: remainingAmount ?? this.remainingAmount,
@@ -708,6 +712,7 @@ class GameSession {
       'winnerId': winnerId,
       'paidBy': paidBy,
       'paymentMethod': paymentMethod?.name,
+      'creditAmount': creditAmount,
       'paymentStatus': paymentStatus,
       'paidAmount': paidAmount,
       'remainingAmount': remainingAmount,
@@ -818,6 +823,7 @@ class GameSession {
               (p) => p.name == map['paymentMethod'],
               orElse: () => PaymentMethod.cash,
       ) : null,
+          creditAmount: (map['creditAmount'] as num?)?.toDouble(),
       paymentStatus: map['paymentStatus'] as String?,
       paidAmount: (map['paidAmount'] as num?)?.toDouble(),
       remainingAmount: (map['remainingAmount'] as num?)?.toDouble(),

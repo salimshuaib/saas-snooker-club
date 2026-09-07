@@ -23,7 +23,9 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
   late GameSession _session;
   PaymentMethod _paymentMethod = PaymentMethod.cash;
   String? _winnerId;
+  final Set<String> _selectedPayers = {};
   String? _PlayerProfileName;
+  late TextEditingController _creditAmountController;
   late Map<String, PaymentMethod> _playerPaymentMethods;
   late Map<String, double> _customLiabilities;
   bool _isProcessing = false;
@@ -49,6 +51,7 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
     super.initState();
     _discountedGameAmountController = TextEditingController();
     _finalAmountController = TextEditingController();
+    _creditAmountController = TextEditingController();
     _session = widget.session.copyWith(endTime: DateTime.now());
     if (_session.matchType == MatchType.friendly) {
       _winnerId = null;
@@ -72,6 +75,7 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
   void dispose() {
     _discountedGameAmountController.dispose();
     _finalAmountController.dispose();
+    _creditAmountController.dispose();
     for (final c in _liabilityControllers.values) {
       c.dispose();
     }
@@ -142,11 +146,19 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
         }
       } else {
         List<String> gamePayers = _session.allPlayers;
-        if (_session.matchType == MatchType.loserPays && _winnerId != null) {
-          if (_session.mode == GameMode.team) {
-            gamePayers = _winnerId == 'Team A' ? _session.teamB : _session.teamA;
+        if (_session.matchType == MatchType.loserPays &&
+            _selectedPayers.isNotEmpty) {
+          if (_selectedPayers.contains('All')) {
+            gamePayers = _session.allPlayers;
+          } else if (_session.mode == GameMode.team) {
+            gamePayers = [
+              if (_selectedPayers.contains('Team A')) ..._session.teamA,
+              if (_selectedPayers.contains('Team B')) ..._session.teamB,
+            ];
           } else {
-            gamePayers = _session.allPlayers.where((p) => p != _winnerId).toList();
+            gamePayers = _session.allPlayers
+                .where((p) => _selectedPayers.contains(p))
+                .toList();
           }
         }
         final split =
@@ -302,6 +314,14 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
     }
   }
 
+  double get _creditAmount {
+    final enteredAmount = double.tryParse(_creditAmountController.text.trim());
+    if (enteredAmount == null || enteredAmount <= 0) return _finalTotal;
+    return enteredAmount.clamp(0, _finalTotal);
+  }
+
+  double get _cashAmount => (_finalTotal - _creditAmount).clamp(0, _finalTotal);
+
   Color get _ctaColor {
     if (_isMultiPayer) {
       return AppColors.primary;
@@ -421,40 +441,49 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
             if (!_isMultiRoundTP &&
                 _session.gameType == GameType.standard &&
                 _session.matchType == MatchType.loserPays) ...[
-              Text('Select Winner', style: theme.textTheme.titleMedium),
+              Text('Who will Pay?', style: theme.textTheme.titleMedium),
               const Gap(8),
               _SectionCard(
-                children: _session.mode == GameMode.team
-                    ? [
-                        _WinnerTile(
-                          label: 'Team A (${_session.teamA.join(", ")})',
-                          isSelected: _winnerId == 'Team A',
-                          onTap: () {
-                            setState(() => _winnerId = 'Team A');
-                            _initializeLiabilities();
-                          },
-                        ),
-                        _WinnerTile(
-                          label: 'Team B (${_session.teamB.join(", ")})',
-                          isSelected: _winnerId == 'Team B',
-                          onTap: () {
-                            setState(() => _winnerId = 'Team B');
-                            _initializeLiabilities();
-                          },
-                        ),
-                      ]
-                    : _session.allPlayers
-                          .map(
-                            (p) => _WinnerTile(
-                              label: p,
-                              isSelected: _winnerId == p,
-                              onTap: () {
-                                setState(() => _winnerId = p);
-                                _initializeLiabilities();
-                              },
-                            ),
-                          )
-                          .toList(),
+                children: [
+                  _WinnerTile(
+                    label: 'All',
+                    isSelected: _selectedPayers.contains('All'),
+                    onTap: () {
+                      setState(() {
+                        if (_selectedPayers.contains('All')) {
+                          _selectedPayers.clear();
+                        } else {
+                          _selectedPayers
+                            ..clear()
+                            ..add('All');
+                        }
+                      });
+                      _initializeLiabilities();
+                    },
+                  ),
+                  ...(_session.mode == GameMode.team
+                          ? [
+                              _WinnerTile(
+                                label: 'Team A (${_session.teamA.join(", ")})',
+                                isSelected: _selectedPayers.contains('Team A'),
+                                onTap: () => _togglePayer('Team A'),
+                              ),
+                              _WinnerTile(
+                                label: 'Team B (${_session.teamB.join(", ")})',
+                                isSelected: _selectedPayers.contains('Team B'),
+                                onTap: () => _togglePayer('Team B'),
+                              ),
+                            ]
+                          : _session.allPlayers
+                                .map(
+                                  (p) => _WinnerTile(
+                                    label: p,
+                                    isSelected: _selectedPayers.contains(p),
+                                    onTap: () => _togglePayer(p),
+                                  ),
+                                )
+                                .toList()),
+                ],
               ),
               const Gap(16),
             ],
@@ -795,6 +824,19 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
               ),
               if (_paymentMethod == PaymentMethod.credit) ...[
                 const Gap(24),
+                TextFormField(
+                  controller: _creditAmountController,
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
+                  decoration: const InputDecoration(
+                    labelText: 'Credit amount',
+                    prefixText: '₹',
+                    border: OutlineInputBorder(),
+                  ),
+                  onChanged: (_) => setState(() {}),
+                ),
+                const Gap(24),
                 Text(
                   'Select Customer for Credit',
                   style: theme.textTheme.titleMedium,
@@ -1003,6 +1045,16 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
     );
   }
 
+  void _togglePayer(String payer) {
+    setState(() {
+      _selectedPayers.remove('All');
+      if (!_selectedPayers.remove(payer)) {
+        _selectedPayers.add(payer);
+      }
+    });
+    _initializeLiabilities();
+  }
+
   IconData _paymentIcon(PaymentMethod method) {
     switch (method) {
       case PaymentMethod.cash:
@@ -1019,10 +1071,10 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
     if (!_isMultiRoundTP &&
         _session.gameType == GameType.standard &&
         _session.matchType == MatchType.loserPays &&
-        _winnerId == null) {
+        _selectedPayers.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Please select a winner before confirming payment.'),
+          content: Text('Please select at least one payer before confirming payment.'),
           backgroundColor: AppColors.error,
         ),
       );
@@ -1046,6 +1098,18 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Default players cannot use Credit. Please select Cash or UPI.'),
+            backgroundColor: AppColors.error,
+          ),
+        );
+        return;
+      }
+      final enteredCreditAmount = double.tryParse(
+        _creditAmountController.text.trim(),
+      );
+      if (enteredCreditAmount != null && enteredCreditAmount < 0) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Credit amount cannot be negative.'),
             backgroundColor: AppColors.error,
           ),
         );
@@ -1104,6 +1168,19 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
                 ? _PlayerProfileName
                 : null,
             paymentMethod: _paymentMethod,
+            creditAmount: _paymentMethod == PaymentMethod.credit
+              ? _creditAmount
+              : null,
+            paymentStatus: _paymentMethod == PaymentMethod.credit &&
+                _cashAmount > 0
+              ? 'Partially Paid'
+              : null,
+            paidAmount: _paymentMethod == PaymentMethod.credit
+              ? _cashAmount
+              : null,
+            remainingAmount: _paymentMethod == PaymentMethod.credit
+              ? _creditAmount
+              : null,
             gameCharge: _gameCharge,
             baseGameCharge: _baseGameCharge,
             overtimeMinutes: _overtimeMinutes,

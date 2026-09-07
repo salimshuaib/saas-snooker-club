@@ -421,6 +421,7 @@ class GamesRepository {
       'playerLiabilities': session.playerLiabilities,
       'winnerId': session.winnerId,
       'paymentMethod': session.paymentMethod?.name,
+      'creditAmount': session.creditAmount,
       'gameCharge': session.gameCharge,
       'baseGameCharge': session.baseGameCharge,
       'overtimeMinutes': session.overtimeMinutes,
@@ -437,11 +438,17 @@ class GamesRepository {
       'date': session.date,
     };
 
+    final amountToPay = session.finalAmount ?? session.grandTotal ?? 0.0;
+
     if (session.paymentMethod == PaymentMethod.credit) {
       updateMap['paidBy'] = session.paidBy;
+      final creditAmount = session.creditAmount ?? amountToPay;
+      updateMap['paymentStatus'] = creditAmount < amountToPay
+          ? 'Partially Paid'
+          : 'Outstanding';
+      updateMap['paidAmount'] = amountToPay - creditAmount;
+      updateMap['remainingAmount'] = creditAmount;
     }
-
-    final amountToPay = session.finalAmount ?? session.grandTotal ?? 0.0;
 
     if (session.paymentMethod == PaymentMethod.cash ||
         session.paymentMethod == PaymentMethod.upi) {
@@ -495,7 +502,7 @@ class GamesRepository {
         batch: batch,
         customerName: session.paidBy!,
         customerId: session.playerIdentities != null ? session.playerIdentities![session.paidBy!] : null,
-        amount: amountToPay,
+        amount: session.creditAmount ?? amountToPay,
         type: CreditTransactionType.game,
         referenceId: session.id,
         title: 'Game on Table ${session.tableName}',
