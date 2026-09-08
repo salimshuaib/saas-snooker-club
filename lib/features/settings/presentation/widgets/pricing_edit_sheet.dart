@@ -572,21 +572,31 @@ class _PricingEditSheetState extends ConsumerState<PricingEditSheet> {
             const Gap(12),
 
             Expanded(
-
-              child: ListView.builder(
-
-                itemCount: tables.length,
-
-                itemBuilder: (context, index) {
-
-                  final table = tables[index];
-
-                  return _buildTablePricingCard(table, theme);
-
-                },
-
+              child: Builder(
+                builder: (context) {
+                  final tableGames = tables.where((t) => [TableType.snooker, TableType.indianPool, TableType.americanPool].contains(t.type)).toList();
+                  final otherGames = tables.where((t) => ![TableType.snooker, TableType.indianPool, TableType.americanPool].contains(t.type)).toList();
+                  
+                  return ListView(
+                    children: [
+                      if (tableGames.isNotEmpty) ...[
+                        Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 12.0),
+                          child: Text('Table Games', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold, color: theme.colorScheme.primary)),
+                        ),
+                        ...tableGames.map((table) => _buildTablePricingCard(table, theme)).toList(),
+                      ],
+                      if (otherGames.isNotEmpty) ...[
+                        Padding(
+                          padding: const EdgeInsets.only(top: 16.0, bottom: 12.0),
+                          child: Text('Other Games', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold, color: theme.colorScheme.primary)),
+                        ),
+                        ...otherGames.map((table) => _buildTablePricingCard(table, theme)).toList(),
+                      ],
+                    ],
+                  );
+                }
               ),
-
             ),
 
             const Gap(16),
