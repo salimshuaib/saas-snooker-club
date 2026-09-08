@@ -12,5 +12,7 @@ class TablesConfig {
     TableModel(id: 'indian_pool_1', name: 'Indian Pool Table 1', type: TableType.indianPool),
     TableModel(id: 'indian_pool_2', name: 'Indian Pool Table 2', type: TableType.indianPool),
     TableModel(id: 'american_pool_1', name: 'American Pool Table 1', type: TableType.americanPool),
+    TableModel(id: 'ps5_1', name: 'PS5 Console 1', type: TableType.ps5),
+    TableModel(id: 'arcade_1', name: 'Arcade Machine 1', type: TableType.arcade),
   ];
 }

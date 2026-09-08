@@ -54,7 +54,7 @@ class _GameActivityCardState extends ConsumerState<GameActivityCard> {
   @override
   void initState() {
     super.initState();
-    _billingType = TablePricingConfig.supportedBillingTypes(widget.table.type, _gameType).first;
+    _billingType = TablePricingConfig.supportedBillingTypes(widget.table, _gameType).first;
     _startTimer();
   }
   
@@ -487,15 +487,10 @@ class _GameActivityCardState extends ConsumerState<GameActivityCard> {
                           if (t == GameType.rummy && widget.table.type != TableType.snooker) return false;
                           return true;
                         }).map((t) => DropdownMenuItem(value: t, child: Text(t.displayName))).toList(),
-                        selectedItemBuilder: (context) => GameType.values.where((t) {
-                          if (widget.table.type.isOtherGame) return t == GameType.standard;
-                          if (t == GameType.rummy && widget.table.type != TableType.snooker) return false;
-                          return true;
-                        }).map((t) => Text(t.displayName)).toList(),
                         onChanged: (v) {
                           setState(() {
                             _gameType = v!;
-                            final validBillingTypes = TablePricingConfig.supportedBillingTypes(widget.table.type, _gameType);
+                            final validBillingTypes = TablePricingConfig.supportedBillingTypes(widget.table, _gameType);
                             if (!validBillingTypes.contains(_billingType)) {
                               _billingType = validBillingTypes.first;
                             }
@@ -511,10 +506,8 @@ class _GameActivityCardState extends ConsumerState<GameActivityCard> {
                           isDense: true,
                           value: _billingType,
                           decoration: InputDecoration(border: OutlineInputBorder(borderRadius: BorderRadius.circular(8))),
-                          items: TablePricingConfig.supportedBillingTypes(widget.table.type, _gameType)
+                          items: TablePricingConfig.supportedBillingTypes(widget.table, _gameType)
                             .map((t) => DropdownMenuItem(value: t, child: Text(t.displayName))).toList(),
-                          selectedItemBuilder: (context) => TablePricingConfig.supportedBillingTypes(widget.table.type, _gameType)
-                            .map((t) => Text(t.displayName)).toList(),
                           onChanged: (v) => setState(() => _billingType = v!),
                         ),
                       ],
@@ -528,7 +521,6 @@ class _GameActivityCardState extends ConsumerState<GameActivityCard> {
                           value: _matchType,
                           decoration: InputDecoration(border: OutlineInputBorder(borderRadius: BorderRadius.circular(8))),
                           items: MatchType.values.map((t) => DropdownMenuItem(value: t, child: Text(t.displayName))).toList(),
-                          selectedItemBuilder: (context) => MatchType.values.map((t) => Text(t.displayName)).toList(),
                           onChanged: (v) => setState(() => _matchType = v!),
                         ),
                       ],
@@ -654,7 +646,14 @@ class _GameActivityCardState extends ConsumerState<GameActivityCard> {
     final titleRow = Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(widget.table.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 20)),
+        Expanded(
+          child: Text(
+            widget.table.name, 
+            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+        const Gap(8),
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
           decoration: BoxDecoration(
@@ -694,7 +693,7 @@ class _GameActivityCardState extends ConsumerState<GameActivityCard> {
       final rate = game.customPrice ?? TablePricingConfig.getPerMinutePrice(game.tableType, game.gameType, pricingConfig);
       rateStr = ' (₹${rate.toStringAsFixed(2)}/min)';
     } else if (game.billingType == BillingType.perFrame) {
-      final rate = game.customPrice ?? TablePricingConfig.getPrice(game.tableType, game.gameType, game.billingType, pricingConfig);
+      final rate = game.customPrice ?? TablePricingConfig.getPrice(TableModel(id: '', name: '', type: game.tableType), game.gameType, game.billingType, pricingConfig);
       if (rate != null) rateStr = ' (₹${rate.toStringAsFixed(2)}/frame)';
     }
     
@@ -737,34 +736,49 @@ class _GameActivityCardState extends ConsumerState<GameActivityCard> {
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       crossAxisAlignment: CrossAxisAlignment.end,
       children: [
-        Row(
-          children: [
-            Icon(Icons.timer_outlined, color: theme.colorScheme.primary, size: 22),
-            const Gap(8),
-            Text(
-              timeText,
-              style: TextStyle(
-                color: theme.colorScheme.primary,
-                fontWeight: FontWeight.bold,
-                fontSize: 20,
-                fontFamily: 'Courier',
+        Flexible(
+          child: Row(
+            children: [
+              Icon(Icons.timer_outlined, color: theme.colorScheme.primary, size: 22),
+              const Gap(8),
+              Flexible(
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(
+                    timeText,
+                    style: TextStyle(
+                      color: theme.colorScheme.primary,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 20,
+                      fontFamily: 'Courier',
+                    ),
+                  ),
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.end,
-          children: [
-            Text(
-              'CURRENT LIVE BILL',
-              style: TextStyle(color: theme.colorScheme.onSurfaceVariant, fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 0.5),
-            ),
-            const Gap(2),
-            Text(
-              '₹${_calculateLiveBill(ref).toStringAsFixed(2)}',
-              style: const TextStyle(color: AppColors.success, fontWeight: FontWeight.bold, fontSize: 24),
-            ),
-          ],
+        Flexible(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(
+                  'CURRENT LIVE BILL',
+                  style: TextStyle(color: theme.colorScheme.onSurfaceVariant, fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 0.5),
+                ),
+              ),
+              const Gap(2),
+              FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(
+                  '₹${_calculateLiveBill(ref).toStringAsFixed(2)}',
+                  style: const TextStyle(color: AppColors.success, fontWeight: FontWeight.bold, fontSize: 24),
+                ),
+              ),
+            ],
+          ),
         ),
       ],
     );
@@ -874,6 +888,7 @@ class _GameActivityCardState extends ConsumerState<GameActivityCard> {
       gameConfig: widget.activeGame!.gameSettingsSnapshot ?? appSettings.game,
       completedRounds: widget.activeGame!.rounds,
       customPrice: widget.activeGame!.customPrice,
+      coinQuantity: widget.activeGame!.coinQuantity,
     );
     return breakdown.totalCharge;
   }

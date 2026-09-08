@@ -11,10 +11,16 @@ enum TableType {
   indianPool,
   americanPool,
   ps5,
+  ps4,
   pc,
   carrom,
   foosball,
-  chess;
+  chess,
+  tableTennis,
+  steeringWheel,
+  arcade,
+  simulator,
+  iceHockey;
 
   String get displayName {
     switch (this) {
@@ -26,6 +32,8 @@ enum TableType {
         return 'American Pool';
       case TableType.ps5:
         return 'PS5';
+      case TableType.ps4:
+        return 'PS4';
       case TableType.pc:
         return 'PC';
       case TableType.carrom:
@@ -34,15 +42,23 @@ enum TableType {
         return 'Foosball';
       case TableType.chess:
         return 'Chess';
+      case TableType.tableTennis:
+        return 'Table Tennis';
+      case TableType.steeringWheel:
+        return 'Steering Wheel';
+      case TableType.arcade:
+        return 'Arcade';
+      case TableType.simulator:
+        return 'Simulator';
+      case TableType.iceHockey:
+        return 'Ice Hockey';
     }
   }
 
   bool get isOtherGame {
-    return this == TableType.ps5 ||
-           this == TableType.pc ||
-           this == TableType.carrom ||
-           this == TableType.foosball ||
-           this == TableType.chess;
+    return this != TableType.snooker &&
+           this != TableType.indianPool &&
+           this != TableType.americanPool;
   }
 }
 
@@ -101,7 +117,8 @@ enum BillingType {
   perMinute,
   perFrame,
   halfHour,
-  oneHour;
+  oneHour,
+  perCoin;
 
   String get displayName {
     switch (this) {
@@ -110,9 +127,11 @@ enum BillingType {
       case BillingType.perFrame:
         return 'Per Frame';
       case BillingType.halfHour:
-        return 'Half Hour (30 min)';
+        return 'Half Hour';
       case BillingType.oneHour:
-        return 'One Hour (60 min)';
+        return '1 Hour';
+      case BillingType.perCoin:
+        return 'Per Coin';
     }
   }
 }
@@ -152,6 +171,52 @@ enum PaymentMethod {
 // TableModel
 // ─────────────────────────────────────────────
 
+class TableBillingOption {
+  final bool enabled;
+  final double price;
+  final Map<String, double>? controllerPrices;
+
+  const TableBillingOption({
+    required this.enabled,
+    required this.price,
+    this.controllerPrices,
+  });
+
+  TableBillingOption copyWith({
+    bool? enabled,
+    double? price,
+    Map<String, double>? controllerPrices,
+  }) {
+    return TableBillingOption(
+      enabled: enabled ?? this.enabled,
+      price: price ?? this.price,
+      controllerPrices: controllerPrices ?? this.controllerPrices,
+    );
+  }
+
+  Map<String, dynamic> toMap() {
+    return {
+      'enabled': enabled,
+      'price': price,
+      if (controllerPrices != null) 'controllerPrices': controllerPrices,
+    };
+  }
+
+  factory TableBillingOption.fromMap(Map<String, dynamic>? map) {
+    if (map == null) {
+      return const TableBillingOption(enabled: false, price: 0.0);
+    }
+    return TableBillingOption(
+      enabled: map['enabled'] as bool? ?? false,
+      price: (map['price'] as num?)?.toDouble() ?? 0.0,
+      controllerPrices: map['controllerPrices'] != null
+          ? Map<String, double>.from(
+              (map['controllerPrices'] as Map).map((k, v) => MapEntry(k.toString(), (v as num).toDouble())))
+          : null,
+    );
+  }
+}
+
 class TableModel {
   final String id;
   final String name;
@@ -159,6 +224,7 @@ class TableModel {
   final TableStatus status;
   final String? activeGameId;
   final int order;
+  final Map<String, TableBillingOption>? billingOptions;
 
   const TableModel({
     required this.id,
@@ -167,6 +233,7 @@ class TableModel {
     this.status = TableStatus.available,
     this.activeGameId,
     this.order = 0,
+    this.billingOptions,
   });
 
   TableModel copyWith({
@@ -176,6 +243,7 @@ class TableModel {
     TableStatus? status,
     String? activeGameId,
     int? order,
+    Map<String, TableBillingOption>? billingOptions,
   }) {
     return TableModel(
       id: id ?? this.id,
@@ -184,6 +252,7 @@ class TableModel {
       status: status ?? this.status,
       activeGameId: activeGameId ?? this.activeGameId,
       order: order ?? this.order,
+      billingOptions: billingOptions ?? this.billingOptions,
     );
   }
 
@@ -195,10 +264,20 @@ class TableModel {
       'status': status.name,
       'activeGameId': activeGameId,
       'order': order,
+      if (billingOptions != null)
+        'billingOptions': billingOptions!.map((k, v) => MapEntry(k, v.toMap())),
     };
   }
 
   factory TableModel.fromMap(Map<String, dynamic> map) {
+    Map<String, TableBillingOption>? parsedOptions;
+    if (map['billingOptions'] != null) {
+      final Map<String, dynamic> rawOptions = Map<String, dynamic>.from(map['billingOptions'] as Map);
+      parsedOptions = rawOptions.map(
+        (key, value) => MapEntry(key, TableBillingOption.fromMap(value as Map<String, dynamic>?)),
+      );
+    }
+
     return TableModel(
       id: map['id'] as String,
       name: map['name'] as String,
@@ -212,6 +291,7 @@ class TableModel {
       ),
       activeGameId: map['activeGameId'] as String?,
       order: map['order'] as int? ?? 0,
+      billingOptions: parsedOptions,
     );
   }
 }
@@ -454,6 +534,8 @@ class GameSession {
   final PricingSettings? pricingSnapshot;
   final GameSettings? gameSettingsSnapshot;
   final double? customPrice;
+  final int? controllerCount;
+  final int? coinQuantity;
 
   const GameSession({
     this.createdByUserId,
@@ -511,6 +593,8 @@ class GameSession {
     this.pricingSnapshot,
     this.gameSettingsSnapshot,
     this.customPrice,
+    this.controllerCount,
+    this.coinQuantity,
   });
 
   /// All players involved (team A + team B)
@@ -617,6 +701,8 @@ class GameSession {
     PricingSettings? pricingSnapshot,
     GameSettings? gameSettingsSnapshot,
     double? customPrice,
+    int? controllerCount,
+    int? coinQuantity,
   }) {
     return GameSession(
       createdByUserId: createdByUserId ?? this.createdByUserId,
@@ -674,6 +760,8 @@ class GameSession {
       pricingSnapshot: pricingSnapshot ?? this.pricingSnapshot,
       gameSettingsSnapshot: gameSettingsSnapshot ?? this.gameSettingsSnapshot,
       customPrice: customPrice ?? this.customPrice,
+      controllerCount: controllerCount ?? this.controllerCount,
+      coinQuantity: coinQuantity ?? this.coinQuantity,
     );
   }
 
@@ -735,6 +823,8 @@ class GameSession {
       'pricingSnapshot': pricingSnapshot?.toMap(),
       'gameSettingsSnapshot': gameSettingsSnapshot?.toMap(),
       'customPrice': customPrice,
+      'controllerCount': controllerCount,
+      'coinQuantity': coinQuantity,
     };
   }
 
@@ -857,6 +947,8 @@ class GameSession {
           ? GameSettings.fromMap(map['gameSettingsSnapshot'])
           : null,
       customPrice: (map['customPrice'] as num?)?.toDouble(),
+      controllerCount: (map['controllerCount'] as num?)?.toInt(),
+      coinQuantity: (map['coinQuantity'] as num?)?.toInt(),
     );
   }
 }

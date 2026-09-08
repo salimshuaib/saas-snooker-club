@@ -75,100 +75,163 @@ class TablePricingConfig {
 
   /// Returns the price for a given table type, game type, and billing type.
   /// Returns null if the combination is not supported.
-  static double? getPrice(TableType tableType, GameType gameType, BillingType billingType, PricingSettings pricingConfig) {
+  static double? getPrice(TableModel table, GameType gameType, BillingType billingType, PricingSettings fallbackConfig, {int? controllerCount}) {
+    // If the table has specific billing options configured
+    if (table.billingOptions != null) {
+      String? key;
+      if (gameType == GameType.race && billingType == BillingType.perMinute) {
+        key = 'racePerMinute';
+      } else if (gameType == GameType.rummy && billingType == BillingType.perMinute) {
+        key = 'rummyPerMinute';
+      } else {
+        key = billingType.name; // 'perMinute', 'halfHour', 'oneHour', 'perFrame', 'perCoin'
+      }
+
+      final option = table.billingOptions![key];
+      if (option != null && option.enabled) {
+        if (controllerCount != null && option.controllerPrices != null) {
+          final controllerPrice = option.controllerPrices![controllerCount.toString()];
+          if (controllerPrice != null) return controllerPrice;
+        }
+        
+        // If it's PS5 or PS4 and no specific controller override was matched, apply the global extra fee to the base override
+        if (controllerCount != null && controllerCount > 1 && (table.type == TableType.ps5 || table.type == TableType.ps4)) {
+           final extraFee = billingType == BillingType.halfHour ? fallbackConfig.extraControllerFeeHalfHour : fallbackConfig.extraControllerFeeOneHour;
+           return option.price + ((controllerCount - 1) * extraFee);
+        }
+        
+        return option.price;
+      }
+      return null; // Explicitly configured but disabled or missing
+    }
+
+    // Fallback to legacy global logic
+    final tableType = table.type;
     if (gameType == GameType.race) {
       if (billingType != BillingType.perMinute) return null;
       switch (tableType) {
-        case TableType.snooker: return pricingConfig.snookerRacePerMinute;
-        case TableType.indianPool: return pricingConfig.indianPoolRacePerMinute;
-        case TableType.americanPool: return pricingConfig.americanPoolRacePerMinute;
-        default: return pricingConfig.snookerRacePerMinute;
+        case TableType.snooker: return fallbackConfig.snookerRacePerMinute;
+        case TableType.indianPool: return fallbackConfig.indianPoolRacePerMinute;
+        case TableType.americanPool: return fallbackConfig.americanPoolRacePerMinute;
+        default: return fallbackConfig.snookerRacePerMinute;
       }
     } else if (gameType == GameType.rummy) {
       if (billingType != BillingType.perMinute || tableType != TableType.snooker) return null;
-      return pricingConfig.snookerRummyPerMinute;
+      return fallbackConfig.snookerRummyPerMinute;
     }
 
     switch (tableType) {
       case TableType.snooker:
         switch (billingType) {
-          case BillingType.perMinute:
-            return pricingConfig.snookerPerMinute;
-          case BillingType.halfHour:
-            return pricingConfig.snookerHalfHour;
-          case BillingType.oneHour:
-            return pricingConfig.snookerOneHour;
-          case BillingType.perFrame:
-            return null; // Snooker does not support per-frame
+          case BillingType.perMinute: return fallbackConfig.snookerPerMinute;
+          case BillingType.halfHour: return fallbackConfig.snookerHalfHour;
+          case BillingType.oneHour: return fallbackConfig.snookerOneHour;
+          default: return null;
         }
       case TableType.indianPool:
         switch (billingType) {
-          case BillingType.perFrame:
-            return pricingConfig.indianPoolPerFrame;
-          case BillingType.perMinute:
-            return pricingConfig.indianPoolPerMinute; // Fixed: Indian Pool now supports per-minute
-          case BillingType.halfHour:
-            return pricingConfig.indianPoolHalfHour;
-          case BillingType.oneHour:
-            return pricingConfig.indianPoolOneHour;
+          case BillingType.perFrame: return fallbackConfig.indianPoolPerFrame;
+          case BillingType.perMinute: return fallbackConfig.indianPoolPerMinute;
+          case BillingType.halfHour: return fallbackConfig.indianPoolHalfHour;
+          case BillingType.oneHour: return fallbackConfig.indianPoolOneHour;
+          default: return null;
         }
       case TableType.americanPool:
         switch (billingType) {
-          case BillingType.perFrame:
-            return pricingConfig.americanPoolPerFrame;
-          case BillingType.perMinute:
-            return pricingConfig.americanPoolPerMinute;
-          case BillingType.halfHour:
-            return pricingConfig.americanPoolHalfHour;
-          case BillingType.oneHour:
-            return pricingConfig.americanPoolOneHour;
-        }
-      case TableType.ps5:
-        switch (billingType) {
-          case BillingType.halfHour: return pricingConfig.ps5HalfHour;
-          case BillingType.oneHour: return pricingConfig.ps5OneHour;
+          case BillingType.perFrame: return fallbackConfig.americanPoolPerFrame;
+          case BillingType.perMinute: return fallbackConfig.americanPoolPerMinute;
+          case BillingType.halfHour: return fallbackConfig.americanPoolHalfHour;
+          case BillingType.oneHour: return fallbackConfig.americanPoolOneHour;
           default: return null;
         }
+      case TableType.ps5:
+      case TableType.ps4:
+        double? basePrice;
+        switch (billingType) {
+          case BillingType.halfHour: basePrice = tableType == TableType.ps5 ? fallbackConfig.ps5HalfHour : fallbackConfig.ps4HalfHour; break;
+          case BillingType.oneHour: basePrice = tableType == TableType.ps5 ? fallbackConfig.ps5OneHour : fallbackConfig.ps4OneHour; break;
+          default: return null;
+        }
+        if (basePrice != null && controllerCount != null && controllerCount > 1) {
+          final extraFee = billingType == BillingType.halfHour ? fallbackConfig.extraControllerFeeHalfHour : fallbackConfig.extraControllerFeeOneHour;
+          return basePrice + ((controllerCount - 1) * extraFee);
+        }
+        return basePrice;
       case TableType.pc:
         switch (billingType) {
-          case BillingType.halfHour: return pricingConfig.pcHalfHour;
-          case BillingType.oneHour: return pricingConfig.pcOneHour;
+          case BillingType.halfHour: return fallbackConfig.pcHalfHour;
+          case BillingType.oneHour: return fallbackConfig.pcOneHour;
           default: return null;
         }
       case TableType.carrom:
         switch (billingType) {
-          case BillingType.halfHour: return pricingConfig.carromHalfHour;
-          case BillingType.oneHour: return pricingConfig.carromOneHour;
+          case BillingType.halfHour: return fallbackConfig.carromHalfHour;
+          case BillingType.oneHour: return fallbackConfig.carromOneHour;
           default: return null;
         }
       case TableType.foosball:
         switch (billingType) {
-          case BillingType.halfHour: return pricingConfig.foosballHalfHour;
-          case BillingType.oneHour: return pricingConfig.foosballOneHour;
+          case BillingType.halfHour: return fallbackConfig.foosballHalfHour;
+          case BillingType.oneHour: return fallbackConfig.foosballOneHour;
           default: return null;
         }
       case TableType.chess:
         switch (billingType) {
-          case BillingType.halfHour: return pricingConfig.chessHalfHour;
-          case BillingType.oneHour: return pricingConfig.chessOneHour;
+          case BillingType.halfHour: return fallbackConfig.chessHalfHour;
+          case BillingType.oneHour: return fallbackConfig.chessOneHour;
           default: return null;
         }
+      case TableType.simulator:
+        switch (billingType) {
+          case BillingType.halfHour: return fallbackConfig.simulatorHalfHour;
+          case BillingType.oneHour: return fallbackConfig.simulatorOneHour;
+          default: return null;
+        }
+      case TableType.iceHockey:
+        switch (billingType) {
+          case BillingType.halfHour: return fallbackConfig.iceHockeyHalfHour;
+          case BillingType.oneHour: return fallbackConfig.iceHockeyOneHour;
+          default: return null;
+        }
+      case TableType.arcade:
+        if (billingType == BillingType.perCoin) return fallbackConfig.arcadeCoinPrice;
+        return null;
       default:
         switch (billingType) {
-          case BillingType.perMinute:
-            return pricingConfig.snookerPerMinute;
-          case BillingType.halfHour:
-            return pricingConfig.snookerHalfHour;
-          case BillingType.oneHour:
-            return pricingConfig.snookerOneHour;
-          case BillingType.perFrame:
-            return null;
+          case BillingType.perMinute: return fallbackConfig.snookerPerMinute;
+          case BillingType.halfHour: return fallbackConfig.snookerHalfHour;
+          case BillingType.oneHour: return fallbackConfig.snookerOneHour;
+          default: return null;
         }
     }
   }
 
   /// Returns all billing types supported by a given table type and game type.
-  static List<BillingType> supportedBillingTypes(TableType tableType, GameType gameType) {
+  static List<BillingType> supportedBillingTypes(TableModel table, GameType gameType) {
+    if (table.billingOptions != null) {
+      final List<BillingType> types = [];
+      if (gameType == GameType.race) {
+        if (table.billingOptions!['racePerMinute']?.enabled == true) {
+          types.add(BillingType.perMinute);
+        }
+        return types;
+      } else if (gameType == GameType.rummy) {
+        if (table.billingOptions!['rummyPerMinute']?.enabled == true) {
+          types.add(BillingType.perMinute);
+        }
+        return types;
+      }
+      
+      if (table.billingOptions!['perMinute']?.enabled == true) types.add(BillingType.perMinute);
+      if (table.billingOptions!['perFrame']?.enabled == true) types.add(BillingType.perFrame);
+      if (table.billingOptions!['halfHour']?.enabled == true) types.add(BillingType.halfHour);
+      if (table.billingOptions!['oneHour']?.enabled == true) types.add(BillingType.oneHour);
+      if (table.billingOptions!['perCoin']?.enabled == true) types.add(BillingType.perCoin);
+      return types;
+    }
+
+    // Fallback logic
+    final tableType = table.type;
     if (gameType == GameType.race || gameType == GameType.rummy) {
       return [BillingType.perMinute];
     }
@@ -176,15 +239,22 @@ class TablePricingConfig {
       case TableType.snooker:
         return [BillingType.perMinute, BillingType.halfHour, BillingType.oneHour];
       case TableType.indianPool:
-        return [BillingType.perFrame, BillingType.perMinute, BillingType.halfHour, BillingType.oneHour]; // Fixed: Indian pool now supports per-minute
+        return [BillingType.perFrame, BillingType.perMinute, BillingType.halfHour, BillingType.oneHour];
       case TableType.americanPool:
         return [BillingType.perFrame, BillingType.perMinute, BillingType.halfHour, BillingType.oneHour];
       case TableType.ps5:
+      case TableType.ps4:
       case TableType.pc:
       case TableType.carrom:
       case TableType.foosball:
       case TableType.chess:
+      case TableType.tableTennis:
+      case TableType.steeringWheel:
+      case TableType.simulator:
+      case TableType.iceHockey:
         return [BillingType.halfHour, BillingType.oneHour];
+      case TableType.arcade:
+        return [BillingType.perCoin];
       default:
         return [BillingType.perMinute, BillingType.halfHour, BillingType.oneHour];
     }
@@ -201,8 +271,10 @@ class TablePricingConfig {
     required GameSettings gameConfig,
     List<GameRound> completedRounds = const [],
     double? customPrice,
+    int? coinQuantity,
   }) {
-    final price = customPrice ?? getPrice(tableType, gameType, billingType, pricingConfig);
+    final dummyTable = TableModel(id: '', name: '', type: tableType);
+    final price = customPrice ?? getPrice(dummyTable, gameType, billingType, pricingConfig); 
     if (price == null) {
       return const GameChargeBreakdown(
         baseCharge: 0,
@@ -211,7 +283,8 @@ class TablePricingConfig {
       );
     }
 
-    final double perSecondRate = (customPrice ?? getPerMinutePrice(tableType, gameType, pricingConfig)) / 60.0;
+    final double perMinutePrice = getPrice(dummyTable, gameType, BillingType.perMinute, pricingConfig) ?? 0.0;
+    final double perSecondRate = (customPrice ?? perMinutePrice) / 60.0;
     final bool overtimeEnabled = gameConfig.enableOvertimeBilling;
 
     switch (billingType) {
@@ -270,6 +343,13 @@ class TablePricingConfig {
           baseCharge: price,
           overtimeMinutes: overtimeMinutes,
           overtimeCharge: overtimeCharge,
+        );
+        
+      case BillingType.perCoin:
+        return GameChargeBreakdown(
+          baseCharge: price * (coinQuantity ?? 1),
+          overtimeMinutes: 0,
+          overtimeCharge: 0,
         );
     }
   }

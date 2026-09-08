@@ -1,4 +1,4 @@
-﻿import 'package:snooker_club/l10n/app_localizations.dart';
+import 'package:snooker_club/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:snooker_club/core/theme/app_colors.dart';
@@ -80,7 +80,7 @@ class StartGameSheet extends ConsumerWidget {
                         // Other Games Tab
                         ListView(
                           padding: const EdgeInsets.all(20),
-                          children: _buildTabGroups([TableType.ps5, TableType.pc, TableType.carrom, TableType.foosball, TableType.chess], groupedTables, context, currentStaff?.id ?? '', theme),
+                          children: _buildTabGroups([TableType.ps5, TableType.ps4, TableType.simulator, TableType.arcade, TableType.iceHockey, TableType.pc, TableType.carrom, TableType.foosball, TableType.chess, TableType.tableTennis, TableType.steeringWheel], groupedTables, context, currentStaff?.id ?? '', theme),
                         ),
                       ],
                     ),
@@ -106,6 +106,9 @@ class StartGameSheet extends ConsumerWidget {
         case TableType.carrom: title = 'Carrom Boards'; break;
         case TableType.foosball: title = 'Foosball Tables'; break;
         case TableType.chess: title = 'Chess Boards'; break;
+        case TableType.tableTennis: title = 'Table Tennis'; break;
+        case TableType.steeringWheel: title = 'Steering Wheels'; break;
+        case TableType.arcade: title = 'Arcade Machines'; break;
       }
       return _buildTableGroup(title, tablesOfType, context, employeeId, theme);
     }).toList();

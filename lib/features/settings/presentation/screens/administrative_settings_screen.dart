@@ -248,9 +248,13 @@ class AdministrativeSettingsScreen extends ConsumerWidget {
               label: const Text('Configure'),
             ),
             children: [
-              _buildRateOverviewTile('Snooker (Per Min / 1h)', '${currency.symbol}${settings.pricing.snookerPerMinute.toStringAsFixed(2)} / ${currency.symbol}${settings.pricing.snookerOneHour.toStringAsFixed(0)}'),
-              _buildRateOverviewTile('Indian Pool (Per Frame / 1h)', '${currency.symbol}${settings.pricing.indianPoolPerFrame.toStringAsFixed(0)} / ${currency.symbol}${settings.pricing.indianPoolOneHour.toStringAsFixed(0)}'),
-              _buildRateOverviewTile('American Pool (Per Frame / 1h)', '${currency.symbol}${settings.pricing.americanPoolPerFrame.toStringAsFixed(0)} / ${currency.symbol}${settings.pricing.americanPoolOneHour.toStringAsFixed(0)}'),
+              const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                child: Text(
+                  'Pricing is now configured independently for every table and game resource.',
+                  style: TextStyle(color: Colors.grey),
+                ),
+              ),
             ],
           ),
 

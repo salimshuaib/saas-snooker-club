@@ -36,7 +36,7 @@ class OverviewScreen extends ConsumerWidget {
 
     return Scaffold(
       body: SafeArea(
-        child: ListView(
+        child: Center(child: ConstrainedBox(constraints: const BoxConstraints(maxWidth: 800), child: ListView(
           padding: const EdgeInsets.fromLTRB(20, 20, 20, 20),
           children: [
             // ── Welcome Header ──
@@ -155,6 +155,8 @@ class OverviewScreen extends ConsumerWidget {
             ),
             const Gap(16),
           ],
+        ),
+        ),
         ),
       ),
     );

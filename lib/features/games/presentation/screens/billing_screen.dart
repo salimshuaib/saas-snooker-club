@@ -220,7 +220,7 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
       _session.billingType == BillingType.perFrame &&
       _session.matchType == MatchType.loserPays;
 
-  GameChargeBreakdown get _breakdown {
+    GameChargeBreakdown get _breakdown {
     final appSettings = ref.read(appSettingsProvider);
     return TablePricingConfig.calculateCharge(
       tableType: _session.tableType,
@@ -232,6 +232,7 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
       gameConfig: _session.gameSettingsSnapshot ?? appSettings.game,
       completedRounds: _session.rounds,
       customPrice: _session.customPrice,
+      coinQuantity: _session.coinQuantity,
     );
   }
 
@@ -342,8 +343,11 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
 
     return Scaffold(
       appBar: AppBar(title: const Text('Bill'), centerTitle: false),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
+      body: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 600),
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -889,6 +893,8 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
             ),
           ],
         ),
+      ),
+      ),
       ),
     );
   }

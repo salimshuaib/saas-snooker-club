@@ -25,19 +25,16 @@ final financialSummaryProvider = Provider<AsyncValue<RevenueOverviewData>>((ref)
   ref.watch(analyticsTimeRangeProvider);
   ref.watch(totalOutstandingCreditProvider);
 
-  if (gamesAsync.isLoading || 
-      quickSalesAsync.isLoading || 
-      paymentsAsync.isLoading ||
-      inventoryAsync.isLoading ||
-      customersAsync.isLoading ||
-      prevGamesAsync.isLoading ||
-      prevQuickSalesAsync.isLoading ||
-      prevPaymentsAsync.isLoading) {
-    return const AsyncValue.loading();
-  }
+  if (gamesAsync.hasError) return AsyncValue.error(gamesAsync.error!, gamesAsync.stackTrace!);
+  if (quickSalesAsync.hasError) return AsyncValue.error(quickSalesAsync.error!, quickSalesAsync.stackTrace!);
+  if (paymentsAsync.hasError) return AsyncValue.error(paymentsAsync.error!, paymentsAsync.stackTrace!);
 
-  if (gamesAsync.hasError) {
-    return AsyncValue.error(gamesAsync.error!, gamesAsync.stackTrace!);
+  // Only block the UI on critical current streams.
+  // Other streams will default to empty lists and silently update when they load.
+  if (!gamesAsync.hasValue || 
+      !quickSalesAsync.hasValue || 
+      !paymentsAsync.hasValue) {
+    return const AsyncValue.loading();
   }
 
   final data = getCompleteAnalyticsData(ref);
