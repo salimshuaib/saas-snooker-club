@@ -1,399 +1,384 @@
-import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:gap/gap.dart';
-import 'package:snooker_club/features/settings/domain/models/settings_models.dart';
-import 'package:snooker_club/features/settings/providers/settings_providers.dart';
-
-class PricingEditSheet extends ConsumerStatefulWidget {
-  final PricingSettings initialSettings;
-
-  const PricingEditSheet({super.key, required this.initialSettings});
-
-  @override
-  ConsumerState<PricingEditSheet> createState() => _PricingEditSheetState();
-}
-
-class _PricingEditSheetState extends ConsumerState<PricingEditSheet> {
-  final _formKey = GlobalKey<FormState>();
-
-  // Snooker
-  late final TextEditingController _snookerMinController;
-  late final TextEditingController _snooker30mController;
-  late final TextEditingController _snooker1hController;
-  late final TextEditingController _snookerRaceMinController;
-  late final TextEditingController _snookerRummyMinController;
-
-  // Indian Pool
-  late final TextEditingController _indianFrameController;
-  late final TextEditingController _indianMinController;
-  late final TextEditingController _indian30mController;
-  late final TextEditingController _indian1hController;
-  late final TextEditingController _indianRaceMinController;
-
-  // American Pool
-  late final TextEditingController _americanFrameController;
-  late final TextEditingController _americanMinController;
-  late final TextEditingController _american30mController;
-  late final TextEditingController _american1hController;
-  late final TextEditingController _americanRaceMinController;
-
-  // Other Games
-  late final TextEditingController _ps530mController;
-  late final TextEditingController _ps51hController;
-  late final TextEditingController _pc30mController;
-  late final TextEditingController _pc1hController;
-  late final TextEditingController _carrom30mController;
-  late final TextEditingController _carrom1hController;
-  late final TextEditingController _foosball30mController;
-  late final TextEditingController _foosball1hController;
-  late final TextEditingController _chess30mController;
-  late final TextEditingController _chess1hController;
-
-  bool _isSaving = false;
-
-  @override
-  void initState() {
-    super.initState();
-    final p = widget.initialSettings;
-    _snookerMinController = TextEditingController(text: p.snookerPerMinute.toStringAsFixed(2));
-    _snooker30mController = TextEditingController(text: p.snookerHalfHour.toStringAsFixed(2));
-    _snooker1hController = TextEditingController(text: p.snookerOneHour.toStringAsFixed(2));
-    _snookerRaceMinController = TextEditingController(text: p.snookerRacePerMinute.toStringAsFixed(2));
-    _snookerRummyMinController = TextEditingController(text: p.snookerRummyPerMinute.toStringAsFixed(2));
-
-    _indianFrameController = TextEditingController(text: p.indianPoolPerFrame.toStringAsFixed(2));
-    _indianMinController = TextEditingController(text: p.indianPoolPerMinute.toStringAsFixed(2));
-    _indian30mController = TextEditingController(text: p.indianPoolHalfHour.toStringAsFixed(2));
-    _indian1hController = TextEditingController(text: p.indianPoolOneHour.toStringAsFixed(2));
-    _indianRaceMinController = TextEditingController(text: p.indianPoolRacePerMinute.toStringAsFixed(2));
-
-    _americanFrameController = TextEditingController(text: p.americanPoolPerFrame.toStringAsFixed(2));
-    _americanMinController = TextEditingController(text: p.americanPoolPerMinute.toStringAsFixed(2));
-    _american30mController = TextEditingController(text: p.americanPoolHalfHour.toStringAsFixed(2));
-    _american1hController = TextEditingController(text: p.americanPoolOneHour.toStringAsFixed(2));
-    _americanRaceMinController = TextEditingController(text: p.americanPoolRacePerMinute.toStringAsFixed(2));
-
-    _ps530mController = TextEditingController(text: p.ps5HalfHour.toStringAsFixed(2));
-    _ps51hController = TextEditingController(text: p.ps5OneHour.toStringAsFixed(2));
-    _pc30mController = TextEditingController(text: p.pcHalfHour.toStringAsFixed(2));
-    _pc1hController = TextEditingController(text: p.pcOneHour.toStringAsFixed(2));
-    _carrom30mController = TextEditingController(text: p.carromHalfHour.toStringAsFixed(2));
-    _carrom1hController = TextEditingController(text: p.carromOneHour.toStringAsFixed(2));
-    _foosball30mController = TextEditingController(text: p.foosballHalfHour.toStringAsFixed(2));
-    _foosball1hController = TextEditingController(text: p.foosballOneHour.toStringAsFixed(2));
-    _chess30mController = TextEditingController(text: p.chessHalfHour.toStringAsFixed(2));
-    _chess1hController = TextEditingController(text: p.chessOneHour.toStringAsFixed(2));
-  }
-
-  @override
-  void dispose() {
-    _snookerMinController.dispose();
-    _snooker30mController.dispose();
-    _snooker1hController.dispose();
-    _snookerRaceMinController.dispose();
-    _snookerRummyMinController.dispose();
-
-    _indianFrameController.dispose();
-    _indianMinController.dispose();
-    _indian30mController.dispose();
-    _indian1hController.dispose();
-    _indianRaceMinController.dispose();
-
-    _americanFrameController.dispose();
-    _americanMinController.dispose();
-    _american30mController.dispose();
-    _american1hController.dispose();
-    _americanRaceMinController.dispose();
-
-    _ps530mController.dispose();
-    _ps51hController.dispose();
-    _pc30mController.dispose();
-    _pc1hController.dispose();
-    _carrom30mController.dispose();
-    _carrom1hController.dispose();
-    _foosball30mController.dispose();
-    _foosball1hController.dispose();
-    _chess30mController.dispose();
-    _chess1hController.dispose();
-    super.dispose();
-  }
-
-  String? _validatePrice(String? value) {
-    if (value == null || value.trim().isEmpty) return 'Required';
-    final parsed = double.tryParse(value.trim());
-    if (parsed == null || parsed < 0) return 'Invalid amount';
-    return null;
-  }
-
-  Future<void> _onSave() async {
-    if (!_formKey.currentState!.validate()) return;
-    setState(() => _isSaving = true);
-    try {
-      final updated = PricingSettings(
-        snookerPerMinute: double.parse(_snookerMinController.text.trim()),
-        snookerHalfHour: double.parse(_snooker30mController.text.trim()),
-        snookerOneHour: double.parse(_snooker1hController.text.trim()),
-        snookerRacePerMinute: double.parse(_snookerRaceMinController.text.trim()),
-        snookerRummyPerMinute: double.parse(_snookerRummyMinController.text.trim()),
-        indianPoolPerFrame: double.parse(_indianFrameController.text.trim()),
-        indianPoolPerMinute: double.parse(_indianMinController.text.trim()),
-        indianPoolHalfHour: double.parse(_indian30mController.text.trim()),
-        indianPoolOneHour: double.parse(_indian1hController.text.trim()),
-        indianPoolRacePerMinute: double.parse(_indianRaceMinController.text.trim()),
-        americanPoolPerFrame: double.parse(_americanFrameController.text.trim()),
-        americanPoolPerMinute: double.parse(_americanMinController.text.trim()),
-        americanPoolHalfHour: double.parse(_american30mController.text.trim()),
-        americanPoolOneHour: double.parse(_american1hController.text.trim()),
-        americanPoolRacePerMinute: double.parse(_americanRaceMinController.text.trim()),
-        ps5HalfHour: double.parse(_ps530mController.text.trim()),
-        ps5OneHour: double.parse(_ps51hController.text.trim()),
-        pcHalfHour: double.parse(_pc30mController.text.trim()),
-        pcOneHour: double.parse(_pc1hController.text.trim()),
-        carromHalfHour: double.parse(_carrom30mController.text.trim()),
-        carromOneHour: double.parse(_carrom1hController.text.trim()),
-        foosballHalfHour: double.parse(_foosball30mController.text.trim()),
-        foosballOneHour: double.parse(_foosball1hController.text.trim()),
-        chessHalfHour: double.parse(_chess30mController.text.trim()),
-        chessOneHour: double.parse(_chess1hController.text.trim()),
-      );
-
-      await ref.read(appSettingsProvider.notifier).updatePricingSettings(updated);
-      if (mounted) {
-        Navigator.of(context).pop();
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Table pricing updated successfully.')),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error saving pricing: $e'),
-            backgroundColor: Theme.of(context).colorScheme.error,
-          ),
-        );
-      }
-    } finally {
-      if (mounted) setState(() => _isSaving = false);
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    return Container(
-      constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.85),
-      padding: EdgeInsets.only(
-        left: 20,
-        right: 20,
-        top: 20,
-        bottom: MediaQuery.of(context).viewInsets.bottom + 20,
-      ),
-      child: Form(
-        key: _formKey,
-        child: Column(
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  'Configure Table Pricing',
-                  style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
-                ),
-                IconButton(
-                  icon: const Icon(Icons.close),
-                  onPressed: () => Navigator.of(context).pop(),
-                ),
-              ],
-            ),
-            const Gap(12),
-            Expanded(
-              child: SingleChildScrollView(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildSectionHeader('Snooker Tables', Icons.circle, Colors.red),
-                    const Gap(12),
-                    Row(
-                      children: [
-                        Expanded(child: _buildTextField('Per Minute', _snookerMinController)),
-                        const Gap(12),
-                        Expanded(child: _buildTextField('Half Hour (30m)', _snooker30mController)),
-                      ],
-                    ),
-                    const Gap(12),
-                    Row(
-                      children: [
-                        Expanded(child: _buildTextField('One Hour (1h)', _snooker1hController)),
-                        const Gap(12),
-                        Expanded(child: _buildTextField('Race / min', _snookerRaceMinController)),
-                      ],
-                    ),
-                    const Gap(12),
-                    Row(
-                      children: [
-                        Expanded(child: _buildTextField('Rummy / min', _snookerRummyMinController)),
-                        const Gap(12),
-                        const Expanded(child: SizedBox()),
-                      ],
-                    ),
-                    const Gap(24),
-                    _buildSectionHeader('Indian Pool Tables', Icons.lens, Colors.amber),
-                    const Gap(12),
-                    Row(
-                      children: [
-                        Expanded(child: _buildTextField('Per Frame', _indianFrameController)),
-                        const Gap(12),
-                        Expanded(child: _buildTextField('Overtime/min', _indianMinController)),
-                      ],
-                    ),
-                    const Gap(12),
-                    Row(
-                      children: [
-                        Expanded(child: _buildTextField('Half Hour (30m)', _indian30mController)),
-                        const Gap(12),
-                        Expanded(child: _buildTextField('One Hour (1h)', _indian1hController)),
-                      ],
-                    ),
-                    const Gap(12),
-                    Row(
-                      children: [
-                        Expanded(child: _buildTextField('Race / min', _indianRaceMinController)),
-                        const Gap(12),
-                        const Expanded(child: SizedBox()),
-                      ],
-                    ),
-                    const Gap(24),
-                    _buildSectionHeader('American Pool Tables', Icons.album, Colors.blue),
-                    const Gap(12),
-                    Row(
-                      children: [
-                        Expanded(child: _buildTextField('Per Frame', _americanFrameController)),
-                        const Gap(12),
-                        Expanded(child: _buildTextField('Per Minute', _americanMinController)),
-                      ],
-                    ),
-                    const Gap(12),
-                    Row(
-                      children: [
-                        Expanded(child: _buildTextField('Half Hour (30m)', _american30mController)),
-                        const Gap(12),
-                        Expanded(child: _buildTextField('One Hour (1h)', _american1hController)),
-                      ],
-                    ),
-                    const Gap(12),
-                    Row(
-                      children: [
-                        Expanded(child: _buildTextField('Race / min', _americanRaceMinController)),
-                        const Gap(12),
-                        const Expanded(child: SizedBox()),
-                      ],
-                    ),
-                    const Gap(24),
-                    _buildSectionHeader('PS5', Icons.gamepad, Colors.deepPurple),
-                    const Gap(12),
-                    Row(
-                      children: [
-                        Expanded(child: _buildTextField('Half Hour (30m)', _ps530mController)),
-                        const Gap(12),
-                        Expanded(child: _buildTextField('One Hour (1h)', _ps51hController)),
-                      ],
-                    ),
-                    const Gap(24),
-                    _buildSectionHeader('PC', Icons.computer, Colors.cyan),
-                    const Gap(12),
-                    Row(
-                      children: [
-                        Expanded(child: _buildTextField('Half Hour (30m)', _pc30mController)),
-                        const Gap(12),
-                        Expanded(child: _buildTextField('One Hour (1h)', _pc1hController)),
-                      ],
-                    ),
-                    const Gap(24),
-                    _buildSectionHeader('Carrom', Icons.crop_square, Colors.brown),
-                    const Gap(12),
-                    Row(
-                      children: [
-                        Expanded(child: _buildTextField('Half Hour (30m)', _carrom30mController)),
-                        const Gap(12),
-                        Expanded(child: _buildTextField('One Hour (1h)', _carrom1hController)),
-                      ],
-                    ),
-                    const Gap(24),
-                    _buildSectionHeader('Foosball', Icons.sports_soccer, Colors.green),
-                    const Gap(12),
-                    Row(
-                      children: [
-                        Expanded(child: _buildTextField('Half Hour (30m)', _foosball30mController)),
-                        const Gap(12),
-                        Expanded(child: _buildTextField('One Hour (1h)', _foosball1hController)),
-                      ],
-                    ),
-                    const Gap(24),
-                    _buildSectionHeader('Chess', Icons.extension, Colors.grey),
-                    const Gap(12),
-                    Row(
-                      children: [
-                        Expanded(child: _buildTextField('Half Hour (30m)', _chess30mController)),
-                        const Gap(12),
-                        Expanded(child: _buildTextField('One Hour (1h)', _chess1hController)),
-                      ],
-                    ),
-                    const Gap(24),
-                  ],
-                ),
-              ),
-            ),
-            const Gap(16),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  backgroundColor: theme.colorScheme.primary,
-                  foregroundColor: theme.colorScheme.onPrimary,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                ),
-                onPressed: _isSaving ? null : _onSave,
-                child: _isSaving
-                    ? const SizedBox(
-                        height: 20,
-                        width: 20,
-                        child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                      )
-                    : const Text('Save Pricing Rates', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildSectionHeader(String title, IconData icon, Color color) {
-    return Row(
-      children: [
-        Icon(icon, color: color, size: 18),
-        const Gap(8),
-        Text(
-          title,
-          style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildTextField(String label, TextEditingController controller) {
-    return TextFormField(
-      controller: controller,
-      keyboardType: const TextInputType.numberWithOptions(decimal: true),
-      decoration: InputDecoration(
-        labelText: label,
-        border: const OutlineInputBorder(),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
-      ),
-      validator: _validatePrice,
-    );
-  }
-}
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:gap/gap.dart';
+import 'package:snooker_club/features/settings/domain/models/settings_models.dart';
+import 'package:snooker_club/features/games/domain/models/game_models.dart';
+import 'package:snooker_club/features/games/providers/games_providers.dart';
+
+class PricingEditSheet extends ConsumerStatefulWidget {
+  final PricingSettings initialSettings;
+
+  const PricingEditSheet({super.key, required this.initialSettings});
+
+  @override
+  ConsumerState<PricingEditSheet> createState() => _PricingEditSheetState();
+}
+
+class _PricingEditSheetState extends ConsumerState<PricingEditSheet> {
+  final _formKey = GlobalKey<FormState>();
+
+  bool _isSaving = false;
+
+  final Map<String, Map<String, TextEditingController>> _controllers = {};
+  final Map<String, Map<String, bool>> _toggles = {};
+
+  @override
+  void dispose() {
+    for (final tableMap in _controllers.values) {
+      for (final controller in tableMap.values) {
+        controller.dispose();
+      }
+    }
+    super.dispose();
+  }
+
+  void _initControllersForTable(TableModel table, PricingSettings fallback) {
+    if (_controllers.containsKey(table.id)) return;
+
+    _controllers[table.id] = {};
+    _toggles[table.id] = {};
+
+    final options = _getOptionsForTableType(table.type);
+    for (final opt in options) {
+      final key = opt['key']!;
+      final existingOption = table.billingOptions?[key];
+      
+      bool isEnabled = existingOption?.enabled ?? false;
+      if (table.billingOptions == null) {
+        isEnabled = _isDefaultEnabled(table.type, key);
+      }
+      
+      final double price = existingOption?.price ?? _getDefaultPrice(fallback, table.type, key);
+      
+      _toggles[table.id]![key] = isEnabled;
+      _controllers[table.id]![key] = TextEditingController(text: price.toStringAsFixed(2));
+    }
+  }
+
+  bool _isDefaultEnabled(TableType type, String key) {
+    switch (type) {
+      case TableType.snooker:
+        return ['perMinute', 'halfHour', 'oneHour'].contains(key);
+      case TableType.indianPool:
+      case TableType.americanPool:
+        return ['perFrame', 'perMinute', 'halfHour', 'oneHour'].contains(key);
+      case TableType.ps5:
+      case TableType.pc:
+      case TableType.carrom:
+      case TableType.foosball:
+      case TableType.chess:
+        return ['halfHour', 'oneHour'].contains(key);
+    }
+  }
+
+  double _getDefaultPrice(PricingSettings p, TableType type, String key) {
+    switch (type) {
+      case TableType.snooker:
+        if (key == 'perMinute') return p.snookerPerMinute;
+        if (key == 'halfHour') return p.snookerHalfHour;
+        if (key == 'oneHour') return p.snookerOneHour;
+        if (key == 'racePerMinute') return p.snookerRacePerMinute;
+        if (key == 'rummyPerMinute') return p.snookerRummyPerMinute;
+        break;
+      case TableType.indianPool:
+        if (key == 'perFrame') return p.indianPoolPerFrame;
+        if (key == 'perMinute') return p.indianPoolPerMinute;
+        if (key == 'halfHour') return p.indianPoolHalfHour;
+        if (key == 'oneHour') return p.indianPoolOneHour;
+        if (key == 'racePerMinute') return p.indianPoolRacePerMinute;
+        break;
+      case TableType.americanPool:
+        if (key == 'perFrame') return p.americanPoolPerFrame;
+        if (key == 'perMinute') return p.americanPoolPerMinute;
+        if (key == 'halfHour') return p.americanPoolHalfHour;
+        if (key == 'oneHour') return p.americanPoolOneHour;
+        if (key == 'racePerMinute') return p.americanPoolRacePerMinute;
+        break;
+      case TableType.ps5:
+        if (key == 'halfHour') return p.ps5HalfHour;
+        if (key == 'oneHour') return p.ps5OneHour;
+        break;
+      case TableType.pc:
+        if (key == 'halfHour') return p.pcHalfHour;
+        if (key == 'oneHour') return p.pcOneHour;
+        break;
+      case TableType.carrom:
+        if (key == 'halfHour') return p.carromHalfHour;
+        if (key == 'oneHour') return p.carromOneHour;
+        break;
+      case TableType.foosball:
+        if (key == 'halfHour') return p.foosballHalfHour;
+        if (key == 'oneHour') return p.foosballOneHour;
+        break;
+      case TableType.chess:
+        if (key == 'halfHour') return p.chessHalfHour;
+        if (key == 'oneHour') return p.chessOneHour;
+        break;
+    }
+    return 0.0;
+  }
+
+  List<Map<String, String>> _getOptionsForTableType(TableType type) {
+    switch (type) {
+      case TableType.snooker:
+        return [
+          {'key': 'perMinute', 'label': 'Per Minute'},
+          {'key': 'halfHour', 'label': 'Half Hour (30m)'},
+          {'key': 'oneHour', 'label': 'One Hour (1h)'},
+          {'key': 'racePerMinute', 'label': 'Race / min'},
+          {'key': 'rummyPerMinute', 'label': 'Rummy / min'},
+        ];
+      case TableType.indianPool:
+      case TableType.americanPool:
+        return [
+          {'key': 'perFrame', 'label': 'Per Frame'},
+          {'key': 'perMinute', 'label': 'Per Minute / Overtime'},
+          {'key': 'halfHour', 'label': 'Half Hour (30m)'},
+          {'key': 'oneHour', 'label': 'One Hour (1h)'},
+          {'key': 'racePerMinute', 'label': 'Race / min'},
+        ];
+      default:
+        return [
+          {'key': 'halfHour', 'label': 'Half Hour (30m)'},
+          {'key': 'oneHour', 'label': 'One Hour (1h)'},
+        ];
+    }
+  }
+
+  IconData _getIconForTableType(TableType type) {
+    switch (type) {
+      case TableType.snooker: return Icons.circle;
+      case TableType.indianPool: return Icons.lens;
+      case TableType.americanPool: return Icons.album;
+      case TableType.ps5: return Icons.gamepad;
+      case TableType.pc: return Icons.computer;
+      case TableType.carrom: return Icons.crop_square;
+      case TableType.foosball: return Icons.sports_soccer;
+      case TableType.chess: return Icons.extension;
+    }
+  }
+
+  Color _getColorForTableType(TableType type) {
+    switch (type) {
+      case TableType.snooker: return Colors.red;
+      case TableType.indianPool: return Colors.amber;
+      case TableType.americanPool: return Colors.blue;
+      case TableType.ps5: return Colors.deepPurple;
+      case TableType.pc: return Colors.cyan;
+      case TableType.carrom: return Colors.brown;
+      case TableType.foosball: return Colors.green;
+      case TableType.chess: return Colors.grey;
+    }
+  }
+
+  String? _validatePrice(String? value) {
+    if (value == null || value.trim().isEmpty) return 'Required';
+    final parsed = double.tryParse(value.trim());
+    if (parsed == null || parsed < 0) return 'Invalid amount';
+    return null;
+  }
+
+  Future<void> _onSave() async {
+    if (!_formKey.currentState!.validate()) return;
+    setState(() => _isSaving = true);
+    try {
+      final tables = ref.read(resolvedTablesProvider);
+      final repo = ref.read(gamesRepositoryProvider);
+
+      for (final table in tables) {
+        final tableToggles = _toggles[table.id];
+        final tableControllers = _controllers[table.id];
+        if (tableToggles == null || tableControllers == null) continue;
+
+        Map<String, TableBillingOption> newBillingOptions = {};
+        
+        for (final key in tableToggles.keys) {
+          final isEnabled = tableToggles[key] ?? false;
+          final priceStr = tableControllers[key]?.text.trim() ?? '0';
+          final price = double.tryParse(priceStr) ?? 0.0;
+          
+          newBillingOptions[key] = TableBillingOption(
+            enabled: isEnabled,
+            price: price,
+          );
+        }
+        
+        final updatedTable = table.copyWith(billingOptions: newBillingOptions);
+        await repo.updateTable(updatedTable);
+      }
+      
+      if (mounted) {
+        Navigator.of(context).pop();
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Table pricing updated successfully.')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error saving pricing: $e'),
+            backgroundColor: Theme.of(context).colorScheme.error,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isSaving = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final tables = ref.watch(resolvedTablesProvider);
+
+    for (var table in tables) {
+      _initControllersForTable(table, widget.initialSettings);
+    }
+
+    return Container(
+      constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.85),
+      padding: EdgeInsets.only(
+        left: 20,
+        right: 20,
+        top: 20,
+        bottom: MediaQuery.of(context).viewInsets.bottom + 20,
+      ),
+      child: Form(
+        key: _formKey,
+        child: Column(
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Configure Table Pricing',
+                  style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.close),
+                  onPressed: () => Navigator.of(context).pop(),
+                ),
+              ],
+            ),
+            const Gap(12),
+            Expanded(
+              child: ListView.builder(
+                itemCount: tables.length,
+                itemBuilder: (context, index) {
+                  final table = tables[index];
+                  return _buildTablePricingCard(table, theme);
+                },
+              ),
+            ),
+            const Gap(16),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  backgroundColor: theme.colorScheme.primary,
+                  foregroundColor: theme.colorScheme.onPrimary,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+                onPressed: _isSaving ? null : _onSave,
+                child: _isSaving
+                    ? const SizedBox(
+                        height: 20,
+                        width: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                      )
+                    : const Text('Save Pricing Rates', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTablePricingCard(TableModel table, ThemeData theme) {
+    final options = _getOptionsForTableType(table.type);
+    
+    return Card(
+      margin: const EdgeInsets.only(bottom: 16),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(_getIconForTableType(table.type), color: _getColorForTableType(table.type), size: 20),
+                const Gap(8),
+                Text(
+                  table.name,
+                  style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+                ),
+                const Spacer(),
+                Text(
+                  table.type.displayName,
+                  style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                ),
+              ],
+            ),
+            const Gap(16),
+            ...options.map((opt) {
+              final key = opt['key']!;
+              final label = opt['label']!;
+              final isEnabled = _toggles[table.id]?[key] ?? false;
+              final controller = _controllers[table.id]?[key];
+              
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: Row(
+                  children: [
+                    Expanded(
+                      flex: 3,
+                      child: Row(
+                        children: [
+                          Switch(
+                            value: isEnabled,
+                            onChanged: (val) {
+                              setState(() {
+                                _toggles[table.id]![key] = val;
+                              });
+                            },
+                          ),
+                          const Gap(8),
+                          Expanded(child: Text(label, style: const TextStyle(fontWeight: FontWeight.w500))),
+                        ],
+                      ),
+                    ),
+                    const Gap(12),
+                    if (isEnabled && controller != null)
+                      Expanded(
+                        flex: 2,
+                        child: _buildTextField('Price', controller),
+                      )
+                    else
+                      const Expanded(flex: 2, child: SizedBox()),
+                  ],
+                ),
+              );
+            }),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTextField(String label, TextEditingController controller) {
+    return TextFormField(
+      controller: controller,
+      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+      decoration: InputDecoration(
+        labelText: label,
+        border: const OutlineInputBorder(),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+      ),
+      validator: _validatePrice,
+    );
+  }
+}
