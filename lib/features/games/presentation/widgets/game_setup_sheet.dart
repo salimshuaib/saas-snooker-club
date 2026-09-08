@@ -65,7 +65,19 @@ class _GameSetupSheetState extends ConsumerState<GameSetupSheet> {
   void initState() {
     super.initState();
     _tableType = widget.table.type;
-    _billingType = TablePricingConfig.supportedBillingTypes(widget.table, _gameType).first;
+    
+    final initialValidGameTypes = GameType.values.where((type) {
+      if (_tableType.isOtherGame) return type == GameType.standard;
+      if (type == GameType.rummy && _tableType != TableType.snooker) return false;
+      return TablePricingConfig.supportedBillingTypes(widget.table, type).isNotEmpty;
+    }).toList();
+    
+    if (initialValidGameTypes.isNotEmpty && !initialValidGameTypes.contains(_gameType)) {
+      _gameType = initialValidGameTypes.first;
+    }
+    
+    final validBilling = TablePricingConfig.supportedBillingTypes(widget.table, _gameType);
+    _billingType = validBilling.isNotEmpty ? validBilling.first : BillingType.perMinute;
   }
 
   @override
@@ -190,8 +202,10 @@ class _GameSetupSheetState extends ConsumerState<GameSetupSheet> {
                                 isDense: true,
                                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                               ),
-                              items: TablePricingConfig.supportedBillingTypes(widget.table, _gameType)
-                                .map((t) => DropdownMenuItem(
+                              items: (TablePricingConfig.supportedBillingTypes(widget.table, _gameType).isEmpty
+                                        ? [_billingType] // Safe fallback to avoid UI crash
+                                        : TablePricingConfig.supportedBillingTypes(widget.table, _gameType))
+                                  .map((t) => DropdownMenuItem(
                                 value: t,
                                 child: Text(t.displayName),
                               )).toList(),
