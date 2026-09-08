@@ -11,10 +11,16 @@ enum TableType {
   indianPool,
   americanPool,
   ps5,
+  ps4,
   pc,
   carrom,
   foosball,
-  chess;
+  chess,
+  tableTennis,
+  steeringWheel,
+  arcade,
+  simulator,
+  iceHockey;
 
   String get displayName {
     switch (this) {
@@ -26,6 +32,8 @@ enum TableType {
         return 'American Pool';
       case TableType.ps5:
         return 'PS5';
+      case TableType.ps4:
+        return 'PS4';
       case TableType.pc:
         return 'PC';
       case TableType.carrom:
@@ -34,6 +42,16 @@ enum TableType {
         return 'Foosball';
       case TableType.chess:
         return 'Chess';
+      case TableType.tableTennis:
+        return 'Table Tennis';
+      case TableType.steeringWheel:
+        return 'Steering Wheel';
+      case TableType.arcade:
+        return 'Arcade';
+      case TableType.simulator:
+        return 'Simulator';
+      case TableType.iceHockey:
+        return 'Ice Hockey';
     }
   }
 
@@ -89,7 +107,8 @@ enum BillingType {
   perMinute,
   perFrame,
   halfHour,
-  oneHour;
+  oneHour,
+  perCoin;
 
   String get displayName {
     switch (this) {
@@ -482,6 +501,8 @@ class GameSession {
   final DateTime? recordedTime;
   final PricingSettings? pricingSnapshot;
   final GameSettings? gameSettingsSnapshot;
+  final int? controllerCount;
+  final int? coinQuantity;
   final double? customPrice;
 
   const GameSession({
@@ -535,6 +556,8 @@ class GameSession {
     this.recordedTime,
     this.pricingSnapshot,
     this.gameSettingsSnapshot,
+    this.controllerCount,
+    this.coinQuantity,
     this.customPrice,
   });
 
@@ -637,6 +660,8 @@ class GameSession {
     DateTime? recordedTime,
     PricingSettings? pricingSnapshot,
     GameSettings? gameSettingsSnapshot,
+    int? controllerCount,
+    int? coinQuantity,
     double? customPrice,
   }) {
     return GameSession(
@@ -690,6 +715,10 @@ class GameSession {
       recordedTime: recordedTime ?? this.recordedTime,
       pricingSnapshot: pricingSnapshot ?? this.pricingSnapshot,
       gameSettingsSnapshot: gameSettingsSnapshot ?? this.gameSettingsSnapshot,
+      controllerCount: controllerCount ?? this.controllerCount,
+      coinQuantity: coinQuantity ?? this.coinQuantity,
+    this.controllerCount,
+    this.coinQuantity,
       customPrice: customPrice ?? this.customPrice,
     );
   }
@@ -745,6 +774,8 @@ class GameSession {
       'recordedTime': recordedTime != null ? Timestamp.fromDate(recordedTime!) : null,
       'pricingSnapshot': pricingSnapshot?.toMap(),
       'gameSettingsSnapshot': gameSettingsSnapshot?.toMap(),
+      'controllerCount': controllerCount,
+      'coinQuantity': coinQuantity,
       'customPrice': customPrice,
     };
   }

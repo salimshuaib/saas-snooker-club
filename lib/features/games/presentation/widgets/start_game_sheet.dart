@@ -80,7 +80,7 @@ class StartGameSheet extends ConsumerWidget {
                         // Other Games Tab
                         ListView(
                           padding: const EdgeInsets.all(20),
-                          children: _buildTabGroups([TableType.ps5, TableType.pc, TableType.carrom, TableType.foosball, TableType.chess], groupedTables, context, currentStaff?.id ?? '', theme),
+                          children: _buildTabGroups([TableType.ps5, TableType.ps4, TableType.simulator, TableType.arcade, TableType.iceHockey, TableType.pc, TableType.carrom, TableType.foosball, TableType.chess, TableType.tableTennis, TableType.steeringWheel], groupedTables, context, currentStaff?.id ?? '', theme),
                         ),
                       ],
                     ),

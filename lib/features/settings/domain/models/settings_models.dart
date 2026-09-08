@@ -148,6 +148,15 @@ class PricingSettings {
   final double foosballOneHour;
   final double chessHalfHour;
   final double chessOneHour;
+  final double ps4HalfHour;
+  final double ps4OneHour;
+  final double simulatorHalfHour;
+  final double simulatorOneHour;
+  final double iceHockeyHalfHour;
+  final double iceHockeyOneHour;
+  final double arcadeCoinPrice;
+  final double extraControllerFeeHalfHour;
+  final double extraControllerFeeOneHour;
 
   const PricingSettings({
     this.snookerPerMinute = 4.50,
@@ -175,6 +184,15 @@ class PricingSettings {
     this.foosballOneHour = 100.00,
     this.chessHalfHour = 30.00,
     this.chessOneHour = 50.00,
+    this.ps4HalfHour = 80.00,
+    this.ps4OneHour = 150.00,
+    this.simulatorHalfHour = 150.00,
+    this.simulatorOneHour = 280.00,
+    this.iceHockeyHalfHour = 50.00,
+    this.iceHockeyOneHour = 90.00,
+    this.arcadeCoinPrice = 10.00,
+    this.extraControllerFeeHalfHour = 50.00,
+    this.extraControllerFeeOneHour = 100.00,
   });
 
   PricingSettings copyWith({
@@ -203,6 +221,15 @@ class PricingSettings {
     double? foosballOneHour,
     double? chessHalfHour,
     double? chessOneHour,
+    double? ps4HalfHour,
+    double? ps4OneHour,
+    double? simulatorHalfHour,
+    double? simulatorOneHour,
+    double? iceHockeyHalfHour,
+    double? iceHockeyOneHour,
+    double? arcadeCoinPrice,
+    double? extraControllerFeeHalfHour,
+    double? extraControllerFeeOneHour,
   }) {
     return PricingSettings(
       snookerPerMinute: snookerPerMinute ?? this.snookerPerMinute,
@@ -230,6 +257,15 @@ class PricingSettings {
       foosballOneHour: foosballOneHour ?? this.foosballOneHour,
       chessHalfHour: chessHalfHour ?? this.chessHalfHour,
       chessOneHour: chessOneHour ?? this.chessOneHour,
+      ps4HalfHour: ps4HalfHour ?? this.ps4HalfHour,
+      ps4OneHour: ps4OneHour ?? this.ps4OneHour,
+      simulatorHalfHour: simulatorHalfHour ?? this.simulatorHalfHour,
+      simulatorOneHour: simulatorOneHour ?? this.simulatorOneHour,
+      iceHockeyHalfHour: iceHockeyHalfHour ?? this.iceHockeyHalfHour,
+      iceHockeyOneHour: iceHockeyOneHour ?? this.iceHockeyOneHour,
+      arcadeCoinPrice: arcadeCoinPrice ?? this.arcadeCoinPrice,
+      extraControllerFeeHalfHour: extraControllerFeeHalfHour ?? this.extraControllerFeeHalfHour,
+      extraControllerFeeOneHour: extraControllerFeeOneHour ?? this.extraControllerFeeOneHour,
     );
   }
 
@@ -260,6 +296,15 @@ class PricingSettings {
       'foosballOneHour': foosballOneHour,
       'chessHalfHour': chessHalfHour,
       'chessOneHour': chessOneHour,
+      'ps4HalfHour': ps4HalfHour,
+      'ps4OneHour': ps4OneHour,
+      'simulatorHalfHour': simulatorHalfHour,
+      'simulatorOneHour': simulatorOneHour,
+      'iceHockeyHalfHour': iceHockeyHalfHour,
+      'iceHockeyOneHour': iceHockeyOneHour,
+      'arcadeCoinPrice': arcadeCoinPrice,
+      'extraControllerFeeHalfHour': extraControllerFeeHalfHour,
+      'extraControllerFeeOneHour': extraControllerFeeOneHour,
     };
   }
 
@@ -291,6 +336,15 @@ class PricingSettings {
       foosballOneHour: (map['foosballOneHour'] as num?)?.toDouble() ?? 100.00,
       chessHalfHour: (map['chessHalfHour'] as num?)?.toDouble() ?? 30.00,
       chessOneHour: (map['chessOneHour'] as num?)?.toDouble() ?? 50.00,
+      ps4HalfHour: (map['ps4HalfHour'] as num?)?.toDouble() ?? 80.00,
+      ps4OneHour: (map['ps4OneHour'] as num?)?.toDouble() ?? 150.00,
+      simulatorHalfHour: (map['simulatorHalfHour'] as num?)?.toDouble() ?? 150.00,
+      simulatorOneHour: (map['simulatorOneHour'] as num?)?.toDouble() ?? 280.00,
+      iceHockeyHalfHour: (map['iceHockeyHalfHour'] as num?)?.toDouble() ?? 50.00,
+      iceHockeyOneHour: (map['iceHockeyOneHour'] as num?)?.toDouble() ?? 90.00,
+      arcadeCoinPrice: (map['arcadeCoinPrice'] as num?)?.toDouble() ?? 10.00,
+      extraControllerFeeHalfHour: (map['extraControllerFeeHalfHour'] as num?)?.toDouble() ?? 50.00,
+      extraControllerFeeOneHour: (map['extraControllerFeeOneHour'] as num?)?.toDouble() ?? 100.00,
     );
   }
 }
