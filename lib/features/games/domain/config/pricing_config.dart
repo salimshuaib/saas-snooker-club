@@ -225,12 +225,6 @@ class TablePricingConfig {
       case TableType.snooker:
 
         switch (billingType) {
-      case BillingType.perCoin:
-        return GameChargeBreakdown(
-          baseCharge: price * (coinQuantity ?? 1),
-          overtimeMinutes: 0,
-          overtimeCharge: 0,
-        );
 
           case BillingType.perMinute: return fallbackConfig.snookerPerMinute;
 
@@ -238,19 +232,13 @@ class TablePricingConfig {
 
           case BillingType.oneHour: return fallbackConfig.snookerOneHour;
 
-          case BillingType.perFrame: return null;
+          default: return null;
 
         }
 
       case TableType.indianPool:
 
         switch (billingType) {
-      case BillingType.perCoin:
-        return GameChargeBreakdown(
-          baseCharge: price * (coinQuantity ?? 1),
-          overtimeMinutes: 0,
-          overtimeCharge: 0,
-        );
 
           case BillingType.perFrame: return fallbackConfig.indianPoolPerFrame;
 
@@ -260,17 +248,13 @@ class TablePricingConfig {
 
           case BillingType.oneHour: return fallbackConfig.indianPoolOneHour;
 
+          default: return null;
+
         }
 
       case TableType.americanPool:
 
         switch (billingType) {
-      case BillingType.perCoin:
-        return GameChargeBreakdown(
-          baseCharge: price * (coinQuantity ?? 1),
-          overtimeMinutes: 0,
-          overtimeCharge: 0,
-        );
 
           case BillingType.perFrame: return fallbackConfig.americanPoolPerFrame;
 
@@ -280,17 +264,13 @@ class TablePricingConfig {
 
           case BillingType.oneHour: return fallbackConfig.americanPoolOneHour;
 
+          default: return null;
+
         }
 
       case TableType.ps5:
 
         switch (billingType) {
-      case BillingType.perCoin:
-        return GameChargeBreakdown(
-          baseCharge: price * (coinQuantity ?? 1),
-          overtimeMinutes: 0,
-          overtimeCharge: 0,
-        );
 
           case BillingType.halfHour: return fallbackConfig.ps5HalfHour;
 
@@ -303,12 +283,6 @@ class TablePricingConfig {
       case TableType.pc:
 
         switch (billingType) {
-      case BillingType.perCoin:
-        return GameChargeBreakdown(
-          baseCharge: price * (coinQuantity ?? 1),
-          overtimeMinutes: 0,
-          overtimeCharge: 0,
-        );
 
           case BillingType.halfHour: return fallbackConfig.pcHalfHour;
 
@@ -321,12 +295,6 @@ class TablePricingConfig {
       case TableType.carrom:
 
         switch (billingType) {
-      case BillingType.perCoin:
-        return GameChargeBreakdown(
-          baseCharge: price * (coinQuantity ?? 1),
-          overtimeMinutes: 0,
-          overtimeCharge: 0,
-        );
 
           case BillingType.halfHour: return fallbackConfig.carromHalfHour;
 
@@ -339,12 +307,6 @@ class TablePricingConfig {
       case TableType.foosball:
 
         switch (billingType) {
-      case BillingType.perCoin:
-        return GameChargeBreakdown(
-          baseCharge: price * (coinQuantity ?? 1),
-          overtimeMinutes: 0,
-          overtimeCharge: 0,
-        );
 
           case BillingType.halfHour: return fallbackConfig.foosballHalfHour;
 
@@ -357,12 +319,6 @@ class TablePricingConfig {
       case TableType.chess:
 
         switch (billingType) {
-      case BillingType.perCoin:
-        return GameChargeBreakdown(
-          baseCharge: price * (coinQuantity ?? 1),
-          overtimeMinutes: 0,
-          overtimeCharge: 0,
-        );
 
           case BillingType.halfHour: return fallbackConfig.chessHalfHour;
 
@@ -372,15 +328,42 @@ class TablePricingConfig {
 
         }
 
+      case TableType.tableTennis:
+      case TableType.steeringWheel:
+        switch (billingType) {
+          case BillingType.halfHour: return fallbackConfig.chessHalfHour;
+          case BillingType.oneHour: return fallbackConfig.chessOneHour;
+          default: return null;
+        }
+
+      case TableType.ps4:
+        switch (billingType) {
+          case BillingType.halfHour: return fallbackConfig.ps4HalfHour;
+          case BillingType.oneHour: return fallbackConfig.ps4OneHour;
+          default: return null;
+        }
+
+      case TableType.simulator:
+        switch (billingType) {
+          case BillingType.halfHour: return fallbackConfig.simulatorHalfHour;
+          case BillingType.oneHour: return fallbackConfig.simulatorOneHour;
+          default: return null;
+        }
+
+      case TableType.iceHockey:
+        switch (billingType) {
+          case BillingType.halfHour: return fallbackConfig.iceHockeyHalfHour;
+          case BillingType.oneHour: return fallbackConfig.iceHockeyOneHour;
+          default: return null;
+        }
+
+      case TableType.arcade:
+        if (billingType == BillingType.perCoin) return fallbackConfig.arcadeCoinPrice;
+        return null;
+
       default:
 
         switch (billingType) {
-      case BillingType.perCoin:
-        return GameChargeBreakdown(
-          baseCharge: price * (coinQuantity ?? 1),
-          overtimeMinutes: 0,
-          overtimeCharge: 0,
-        );
 
           case BillingType.perMinute: return fallbackConfig.snookerPerMinute;
 
@@ -388,7 +371,7 @@ class TablePricingConfig {
 
           case BillingType.oneHour: return fallbackConfig.snookerOneHour;
 
-          case BillingType.perFrame: return null;
+          default: return null;
 
         }
 
@@ -514,7 +497,7 @@ class TablePricingConfig {
     List<GameRound> completedRounds = const [],
 
     double? customPrice,
-
+    int? coinQuantity,
   }) {
 
     final dummyTable = TableModel(id: '', name: '', type: tableType);
@@ -546,6 +529,7 @@ class TablePricingConfig {
 
 
     switch (billingType) {
+
       case BillingType.perCoin:
         return GameChargeBreakdown(
           baseCharge: price * (coinQuantity ?? 1),

@@ -120,6 +120,8 @@ enum BillingType {
         return 'Half Hour (30 min)';
       case BillingType.oneHour:
         return 'One Hour (60 min)';
+      case BillingType.perCoin:
+        return 'Per Coin';
     }
   }
 }
@@ -717,8 +719,6 @@ class GameSession {
       gameSettingsSnapshot: gameSettingsSnapshot ?? this.gameSettingsSnapshot,
       controllerCount: controllerCount ?? this.controllerCount,
       coinQuantity: coinQuantity ?? this.coinQuantity,
-    this.controllerCount,
-    this.coinQuantity,
       customPrice: customPrice ?? this.customPrice,
     );
   }

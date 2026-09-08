@@ -135,8 +135,16 @@ class _PricingEditSheetState extends ConsumerState<PricingEditSheet> {
       case TableType.foosball:
 
       case TableType.chess:
+      case TableType.ps4:
+      case TableType.tableTennis:
+      case TableType.steeringWheel:
+      case TableType.simulator:
+      case TableType.iceHockey:
 
         return ['halfHour', 'oneHour'].contains(key);
+
+      case TableType.arcade:
+        return ['perCoin'].contains(key);
 
     }
 
@@ -230,6 +238,31 @@ class _PricingEditSheetState extends ConsumerState<PricingEditSheet> {
 
         break;
 
+      case TableType.ps4:
+        if (key == 'halfHour') return p.ps4HalfHour;
+        if (key == 'oneHour') return p.ps4OneHour;
+        break;
+
+      case TableType.simulator:
+        if (key == 'halfHour') return p.simulatorHalfHour;
+        if (key == 'oneHour') return p.simulatorOneHour;
+        break;
+
+      case TableType.iceHockey:
+        if (key == 'halfHour') return p.iceHockeyHalfHour;
+        if (key == 'oneHour') return p.iceHockeyOneHour;
+        break;
+
+      case TableType.arcade:
+        if (key == 'perCoin') return p.arcadeCoinPrice;
+        break;
+
+      case TableType.tableTennis:
+      case TableType.steeringWheel:
+        if (key == 'halfHour') return p.chessHalfHour;
+        if (key == 'oneHour') return p.chessOneHour;
+        break;
+
     }
 
     return 0.0;
@@ -311,6 +344,12 @@ class _PricingEditSheetState extends ConsumerState<PricingEditSheet> {
       case TableType.foosball: return Icons.sports_soccer;
 
       case TableType.chess: return Icons.extension;
+      case TableType.ps4: return Icons.gamepad;
+      case TableType.tableTennis: return Icons.sports_tennis;
+      case TableType.steeringWheel: return Icons.directions_car;
+      case TableType.arcade: return Icons.videogame_asset;
+      case TableType.simulator: return Icons.drive_eta;
+      case TableType.iceHockey: return Icons.ac_unit;
 
     }
 
@@ -337,6 +376,12 @@ class _PricingEditSheetState extends ConsumerState<PricingEditSheet> {
       case TableType.foosball: return Colors.green;
 
       case TableType.chess: return Colors.grey;
+      case TableType.ps4: return Colors.blueAccent;
+      case TableType.tableTennis: return Colors.orange;
+      case TableType.steeringWheel: return Colors.indigo;
+      case TableType.arcade: return Colors.pink;
+      case TableType.simulator: return Colors.teal;
+      case TableType.iceHockey: return Colors.lightBlue;
 
     }
 

@@ -1,6 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
-import 'package:snooker_club/features/quick_sales/presentation/screens/billing_screen.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gap/gap.dart';
 import 'package:snooker_club/core/theme/app_colors.dart';
@@ -251,7 +250,7 @@ class _GameSetupSheetState extends ConsumerState<GameSetupSheet> {
                   const Gap(8),
                   Builder(builder: (context) {
                     List<int> availableControllers = [];
-                    if (_mode == GameMode.individual) {
+                    if (_mode == GameMode.solo) {
                       availableControllers = [1, 2, 3, 4, 5];
                     } else {
                       availableControllers = [1, 2, 3, 4];
@@ -267,7 +266,7 @@ class _GameSetupSheetState extends ConsumerState<GameSetupSheet> {
                         border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                       ),
                       items: availableControllers.map((c) {
-                        final label = _mode == GameMode.individual 
+                        final label = _mode == GameMode.solo 
                             ? '$c Controller${c == 1 ? '' : 's'}' 
                             : '$c Controller${c == 1 ? '' : 's'} per Team';
                         return DropdownMenuItem(

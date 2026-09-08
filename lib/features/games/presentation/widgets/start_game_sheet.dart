@@ -106,6 +106,12 @@ class StartGameSheet extends ConsumerWidget {
         case TableType.carrom: title = 'Carrom Boards'; break;
         case TableType.foosball: title = 'Foosball Tables'; break;
         case TableType.chess: title = 'Chess Boards'; break;
+        case TableType.ps4: title = 'PS4 Consoles'; break;
+        case TableType.tableTennis: title = 'Table Tennis'; break;
+        case TableType.steeringWheel: title = 'Steering Wheel'; break;
+        case TableType.arcade: title = 'Arcade Machines'; break;
+        case TableType.simulator: title = 'Simulators'; break;
+        case TableType.iceHockey: title = 'Ice Hockey'; break;
       }
       return _buildTableGroup(title, tablesOfType, context, employeeId, theme);
     }).toList();
