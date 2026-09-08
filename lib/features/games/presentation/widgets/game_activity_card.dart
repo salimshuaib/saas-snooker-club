@@ -487,11 +487,6 @@ class _GameActivityCardState extends ConsumerState<GameActivityCard> {
                           if (t == GameType.rummy && widget.table.type != TableType.snooker) return false;
                           return true;
                         }).map((t) => DropdownMenuItem(value: t, child: Text(t.displayName))).toList(),
-                        selectedItemBuilder: (context) => GameType.values.where((t) {
-                          if (widget.table.type.isOtherGame) return t == GameType.standard;
-                          if (t == GameType.rummy && widget.table.type != TableType.snooker) return false;
-                          return true;
-                        }).map((t) => Text(t.displayName)).toList(),
                         onChanged: (v) {
                           setState(() {
                             _gameType = v!;
@@ -513,8 +508,6 @@ class _GameActivityCardState extends ConsumerState<GameActivityCard> {
                           decoration: InputDecoration(border: OutlineInputBorder(borderRadius: BorderRadius.circular(8))),
                           items: TablePricingConfig.supportedBillingTypes(widget.table, _gameType)
                             .map((t) => DropdownMenuItem(value: t, child: Text(t.displayName))).toList(),
-                          selectedItemBuilder: (context) => TablePricingConfig.supportedBillingTypes(widget.table, _gameType)
-                            .map((t) => Text(t.displayName)).toList(),
                           onChanged: (v) => setState(() => _billingType = v!),
                         ),
                       ],
@@ -528,7 +521,6 @@ class _GameActivityCardState extends ConsumerState<GameActivityCard> {
                           value: _matchType,
                           decoration: InputDecoration(border: OutlineInputBorder(borderRadius: BorderRadius.circular(8))),
                           items: MatchType.values.map((t) => DropdownMenuItem(value: t, child: Text(t.displayName))).toList(),
-                          selectedItemBuilder: (context) => MatchType.values.map((t) => Text(t.displayName)).toList(),
                           onChanged: (v) => setState(() => _matchType = v!),
                         ),
                       ],

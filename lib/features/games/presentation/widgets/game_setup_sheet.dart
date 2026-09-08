@@ -176,21 +176,6 @@ class _GameSetupSheetState extends ConsumerState<GameSetupSheet> {
                           ),
                         )
                         .toList(),
-                    selectedItemBuilder: (BuildContext context) {
-                      return GameType.values
-                          .where((type) {
-                            if (_tableType.isOtherGame) return type == GameType.standard;
-                            if (type == GameType.rummy && _tableType != TableType.snooker) {
-                              return false;
-                            }
-                            return true;
-                          })
-                          .map((type) => Text(
-                                type.displayName,
-                                style: const TextStyle(fontWeight: FontWeight.w600),
-                              ))
-                          .toList();
-                    },
                     onChanged: (val) {
                       if (val != null) {
                         setState(() {
@@ -234,11 +219,6 @@ class _GameSetupSheetState extends ConsumerState<GameSetupSheet> {
                                   value: t,
                                   child: Text(t.displayName),
                                 )).toList(),
-                                selectedItemBuilder: (BuildContext context) {
-                                  return TablePricingConfig.supportedBillingTypes(widget.table, _gameType)
-                                      .map((t) => Text(t.displayName))
-                                      .toList();
-                                },
                                 onChanged: (v) {
                                   setState(() {
                                     _billingType = v!;
@@ -276,9 +256,6 @@ class _GameSetupSheetState extends ConsumerState<GameSetupSheet> {
                                   value: t,
                                   child: Text(t.displayName),
                                 )).toList(),
-                                selectedItemBuilder: (BuildContext context) {
-                                  return MatchType.values.map((t) => Text(t.displayName)).toList();
-                                },
                                 onChanged: (v) => setState(() => _matchType = v!),
                               ),
                             ],
