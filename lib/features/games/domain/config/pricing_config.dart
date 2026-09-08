@@ -93,6 +93,13 @@ class TablePricingConfig {
           final controllerPrice = option.controllerPrices![controllerCount.toString()];
           if (controllerPrice != null) return controllerPrice;
         }
+        
+        // If it's PS5 or PS4 and no specific controller override was matched, apply the global extra fee to the base override
+        if (controllerCount != null && controllerCount > 1 && (table.type == TableType.ps5 || table.type == TableType.ps4)) {
+           final extraFee = billingType == BillingType.halfHour ? fallbackConfig.extraControllerFeeHalfHour : fallbackConfig.extraControllerFeeOneHour;
+           return option.price + ((controllerCount - 1) * extraFee);
+        }
+        
         return option.price;
       }
       return null; // Explicitly configured but disabled or missing
@@ -138,11 +145,18 @@ class TablePricingConfig {
           default: return null;
         }
       case TableType.ps5:
+      case TableType.ps4:
+        double? basePrice;
         switch (billingType) {
-          case BillingType.halfHour: return fallbackConfig.ps5HalfHour;
-          case BillingType.oneHour: return fallbackConfig.ps5OneHour;
+          case BillingType.halfHour: basePrice = tableType == TableType.ps5 ? fallbackConfig.ps5HalfHour : fallbackConfig.ps4HalfHour; break;
+          case BillingType.oneHour: basePrice = tableType == TableType.ps5 ? fallbackConfig.ps5OneHour : fallbackConfig.ps4OneHour; break;
           default: return null;
         }
+        if (basePrice != null && controllerCount != null && controllerCount > 1) {
+          final extraFee = billingType == BillingType.halfHour ? fallbackConfig.extraControllerFeeHalfHour : fallbackConfig.extraControllerFeeOneHour;
+          return basePrice + ((controllerCount - 1) * extraFee);
+        }
+        return basePrice;
       case TableType.pc:
         switch (billingType) {
           case BillingType.halfHour: return fallbackConfig.pcHalfHour;
@@ -167,6 +181,21 @@ class TablePricingConfig {
           case BillingType.oneHour: return fallbackConfig.chessOneHour;
           default: return null;
         }
+      case TableType.simulator:
+        switch (billingType) {
+          case BillingType.halfHour: return fallbackConfig.simulatorHalfHour;
+          case BillingType.oneHour: return fallbackConfig.simulatorOneHour;
+          default: return null;
+        }
+      case TableType.iceHockey:
+        switch (billingType) {
+          case BillingType.halfHour: return fallbackConfig.iceHockeyHalfHour;
+          case BillingType.oneHour: return fallbackConfig.iceHockeyOneHour;
+          default: return null;
+        }
+      case TableType.arcade:
+        if (billingType == BillingType.perCoin) return fallbackConfig.arcadeCoinPrice;
+        return null;
       default:
         switch (billingType) {
           case BillingType.perMinute: return fallbackConfig.snookerPerMinute;
@@ -214,12 +243,15 @@ class TablePricingConfig {
       case TableType.americanPool:
         return [BillingType.perFrame, BillingType.perMinute, BillingType.halfHour, BillingType.oneHour];
       case TableType.ps5:
+      case TableType.ps4:
       case TableType.pc:
       case TableType.carrom:
       case TableType.foosball:
       case TableType.chess:
       case TableType.tableTennis:
       case TableType.steeringWheel:
+      case TableType.simulator:
+      case TableType.iceHockey:
         return [BillingType.halfHour, BillingType.oneHour];
       case TableType.arcade:
         return [BillingType.perCoin];

@@ -11,13 +11,16 @@ enum TableType {
   indianPool,
   americanPool,
   ps5,
+  ps4,
   pc,
   carrom,
   foosball,
   chess,
   tableTennis,
   steeringWheel,
-  arcade;
+  arcade,
+  simulator,
+  iceHockey;
 
   String get displayName {
     switch (this) {
@@ -29,6 +32,8 @@ enum TableType {
         return 'American Pool';
       case TableType.ps5:
         return 'PS5';
+      case TableType.ps4:
+        return 'PS4';
       case TableType.pc:
         return 'PC';
       case TableType.carrom:
@@ -43,6 +48,10 @@ enum TableType {
         return 'Steering Wheel';
       case TableType.arcade:
         return 'Arcade';
+      case TableType.simulator:
+        return 'Simulator';
+      case TableType.iceHockey:
+        return 'Ice Hockey';
     }
   }
 

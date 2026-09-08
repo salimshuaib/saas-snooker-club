@@ -287,16 +287,20 @@ class _GameSetupSheetState extends ConsumerState<GameSetupSheet> {
                     ],
                   ),
                   
-                  if (_tableType == TableType.ps5) ...[
+                  if (_tableType == TableType.ps5 || _tableType == TableType.ps4) ...[
                     const Gap(16),
                     Text('Controllers', style: theme.textTheme.labelMedium),
                     const Gap(8),
                     Builder(builder: (context) {
-                      final controllers = widget.table.billingOptions?[_billingType.name]?.controllerPrices?.keys.toList() ?? [];
-                      if (controllers.isEmpty) {
-                        return Text('No specific controller prices set', style: theme.textTheme.bodyMedium);
+                      List<int> availableControllers = [];
+                      if (_gameMode == GameMode.individual) {
+                        availableControllers = [1, 2, 3, 4, 5];
+                      } else {
+                        availableControllers = [1, 2, 3, 4];
                       }
-                      controllers.sort();
+                      if (_controllerCount == null || !availableControllers.contains(_controllerCount)) {
+                        _controllerCount = availableControllers.first;
+                      }
                       return DropdownButtonFormField<int>(
                         isExpanded: true,
                         value: _controllerCount,
@@ -304,10 +308,15 @@ class _GameSetupSheetState extends ConsumerState<GameSetupSheet> {
                           isDense: true,
                           border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                         ),
-                        items: controllers.map((c) => DropdownMenuItem(
-                          value: int.tryParse(c),
-                          child: Text('$c Controller${c == '1' ? '' : 's'}'),
-                        )).toList(),
+                        items: availableControllers.map((c) {
+                          final label = _gameMode == GameMode.individual 
+                              ? '$c Controller${c == 1 ? '' : 's'}' 
+                              : '$c Controller${c == 1 ? '' : 's'} per Team';
+                          return DropdownMenuItem(
+                            value: c,
+                            child: Text(label),
+                          );
+                        }).toList(),
                         onChanged: (v) => setState(() => _controllerCount = v),
                       );
                     }),

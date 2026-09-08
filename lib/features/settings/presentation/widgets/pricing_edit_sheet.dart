@@ -53,8 +53,8 @@ class _PricingEditSheetState extends ConsumerState<PricingEditSheet> {
       _toggles[table.id]![key] = isEnabled;
       _controllers[table.id]![key] = TextEditingController(text: price.toStringAsFixed(2));
       
-      if (table.type == TableType.ps5) {
-        for (int c = 1; c <= 4; c++) {
+      if (table.type == TableType.ps5 || table.type == TableType.ps4) {
+        for (int c = 1; c <= 5; c++) {
           final cKey = '${key}_c$c';
           final cPrice = existingOption?.controllerPrices?[c.toString()] ?? price;
           _toggles[table.id]![cKey] = existingOption?.controllerPrices?.containsKey(c.toString()) ?? false;
@@ -163,6 +163,7 @@ class _PricingEditSheetState extends ConsumerState<PricingEditSheet> {
       case TableType.indianPool: return Icons.lens;
       case TableType.americanPool: return Icons.album;
       case TableType.ps5: return Icons.gamepad;
+      case TableType.ps4: return Icons.gamepad;
       case TableType.pc: return Icons.computer;
       case TableType.carrom: return Icons.crop_square;
       case TableType.foosball: return Icons.sports_soccer;
@@ -170,6 +171,8 @@ class _PricingEditSheetState extends ConsumerState<PricingEditSheet> {
       case TableType.tableTennis: return Icons.sports_tennis;
       case TableType.steeringWheel: return Icons.directions_car;
       case TableType.arcade: return Icons.videogame_asset;
+      case TableType.simulator: return Icons.drive_eta;
+      case TableType.iceHockey: return Icons.ac_unit;
     }
   }
 
@@ -179,6 +182,7 @@ class _PricingEditSheetState extends ConsumerState<PricingEditSheet> {
       case TableType.indianPool: return Colors.amber;
       case TableType.americanPool: return Colors.blue;
       case TableType.ps5: return Colors.deepPurple;
+      case TableType.ps4: return Colors.blueAccent;
       case TableType.pc: return Colors.cyan;
       case TableType.carrom: return Colors.brown;
       case TableType.foosball: return Colors.green;
@@ -186,6 +190,8 @@ class _PricingEditSheetState extends ConsumerState<PricingEditSheet> {
       case TableType.tableTennis: return Colors.orange;
       case TableType.steeringWheel: return Colors.indigo;
       case TableType.arcade: return Colors.pink;
+      case TableType.simulator: return Colors.teal;
+      case TableType.iceHockey: return Colors.lightBlue;
     }
   }
 
@@ -217,9 +223,9 @@ class _PricingEditSheetState extends ConsumerState<PricingEditSheet> {
           final price = double.tryParse(priceStr) ?? 0.0;
           
           Map<String, double>? controllerPrices;
-          if (table.type == TableType.ps5) {
+          if (table.type == TableType.ps5 || table.type == TableType.ps4) {
             controllerPrices = {};
-            for (int c = 1; c <= 4; c++) {
+            for (int c = 1; c <= 5; c++) {
               final cKey = '${key}_c$c';
               if (tableToggles[cKey] == true) {
                 final cPrice = double.tryParse(tableControllers[cKey]?.text.trim() ?? '0') ?? 0.0;
@@ -402,7 +408,7 @@ class _PricingEditSheetState extends ConsumerState<PricingEditSheet> {
                           ),
                         ),
                         const Gap(12),
-                        if (isEnabled && controller != null && table.type != TableType.ps5)
+                        if (isEnabled && controller != null && table.type != TableType.ps5 && table.type != TableType.ps4)
                           Expanded(
                             flex: 2,
                             child: _buildTextField('Price', controller),
@@ -411,11 +417,11 @@ class _PricingEditSheetState extends ConsumerState<PricingEditSheet> {
                           const Expanded(flex: 2, child: SizedBox()),
                       ],
                     ),
-                    if (isEnabled && table.type == TableType.ps5)
+                    if (isEnabled && (table.type == TableType.ps5 || table.type == TableType.ps4))
                       Padding(
                         padding: const EdgeInsets.only(left: 32.0, top: 8),
                         child: Column(
-                          children: [1, 2, 3, 4].map((c) {
+                          children: [1, 2, 3, 4, 5].map((c) {
                             final cKey = '${key}_c$c';
                             final cEnabled = _toggles[table.id]?[cKey] ?? false;
                             final cController = _controllers[table.id]?[cKey];
