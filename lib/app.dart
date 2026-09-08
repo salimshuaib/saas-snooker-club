@@ -29,6 +29,7 @@ class SnookerClubApp extends ConsumerWidget {
       themeMode: themeMode,
       theme: AppConfig.isPreview ? AppTheme.previewLight : AppTheme.light,
       darkTheme: AppConfig.isPreview ? AppTheme.previewDark : AppTheme.dark,
+      scaffoldMessengerKey: rootScaffoldMessengerKey,
       routerConfig: router,
       locale: locale,
       localizationsDelegates: const [
