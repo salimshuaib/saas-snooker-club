@@ -164,19 +164,23 @@ enum PaymentMethod {
 class TableBillingOption {
   final bool enabled;
   final double price;
+  final Map<String, double>? controllerPrices;
 
   const TableBillingOption({
     required this.enabled,
     required this.price,
+    this.controllerPrices,
   });
 
   TableBillingOption copyWith({
     bool? enabled,
     double? price,
+    Map<String, double>? controllerPrices,
   }) {
     return TableBillingOption(
       enabled: enabled ?? this.enabled,
       price: price ?? this.price,
+      controllerPrices: controllerPrices ?? this.controllerPrices,
     );
   }
 
@@ -184,13 +188,23 @@ class TableBillingOption {
     return {
       'enabled': enabled,
       'price': price,
+      if (controllerPrices != null) 'controllerPrices': controllerPrices,
     };
   }
 
   factory TableBillingOption.fromMap(Map<String, dynamic> map) {
+    Map<String, double>? parsedControllers;
+    if (map['controllerPrices'] != null) {
+      parsedControllers = {};
+      (map['controllerPrices'] as Map<String, dynamic>).forEach((k, v) {
+        parsedControllers![k] = (v as num).toDouble();
+      });
+    }
+
     return TableBillingOption(
       enabled: map['enabled'] as bool? ?? true,
       price: (map['price'] as num?)?.toDouble() ?? 0.0,
+      controllerPrices: parsedControllers,
     );
   }
 }

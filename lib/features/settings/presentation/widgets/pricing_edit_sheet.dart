@@ -105,6 +105,14 @@ class _PricingEditSheetState extends ConsumerState<PricingEditSheet> {
       _toggles[table.id]![key] = isEnabled;
 
       _controllers[table.id]![key] = TextEditingController(text: price.toStringAsFixed(2));
+      
+      if (table.type == TableType.ps5 || table.type == TableType.ps4) {
+        for (int c = 1; c <= 5; c++) {
+          final extraFee = key == 'halfHour' ? fallback.extraControllerFeeHalfHour : fallback.extraControllerFeeOneHour;
+          final cPrice = existingOption?.controllerPrices?[c.toString()] ?? (price + ((c - 1) * extraFee));
+          _controllers[table.id]!['${key}_$c'] = TextEditingController(text: cPrice.toStringAsFixed(2));
+        }
+      }
 
     }
 
@@ -441,11 +449,22 @@ class _PricingEditSheetState extends ConsumerState<PricingEditSheet> {
 
           
 
+          Map<String, double>? controllerPrices;
+          if (table.type == TableType.ps5 || table.type == TableType.ps4) {
+            controllerPrices = {};
+            for (int c = 1; c <= 5; c++) {
+               final cPriceStr = tableControllers['${key}_$c']?.text.trim() ?? '0';
+               controllerPrices[c.toString()] = double.tryParse(cPriceStr) ?? 0.0;
+            }
+          }
+          
           newBillingOptions[key] = TableBillingOption(
 
             enabled: isEnabled,
 
             price: price,
+            
+            controllerPrices: controllerPrices,
 
           );
 
@@ -767,7 +786,7 @@ class _PricingEditSheetState extends ConsumerState<PricingEditSheet> {
 
                     const Gap(12),
 
-                    if (isEnabled && controller != null)
+                    if (isEnabled && controller != null && table.type != TableType.ps5 && table.type != TableType.ps4)
 
                       Expanded(
 
@@ -775,6 +794,20 @@ class _PricingEditSheetState extends ConsumerState<PricingEditSheet> {
 
                         child: _buildTextField('Price', controller),
 
+                      )
+                      
+                    else if (isEnabled && controller != null && (table.type == TableType.ps5 || table.type == TableType.ps4))
+                    
+                      Expanded(
+                        flex: 2,
+                        child: Column(
+                          children: [1, 2, 3, 4, 5].map((c) {
+                            return Padding(
+                              padding: EdgeInsets.only(bottom: c == 5 ? 0 : 8.0),
+                              child: _buildTextField('$c Controller${c == 1 ? '' : 's'}', _controllers[table.id]!['${key}_$c']!),
+                            );
+                          }).toList(),
+                        )
                       )
 
                     else

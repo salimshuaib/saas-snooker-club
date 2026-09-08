@@ -584,7 +584,7 @@ class _GameSetupSheetState extends ConsumerState<GameSetupSheet> {
       
       final double? resolvedPrice = (_isCustomPrice && !_tableType.isOtherGame) 
         ? double.tryParse(_customPriceController.text)
-        : TablePricingConfig.getPrice(widget.table, _gameType, actualBillingType, appSettings.pricing);
+        : TablePricingConfig.getPrice(widget.table, _gameType, actualBillingType, appSettings.pricing, controllerCount: _controllerCount);
 
       final gameSession = GameSession(
         date: dateStr,
@@ -609,6 +609,8 @@ class _GameSetupSheetState extends ConsumerState<GameSetupSheet> {
         pauseTimes: const [],
         resumeTimes: const [],
         customPrice: resolvedPrice,
+        controllerCount: _controllerCount,
+        coinQuantity: _coinQuantity,
         pricingSnapshot: appSettings.pricing,
         gameSettingsSnapshot: appSettings.game,
       );

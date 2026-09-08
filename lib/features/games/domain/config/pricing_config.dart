@@ -152,7 +152,7 @@ class TablePricingConfig {
 
   /// Returns null if the combination is not supported.
 
-  static double? getPrice(TableModel table, GameType gameType, BillingType billingType, PricingSettings fallbackConfig) {
+  static double? getPrice(TableModel table, GameType gameType, BillingType billingType, PricingSettings fallbackConfig, {int? controllerCount}) {
 
     // If the table has specific billing options configured
 
@@ -179,6 +179,17 @@ class TablePricingConfig {
       final option = table.billingOptions![key];
 
       if (option != null && option.enabled) {
+
+        if (controllerCount != null && option.controllerPrices != null) {
+          final controllerPrice = option.controllerPrices![controllerCount.toString()];
+          if (controllerPrice != null) return controllerPrice;
+        }
+        
+        // If it's PS5 or PS4 and no specific controller override was matched, apply the global extra fee to the base override
+        if (controllerCount != null && controllerCount > 1 && (table.type == TableType.ps5 || table.type == TableType.ps4)) {
+           final extraFee = billingType == BillingType.halfHour ? fallbackConfig.extraControllerFeeHalfHour : fallbackConfig.extraControllerFeeOneHour;
+           return option.price + ((controllerCount - 1) * extraFee);
+        }
 
         return option.price;
 
