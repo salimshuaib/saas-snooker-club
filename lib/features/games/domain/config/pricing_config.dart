@@ -152,7 +152,23 @@ class TablePricingConfig {
 
   /// Returns null if the combination is not supported.
 
-  static double? getPrice(TableModel table, GameType gameType, BillingType billingType, PricingSettings fallbackConfig, {int? controllerCount}) {
+  static double? getExtraCharge(TableModel table, GameType gameType, BillingType billingType, PricingSettings fallbackConfig) {
+    if (table.type != TableType.ps5 && table.type != TableType.ps4) return 0.0;
+    
+    if (table.billingOptions != null) {
+      final key = billingType.name;
+      final option = table.billingOptions![key];
+      if (option != null && option.enabled && option.extraCharge != null) {
+        return option.extraCharge;
+      }
+    }
+    
+    if (billingType == BillingType.halfHour) return fallbackConfig.extraControllerFeeHalfHour;
+    if (billingType == BillingType.oneHour) return fallbackConfig.extraControllerFeeOneHour;
+    return 0.0;
+  }
+  
+  static double? getPrice(TableModel table, GameType gameType, BillingType billingType, PricingSettings fallbackConfig) {
 
     // If the table has specific billing options configured
 
@@ -179,17 +195,6 @@ class TablePricingConfig {
       final option = table.billingOptions![key];
 
       if (option != null && option.enabled) {
-
-        if (controllerCount != null && option.controllerPrices != null) {
-          final controllerPrice = option.controllerPrices![controllerCount.toString()];
-          if (controllerPrice != null) return controllerPrice;
-        }
-        
-        // If it's PS5 or PS4 and no specific controller override was matched, apply the global extra fee to the base override
-        if (controllerCount != null && controllerCount > 1 && (table.type == TableType.ps5 || table.type == TableType.ps4)) {
-           final extraFee = billingType == BillingType.halfHour ? fallbackConfig.extraControllerFeeHalfHour : fallbackConfig.extraControllerFeeOneHour;
-           return option.price + ((controllerCount - 1) * extraFee);
-        }
 
         return option.price;
 
@@ -508,12 +513,24 @@ class TablePricingConfig {
     List<GameRound> completedRounds = const [],
 
     double? customPrice,
+    double? customExtraCharge,
     int? coinQuantity,
+    int? playersCount,
   }) {
 
     final dummyTable = TableModel(id: '', name: '', type: tableType);
 
-    final price = customPrice ?? getPrice(dummyTable, gameType, billingType, pricingConfig); 
+    double? basePrice = customPrice ?? getPrice(dummyTable, gameType, billingType, pricingConfig);
+    
+    if (basePrice != null && (tableType == TableType.ps5 || tableType == TableType.ps4)) {
+      final controllers = (playersCount != null && playersCount > 0) ? playersCount : 1;
+      if (controllers > 1) {
+        final extraCharge = customExtraCharge ?? getExtraCharge(dummyTable, gameType, billingType, pricingConfig) ?? 0.0;
+        basePrice += (controllers - 1) * extraCharge;
+      }
+    }
+
+    final price = basePrice;
 
     if (price == null) {
 

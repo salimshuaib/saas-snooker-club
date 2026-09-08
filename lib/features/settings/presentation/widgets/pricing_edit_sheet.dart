@@ -107,11 +107,9 @@ class _PricingEditSheetState extends ConsumerState<PricingEditSheet> {
       _controllers[table.id]![key] = TextEditingController(text: price.toStringAsFixed(2));
       
       if (table.type == TableType.ps5 || table.type == TableType.ps4) {
-        for (int c = 1; c <= 5; c++) {
-          final extraFee = key == 'halfHour' ? fallback.extraControllerFeeHalfHour : fallback.extraControllerFeeOneHour;
-          final cPrice = existingOption?.controllerPrices?[c.toString()] ?? (price + ((c - 1) * extraFee));
-          _controllers[table.id]!['${key}_$c'] = TextEditingController(text: cPrice.toStringAsFixed(2));
-        }
+        final double extraCharge = existingOption?.extraCharge ?? 
+          (key == 'halfHour' ? fallback.extraControllerFeeHalfHour : fallback.extraControllerFeeOneHour);
+        _controllers[table.id]!['${key}_extra'] = TextEditingController(text: extraCharge.toStringAsFixed(2));
       }
 
     }
@@ -449,13 +447,10 @@ class _PricingEditSheetState extends ConsumerState<PricingEditSheet> {
 
           
 
-          Map<String, double>? controllerPrices;
+          double? extraCharge;
           if (table.type == TableType.ps5 || table.type == TableType.ps4) {
-            controllerPrices = {};
-            for (int c = 1; c <= 5; c++) {
-               final cPriceStr = tableControllers['${key}_$c']?.text.trim() ?? '0';
-               controllerPrices[c.toString()] = double.tryParse(cPriceStr) ?? 0.0;
-            }
+            final extraStr = tableControllers['${key}_extra']?.text.trim() ?? '0';
+            extraCharge = double.tryParse(extraStr) ?? 0.0;
           }
           
           newBillingOptions[key] = TableBillingOption(
@@ -464,7 +459,7 @@ class _PricingEditSheetState extends ConsumerState<PricingEditSheet> {
 
             price: price,
             
-            controllerPrices: controllerPrices,
+            extraCharge: extraCharge,
 
           );
 
@@ -801,12 +796,11 @@ class _PricingEditSheetState extends ConsumerState<PricingEditSheet> {
                       Expanded(
                         flex: 2,
                         child: Column(
-                          children: [1, 2, 3, 4, 5].map((c) {
-                            return Padding(
-                              padding: EdgeInsets.only(bottom: c == 5 ? 0 : 8.0),
-                              child: _buildTextField('$c Controller${c == 1 ? '' : 's'}', _controllers[table.id]!['${key}_$c']!),
-                            );
-                          }).toList(),
+                          children: [
+                            _buildTextField('Base Price', controller),
+                            const Gap(8),
+                            _buildTextField('Extra / Controller', _controllers[table.id]!['${key}_extra']!),
+                          ],
                         )
                       )
 

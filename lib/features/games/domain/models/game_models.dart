@@ -164,23 +164,23 @@ enum PaymentMethod {
 class TableBillingOption {
   final bool enabled;
   final double price;
-  final Map<String, double>? controllerPrices;
+  final double? extraCharge;
 
   const TableBillingOption({
     required this.enabled,
     required this.price,
-    this.controllerPrices,
+    this.extraCharge,
   });
 
   TableBillingOption copyWith({
     bool? enabled,
     double? price,
-    Map<String, double>? controllerPrices,
+    double? extraCharge,
   }) {
     return TableBillingOption(
       enabled: enabled ?? this.enabled,
       price: price ?? this.price,
-      controllerPrices: controllerPrices ?? this.controllerPrices,
+      extraCharge: extraCharge ?? this.extraCharge,
     );
   }
 
@@ -188,23 +188,15 @@ class TableBillingOption {
     return {
       'enabled': enabled,
       'price': price,
-      if (controllerPrices != null) 'controllerPrices': controllerPrices,
+      if (extraCharge != null) 'extraCharge': extraCharge,
     };
   }
 
   factory TableBillingOption.fromMap(Map<String, dynamic> map) {
-    Map<String, double>? parsedControllers;
-    if (map['controllerPrices'] != null) {
-      parsedControllers = {};
-      (map['controllerPrices'] as Map<String, dynamic>).forEach((k, v) {
-        parsedControllers![k] = (v as num).toDouble();
-      });
-    }
-
     return TableBillingOption(
       enabled: map['enabled'] as bool? ?? true,
       price: (map['price'] as num?)?.toDouble() ?? 0.0,
-      controllerPrices: parsedControllers,
+      extraCharge: (map['extraCharge'] as num?)?.toDouble(),
     );
   }
 }
@@ -517,7 +509,7 @@ class GameSession {
   final DateTime? recordedTime;
   final PricingSettings? pricingSnapshot;
   final GameSettings? gameSettingsSnapshot;
-  final int? controllerCount;
+  final double? customExtraCharge;
   final int? coinQuantity;
   final double? customPrice;
 
@@ -572,7 +564,7 @@ class GameSession {
     this.recordedTime,
     this.pricingSnapshot,
     this.gameSettingsSnapshot,
-    this.controllerCount,
+    this.customExtraCharge,
     this.coinQuantity,
     this.customPrice,
   });
@@ -676,7 +668,7 @@ class GameSession {
     DateTime? recordedTime,
     PricingSettings? pricingSnapshot,
     GameSettings? gameSettingsSnapshot,
-    int? controllerCount,
+    double? customExtraCharge,
     int? coinQuantity,
     double? customPrice,
   }) {
@@ -731,7 +723,7 @@ class GameSession {
       recordedTime: recordedTime ?? this.recordedTime,
       pricingSnapshot: pricingSnapshot ?? this.pricingSnapshot,
       gameSettingsSnapshot: gameSettingsSnapshot ?? this.gameSettingsSnapshot,
-      controllerCount: controllerCount ?? this.controllerCount,
+      customExtraCharge: customExtraCharge ?? this.customExtraCharge,
       coinQuantity: coinQuantity ?? this.coinQuantity,
       customPrice: customPrice ?? this.customPrice,
     );
@@ -788,7 +780,7 @@ class GameSession {
       'recordedTime': recordedTime != null ? Timestamp.fromDate(recordedTime!) : null,
       'pricingSnapshot': pricingSnapshot?.toMap(),
       'gameSettingsSnapshot': gameSettingsSnapshot?.toMap(),
-      'controllerCount': controllerCount,
+      'customExtraCharge': customExtraCharge,
       'coinQuantity': coinQuantity,
       'customPrice': customPrice,
     };

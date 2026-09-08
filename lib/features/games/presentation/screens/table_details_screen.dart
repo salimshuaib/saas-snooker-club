@@ -415,6 +415,8 @@ class _ActiveGameCardState extends ConsumerState<_ActiveGameCard> {
                   gameConfig: game.gameSettingsSnapshot ?? appSettings.game,
                   completedRounds: game.rounds,
                   customPrice: game.customPrice,
+                    customExtraCharge: game.customExtraCharge,
+                    playersCount: game.playerIds.length,
                 );
                 final h = (seconds ~/ 3600).toString().padLeft(2, '0');
                 final m = ((seconds % 3600) ~/ 60).toString().padLeft(2, '0');

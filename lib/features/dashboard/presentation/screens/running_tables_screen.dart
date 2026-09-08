@@ -132,6 +132,8 @@ class _RunningGameDetails extends ConsumerWidget {
       gameConfig: game.gameSettingsSnapshot ?? appSettings.game,
       completedRounds: game.rounds,
       customPrice: game.customPrice,
+                    customExtraCharge: game.customExtraCharge,
+                    playersCount: game.playerIds.length,
     );
     final ordersTotal = game.orders.fold(0.0, (sum, order) => sum + order.total);
     final liveBill = breakdown.totalCharge + ordersTotal;
