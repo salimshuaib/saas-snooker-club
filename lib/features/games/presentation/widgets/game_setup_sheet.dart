@@ -150,7 +150,7 @@ class _GameSetupSheetState extends ConsumerState<GameSetupSheet> {
                         if (type == GameType.rummy && _tableType != TableType.snooker) {
                           return false;
                         }
-                        return true;
+                        return TablePricingConfig.supportedBillingTypes(widget.table, type).isNotEmpty;
                       })
                       .map(
                         (type) => DropdownMenuItem(
@@ -167,7 +167,7 @@ class _GameSetupSheetState extends ConsumerState<GameSetupSheet> {
                       setState(() {
                         _gameType = val;
                         final validBillingTypes = TablePricingConfig.supportedBillingTypes(widget.table, _gameType);
-                        if (!validBillingTypes.contains(_billingType)) {
+                        if (validBillingTypes.isNotEmpty && !validBillingTypes.contains(_billingType)) {
                           _billingType = validBillingTypes.first;
                         }
                         // Reset player counts to minimums
