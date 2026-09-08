@@ -392,53 +392,63 @@ class CreditRepository {
 
     // Phase 1: Validation and collection
     for (final session in sessions) {
-      final hasSplitCredit = session.playerPaymentMethods?.values.contains(PaymentMethod.credit) ?? false;
-      if (session.paymentMethod == PaymentMethod.credit || session.paidBy != null || hasSplitCredit) {
-        final Set<String> customerNames = {};
-        if (session.paidBy != null && session.paidBy!.isNotEmpty) {
-          customerNames.add(session.paidBy!);
+      final Set<String> customerNames = {};
+      if (session.paidBy != null && session.paidBy!.isNotEmpty) {
+        customerNames.add(session.paidBy!);
+      }
+      if (session.playerPaymentMethods != null) {
+        for (final entry in session.playerPaymentMethods!.entries) {
+          customerNames.add(entry.key);
         }
-        if (session.playerPaymentMethods != null) {
-          for (final entry in session.playerPaymentMethods!.entries) {
-            if (entry.value == PaymentMethod.credit) {
-              customerNames.add(entry.key);
-            }
-          }
-        }
+      }
 
-        List<DocumentSnapshot> matchingDocs = [];
-        for (final name in customerNames) {
-          final customer = await getCustomerByName(name);
-          if (customer != null) {
-            final transSnap = await _transactionsRef(customer.id)
-                .where('referenceId', isEqualTo: session.id)
-                .get();
-            matchingDocs.addAll(transSnap.docs);
-          }
-        }
+      if (customerNames.isEmpty) continue;
 
-        // Fallback to collection group search if not found directly under the named customers
-        if (matchingDocs.isEmpty) {
-          final cgSnap = await _firestore
-              .collectionGroup('transactions')
-              .where('clubId', isEqualTo: clubId)
+      List<DocumentSnapshot> matchingDocs = [];
+      for (final name in customerNames) {
+        final customer = await getCustomerByName(name);
+        if (customer != null) {
+          final transSnap = await _transactionsRef(customer.id)
               .where('referenceId', isEqualTo: session.id)
               .get();
-          matchingDocs.addAll(cgSnap.docs);
+          matchingDocs.addAll(transSnap.docs);
         }
+      }
 
-        for (final doc in matchingDocs) {
-          final data = doc.data() as Map<String, dynamic>?;
-          if (data != null) {
-            final statusStr = data['status'] as String? ?? '';
-            if (statusStr == CreditTransactionStatus.paid.name) {
-              throw Exception('This game has already been settled through a credit payment. Deleting it will create accounting inconsistencies.');
+      // Fallback to collection group search if not found directly under the named customers
+      if (matchingDocs.isEmpty) {
+        final cgSnap = await _firestore
+            .collectionGroup('transactions')
+            .where('clubId', isEqualTo: clubId)
+            .where('referenceId', isEqualTo: session.id)
+            .get();
+        matchingDocs.addAll(cgSnap.docs);
+      }
+
+      for (final doc in matchingDocs) {
+        final data = doc.data() as Map<String, dynamic>?;
+        if (data != null) {
+          final statusStr = data['status'] as String? ?? '';
+          
+          bool wasCredit = false;
+          if (session.playerPaymentMethods != null && session.playerPaymentMethods!.isNotEmpty) {
+            final subtitle = data['subtitle'] as String? ?? '';
+            if (subtitle.contains('- Paid via')) {
+              wasCredit = false;
+            } else {
+              wasCredit = true;
             }
-            transactionsToDelete.add(doc);
-            final cid = data['customerId'] as String? ?? doc.reference.parent.parent?.id;
-            if (cid != null && cid.isNotEmpty) {
-              affectedCustomerIds.add(cid);
-            }
+          } else {
+            wasCredit = session.paymentMethod == PaymentMethod.credit;
+          }
+
+          if (wasCredit && statusStr == CreditTransactionStatus.paid.name) {
+            throw Exception('This game has already been settled through a credit payment. Deleting it will create accounting inconsistencies.');
+          }
+          transactionsToDelete.add(doc);
+          final cid = data['customerId'] as String? ?? doc.reference.parent.parent?.id;
+          if (cid != null && cid.isNotEmpty) {
+            affectedCustomerIds.add(cid);
           }
         }
       }

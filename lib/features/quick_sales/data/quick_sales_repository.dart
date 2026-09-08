@@ -137,7 +137,7 @@ class QuickSalesRepository {
       transaction.set(saleRef, saleData);
 
       // 4. Handle Transaction for Player Profile
-      if (sale.customerName != null && sale.customerName!.isNotEmpty) {
+      if (sale.customerName != null && sale.customerName!.isNotEmpty && sale.paymentMethod == PaymentMethod.credit) {
         final creditRepo = CreditRepository(_firestore, ref: _ref, clubId: clubId);
         await creditRepo.appendCreditToTransaction(
           transaction: transaction,
@@ -260,7 +260,7 @@ class QuickSalesRepository {
     final batch = _firestore.batch();
     final finalCustomerName = newCustomerName ?? sale.customerName ?? 'Guest';
 
-    if (sale.customerName != null && sale.customerName!.isNotEmpty) {
+    if (sale.customerName != null && sale.customerName!.isNotEmpty && oldMethod == PaymentMethod.credit) {
       await creditRepo.removeCreditFromBatch(
         batch: batch,
         referenceId: sale.id,
@@ -268,7 +268,7 @@ class QuickSalesRepository {
       );
     }
     
-    if (finalCustomerName.isNotEmpty && finalCustomerName != 'Guest') {
+    if (finalCustomerName.isNotEmpty && finalCustomerName != 'Guest' && newPaymentMethod == PaymentMethod.credit) {
       await creditRepo.appendCreditToBatch(
         batch: batch,
         customerName: finalCustomerName,

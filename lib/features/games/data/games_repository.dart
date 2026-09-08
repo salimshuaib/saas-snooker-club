@@ -464,7 +464,7 @@ class GamesRepository {
         final paymentMethod = entry.value;
         final amount = session.playerLiabilities?[customerName] ?? 0.0;
         
-        if (amount > 0) {
+        if (amount > 0 && paymentMethod == PaymentMethod.credit) {
           await creditRepo.appendCreditToBatch(
             batch: batch,
             customerName: customerName,
@@ -478,7 +478,7 @@ class GamesRepository {
           );
         }
       }
-    } else if (session.paymentMethod != null && session.paidBy != null) {
+    } else if (session.paymentMethod == PaymentMethod.credit && session.paidBy != null) {
       await creditRepo.appendCreditToBatch(
         batch: batch,
         customerName: session.paidBy!,
@@ -770,8 +770,8 @@ class GamesRepository {
               session.playerLiabilities?[player] ??
               amountToPay / newPlayerPaymentMethods.length;
 
-          // Unconditionally append since appendCreditToBatch now handles all payment methods
-          await creditRepo.appendCreditToBatch(
+          if (newMethod == PaymentMethod.credit) {
+            await creditRepo.appendCreditToBatch(
             batch: batch,
             customerName: player,
             customerId: session.playerIdentities != null ? session.playerIdentities![player] : null,
@@ -781,7 +781,8 @@ class GamesRepository {
             title: 'Game on Table ${session.tableName}',
             subtitle: 'Split Liability (Ã¢â€šÂ¹${amount.toStringAsFixed(2)})',
             paymentMethod: newMethod,
-          );
+            );
+          }
           if (oldMethod == PaymentMethod.credit && newMethod != PaymentMethod.credit) {
             await creditRepo.removeCreditFromBatch(
               batch: batch,
@@ -813,16 +814,18 @@ class GamesRepository {
           ),
         );
 
-        await creditRepo.appendCreditToBatch(
-          batch: batch,
-          customerName: newPaidBy ?? 'Unknown',
+        if (newPaymentMethod == PaymentMethod.credit) {
+          await creditRepo.appendCreditToBatch(
+            batch: batch,
+            customerName: newPaidBy ?? 'Unknown',
           customerId: (newPaidBy != null && session.playerIdentities != null) ? session.playerIdentities![newPaidBy] : null,
           amount: amountToPay,
           type: CreditTransactionType.game,
           referenceId: session.id,
           title: 'Game on Table ${session.tableName}',
           paymentMethod: newPaymentMethod,
-        );
+          );
+        }
         if (oldMethod == PaymentMethod.credit && newPaymentMethod != PaymentMethod.credit) {
           await creditRepo.removeCreditFromBatch(
             batch: batch,
