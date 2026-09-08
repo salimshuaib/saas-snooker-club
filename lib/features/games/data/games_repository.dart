@@ -118,6 +118,11 @@ class GamesRepository {
     }
   }
 
+  Future<void> updateTable(TableModel table) async {
+    if (AppConfig.guardWrite('GamesRepository.updateTable')) return;
+    await _tablesRef.doc(table.id).update(table.toMap());
+  }
+
   Future<void> updateTableStatus(
     String tableId,
     TableStatus status, {
