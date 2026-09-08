@@ -244,41 +244,6 @@ class _GameSetupSheetState extends ConsumerState<GameSetupSheet> {
                   ],
                 ),
 
-                if (_tableType == TableType.ps5 || _tableType == TableType.ps4) ...[
-                  const Gap(16),
-                  Text('Controllers', style: theme.textTheme.labelMedium),
-                  const Gap(8),
-                  Builder(builder: (context) {
-                    List<int> availableControllers = [];
-                    if (_mode == GameMode.solo) {
-                      availableControllers = [1, 2, 3, 4, 5];
-                    } else {
-                      availableControllers = [1, 2, 3, 4];
-                    }
-                    if (_controllerCount == null || !availableControllers.contains(_controllerCount)) {
-                      _controllerCount = availableControllers.first;
-                    }
-                    return DropdownButtonFormField<int>(
-                      isExpanded: true,
-                      value: _controllerCount,
-                      decoration: InputDecoration(
-                        isDense: true,
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                      ),
-                      items: availableControllers.map((c) {
-                        final label = _mode == GameMode.solo 
-                            ? '$c Controller${c == 1 ? '' : 's'}' 
-                            : '$c Controller${c == 1 ? '' : 's'} per Team';
-                        return DropdownMenuItem(
-                          value: c,
-                          child: Text(label),
-                        );
-                      }).toList(),
-                      onChanged: (v) => setState(() => _controllerCount = v),
-                    );
-                  }),
-                ],
-
                 if (!_tableType.isOtherGame && _gameType == GameType.standard && _billingType == BillingType.perMinute) ...[
                   const Gap(24),
                   Row(
