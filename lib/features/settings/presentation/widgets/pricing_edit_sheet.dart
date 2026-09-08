@@ -519,7 +519,9 @@ class _PricingEditSheetState extends ConsumerState<PricingEditSheet> {
 
 
 
-    return Container(
+    return DefaultTabController(
+      length: 2,
+      child: Container(
 
       constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.85),
 
@@ -569,6 +571,16 @@ class _PricingEditSheetState extends ConsumerState<PricingEditSheet> {
 
             ),
 
+            TabBar(
+              labelColor: theme.colorScheme.primary,
+              unselectedLabelColor: theme.colorScheme.onSurfaceVariant,
+              indicatorColor: theme.colorScheme.primary,
+              tabs: const [
+                Tab(text: 'Table Games'),
+                Tab(text: 'Other Games'),
+              ],
+            ),
+
             const Gap(12),
 
             Expanded(
@@ -577,22 +589,16 @@ class _PricingEditSheetState extends ConsumerState<PricingEditSheet> {
                   final tableGames = tables.where((t) => [TableType.snooker, TableType.indianPool, TableType.americanPool].contains(t.type)).toList();
                   final otherGames = tables.where((t) => ![TableType.snooker, TableType.indianPool, TableType.americanPool].contains(t.type)).toList();
                   
-                  return ListView(
+                  return TabBarView(
                     children: [
-                      if (tableGames.isNotEmpty) ...[
-                        Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 12.0),
-                          child: Text('Table Games', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold, color: theme.colorScheme.primary)),
-                        ),
-                        ...tableGames.map((table) => _buildTablePricingCard(table, theme)).toList(),
-                      ],
-                      if (otherGames.isNotEmpty) ...[
-                        Padding(
-                          padding: const EdgeInsets.only(top: 16.0, bottom: 12.0),
-                          child: Text('Other Games', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold, color: theme.colorScheme.primary)),
-                        ),
-                        ...otherGames.map((table) => _buildTablePricingCard(table, theme)).toList(),
-                      ],
+                      ListView.builder(
+                        itemCount: tableGames.length,
+                        itemBuilder: (context, index) => _buildTablePricingCard(tableGames[index], theme),
+                      ),
+                      ListView.builder(
+                        itemCount: otherGames.length,
+                        itemBuilder: (context, index) => _buildTablePricingCard(otherGames[index], theme),
+                      ),
                     ],
                   );
                 }
@@ -645,7 +651,7 @@ class _PricingEditSheetState extends ConsumerState<PricingEditSheet> {
 
       ),
 
-    );
+    ));
 
   }
 
