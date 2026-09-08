@@ -137,50 +137,52 @@ class _GameSetupSheetState extends ConsumerState<GameSetupSheet> {
               padding: const EdgeInsets.all(20),
               children: [
                 // Game Type Selection
-                Text('Game Type', style: theme.textTheme.labelMedium),
-                const Gap(8),
-                DropdownButtonFormField<GameType>(
-                  isExpanded: true,
-                  value: _gameType,
-                  decoration: InputDecoration(
-                    isDense: true,
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                  ),
-                  items: GameType.values
-                      .where((type) {
-                        if (_tableType.isOtherGame) return type == GameType.standard;
-                        if (type == GameType.rummy && _tableType != TableType.snooker) {
-                          return false;
-                        }
-                        return TablePricingConfig.supportedBillingTypes(widget.table, type).isNotEmpty;
-                      })
-                      .map(
-                        (type) => DropdownMenuItem(
-                          value: type,
-                          child: Text(
-                            type.displayName,
-                            style: const TextStyle(fontWeight: FontWeight.w600),
+                if (!_tableType.isOtherGame) ...[
+                  Text('Game Type', style: theme.textTheme.labelMedium),
+                  const Gap(8),
+                  DropdownButtonFormField<GameType>(
+                    isExpanded: true,
+                    value: _gameType,
+                    decoration: InputDecoration(
+                      isDense: true,
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                    items: GameType.values
+                        .where((type) {
+                          if (_tableType.isOtherGame) return type == GameType.standard;
+                          if (type == GameType.rummy && _tableType != TableType.snooker) {
+                            return false;
+                          }
+                          return TablePricingConfig.supportedBillingTypes(widget.table, type).isNotEmpty;
+                        })
+                        .map(
+                          (type) => DropdownMenuItem(
+                            value: type,
+                            child: Text(
+                              type.displayName,
+                              style: const TextStyle(fontWeight: FontWeight.w600),
+                            ),
                           ),
-                        ),
-                      )
-                      .toList(),
-                  onChanged: (val) {
-                    if (val != null) {
-                      setState(() {
-                        _gameType = val;
-                        final validBillingTypes = TablePricingConfig.supportedBillingTypes(widget.table, _gameType);
-                        if (validBillingTypes.isNotEmpty && !validBillingTypes.contains(_billingType)) {
-                          _billingType = validBillingTypes.first;
-                        }
-                        // Reset player counts to minimums
-                        if (val != GameType.standard && _teamASelections.length < 2) {
-                          _teamASelections.clear();
-                          _teamASelections.addAll([null, null]);
-                        }
-                      });
-                    }
-                  },
-                ),
+                        )
+                        .toList(),
+                    onChanged: (val) {
+                      if (val != null) {
+                        setState(() {
+                          _gameType = val;
+                          final validBillingTypes = TablePricingConfig.supportedBillingTypes(widget.table, _gameType);
+                          if (validBillingTypes.isNotEmpty && !validBillingTypes.contains(_billingType)) {
+                            _billingType = validBillingTypes.first;
+                          }
+                          // Reset player counts to minimums
+                          if (val != GameType.standard && _teamASelections.length < 2) {
+                            _teamASelections.clear();
+                            _teamASelections.addAll([null, null]);
+                          }
+                        });
+                      }
+                    },
+                  ),
+                ],
                 
 
                 
