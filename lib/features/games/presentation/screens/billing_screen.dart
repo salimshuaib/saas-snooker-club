@@ -9,6 +9,7 @@ import 'package:snooker_club/features/games/domain/config/pricing_config.dart';
 import 'package:snooker_club/features/settings/providers/settings_providers.dart';
 import 'package:snooker_club/features/games/domain/models/game_models.dart';
 import 'package:snooker_club/features/games/providers/games_providers.dart';
+import 'package:snooker_club/core/routes/app_router.dart';
 
 class BillingScreen extends ConsumerStatefulWidget {
   final GameSession session;
@@ -23,8 +24,11 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
   late GameSession _session;
   PaymentMethod _paymentMethod = PaymentMethod.cash;
   String? _winnerId;
+  final Set<String> _selectedPayers = {};
   String? _PlayerProfileName;
+  late TextEditingController _creditAmountController;
   late Map<String, PaymentMethod> _playerPaymentMethods;
+  late Map<String, String> _playerNames;
   late Map<String, double> _customLiabilities;
   bool _isProcessing = false;
   
@@ -49,6 +53,7 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
     super.initState();
     _discountedGameAmountController = TextEditingController();
     _finalAmountController = TextEditingController();
+    _creditAmountController = TextEditingController();
     _session = widget.session.copyWith(endTime: DateTime.now());
     if (_session.matchType == MatchType.friendly) {
       _winnerId = null;
@@ -56,6 +61,7 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
     _playerPaymentMethods = {
       for (final p in _session.allPlayers) p: PaymentMethod.cash,
     };
+    _playerNames = {for (final p in _session.allPlayers) p: p};
     if (_session.gameType == GameType.race) {
       if (_session.mode == GameMode.team) {
         _raceSelectedWinnerTeam = 'Team A';
@@ -72,6 +78,7 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
   void dispose() {
     _discountedGameAmountController.dispose();
     _finalAmountController.dispose();
+    _creditAmountController.dispose();
     for (final c in _liabilityControllers.values) {
       c.dispose();
     }
@@ -142,11 +149,19 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
         }
       } else {
         List<String> gamePayers = _session.allPlayers;
-        if (_session.matchType == MatchType.loserPays && _winnerId != null) {
-          if (_session.mode == GameMode.team) {
-            gamePayers = _winnerId == 'Team A' ? _session.teamB : _session.teamA;
+        if (_session.matchType == MatchType.loserPays &&
+            _selectedPayers.isNotEmpty) {
+          if (_selectedPayers.contains('All')) {
+            gamePayers = _session.allPlayers;
+          } else if (_session.mode == GameMode.team) {
+            gamePayers = [
+              if (_selectedPayers.contains('Team A')) ..._session.teamA,
+              if (_selectedPayers.contains('Team B')) ..._session.teamB,
+            ];
           } else {
-            gamePayers = _session.allPlayers.where((p) => p != _winnerId).toList();
+            gamePayers = _session.allPlayers
+                .where((p) => _selectedPayers.contains(p))
+                .toList();
           }
         }
         final split =
@@ -183,6 +198,26 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
             liabilities[p] = (liabilities[p] ?? 0.0) + adj;
           }
         }
+      }
+    }
+
+    if (_isMultiPayer) {
+      final roundedPayers = liabilities.entries
+          .where((entry) => entry.value > 0)
+          .map((entry) => entry.key)
+          .toList();
+      if (roundedPayers.isNotEmpty) {
+        for (final payer in roundedPayers) {
+          liabilities[payer] =
+              ((liabilities[payer] ?? 0.0) * 100).roundToDouble() / 100;
+        }
+        final roundedSum = roundedPayers.fold<double>(
+          0.0,
+          (sum, payer) => sum + (liabilities[payer] ?? 0.0),
+        );
+        liabilities[roundedPayers.last] =
+            (liabilities[roundedPayers.last] ?? 0.0) +
+            (totalToSplit - roundedSum);
       }
     }
 
@@ -257,6 +292,9 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
   double get _roundedTotal => (_grandTotal / 10).roundToDouble() * 10;
   
   double get _finalTotal {
+    if (_isMultiPayer) {
+      return _isDiscountMode ? _discountedGameCharge : _grandTotal;
+    }
     if (_isDiscountMode) {
       return _discountedGameCharge + _ordersTotal;
     } else {
@@ -279,7 +317,30 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
     return _customLiabilities.values.where((v) => v > 0).length;
   }
 
-  bool get _isMultiPayer => _activePayerCount > 1;
+  bool get _isMultiPayer =>
+      _liabilitiesInitialized &&
+      _selectedPayers.isNotEmpty &&
+      _activePayerCount > 1;
+
+  String? get _selectedSinglePayerName {
+    final payerKey = _selectedSinglePayerKey;
+    return payerKey == null ? null : _playerNames[payerKey] ?? payerKey;
+  }
+
+  String? get _selectedSinglePayerKey {
+    if (_selectedPayers.length != 1 || _selectedPayers.contains('All')) {
+      return null;
+    }
+    final selectedPayer = _selectedPayers.first;
+    if (_session.allPlayers.contains(selectedPayer)) return selectedPayer;
+    if (selectedPayer == 'Team A' && _session.teamA.length == 1) {
+      return _session.teamA.first;
+    }
+    if (selectedPayer == 'Team B' && _session.teamB.length == 1) {
+      return _session.teamB.first;
+    }
+    return null;
+  }
 
   bool get _hasCredit {
     if (_isMultiPayer) {
@@ -302,6 +363,14 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
       return 'Confirm Payment (₹${_finalTotal.toStringAsFixed(0)})';
     }
   }
+
+  double get _creditAmount {
+    final enteredAmount = double.tryParse(_creditAmountController.text.trim());
+    if (enteredAmount == null || enteredAmount <= 0) return _finalTotal;
+    return enteredAmount.clamp(0, _finalTotal);
+  }
+
+  double get _cashAmount => (_finalTotal - _creditAmount).clamp(0, _finalTotal);
 
   Color get _ctaColor {
     if (_isMultiPayer) {
@@ -425,40 +494,49 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
             if (!_isMultiRoundTP &&
                 _session.gameType == GameType.standard &&
                 _session.matchType == MatchType.loserPays) ...[
-              Text('Select Winner', style: theme.textTheme.titleMedium),
+              Text('Who will Pay?', style: theme.textTheme.titleMedium),
               const Gap(8),
               _SectionCard(
-                children: _session.mode == GameMode.team
-                    ? [
-                        _WinnerTile(
-                          label: 'Team A (${_session.teamA.join(", ")})',
-                          isSelected: _winnerId == 'Team A',
-                          onTap: () {
-                            setState(() => _winnerId = 'Team A');
-                            _initializeLiabilities();
-                          },
-                        ),
-                        _WinnerTile(
-                          label: 'Team B (${_session.teamB.join(", ")})',
-                          isSelected: _winnerId == 'Team B',
-                          onTap: () {
-                            setState(() => _winnerId = 'Team B');
-                            _initializeLiabilities();
-                          },
-                        ),
-                      ]
-                    : _session.allPlayers
-                          .map(
-                            (p) => _WinnerTile(
-                              label: p,
-                              isSelected: _winnerId == p,
-                              onTap: () {
-                                setState(() => _winnerId = p);
-                                _initializeLiabilities();
-                              },
-                            ),
-                          )
-                          .toList(),
+                children: [
+                  _WinnerTile(
+                    label: 'All',
+                    isSelected: _selectedPayers.contains('All'),
+                    onTap: () {
+                      setState(() {
+                        if (_selectedPayers.contains('All')) {
+                          _selectedPayers.clear();
+                        } else {
+                          _selectedPayers
+                            ..clear()
+                            ..add('All');
+                        }
+                      });
+                      _initializeLiabilities();
+                    },
+                  ),
+                  ...(_session.mode == GameMode.team
+                          ? [
+                              _WinnerTile(
+                                label: 'Team A (${_session.teamA.join(", ")})',
+                                isSelected: _selectedPayers.contains('Team A'),
+                                onTap: () => _togglePayer('Team A'),
+                              ),
+                              _WinnerTile(
+                                label: 'Team B (${_session.teamB.join(", ")})',
+                                isSelected: _selectedPayers.contains('Team B'),
+                                onTap: () => _togglePayer('Team B'),
+                              ),
+                            ]
+                          : _session.allPlayers
+                                .map(
+                                  (p) => _WinnerTile(
+                                    label: p,
+                                    isSelected: _selectedPayers.contains(p),
+                                    onTap: () => _togglePayer(p),
+                                  ),
+                                )
+                                .toList()),
+                ],
               ),
               const Gap(16),
             ],
@@ -705,7 +783,16 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
                           fontWeight: FontWeight.w700,
                         ),
                       ),
-                      SizedBox(
+                      if (_isMultiPayer)
+                        Text(
+                          '₹${_finalTotal.toStringAsFixed(2)}',
+                          style: theme.textTheme.titleLarge?.copyWith(
+                            color: AppColors.primary,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        )
+                      else
+                        SizedBox(
                         width: 120,
                         child: TextFormField(
                           controller: _finalAmountController,
@@ -799,22 +886,64 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
               ),
               if (_paymentMethod == PaymentMethod.credit) ...[
                 const Gap(24),
-                Text(
-                  'Select Customer for Credit',
-                  style: theme.textTheme.titleMedium,
+                TextFormField(
+                  controller: _creditAmountController,
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
+                  decoration: const InputDecoration(
+                    labelText: 'Credit amount',
+                    prefixText: '₹',
+                    border: OutlineInputBorder(),
+                  ),
+                  onChanged: (_) => setState(() {}),
                 ),
-                const Gap(8),
-                _SectionCard(
-                  children: _session.allPlayers
-                      .map(
-                        (p) => _WinnerTile(
-                          label: p,
-                          isSelected: _PlayerProfileName == p,
-                          onTap: () => setState(() => _PlayerProfileName = p),
+                if (_selectedSinglePayerName != null) ...[
+                  const Gap(24),
+                  Text(
+                    'Credit Customer',
+                    style: theme.textTheme.titleMedium,
+                  ),
+                  const Gap(8),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          _selectedSinglePayerName!,
+                          style: theme.textTheme.titleSmall?.copyWith(
+                            fontWeight: FontWeight.w700,
+                          ),
                         ),
-                      )
-                      .toList(),
-                ),
+                      ),
+                      IconButton(
+                        tooltip: 'Edit player name',
+                        icon: const Icon(Icons.edit),
+                        onPressed: () => _editPlayerName(
+                          _selectedSinglePayerKey!,
+                        ),
+                      ),
+                    ],
+                  ),
+                ] else if (_selectedPayers.isEmpty) ...[
+                  const Gap(24),
+                  Text(
+                    'Select Customer for Credit',
+                    style: theme.textTheme.titleMedium,
+                  ),
+                  const Gap(8),
+                  _SectionCard(
+                    children: _session.allPlayers
+                        .map(
+                          (p) => _WinnerTile(
+                            label: p,
+                            isSelected: _PlayerProfileName == p,
+                            onTap: () =>
+                                setState(() => _PlayerProfileName = p),
+                          ),
+                        )
+                        .toList(),
+                  ),
+                ],
               ],
               const Gap(32),
             ],
@@ -899,6 +1028,7 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
             final amount = liabilities[player] ?? 0.0;
             final selectedMethod =
                 _playerPaymentMethods[player] ?? PaymentMethod.cash;
+            final playerName = _playerNames[player] ?? player;
 
             return Padding(
               padding: const EdgeInsets.symmetric(vertical: 12),
@@ -908,10 +1038,26 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(
-                        player,
-                        style: theme.textTheme.titleSmall?.copyWith(
-                          fontWeight: FontWeight.w700,
+                      Expanded(
+                        child: Row(
+                          children: [
+                            Flexible(
+                              child: Text(
+                                playerName,
+                                style: theme.textTheme.titleSmall?.copyWith(
+                                  fontWeight: FontWeight.w700,
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                            if (selectedMethod == PaymentMethod.credit &&
+                                player.toLowerCase().startsWith('default '))
+                              IconButton(
+                                tooltip: 'Edit player name',
+                                icon: const Icon(Icons.edit, size: 18),
+                                onPressed: () => _editPlayerName(player),
+                              ),
+                          ],
                         ),
                       ),
                       SizedBox(
@@ -1009,6 +1155,52 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
     );
   }
 
+  Future<void> _editPlayerName(String player) async {
+    final controller = TextEditingController(
+      text: _playerNames[player] ?? player,
+    );
+    final editedName = await showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Edit player name'),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          textCapitalization: TextCapitalization.words,
+          decoration: const InputDecoration(
+            labelText: 'Player name',
+            border: OutlineInputBorder(),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, controller.text.trim()),
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
+    controller.dispose();
+
+    if (editedName != null && editedName.isNotEmpty && mounted) {
+      setState(() => _playerNames[player] = editedName);
+    }
+  }
+
+  void _togglePayer(String payer) {
+    setState(() {
+      _selectedPayers.remove('All');
+      if (!_selectedPayers.remove(payer)) {
+        _selectedPayers.add(payer);
+      }
+    });
+    _initializeLiabilities();
+  }
+
   IconData _paymentIcon(PaymentMethod method) {
     switch (method) {
       case PaymentMethod.cash:
@@ -1022,13 +1214,15 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
 
   Future<void> _confirmPayment() async {
     if (_isProcessing) return;
+    final creditCustomerName =
+        _selectedSinglePayerName ?? _PlayerProfileName;
     if (!_isMultiRoundTP &&
         _session.gameType == GameType.standard &&
         _session.matchType == MatchType.loserPays &&
-        _winnerId == null) {
+        _selectedPayers.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Please select a winner before confirming payment.'),
+          content: Text('Please select at least one payer before confirming payment.'),
           backgroundColor: AppColors.error,
         ),
       );
@@ -1037,7 +1231,7 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
 
     if (!_isMultiPayer &&
         _paymentMethod == PaymentMethod.credit &&
-        _PlayerProfileName == null) {
+      creditCustomerName == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Please select the customer taking the credit.'),
@@ -1048,10 +1242,23 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
     }
 
     if (!_isMultiPayer && _paymentMethod == PaymentMethod.credit) {
-      if (_PlayerProfileName != null && _PlayerProfileName!.toLowerCase().startsWith('default ')) {
+      if (creditCustomerName != null &&
+          creditCustomerName.toLowerCase().startsWith('default ')) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Default players cannot use Credit. Please select Cash or UPI.'),
+            backgroundColor: AppColors.error,
+          ),
+        );
+        return;
+      }
+      final enteredCreditAmount = double.tryParse(
+        _creditAmountController.text.trim(),
+      );
+      if (enteredCreditAmount != null && enteredCreditAmount < 0) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Credit amount cannot be negative.'),
             backgroundColor: AppColors.error,
           ),
         );
@@ -1061,7 +1268,9 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
 
     if (_isMultiPayer) {
       final hasDefaultCredit = _playerPaymentMethods.entries.any(
-        (e) => e.value == PaymentMethod.credit && e.key.toLowerCase().startsWith('default ')
+        (e) =>
+            e.value == PaymentMethod.credit &&
+            (_playerNames[e.key] ?? e.key).toLowerCase().startsWith('default '),
       );
       if (hasDefaultCredit) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -1080,21 +1289,29 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
         ? _session.endTime!
         : DateTime.now();
     final finalDate = DateFormat('yyyy-MM-dd').format(finalEndTime);
+    final finalPlayerPaymentMethods = {
+      for (final entry in _playerPaymentMethods.entries)
+        _playerNames[entry.key] ?? entry.key: entry.value,
+    };
+    final finalPlayerLiabilities = {
+      for (final entry in _customLiabilities.entries)
+        _playerNames[entry.key] ?? entry.key: entry.value,
+    };
 
     final finalSession =
         _isMultiPayer
         ? _session.copyWith(
             endTime: finalEndTime,
             status: TableStatus.available,
-            playerPaymentMethods: _playerPaymentMethods,
-            playerLiabilities: _customLiabilities,
+            playerPaymentMethods: finalPlayerPaymentMethods,
+            playerLiabilities: finalPlayerLiabilities,
             gameCharge: _gameCharge,
             baseGameCharge: _baseGameCharge,
             overtimeMinutes: _overtimeMinutes,
             overtimeCharge: _overtimeCharge,
             ordersTotal: _ordersTotal,
             grandTotal: _grandTotal,
-            roundedAmount: _roundedTotal,
+            roundedAmount: _isMultiPayer ? _finalTotal : _roundedTotal,
             finalAmount: _finalTotal,
             discountedGameCharge: _isDiscountMode ? _discountedGameCharge : null,
             gameDiscountAmount: _isDiscountMode ? _gameDiscountAmount : null,
@@ -1107,16 +1324,29 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
             status: TableStatus.available,
             winnerId: _winnerId,
             paidBy: _paymentMethod == PaymentMethod.credit
-                ? _PlayerProfileName
+              ? creditCustomerName
                 : null,
             paymentMethod: _paymentMethod,
+            creditAmount: _paymentMethod == PaymentMethod.credit
+              ? _creditAmount
+              : null,
+            paymentStatus: _paymentMethod == PaymentMethod.credit &&
+                _cashAmount > 0
+              ? 'Partially Paid'
+              : null,
+            paidAmount: _paymentMethod == PaymentMethod.credit
+              ? _cashAmount
+              : null,
+            remainingAmount: _paymentMethod == PaymentMethod.credit
+              ? _creditAmount
+              : null,
             gameCharge: _gameCharge,
             baseGameCharge: _baseGameCharge,
             overtimeMinutes: _overtimeMinutes,
             overtimeCharge: _overtimeCharge,
             ordersTotal: _ordersTotal,
             grandTotal: _grandTotal,
-            roundedAmount: _roundedTotal,
+            roundedAmount: _isMultiPayer ? _finalTotal : _roundedTotal,
             finalAmount: _finalTotal,
             discountedGameCharge: _isDiscountMode ? _discountedGameCharge : null,
             gameDiscountAmount: _isDiscountMode ? _gameDiscountAmount : null,
@@ -1129,13 +1359,21 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
           .read(gameSessionControllerProvider.notifier)
           .endGame(finalSession);
       if (mounted) {
-        context.go('/games');
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Payment recorded. Table is now available.'),
-            backgroundColor: AppColors.success,
-          ),
-        );
+        final router = GoRouter.of(context);
+        Navigator.of(context).pop();
+        router.go('/dashboard');
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          final dashboardContext =
+              router.routerDelegate.navigatorKey.currentContext;
+          if (dashboardContext != null) {
+            ScaffoldMessenger.of(dashboardContext).showSnackBar(
+              const SnackBar(
+                content: Text('Payment recorded. Table is now available.'),
+                backgroundColor: AppColors.success,
+              ),
+            );
+          }
+        });
       }
     } catch (e) {
       if (mounted) {

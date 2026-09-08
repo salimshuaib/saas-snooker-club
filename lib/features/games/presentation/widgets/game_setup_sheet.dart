@@ -270,7 +270,7 @@ class _GameSetupSheetState extends ConsumerState<GameSetupSheet> {
                     const Gap(8),
                     Builder(builder: (context) {
                       List<int> availableControllers = [];
-                      if (_gameMode == GameMode.individual) {
+                      if (_mode == GameMode.solo) {
                         availableControllers = [1, 2, 3, 4, 5];
                       } else {
                         availableControllers = [1, 2, 3, 4];
@@ -286,7 +286,7 @@ class _GameSetupSheetState extends ConsumerState<GameSetupSheet> {
                           border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                         ),
                         items: availableControllers.map((c) {
-                          final label = _gameMode == GameMode.individual 
+                          final label = _mode == GameMode.solo
                               ? '$c Controller${c == 1 ? '' : 's'}' 
                               : '$c Controller${c == 1 ? '' : 's'} per Team';
                           return DropdownMenuItem(

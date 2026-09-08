@@ -42,6 +42,8 @@ import 'package:snooker_club/features/subscription/presentation/screens/subscrip
 
 final GlobalKey<NavigatorState> _rootNavigatorKey =
     GlobalKey<NavigatorState>(debugLabel: 'root');
+final GlobalKey<ScaffoldMessengerState> rootScaffoldMessengerKey =
+  GlobalKey<ScaffoldMessengerState>(debugLabel: 'rootScaffoldMessenger');
 final GlobalKey<NavigatorState> _dashboardNavigatorKey =
     GlobalKey<NavigatorState>(debugLabel: 'dashboard');
 final GlobalKey<NavigatorState> _historyNavigatorKey =

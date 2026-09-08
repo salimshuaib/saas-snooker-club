@@ -102,6 +102,7 @@ class StartGameSheet extends ConsumerWidget {
         case TableType.indianPool: title = 'Indian Pool Tables'; break;
         case TableType.americanPool: title = 'American Pool Tables'; break;
         case TableType.ps5: title = 'PS5 Consoles'; break;
+        case TableType.ps4: title = 'PS4 Consoles'; break;
         case TableType.pc: title = 'Gaming PCs'; break;
         case TableType.carrom: title = 'Carrom Boards'; break;
         case TableType.foosball: title = 'Foosball Tables'; break;
@@ -109,6 +110,8 @@ class StartGameSheet extends ConsumerWidget {
         case TableType.tableTennis: title = 'Table Tennis'; break;
         case TableType.steeringWheel: title = 'Steering Wheels'; break;
         case TableType.arcade: title = 'Arcade Machines'; break;
+        case TableType.simulator: title = 'Simulators'; break;
+        case TableType.iceHockey: title = 'Ice Hockey Tables'; break;
       }
       return _buildTableGroup(title, tablesOfType, context, employeeId, theme);
     }).toList();
