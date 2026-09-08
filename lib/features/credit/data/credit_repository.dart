@@ -295,12 +295,14 @@ class CreditRepository {
       
       if (!customerDoc.exists) throw Exception("Customer not found.");
       final currentOutstanding = (customerDoc.data() as Map<String, dynamic>)['outstandingAmount'] as num;
+      final roundedOutstanding = double.parse(currentOutstanding.toStringAsFixed(2));
+      final roundedPayment = double.parse(paymentAmount.toStringAsFixed(2));
       
-      if (paymentAmount > currentOutstanding) {
+      if (roundedPayment > roundedOutstanding) {
         throw Exception("Payment amount exceeds outstanding balance.");
       }
 
-      final newOutstanding = currentOutstanding - paymentAmount;
+      final newOutstanding = roundedOutstanding - roundedPayment;
 
       tx.update(customerRef, {
         'outstandingAmount': newOutstanding,
@@ -492,7 +494,10 @@ class CreditRepository {
       }
     }
 
-    final double outstanding = math.max(0.0, totalCharges - totalPayments);
+    totalCharges = double.parse(totalCharges.toStringAsFixed(2));
+    totalPayments = double.parse(totalPayments.toStringAsFixed(2));
+
+    final double outstanding = math.max(0.0, double.parse((totalCharges - totalPayments).toStringAsFixed(2)));
     double remainingToCover = outstanding;
     int pendingCount = 0;
 
@@ -503,7 +508,8 @@ class CreditRepository {
     for (final doc in transSnap.docs) {
       final data = doc.data() as Map<String, dynamic>?;
       if (data != null) {
-        final originalAmount = (data['amount'] as num?)?.toDouble() ?? 0.0;
+        final rawAmount = (data['amount'] as num?)?.toDouble() ?? 0.0;
+        final originalAmount = double.parse(rawAmount.toStringAsFixed(2));
         final typeStr = data['type'] as String? ?? '';
         final refId = data['referenceId'] as String? ?? '';
         

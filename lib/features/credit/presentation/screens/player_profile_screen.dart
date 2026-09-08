@@ -574,7 +574,10 @@ class _PaymentSheetState extends ConsumerState<_PaymentSheet> {
       return;
     }
 
-    if (amount > widget.customer.outstandingAmount) {
+    final roundedOutstanding = double.parse(widget.customer.outstandingAmount.toStringAsFixed(2));
+    final roundedAmount = double.parse(amount.toStringAsFixed(2));
+
+    if (roundedAmount > roundedOutstanding) {
       _showError('Amount cannot exceed outstanding balance');
       return;
     }
