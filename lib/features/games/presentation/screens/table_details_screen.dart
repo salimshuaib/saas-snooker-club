@@ -416,8 +416,9 @@ class _ActiveGameCardState extends ConsumerState<_ActiveGameCard> {
                   gameConfig: game.gameSettingsSnapshot ?? appSettings.game,
                   completedRounds: game.rounds,
                   customPrice: game.customPrice,
-                    customExtraCharge: game.customExtraCharge,
-                    playersCount: game.playerIds.length,
+                  customExtraCharge: game.customExtraCharge,
+                  playersCount: game.playerIds.length,
+                  coinQuantity: game.coinQuantity,
                 );
                 final h = (seconds ~/ 3600).toString().padLeft(2, '0');
                 final m = ((seconds % 3600) ~/ 60).toString().padLeft(2, '0');
@@ -447,7 +448,7 @@ class _ActiveGameCardState extends ConsumerState<_ActiveGameCard> {
                               final rate = game.customPrice ?? TablePricingConfig.getPerMinutePrice(
                                 game.tableType, game.gameType, game.pricingSnapshot ?? appSettings.pricing
                               );
-                              displayStr += ' • ₹${rate.toStringAsFixed(2)}/min';
+                              displayStr += ' • \u20B9${rate.toStringAsFixed(2)}/min';
                             }
                             return Text(
                               displayStr,
@@ -465,7 +466,7 @@ class _ActiveGameCardState extends ConsumerState<_ActiveGameCard> {
                       crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
                         Text(
-                          '₹${charge.totalCharge.toStringAsFixed(2)}',
+                          '\u20B9${charge.totalCharge.toStringAsFixed(2)}',
                           style: theme.textTheme.headlineSmall?.copyWith(
                             fontWeight: FontWeight.w700,
                             color: AppColors.primary,
@@ -620,7 +621,7 @@ class _ActiveGameCardState extends ConsumerState<_ActiveGameCard> {
                                 ),
                               ),
                               Text(
-                                '₹${r.roundCost.toStringAsFixed(0)}',
+                                '\u20B9${r.roundCost.toStringAsFixed(0)}',
                                 style: theme.textTheme.bodySmall?.copyWith(
                                   fontWeight: FontWeight.w600,
                                 ),
@@ -662,7 +663,7 @@ class _ActiveGameCardState extends ConsumerState<_ActiveGameCard> {
                                 ),
                               ),
                               Text(
-                                '₹${o.total.toStringAsFixed(0)}',
+                                '\u20B9${o.total.toStringAsFixed(0)}',
                                 style: theme.textTheme.bodySmall?.copyWith(
                                   fontWeight: FontWeight.w600,
                                 ),
@@ -681,7 +682,7 @@ class _ActiveGameCardState extends ConsumerState<_ActiveGameCard> {
                   if (ordersTotal > 0) ...[
                     const Gap(4),
                     Text(
-                      'Orders total: ₹${ordersTotal.toStringAsFixed(0)}',
+                      'Orders total: \u20B9${ordersTotal.toStringAsFixed(0)}',
                       style: theme.textTheme.labelSmall?.copyWith(
                         color: AppColors.primary,
                       ),
@@ -849,16 +850,24 @@ class _ActiveGameCardState extends ConsumerState<_ActiveGameCard> {
       gameConfig: game.gameSettingsSnapshot ?? appSettings.game,
       completedRounds: game.rounds,
       customPrice: game.customPrice,
+      customExtraCharge: game.customExtraCharge,
+      playersCount: game.playerIds.length,
+      coinQuantity: game.coinQuantity,
     );
 
-    final previousTotal = game.rounds.fold<double>(0, (s, r) => s + r.roundCost + (r.overtimeCharge ?? 0));
-    final roundCost = charge.totalCharge - previousTotal;
+    final currentOvertimeMinutes = charge.overtimeMinutes - game.rounds.fold<int>(0, (s, r) => s + (r.overtimeMinutes ?? 0));
+    final currentOvertimeCharge = charge.overtimeCharge - game.rounds.fold<double>(0.0, (s, r) => s + (r.overtimeCharge ?? 0.0));
+
+    final previousBaseTotal = game.rounds.fold<double>(0.0, (s, r) => s + r.roundCost);
+    final roundCost = charge.baseCharge - previousBaseTotal;
 
     return GameRound(
       roundNumber: roundNumber,
       framePayers: framePayers,
       roundCost: roundCost,
       durationSeconds: activeSeconds - game.rounds.fold<int>(0, (s, r) => s + (r.durationSeconds ?? 0)),
+      overtimeMinutes: currentOvertimeMinutes > 0 ? currentOvertimeMinutes : null,
+      overtimeCharge: currentOvertimeCharge > 0 ? currentOvertimeCharge : null,
     );
   }
 
@@ -1067,12 +1076,18 @@ class _NoActiveGameCard extends ConsumerWidget {
     );
   }
 
-  void _showGameSetup(BuildContext context, WidgetRef ref, String employeeId) {
-    showModalBottomSheet(
+  Future<void> _showGameSetup(BuildContext context, WidgetRef ref, String employeeId) async {
+    final result = await showModalBottomSheet<GameSession>(
       context: context,
       isScrollControlled: true,
       builder: (_) => GameSetupSheet(table: table, employeeId: employeeId),
     );
+    
+    if (result != null && result.status == TableStatus.billing && context.mounted) {
+      await Navigator.of(context).push(
+        MaterialPageRoute(builder: (_) => BillingScreen(session: result)),
+      );
+    }
   }
 }
 
@@ -1188,7 +1203,7 @@ class _HistoryCard extends StatelessWidget {
               children: [
                 if ((game.finalAmount ?? game.grandTotal) != null)
                   Text(
-                    '₹${(game.finalAmount ?? game.grandTotal)!.toStringAsFixed(0)}',
+                    '\u20B9${(game.finalAmount ?? game.grandTotal)!.toStringAsFixed(0)}',
                     style: theme.textTheme.titleSmall?.copyWith(
                       fontWeight: FontWeight.w700,
                       color: AppColors.primary,

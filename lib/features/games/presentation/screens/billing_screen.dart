@@ -30,6 +30,7 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
   
   late List<String> _selectedPayers;
   double _discountAmount = 0.0;
+  bool _hasDiscount = false;
   
   late TextEditingController _discountController;
   late TextEditingController _discountPercentController;
@@ -44,8 +45,13 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
     _session = widget.session.copyWith(endTime: DateTime.now());
     _selectedPayers = List.from(_session.selectedPayers ?? _session.allPlayers);
     _discountAmount = _session.discountAmount ?? 0.0;
+    _hasDiscount = _discountAmount > 0;
     
     _discountController = TextEditingController(text: _discountAmount == 0 ? '' : _discountAmount.toStringAsFixed(0));
+    // Calculate initial percent if amount exists
+    double initialPercent = 0.0;
+    // We cannot use _gameCharge here because it requires context for appSettings,
+    // so we will just initialize empty and let the UI handle it or we can calculate base.
     _discountPercentController = TextEditingController();
     
     _playerPaymentMethods = {
@@ -83,22 +89,11 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
     final double discountedGame = _gameCharge - _discountAmount;
 
     if (_selectedPayers.isNotEmpty) {
-      if (_selectedPayers.length == 1) {
-        liabilities[_selectedPayers.first] = discountedGame;
-      } else {
-        final rawShare = discountedGame / _selectedPayers.length;
-        final roundedShare = (rawShare / 10).roundToDouble() * 10;
-        
-        double assignedSoFar = 0.0;
-        for (int i = 0; i < _selectedPayers.length; i++) {
-          final p = _selectedPayers[i];
-          if (i == _selectedPayers.length - 1) {
-            liabilities[p] = discountedGame - assignedSoFar;
-          } else {
-            liabilities[p] = roundedShare;
-            assignedSoFar += roundedShare;
-          }
-        }
+      final rawShare = discountedGame / _selectedPayers.length;
+      final roundedShare = (rawShare / 10).roundToDouble() * 10;
+      
+      for (final p in _selectedPayers) {
+        liabilities[p] = roundedShare;
       }
     }
 
@@ -147,6 +142,7 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
       customPrice: _session.customPrice,
       customExtraCharge: _session.customExtraCharge,
       playersCount: _session.playerIds.length,
+      coinQuantity: _session.coinQuantity,
     );
   }
 
@@ -164,8 +160,14 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
   double get _finalTotal => _discountedGameCharge + _ordersTotal;
 
   double get _roundedTotal {
+    if (_session.tableType == TableType.arcade) {
+      return _finalTotal;
+    }
     if (_isMultiPayer) {
-       return _customLiabilities.values.fold<double>(0.0, (s, v) => s + v);
+      if (_selectedPayers.isEmpty) return _finalTotal;
+      final rawShare = _discountedGameCharge / _selectedPayers.length;
+      final roundedShare = (rawShare / 10).roundToDouble() * 10;
+      return (roundedShare * _selectedPayers.length) + _ordersTotal;
     }
     return (_finalTotal / 10).roundToDouble() * 10;
   }
@@ -203,7 +205,7 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
       if (_hasCredit) {
         return 'Record Payment & Credit';
       }
-      return 'Confirm Payment (â‚¹${_finalTotal.toStringAsFixed(0)})';
+      return 'Confirm Payment (\u20B9${_finalTotal.toStringAsFixed(0)})';
     }
   }
 
@@ -221,7 +223,7 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
       0.0,
       (s, v) => s + v,
     );
-    final isBalanced = (_finalTotal - currentSum).abs() < 0.5;
+    final isBalanced = (_roundedTotal - currentSum).abs() < 0.5;
     final theme = Theme.of(context);
     final dtFmt = DateFormat('d MMM, hh:mm a');
 
@@ -279,7 +281,7 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
             ),
             const Gap(16),
 
-            // ── Round / Frame Summary ──
+            // ── Round ── Frame Summary ──
             if (_session.rounds.isNotEmpty) ...[
               Text('Round / Frame Summary', style: theme.textTheme.titleMedium),
               const Gap(8),
@@ -300,7 +302,7 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
                             ),
                           ),
                           Text(
-                            'â‚¹${(r.roundCost + (r.overtimeCharge ?? 0.0)).toStringAsFixed(2)}',
+                            '\u20B9${(r.roundCost + (r.overtimeCharge ?? 0.0)).toStringAsFixed(2)}',
                             style: theme.textTheme.bodyMedium?.copyWith(
                               fontWeight: FontWeight.w600,
                             ),
@@ -316,19 +318,15 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
 
             // ── Payer Selection ──
             if (_session.allPlayers.isNotEmpty) ...[
-              _SectionCard(
-                children: [
-                  PayerSelectionWidget(
-                    allPlayers: _session.allPlayers,
-                    selectedPayers: _selectedPayers,
-                    onChanged: (newPayers) {
-                      setState(() {
-                        _selectedPayers = newPayers;
-                      });
-                      _initializeLiabilities();
-                    },
-                  ),
-                ],
+              PayerSelectionWidget(
+                allPlayers: _session.allPlayers,
+                selectedPayers: _selectedPayers,
+                onChanged: (newPayers) {
+                  setState(() {
+                    _selectedPayers = newPayers;
+                  });
+                  _initializeLiabilities();
+                },
               ),
               const Gap(16),
             ],
@@ -354,7 +352,7 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
                             ),
                           ),
                           Text(
-                            'â‚¹${o.total.toStringAsFixed(0)}',
+                            '\u20B9${o.total.toStringAsFixed(0)}',
                             style: theme.textTheme.bodyMedium?.copyWith(
                               fontWeight: FontWeight.w600,
                             ),
@@ -376,7 +374,7 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
                 if (_session.billingType == BillingType.perFrame) ...[
                   _InfoRow(
                     label: 'Frame Charges',
-                    value: 'â‚¹${_baseGameCharge.toStringAsFixed(2)}',
+                    value: '\u20B9${_baseGameCharge.toStringAsFixed(2)}',
                   ),
                   _InfoRow(
                     label: 'Grace Period',
@@ -387,114 +385,142 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
                   if (_session.billingType == BillingType.perMinute)
                     _InfoRow(
                       label: 'Rate',
-                      value: 'â‚¹${(_session.customPrice ?? TablePricingConfig.getPerMinutePrice(_session.tableType, _session.gameType, _session.pricingSnapshot ?? appSettings.pricing)).toStringAsFixed(2)} / min',
+                      value: '\u20B9${(_session.customPrice ?? TablePricingConfig.getPerMinutePrice(_session.tableType, _session.gameType, _session.pricingSnapshot ?? appSettings.pricing)).toStringAsFixed(2)} / min',
                     ),
                   _InfoRow(
                     label: 'Base Charge',
-                    value: 'â‚¹${_baseGameCharge.toStringAsFixed(2)}',
+                    value: '\u20B9${_baseGameCharge.toStringAsFixed(2)}',
                   ),
                 ],
                 if (_overtimeMinutes > 0) ...[
                   _InfoRow(
                     label: 'Overtime (${_overtimeMinutes} mins)',
-                    value: 'â‚¹${_overtimeCharge.toStringAsFixed(2)}',
+                    value: '\u20B9${_overtimeCharge.toStringAsFixed(2)}',
                   ),
                 ],
                 const Divider(height: 16),
                 _InfoRow(
                   label: 'Total Game Charge',
-                  value: 'â‚¹${_gameCharge.toStringAsFixed(2)}',
+                  value: '\u20B9${_gameCharge.toStringAsFixed(2)}',
                 ),
                 if (_ordersTotal > 0)
                   _InfoRow(
                     label: 'Orders Total',
-                    value: 'â‚¹${_ordersTotal.toStringAsFixed(2)}',
+                    value: '\u20B9${_ordersTotal.toStringAsFixed(2)}',
                   ),
                   // ── Discount ──
-                  const Gap(12),
+                  const Gap(16),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text('Discount (Game)', style: theme.textTheme.titleSmall),
-                      Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          SizedBox(
-                            width: 80,
-                            child: TextFormField(
-                              controller: _discountPercentController,
-                              keyboardType: TextInputType.number,
-                              textAlign: TextAlign.right,
-                              decoration: InputDecoration(
-                                suffixText: '%',
-                                isDense: true,
-                                contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-                                border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                              ),
-                              onChanged: (val) {
-                                final percent = double.tryParse(val) ?? 0.0;
-                                final amount = (_gameCharge * (percent / 100));
-                                setState(() {
-                                  _discountAmount = amount;
-                                  _discountController.text = amount == 0 ? '' : amount.toStringAsFixed(0);
-                                });
-                                _initializeLiabilities();
-                              },
-                            ),
-                          ),
-                          const Gap(8),
-                          SizedBox(
-                            width: 100,
-                            child: TextFormField(
-                              controller: _discountController,
-                              keyboardType: TextInputType.number,
-                              textAlign: TextAlign.right,
-                              decoration: InputDecoration(
-                                prefixText: 'â‚¹',
-                                isDense: true,
-                                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                                border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                              ),
-                              onChanged: (val) {
-                                final amount = double.tryParse(val) ?? 0.0;
-                                final percent = _gameCharge > 0 ? (amount / _gameCharge) * 100 : 0.0;
-                                setState(() {
-                                  _discountAmount = amount;
-                                  _discountPercentController.text = percent == 0 ? '' : percent.toStringAsFixed(1);
-                                });
-                                _initializeLiabilities();
-                              },
-                            ),
-                          ),
-                        ],
+                      Text('Apply Discount', style: theme.textTheme.titleSmall),
+                      Switch(
+                        value: _hasDiscount,
+                        onChanged: (val) {
+                          setState(() {
+                            _hasDiscount = val;
+                            if (!val) {
+                              _discountAmount = 0.0;
+                              _discountPercentController.clear();
+                              _discountController.clear();
+                              _initializeLiabilities();
+                            }
+                          });
+                        },
                       ),
                     ],
                   ),
+                  if (_hasDiscount) ...[
+                    const Gap(12),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          child: TextFormField(
+                            controller: _discountPercentController,
+                            keyboardType: TextInputType.number,
+                            decoration: InputDecoration(
+                              labelText: 'Percentage',
+                              suffixText: '%',
+                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                            ),
+                            onChanged: (val) {
+                              final percent = double.tryParse(val) ?? 0.0;
+                              final amount = (_gameCharge * (percent / 100));
+                              setState(() {
+                                _discountAmount = amount;
+                                _discountController.text = amount == 0 ? '' : amount.toStringAsFixed(0);
+                              });
+                              _initializeLiabilities();
+                            },
+                          ),
+                        ),
+                        const Gap(16),
+                        Expanded(
+                          child: TextFormField(
+                            controller: _discountController,
+                            keyboardType: TextInputType.number,
+                            decoration: InputDecoration(
+                              labelText: 'Amount',
+                              prefixText: '\u20B9',
+                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                            ),
+                            onChanged: (val) {
+                              final amount = double.tryParse(val) ?? 0.0;
+                              final percent = _gameCharge > 0 ? (amount / _gameCharge) * 100 : 0.0;
+                              setState(() {
+                                _discountAmount = amount;
+                                _discountPercentController.text = percent == 0 ? '' : percent.toStringAsFixed(1);
+                              });
+                              _initializeLiabilities();
+                            },
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
                   const Divider(height: 16),
                   
                   // ── Final Amounts ──
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text('Discounted Game', style: theme.textTheme.titleSmall),
-                      Text('â‚¹${_discountedGameCharge.toStringAsFixed(2)}', style: theme.textTheme.titleSmall),
-                    ],
-                  ),
-                  const Gap(4),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text('Orders', style: theme.textTheme.titleSmall),
-                      Text('â‚¹${_ordersTotal.toStringAsFixed(2)}', style: theme.textTheme.titleSmall),
-                    ],
-                  ),
-                  const Gap(12),
+                  if (_hasDiscount) ...[
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text('Discounted Game', style: theme.textTheme.titleSmall),
+                        Text('\u20B9${_discountedGameCharge.toStringAsFixed(2)}', style: theme.textTheme.titleSmall),
+                      ],
+                    ),
+                    const Gap(4),
+                  ],
+                  if (_ordersTotal > 0) ...[
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text('Orders', style: theme.textTheme.titleSmall),
+                        Text('\u20B9${_ordersTotal.toStringAsFixed(2)}', style: theme.textTheme.titleSmall),
+                      ],
+                    ),
+                    const Gap(12),
+                  ] else if (!_hasDiscount) ...[
+                    // Add a small gap if both are hidden so the divider doesn't look too close
+                    const Gap(8),
+                  ],
+                  if ((_roundedTotal - _finalTotal).abs() > 0.01) ...[
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text('Rounding Adjustment', style: theme.textTheme.titleSmall),
+                        Text('${(_roundedTotal - _finalTotal) > 0 ? '+' : '-'}\u20B9${(_roundedTotal - _finalTotal).abs().toStringAsFixed(2)}', style: theme.textTheme.titleSmall),
+                      ],
+                    ),
+                    const Gap(12),
+                  ],
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text('Final Bill Amount', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
                       Text(
-                        'â‚¹${_roundedTotal.toStringAsFixed(0)}',
+                        '\u20B9${_roundedTotal.toStringAsFixed(0)}',
                         style: theme.textTheme.titleLarge?.copyWith(
                           color: AppColors.primary,
                           fontWeight: FontWeight.w700,
@@ -506,7 +532,7 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
             ),
             const Gap(16),
 
-            // ── Payment Method & Liability Distribution ──
+            // ── Payment Method ── Liability Distribution ──
             if (_isMultiPayer) ...[
               Text(
                 'Player Liabilities & Payment',
@@ -631,7 +657,7 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
 
     // Sum validation
     final currentSum = liabilities.values.fold<double>(0.0, (s, v) => s + v);
-    final diff = (_finalTotal - currentSum).abs();
+    final diff = (_roundedTotal - currentSum).abs();
     final isBalanced = diff < 0.5; // Small tolerance
 
     return Column(
@@ -651,7 +677,7 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
                 const Gap(8),
                 Expanded(
                   child: Text(
-                    'Split amounts (â‚¹) do not equal the grand total (â‚¹).',
+                    'Split amounts (\u20B9) do not equal the grand total (\u20B9).',
                     style: TextStyle(
                       color: AppColors.error,
                       fontWeight: FontWeight.w600,

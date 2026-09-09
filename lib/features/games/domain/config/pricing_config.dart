@@ -133,15 +133,21 @@ class TablePricingConfig {
     }
 
     switch (tableType) {
-
       case TableType.snooker: return pricingConfig.snookerPerMinute;
-
       case TableType.indianPool: return pricingConfig.indianPoolPerMinute;
-
       case TableType.americanPool: return pricingConfig.americanPoolPerMinute;
-
+      case TableType.ps5: return pricingConfig.ps5OneHour / 60.0;
+      case TableType.ps4: return pricingConfig.ps4OneHour / 60.0;
+      case TableType.pc: return pricingConfig.pcOneHour / 60.0;
+      case TableType.carrom: return pricingConfig.carromOneHour / 60.0;
+      case TableType.foosball: return pricingConfig.foosballOneHour / 60.0;
+      case TableType.chess: return pricingConfig.chessOneHour / 60.0;
+      case TableType.tableTennis: return pricingConfig.chessOneHour / 60.0;
+      case TableType.steeringWheel: return pricingConfig.chessOneHour / 60.0;
+      case TableType.simulator: return pricingConfig.simulatorOneHour / 60.0;
+      case TableType.iceHockey: return pricingConfig.iceHockeyOneHour / 60.0;
+      case TableType.arcade: return 0.0; // Arcade games do not use overtime
       default: return pricingConfig.snookerPerMinute;
-
     }
 
   }
@@ -548,9 +554,20 @@ class TablePricingConfig {
 
 
 
-    final double perMinutePrice = getPrice(dummyTable, gameType, BillingType.perMinute, pricingConfig) ?? 0.0;
-
-    final double perSecondRate = (customPrice ?? perMinutePrice) / 60.0;
+    double perSecondRate;
+    if (billingType == BillingType.perMinute && customPrice != null) {
+      perSecondRate = customPrice / 60.0;
+    } else if (tableType.isOtherGame && basePrice != null) {
+      if (billingType == BillingType.halfHour) {
+        perSecondRate = basePrice / (30 * 60.0);
+      } else if (billingType == BillingType.oneHour) {
+        perSecondRate = basePrice / (60 * 60.0);
+      } else {
+        perSecondRate = getPerMinutePrice(tableType, gameType, pricingConfig) / 60.0;
+      }
+    } else {
+      perSecondRate = getPerMinutePrice(tableType, gameType, pricingConfig) / 60.0;
+    }
 
     final bool overtimeEnabled = gameConfig.enableOvertimeBilling;
 

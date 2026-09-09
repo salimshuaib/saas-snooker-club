@@ -1,77 +1,165 @@
 import 'package:flutter/material.dart';
 
-class PayerSelectionWidget extends StatelessWidget {
+class PayerSelectionWidget extends StatefulWidget {
   final List<String> allPlayers;
   final List<String> selectedPayers;
   final ValueChanged<List<String>> onChanged;
   final String title;
 
   const PayerSelectionWidget({
-    Key? key,
+    super.key,
     required this.allPlayers,
     required this.selectedPayers,
     required this.onChanged,
-    this.title = 'Who Will Pay?',
-  }) : super(key: key);
+    this.title = 'Who will Pay?',
+  });
+
+  @override
+  State<PayerSelectionWidget> createState() => _PayerSelectionWidgetState();
+}
+
+class _PayerSelectionWidgetState extends State<PayerSelectionWidget> {
+  late bool _isAllExplicitlySelected;
+
+  @override
+  void initState() {
+    super.initState();
+    // Default to 'All' being visually active if everyone is selected on first load.
+    _isAllExplicitlySelected = widget.selectedPayers.length == widget.allPlayers.length;
+  }
+
+  @override
+  void didUpdateWidget(covariant PayerSelectionWidget oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // If the parent cleared the selection entirely, clear our flag.
+    if (widget.selectedPayers.isEmpty) {
+      _isAllExplicitlySelected = false;
+    }
+  }
 
   void _togglePlayer(String player) {
-    final List<String> newSelection = List.from(selectedPayers);
+    final wasAllSelected = _isAllExplicitlySelected && widget.selectedPayers.length == widget.allPlayers.length;
+    setState(() => _isAllExplicitlySelected = false);
+
+    if (wasAllSelected) {
+      // Since individual rows look "unselected" when All is active, 
+      // tapping one should select ONLY that player.
+      widget.onChanged([player]);
+      return;
+    }
+
+    final List<String> newSelection = List.from(widget.selectedPayers);
     if (newSelection.contains(player)) {
       newSelection.remove(player);
     } else {
       newSelection.add(player);
     }
-    onChanged(newSelection);
+    
+    widget.onChanged(newSelection);
   }
 
   void _toggleAll() {
-    if (selectedPayers.length == allPlayers.length) {
-      onChanged([]);
-    } else {
-      onChanged(List.from(allPlayers));
-    }
+    // If they click 'All', we explicitly activate the visual 'All' state.
+    setState(() => _isAllExplicitlySelected = true);
+    widget.onChanged(List.from(widget.allPlayers));
+  }
+
+  Widget _buildOptionTile(
+    BuildContext context, {
+    required String title,
+    required bool isSelected,
+    required VoidCallback onTap,
+  }) {
+    final theme = Theme.of(context);
+    const highlightColor = Colors.red;
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8.0),
+      child: Material(
+        color: isSelected 
+            ? highlightColor.withValues(alpha: 0.15)
+            : theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.4),
+        borderRadius: BorderRadius.circular(12),
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(12),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(12),
+              border: isSelected 
+                  ? Border.all(color: highlightColor.withValues(alpha: 0.5), width: 1.5)
+                  : Border.all(color: Colors.transparent, width: 1.5),
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  Icons.person_outline, 
+                  color: isSelected ? highlightColor : theme.colorScheme.onSurfaceVariant,
+                  size: 22,
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Text(
+                    title,
+                    style: theme.textTheme.titleSmall?.copyWith(
+                      fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                      color: isSelected ? highlightColor : theme.colorScheme.onSurface,
+                    ),
+                  ),
+                ),
+                if (isSelected)
+                  const Icon(
+                    Icons.check_circle,
+                    color: highlightColor,
+                    size: 20,
+                  ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final isAllSelected = selectedPayers.length == allPlayers.length && allPlayers.isNotEmpty;
+    final isAllSelected = _isAllExplicitlySelected && widget.selectedPayers.length == widget.allPlayers.length && widget.allPlayers.isNotEmpty;
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(title, style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
-        const SizedBox(height: 12),
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: [
-            ChoiceChip(
-              label: const Text('All'),
-              selected: isAllSelected,
-              onSelected: (_) => _toggleAll(),
-              selectedColor: theme.colorScheme.primaryContainer,
-              labelStyle: TextStyle(
-                fontWeight: isAllSelected ? FontWeight.bold : FontWeight.normal,
-                color: isAllSelected ? theme.colorScheme.onPrimaryContainer : null,
-              ),
-            ),
-            ...allPlayers.map((player) {
-              final isSelected = selectedPayers.contains(player);
-              return ChoiceChip(
-                label: Text(player),
-                selected: isSelected,
-                onSelected: (_) => _togglePlayer(player),
-                selectedColor: theme.colorScheme.primaryContainer,
-                labelStyle: TextStyle(
-                  fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                  color: isSelected ? theme.colorScheme.onPrimaryContainer : null,
-                ),
-              );
-            }).toList(),
-          ],
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: theme.colorScheme.outlineVariant.withValues(alpha: 0.3),
         ),
-      ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(widget.title, style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
+          const SizedBox(height: 16),
+          _buildOptionTile(
+            context,
+            title: 'All',
+            isSelected: isAllSelected,
+            onTap: _toggleAll,
+          ),
+          ...widget.allPlayers.map((player) {
+            // If "All" is explicitly selected, visually unselect the individual rows.
+            // Otherwise, show their true individual selection status.
+            final isSelected = !isAllSelected && widget.selectedPayers.contains(player);
+            return _buildOptionTile(
+              context,
+              title: player,
+              isSelected: isSelected,
+              onTap: () => _togglePlayer(player),
+            );
+          }),
+        ],
+      ),
     );
   }
 }

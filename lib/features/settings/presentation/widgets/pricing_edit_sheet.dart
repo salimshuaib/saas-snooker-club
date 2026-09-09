@@ -315,6 +315,11 @@ class _PricingEditSheetState extends ConsumerState<PricingEditSheet> {
 
         ];
 
+      case TableType.arcade:
+        return [
+          {'key': 'perCoin', 'label': 'Per Coin'},
+        ];
+
       default:
 
         return [

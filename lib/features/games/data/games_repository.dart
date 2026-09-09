@@ -279,6 +279,16 @@ class GamesRepository {
     return session;
   }
 
+  /// Save a game record without marking the table as running (used for instant-bill games like Arcade).
+  Future<GameSession> saveGameOnly(GameSession session) async {
+    if (AppConfig.guardWrite('GamesRepository.saveGameOnly')) return session;
+    final enrichedSession = _enrichWithStaff(session, true);
+    final docRef = _gamesRef.doc(enrichedSession.id);
+    await docRef.set(enrichedSession.toMap());
+    AppLogger.info('Game saved (no table update): ${session.id}');
+    return session;
+  }
+
   /// Fetch a single game by its ID.
   Future<GameSession?> getGameById(String gameId) async {
     final doc = await _gamesRef.doc(gameId).get();

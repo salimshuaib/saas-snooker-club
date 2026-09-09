@@ -184,7 +184,7 @@ By checking "I Agree" and proceeding, you acknowledge that you have read, unders
                       child: TabBarView(
                         children: [
                           _buildTabContent([TableType.snooker, TableType.indianPool, TableType.americanPool]),
-                          _buildTabContent([TableType.ps5, TableType.pc, TableType.carrom, TableType.foosball, TableType.chess]),
+                          _buildTabContent(TableType.values.where((t) => t.isOtherGame).toList()),
                         ],
                       ),
                     ),

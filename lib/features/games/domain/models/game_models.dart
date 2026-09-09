@@ -56,11 +56,9 @@ enum TableType {
   }
 
   bool get isOtherGame {
-    return this == TableType.ps5 ||
-           this == TableType.pc ||
-           this == TableType.carrom ||
-           this == TableType.foosball ||
-           this == TableType.chess;
+    return this != TableType.snooker && 
+           this != TableType.indianPool && 
+           this != TableType.americanPool;
   }
 }
 

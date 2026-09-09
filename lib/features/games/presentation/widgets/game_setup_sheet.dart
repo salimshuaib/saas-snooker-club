@@ -423,6 +423,7 @@ class _GameSetupSheetState extends ConsumerState<GameSetupSheet> {
 
     setState(() => _isLoading = true);
 
+    bool didPop = false;
     try {
       final teamAPlayers = _teamASelections
           .where((p) => p != null && p.name.trim().isNotEmpty)
@@ -531,7 +532,7 @@ class _GameSetupSheetState extends ConsumerState<GameSetupSheet> {
         
       final double? resolvedExtraCharge = TablePricingConfig.getExtraCharge(widget.table, _gameType, actualBillingType, appSettings.pricing);
 
-      final gameSession = GameSession(
+      GameSession gameSession = GameSession(
         date: dateStr,
         id: FirebaseFirestore.instance.collection('games').doc().id,
         tableId: widget.table.id,
@@ -560,11 +561,19 @@ class _GameSetupSheetState extends ConsumerState<GameSetupSheet> {
         gameSettingsSnapshot: appSettings.game,
       );
 
+      if (_tableType == TableType.arcade) {
+        gameSession = gameSession.copyWith(
+          status: TableStatus.billing,
+          endTime: DateTime.now(),
+        );
+      }
+
       final creditRepo = ref.read(creditRepositoryProvider);
       final gamesRepo = ref.read(gamesRepositoryProvider);
 
       if (mounted) {
-        Navigator.pop(context);
+        Navigator.pop(context, gameSession);
+        didPop = true;
       }
 
       // Defer state-modifying writes to avoid Riverpod TickerMode exceptions during pop animation
@@ -573,7 +582,11 @@ class _GameSetupSheetState extends ConsumerState<GameSetupSheet> {
           for (final profile in newProfilesToCreate) {
             await creditRepo.savePlayerProfile(profile);
           }
-          await gamesRepo.startGame(gameSession);
+          if (_tableType == TableType.arcade) {
+            await gamesRepo.saveGameOnly(gameSession);
+          } else {
+            await gamesRepo.startGame(gameSession);
+          }
         } catch (e) {
           debugPrint('Failed to start game in background: $e');
         }
@@ -585,7 +598,7 @@ class _GameSetupSheetState extends ConsumerState<GameSetupSheet> {
         );
       }
     } finally {
-      if (mounted) setState(() => _isLoading = false);
+      if (mounted && !didPop) setState(() => _isLoading = false);
     }
   }
 }

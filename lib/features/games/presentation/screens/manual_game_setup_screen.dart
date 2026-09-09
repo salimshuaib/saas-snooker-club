@@ -30,9 +30,20 @@ class ManualGameSetupScreen extends ConsumerStatefulWidget {
   ConsumerState<ManualGameSetupScreen> createState() => _ManualGameSetupScreenState();
 }
 
-class _ManualGameSetupScreenState extends ConsumerState<ManualGameSetupScreen> {
+class _ManualGameSetupScreenState extends ConsumerState<ManualGameSetupScreen> with SingleTickerProviderStateMixin {
   int _step = 0; 
   final int _maxSteps = 5;
+
+  late TabController _tabController;
+
+  @override
+  void initState() {
+    super.initState();
+    _tabController = TabController(length: 2, vsync: this);
+    _tabController.addListener(() {
+      setState(() {});
+    });
+  }
 
   // Step 0: Table Selection
   TableModel? _selectedTable;
@@ -65,6 +76,7 @@ class _ManualGameSetupScreenState extends ConsumerState<ManualGameSetupScreen> {
 
   @override
   void dispose() {
+    _tabController.dispose();
     _elapsedHoursController.dispose();
     _elapsedMinsController.dispose();
     _elapsedSecsController.dispose();
@@ -84,6 +96,8 @@ class _ManualGameSetupScreenState extends ConsumerState<ManualGameSetupScreen> {
 
   Widget _buildStep0TableSelection(ThemeData theme, List<TableModel> tables) {
     final availableTables = tables.where((t) => t.status == TableStatus.available).toList();
+    final billiardsTables = availableTables.where((t) => !t.type.isOtherGame).toList();
+    final otherGamesTables = availableTables.where((t) => t.type.isOtherGame).toList();
 
     if (availableTables.isEmpty) {
       return Center(
@@ -101,6 +115,8 @@ class _ManualGameSetupScreenState extends ConsumerState<ManualGameSetupScreen> {
       );
     }
 
+    final currentList = _tabController.index == 0 ? billiardsTables : otherGamesTables;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -111,24 +127,46 @@ class _ManualGameSetupScreenState extends ConsumerState<ManualGameSetupScreen> {
           style: theme.textTheme.bodyMedium,
         ),
         const Gap(16),
-        ...availableTables.map((t) {
-          final isSelected = _selectedTable?.id == t.id;
-          return GestureDetector(
-            onTap: () {
-              setState(() {
-                _selectedTable = t;
-                if (t.type == TableType.snooker && _billingType == BillingType.perFrame) {
-                  _billingType = null;
-                }
-              });
-            },
-            child: _SelectionTile(
-              title: t.name,
-              subtitle: t.type.displayName,
-              isSelected: isSelected,
+        TabBar(
+          controller: _tabController,
+          labelColor: AppColors.primary,
+          unselectedLabelColor: Colors.grey,
+          indicatorColor: AppColors.primary,
+          tabs: const [
+            Tab(text: 'Tables'),
+            Tab(text: 'Other Games'),
+          ],
+        ),
+        const Gap(16),
+        if (currentList.isEmpty)
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 32),
+            child: Center(
+              child: Text(
+                _tabController.index == 0 ? 'No Billiard Tables Available' : 'No Other Games Available',
+                style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+              ),
             ),
-          );
-        }),
+          )
+        else
+          ...currentList.map((t) {
+            final isSelected = _selectedTable?.id == t.id;
+            return GestureDetector(
+              onTap: () {
+                setState(() {
+                  _selectedTable = t;
+                  if (t.type == TableType.snooker && _billingType == BillingType.perFrame) {
+                    _billingType = null;
+                  }
+                });
+              },
+              child: _SelectionTile(
+                title: t.name,
+                subtitle: t.type.displayName,
+                isSelected: isSelected,
+              ),
+            );
+          }),
       ],
     );
   }
@@ -443,6 +481,8 @@ class _ManualGameSetupScreenState extends ConsumerState<ManualGameSetupScreen> {
       return;
     }
 
+    setState(() => _isLoading = true);
+
     // 3. Active Elsewhere Check
     final activeElsewhereError = await GameValidationUtils.checkPlayerActiveElsewhere(
       [..._teamASelections, if (_mode == GameMode.team) ..._teamBSelections], 
@@ -452,10 +492,9 @@ class _ManualGameSetupScreenState extends ConsumerState<ManualGameSetupScreen> {
 
     if (activeElsewhereError != null) {
       _showError(activeElsewhereError);
+      setState(() => _isLoading = false);
       return;
     }
-
-    setState(() => _isLoading = true);
 
     final actualBillingType = _gameType == GameType.standard ? _billingType! : BillingType.perMinute;
     final actualMatchType = MatchType.friendly;
@@ -501,22 +540,6 @@ class _ManualGameSetupScreenState extends ConsumerState<ManualGameSetupScreen> {
     List<GameRound> rounds = [];
     int framesPlayed = 0;
 
-    if (actualBillingType == BillingType.perFrame) {
-      framesPlayed = _currentFrame;
-      final perFrameDuration = durationSeconds ~/ framesPlayed;
-      for (int i = 1; i <= framesPlayed; i++) {
-        final roundStart = startTime.add(Duration(seconds: perFrameDuration * (i - 1)));
-        final roundEnd = startTime.add(Duration(seconds: perFrameDuration * i));
-        rounds.add(GameRound(
-          roundNumber: i,
-          roundCost: 0,
-          startTime: roundStart,
-          endTime: roundEnd,
-          durationSeconds: perFrameDuration,
-        ));
-      }
-    }
-
     final appSettings = ref.read(appSettingsProvider);
     final pricingSnapshot = appSettings.pricing;
     double? customPrice;
@@ -525,6 +548,40 @@ class _ManualGameSetupScreenState extends ConsumerState<ManualGameSetupScreen> {
       final parsed = double.tryParse(_customPriceController.text);
       if (parsed != null && parsed > 0) {
         customPrice = parsed;
+      }
+    }
+
+    if (actualBillingType == BillingType.perFrame) {
+      framesPlayed = _currentFrame;
+      final perFrameDuration = durationSeconds ~/ framesPlayed;
+      final graceSeconds = appSettings.game.frameGracePeriodMinutes * 60;
+      final overtimeEnabled = appSettings.game.enableOvertimeBilling;
+      
+      final perMinutePrice = TablePricingConfig.getPerMinutePrice(_selectedTable!.type, _gameType, pricingSnapshot);
+      final perSecondRate = customPrice != null ? (customPrice / 60.0) : (perMinutePrice / 60.0);
+
+      for (int i = 1; i <= framesPlayed; i++) {
+        final roundStart = startTime.add(Duration(seconds: perFrameDuration * (i - 1)));
+        final roundEnd = startTime.add(Duration(seconds: perFrameDuration * i));
+        
+        int? roundOvertimeMinutes;
+        double? roundOvertimeCharge;
+        
+        final overtimeSeconds = perFrameDuration - graceSeconds;
+        if (overtimeEnabled && overtimeSeconds > 0) {
+          roundOvertimeMinutes = (overtimeSeconds / 60.0).ceil();
+          roundOvertimeCharge = overtimeSeconds * perSecondRate;
+        }
+
+        rounds.add(GameRound(
+          roundNumber: i,
+          roundCost: 0,
+          startTime: roundStart,
+          endTime: roundEnd,
+          durationSeconds: perFrameDuration,
+          overtimeMinutes: roundOvertimeMinutes,
+          overtimeCharge: roundOvertimeCharge,
+        ));
       }
     }
 
@@ -555,8 +612,6 @@ class _ManualGameSetupScreenState extends ConsumerState<ManualGameSetupScreen> {
       gameSettingsSnapshot: appSettings.game,
       customPrice: customPrice,
     );
-
-    setState(() => _isLoading = false);
 
     if (mounted) {
       if (widget.isCompletedGame) {
