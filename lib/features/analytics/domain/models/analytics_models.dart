@@ -126,20 +126,20 @@ class GameAnalyticsData {
   final double perFrameBilled;
   
   // TP vs Friendly
-  final double tpBilled;
-  final double friendlyBilled;
-  final int tpCount;
-  final int friendlyCount;
+  final double splitBilled;
+  final double singlePayerBilled;
+  final int splitCount;
+  final int singlePayerCount;
 
   const GameAnalyticsData({
     required this.categories,
     required this.totalGameSessions,
     this.perMinuteBilled = 0.0,
     this.perFrameBilled = 0.0,
-    this.tpBilled = 0.0,
-    this.friendlyBilled = 0.0,
-    this.tpCount = 0,
-    this.friendlyCount = 0,
+    this.splitBilled = 0.0,
+    this.singlePayerBilled = 0.0,
+    this.splitCount = 0,
+    this.singlePayerCount = 0,
   });
 }
 

@@ -415,6 +415,9 @@ class GamesRepository {
         (k, v) => MapEntry(k, v.name),
       ),
       'playerLiabilities': session.playerLiabilities,
+      'selectedPayers': session.selectedPayers,
+      'discountAmount': session.discountAmount,
+      'discountedGameCharge': session.discountedGameCharge,
       'winnerId': session.winnerId,
       'paymentMethod': session.paymentMethod?.name,
       'gameCharge': session.gameCharge,
@@ -669,6 +672,25 @@ class GamesRepository {
       }
     }
 
+    List<String>? newSelectedPayers;
+    if (session.selectedPayers != null) {
+      newSelectedPayers = session.selectedPayers!
+          .map((p) => nameMap[p] ?? p)
+          .toList();
+    }
+
+    List<GameRound>? newRounds;
+    if (session.rounds.isNotEmpty) {
+      newRounds = session.rounds.map((round) {
+        if (round.framePayers == null) return round;
+        return round.copyWith(
+          framePayers: round.framePayers!
+              .map((p) => nameMap[p] ?? p)
+              .toList(),
+        );
+      }).toList();
+    }
+
     String? newWinner = session.winnerId;
     if (newWinner != null && nameMap.containsKey(newWinner)) {
       newWinner = nameMap[newWinner];
@@ -726,6 +748,8 @@ class GamesRepository {
           (k, v) => MapEntry(k, v.name),
         ),
       if (newLiabilities != null) 'playerLiabilities': newLiabilities,
+      if (newSelectedPayers != null) 'selectedPayers': newSelectedPayers,
+      if (newRounds != null) 'rounds': newRounds.map((r) => r.toMap()).toList(),
       'auditLogs': updatedAuditLogs.map((a) => a.toMap()).toList(),
     });
     AppLogger.info('Updated names for game session ${session.id}');

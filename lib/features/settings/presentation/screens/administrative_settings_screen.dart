@@ -4,7 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gap/gap.dart';
 import 'package:snooker_club/core/providers/app_providers.dart';
 import 'package:snooker_club/core/theme/app_colors.dart';
-import 'package:snooker_club/features/games/domain/models/game_models.dart';
+
 import 'package:snooker_club/features/games/providers/games_providers.dart';
 import 'package:snooker_club/features/settings/presentation/widgets/business_edit_sheet.dart';
 import 'package:snooker_club/features/settings/presentation/widgets/change_passcode_dialog.dart';
@@ -208,23 +208,7 @@ class AdministrativeSettingsScreen extends ConsumerWidget {
                   },
                 ),
               ),
-              ListTile(
-                contentPadding: EdgeInsets.zero,
-                title: const Text('Default Match Type'),
-                subtitle: const Text('Default preset when creating new table sessions'),
-                trailing: DropdownButton<MatchType>(
-                  value: settings.game.defaultMatchType,
-                  underline: const SizedBox(),
-                  items: MatchType.values.map((type) {
-                    return DropdownMenuItem(value: type, child: Text(type == MatchType.friendly ? 'Friendly' : 'Tournament'));
-                  }).toList(),
-                  onChanged: (val) {
-                    if (val != null) {
-                      notifier.updateGameSettings(settings.game.copyWith(defaultMatchType: val));
-                    }
-                  },
-                ),
-              ),
+
             ],
           ),
 

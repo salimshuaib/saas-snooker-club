@@ -42,7 +42,7 @@ class _GameSetupSheetState extends ConsumerState<GameSetupSheet> {
   
   // Standard configs
   BillingType _billingType = BillingType.perMinute;
-  MatchType _matchType = MatchType.loserPays;
+
   int _totalFrames = 1;
   
   // Custom Pricing
@@ -218,31 +218,7 @@ class _GameSetupSheetState extends ConsumerState<GameSetupSheet> {
                           ],
                         ),
                       ),
-                      if (!_tableType.isOtherGame) const Gap(16),
                     ],
-                    if (!_tableType.isOtherGame)
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text('Match Type', style: theme.textTheme.labelMedium),
-                            const Gap(8),
-                            DropdownButtonFormField<MatchType>(
-                              isExpanded: true,
-                              value: _matchType,
-                              decoration: InputDecoration(
-                                isDense: true,
-                                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                              ),
-                              items: MatchType.values.map((t) => DropdownMenuItem(
-                                value: t,
-                                child: Text(t.displayName),
-                              )).toList(),
-                              onChanged: (v) => setState(() => _matchType = v!),
-                            ),
-                          ],
-                        ),
-                      ),
                   ],
                 ),
 
@@ -567,7 +543,7 @@ class _GameSetupSheetState extends ConsumerState<GameSetupSheet> {
         status: TableStatus.running,
         targetPoints: _targetPoints,
         billingType: actualBillingType,
-        matchType: _tableType.isOtherGame ? MatchType.friendly : _matchType,
+        matchType: MatchType.friendly,
         totalFrames: (_gameType == GameType.standard && actualBillingType == BillingType.perFrame && !_tableType.isOtherGame) ? _totalFrames : 1,
         framesPlayed: 0,
         teamA: teamAIds,

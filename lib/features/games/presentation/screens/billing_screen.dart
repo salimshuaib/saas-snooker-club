@@ -9,6 +9,7 @@ import 'package:snooker_club/features/games/domain/config/pricing_config.dart';
 import 'package:snooker_club/features/settings/providers/settings_providers.dart';
 import 'package:snooker_club/features/games/domain/models/game_models.dart';
 import 'package:snooker_club/features/games/providers/games_providers.dart';
+import 'package:snooker_club/features/games/presentation/widgets/payer_selection_widget.dart';
 
 class BillingScreen extends ConsumerStatefulWidget {
   final GameSession session;
@@ -22,56 +23,46 @@ class BillingScreen extends ConsumerStatefulWidget {
 class _BillingScreenState extends ConsumerState<BillingScreen> {
   late GameSession _session;
   PaymentMethod _paymentMethod = PaymentMethod.cash;
-  String? _winnerId;
   String? _PlayerProfileName;
   late Map<String, PaymentMethod> _playerPaymentMethods;
   late Map<String, double> _customLiabilities;
   bool _isProcessing = false;
   
-  String? _raceSelectedWinnerTeam;
-  String? _raceSelectedPayingPlayer;
+  late List<String> _selectedPayers;
+  double _discountAmount = 0.0;
   
-  late TextEditingController _finalAmountController;
-  bool _isFinalAmountInitialized = false;
+  late TextEditingController _discountController;
+  late TextEditingController _discountPercentController;
   
   final Map<String, TextEditingController> _liabilityControllers = {};
 
-  // Custom split
-  final Map<String, double> _customSplit = {};
+  bool _liabilitiesInitialized = false;
 
   @override
   void initState() {
     super.initState();
-    _finalAmountController = TextEditingController();
     _session = widget.session.copyWith(endTime: DateTime.now());
-    if (_session.matchType == MatchType.friendly) {
-      _winnerId = null;
-    }
+    _selectedPayers = List.from(_session.selectedPayers ?? _session.allPlayers);
+    _discountAmount = _session.discountAmount ?? 0.0;
+    
+    _discountController = TextEditingController(text: _discountAmount == 0 ? '' : _discountAmount.toStringAsFixed(0));
+    _discountPercentController = TextEditingController();
+    
     _playerPaymentMethods = {
       for (final p in _session.allPlayers) p: PaymentMethod.cash,
     };
-    if (_session.gameType == GameType.race) {
-      if (_session.mode == GameMode.team) {
-        _raceSelectedWinnerTeam = 'Team A';
-      } else if (_session.allPlayers.isNotEmpty) {
-        // By default, the first player pays
-        _raceSelectedPayingPlayer = _session.allPlayers.first;
-      }
-    }
-    // Initialization of _customLiabilities will happen in didChangeDependencies
-    // to safely access ref.read for pricing breakdown
   }
 
   @override
   void dispose() {
-    _finalAmountController.dispose();
+    _discountController.dispose();
+    _discountPercentController.dispose();
     for (final c in _liabilityControllers.values) {
       c.dispose();
     }
     super.dispose();
   }
 
-  bool _liabilitiesInitialized = false;
 
   @override
   void didChangeDependencies() {
@@ -87,82 +78,37 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
       for (final p in _session.allPlayers) p: 0.0,
     };
 
-    final totalToSplit =
-        _finalTotal; // _grandTotal uses _gameCharge + _ordersTotal
+    if (_session.allPlayers.isEmpty) return;
 
-    if (_session.gameType == GameType.rummy) {
-      // Rummy: Split evenly across all players
-      final split =
-          totalToSplit /
-          (_session.allPlayers.isEmpty ? 1 : _session.allPlayers.length);
-      for (final p in _session.allPlayers) {
-        liabilities[p] = split;
-      }
-    } else if (_session.gameType == GameType.race) {
-      if (_session.mode == GameMode.solo) {
-        if (_raceSelectedPayingPlayer != null) {
-          liabilities[_raceSelectedPayingPlayer!] = totalToSplit;
-        }
+    final double discountedGame = _gameCharge - _discountAmount;
+
+    if (_selectedPayers.isNotEmpty) {
+      if (_selectedPayers.length == 1) {
+        liabilities[_selectedPayers.first] = discountedGame;
       } else {
-        if (_raceSelectedWinnerTeam != null) {
-          final losingTeam = _raceSelectedWinnerTeam == 'Team A' ? _session.teamB : _session.teamA;
-          if (losingTeam.isNotEmpty) {
-            liabilities[losingTeam.first] = totalToSplit;
+        final rawShare = discountedGame / _selectedPayers.length;
+        final roundedShare = (rawShare / 10).roundToDouble() * 10;
+        
+        double assignedSoFar = 0.0;
+        for (int i = 0; i < _selectedPayers.length; i++) {
+          final p = _selectedPayers[i];
+          if (i == _selectedPayers.length - 1) {
+            liabilities[p] = discountedGame - assignedSoFar;
+          } else {
+            liabilities[p] = roundedShare;
+            assignedSoFar += roundedShare;
           }
         }
       }
-    } else {
-      // Standard / TP Logic
-      if (_session.rounds.isNotEmpty) {
-        for (final r in _session.rounds) {
-          final roundTotal = r.roundCost + (r.overtimeCharge ?? 0.0);
-          if (r.loser != null) {
-            if (r.loser == 'Team A' && _session.teamA.isNotEmpty) {
-              final split = roundTotal / _session.teamA.length;
-              for (final p in _session.teamA) {
-                liabilities[p] = (liabilities[p] ?? 0.0) + split;
-              }
-            } else if (r.loser == 'Team B' && _session.teamB.isNotEmpty) {
-              final split = roundTotal / _session.teamB.length;
-              for (final p in _session.teamB) {
-                liabilities[p] = (liabilities[p] ?? 0.0) + split;
-              }
-            } else {
-              liabilities[r.loser!] =
-                  (liabilities[r.loser!] ?? 0.0) + roundTotal;
-            }
-          }
-        }
+    }
+
+    for (final o in _session.orders) {
+      if (o.playerName != null && liabilities.containsKey(o.playerName)) {
+        liabilities[o.playerName!] = (liabilities[o.playerName!] ?? 0.0) + o.total;
       } else {
-        final split =
-            _gameCharge /
-            (_session.allPlayers.isEmpty ? 1 : _session.allPlayers.length);
+        final split = o.total / _session.allPlayers.length;
         for (final p in _session.allPlayers) {
           liabilities[p] = (liabilities[p] ?? 0.0) + split;
-        }
-      }
-
-      for (final o in _session.orders) {
-        if (o.playerName != null && liabilities.containsKey(o.playerName)) {
-          liabilities[o.playerName!] =
-              (liabilities[o.playerName!] ?? 0.0) + o.total;
-        } else if (_session.allPlayers.isNotEmpty) {
-          final split = o.total / _session.allPlayers.length;
-          for (final p in _session.allPlayers) {
-            liabilities[p] = (liabilities[p] ?? 0.0) + split;
-          }
-        }
-      }
-
-      final totalComputed = liabilities.values.fold<double>(
-        0.0,
-        (s, v) => s + v,
-      );
-      final diff = totalToSplit - totalComputed;
-      if (diff.abs() > 0.01 && _session.allPlayers.isNotEmpty) {
-        final adj = diff / _session.allPlayers.length;
-        for (final p in _session.allPlayers) {
-          liabilities[p] = (liabilities[p] ?? 0.0) + adj;
         }
       }
     }
@@ -185,9 +131,7 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
     });
   }
 
-  bool get _isMultiRoundTP =>
-      _session.billingType == BillingType.perFrame &&
-      _session.matchType == MatchType.loserPays;
+  bool get _isMultiPayer => _selectedPayers.length > 1 || (_selectedPayers.isEmpty && _session.allPlayers.length > 1);
 
   GameChargeBreakdown get _breakdown {
     final appSettings = ref.read(appSettingsProvider);
@@ -201,6 +145,8 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
       gameConfig: _session.gameSettingsSnapshot ?? appSettings.game,
       completedRounds: _session.rounds,
       customPrice: _session.customPrice,
+      customExtraCharge: _session.customExtraCharge,
+      playersCount: _session.playerIds.length,
     );
   }
 
@@ -209,21 +155,21 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
   int get _overtimeMinutes => _breakdown.overtimeMinutes;
   double get _overtimeCharge => _breakdown.overtimeCharge;
 
-  double get _ordersTotal =>
-      _session.orders.fold<double>(0, (s, o) => s + o.total);
+  double get _ordersTotal => _session.orders.fold<double>(0, (s, o) => s + o.total);
+
+  double get _discountedGameCharge => _gameCharge - _discountAmount;
 
   double get _grandTotal => _gameCharge + _ordersTotal;
   
-  double get _roundedTotal => (_grandTotal / 10).roundToDouble() * 10;
-  
-  double get _finalTotal {
-    if (!_isFinalAmountInitialized) {
-      _finalAmountController.text = _roundedTotal.toStringAsFixed(0);
-      _isFinalAmountInitialized = true;
-    }
-    return double.tryParse(_finalAmountController.text) ?? _roundedTotal;
-  }
+  double get _finalTotal => _discountedGameCharge + _ordersTotal;
 
+  double get _roundedTotal {
+    if (_isMultiPayer) {
+       return _customLiabilities.values.fold<double>(0.0, (s, v) => s + v);
+    }
+    return (_finalTotal / 10).roundToDouble() * 10;
+  }
+  
   String _formatDuration(int seconds) {
     final h = (seconds ~/ 3600).toString().padLeft(2, '0');
     final m = ((seconds % 3600) ~/ 60).toString().padLeft(2, '0');
@@ -232,16 +178,15 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
   }
 
   int get _activePayerCount {
-    if ((_isMultiRoundTP || _session.gameType != GameType.standard)) {
+    if ((_isMultiPayer || _session.gameType != GameType.standard)) {
       return _customLiabilities.values.where((v) => v > 0).length;
     }
     return _customLiabilities.values.where((v) => v > 0).length;
   }
 
-  bool get _isMultiPayer => _activePayerCount > 1;
 
   bool get _hasCredit {
-    if ((_isMultiRoundTP || _session.gameType != GameType.standard)) {
+    if ((_isMultiPayer || _session.gameType != GameType.standard)) {
       return _playerPaymentMethods.entries.any(
         (e) =>
             e.value == PaymentMethod.credit &&
@@ -258,7 +203,7 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
       if (_hasCredit) {
         return 'Record Payment & Credit';
       }
-      return 'Confirm Payment (₹${_finalTotal.toStringAsFixed(0)})';
+      return 'Confirm Payment (â‚¹${_finalTotal.toStringAsFixed(0)})';
     }
   }
 
@@ -348,22 +293,14 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
                         children: [
                           Expanded(
                             child: Text(
-                              r.winner == 'Friendly'
+                              r.framePayers == null
                                   ? 'Frame ${r.roundNumber} · ${(r.durationSeconds ?? 0) ~/ 60} mins${(r.overtimeMinutes ?? 0) > 0 ? " (+${r.overtimeMinutes}m OT)" : ""}'
-                                  : 'Round ${r.roundNumber} · Winner: ${r.winner == 'Team A'
-                                        ? _session.teamA.join(' & ')
-                                        : r.winner == 'Team B'
-                                        ? _session.teamB.join(' & ')
-                                        : (r.winner ?? "N/A")}${r.loser != null ? " · Loser: ${r.loser == 'Team A'
-                                              ? _session.teamA.join(' & ')
-                                              : r.loser == 'Team B'
-                                              ? _session.teamB.join(' & ')
-                                              : r.loser}" : ""}${(r.overtimeMinutes ?? 0) > 0 ? " (+${r.overtimeMinutes}m OT)" : ""}',
+                                  : 'Frame ${r.roundNumber} · Payers: ${r.framePayers!.join(', ')}${(r.overtimeMinutes ?? 0) > 0 ? " (+${r.overtimeMinutes}m OT)" : ""}',
                               style: theme.textTheme.bodyMedium,
                             ),
                           ),
                           Text(
-                            '₹${(r.roundCost + (r.overtimeCharge ?? 0.0)).toStringAsFixed(2)}',
+                            'â‚¹${(r.roundCost + (r.overtimeCharge ?? 0.0)).toStringAsFixed(2)}',
                             style: theme.textTheme.bodyMedium?.copyWith(
                               fontWeight: FontWeight.w600,
                             ),
@@ -377,81 +314,26 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
               const Gap(16),
             ],
 
-            // ── Winner Selection (Loser Pays non-multi round) ──
-            if (!_isMultiRoundTP &&
-                _session.gameType == GameType.standard &&
-                _session.matchType == MatchType.loserPays) ...[
-              Text('Select Winner', style: theme.textTheme.titleMedium),
-              const Gap(8),
+            // ── Payer Selection ──
+            if (_session.allPlayers.isNotEmpty) ...[
               _SectionCard(
-                children: _session.mode == GameMode.team
-                    ? [
-                        _WinnerTile(
-                          label: 'Team A (${_session.teamA.join(", ")})',
-                          isSelected: _winnerId == 'Team A',
-                          onTap: () => setState(() => _winnerId = 'Team A'),
-                        ),
-                        _WinnerTile(
-                          label: 'Team B (${_session.teamB.join(", ")})',
-                          isSelected: _winnerId == 'Team B',
-                          onTap: () => setState(() => _winnerId = 'Team B'),
-                        ),
-                      ]
-                    : _session.allPlayers
-                          .map(
-                            (p) => _WinnerTile(
-                              label: p,
-                              isSelected: _winnerId == p,
-                              onTap: () => setState(() => _winnerId = p),
-                            ),
-                          )
-                          .toList(),
+                children: [
+                  PayerSelectionWidget(
+                    allPlayers: _session.allPlayers,
+                    selectedPayers: _selectedPayers,
+                    onChanged: (newPayers) {
+                      setState(() {
+                        _selectedPayers = newPayers;
+                      });
+                      _initializeLiabilities();
+                    },
+                  ),
+                ],
               ),
               const Gap(16),
             ],
 
-            // ── Race Winner Selection ──
-            if (_session.gameType == GameType.race) ...[
-              Text(
-                _session.mode == GameMode.team ? 'Who Won?' : 'Who Will Pay?',
-                style: theme.textTheme.titleMedium,
-              ),
-              const Gap(8),
-              _SectionCard(
-                children: _session.mode == GameMode.team
-                    ? [
-                        _WinnerTile(
-                          label: 'Team A (${_session.teamA.join(", ")})',
-                          isSelected: _raceSelectedWinnerTeam == 'Team A',
-                          onTap: () {
-                            setState(() => _raceSelectedWinnerTeam = 'Team A');
-                            _initializeLiabilities();
-                          },
-                        ),
-                        _WinnerTile(
-                          label: 'Team B (${_session.teamB.join(", ")})',
-                          isSelected: _raceSelectedWinnerTeam == 'Team B',
-                          onTap: () {
-                            setState(() => _raceSelectedWinnerTeam = 'Team B');
-                            _initializeLiabilities();
-                          },
-                        ),
-                      ]
-                    : _session.allPlayers
-                          .map(
-                            (p) => _WinnerTile(
-                              label: p,
-                              isSelected: _raceSelectedPayingPlayer == p,
-                              onTap: () {
-                                setState(() => _raceSelectedPayingPlayer = p);
-                                _initializeLiabilities();
-                              },
-                            ),
-                          )
-                          .toList(),
-              ),
-              const Gap(16),
-            ],
+
 
             // ── Orders ──
             if (_session.orders.isNotEmpty) ...[
@@ -472,7 +354,7 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
                             ),
                           ),
                           Text(
-                            '₹${o.total.toStringAsFixed(0)}',
+                            'â‚¹${o.total.toStringAsFixed(0)}',
                             style: theme.textTheme.bodyMedium?.copyWith(
                               fontWeight: FontWeight.w600,
                             ),
@@ -494,7 +376,7 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
                 if (_session.billingType == BillingType.perFrame) ...[
                   _InfoRow(
                     label: 'Frame Charges',
-                    value: '₹${_baseGameCharge.toStringAsFixed(2)}',
+                    value: 'â‚¹${_baseGameCharge.toStringAsFixed(2)}',
                   ),
                   _InfoRow(
                     label: 'Grace Period',
@@ -505,87 +387,127 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
                   if (_session.billingType == BillingType.perMinute)
                     _InfoRow(
                       label: 'Rate',
-                      value: '₹${(_session.customPrice ?? TablePricingConfig.getPerMinutePrice(_session.tableType, _session.gameType, _session.pricingSnapshot ?? appSettings.pricing)).toStringAsFixed(2)} / min',
+                      value: 'â‚¹${(_session.customPrice ?? TablePricingConfig.getPerMinutePrice(_session.tableType, _session.gameType, _session.pricingSnapshot ?? appSettings.pricing)).toStringAsFixed(2)} / min',
                     ),
                   _InfoRow(
                     label: 'Base Charge',
-                    value: '₹${_baseGameCharge.toStringAsFixed(2)}',
+                    value: 'â‚¹${_baseGameCharge.toStringAsFixed(2)}',
                   ),
                 ],
                 if (_overtimeMinutes > 0) ...[
                   _InfoRow(
                     label: 'Overtime (${_overtimeMinutes} mins)',
-                    value: '₹${_overtimeCharge.toStringAsFixed(2)}',
+                    value: 'â‚¹${_overtimeCharge.toStringAsFixed(2)}',
                   ),
                 ],
                 const Divider(height: 16),
                 _InfoRow(
                   label: 'Total Game Charge',
-                  value: '₹${_gameCharge.toStringAsFixed(2)}',
+                  value: 'â‚¹${_gameCharge.toStringAsFixed(2)}',
                 ),
                 if (_ordersTotal > 0)
                   _InfoRow(
                     label: 'Orders Total',
-                    value: '₹${_ordersTotal.toStringAsFixed(2)}',
+                    value: 'â‚¹${_ordersTotal.toStringAsFixed(2)}',
                   ),
-                const Divider(height: 16),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                        'Calculated Total',
-                        style: theme.textTheme.titleSmall,
+                  // ── Discount ──
+                  const Gap(12),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text('Discount (Game)', style: theme.textTheme.titleSmall),
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          SizedBox(
+                            width: 80,
+                            child: TextFormField(
+                              controller: _discountPercentController,
+                              keyboardType: TextInputType.number,
+                              textAlign: TextAlign.right,
+                              decoration: InputDecoration(
+                                suffixText: '%',
+                                isDense: true,
+                                contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                                border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                              ),
+                              onChanged: (val) {
+                                final percent = double.tryParse(val) ?? 0.0;
+                                final amount = (_gameCharge * (percent / 100));
+                                setState(() {
+                                  _discountAmount = amount;
+                                  _discountController.text = amount == 0 ? '' : amount.toStringAsFixed(0);
+                                });
+                                _initializeLiabilities();
+                              },
+                            ),
+                          ),
+                          const Gap(8),
+                          SizedBox(
+                            width: 100,
+                            child: TextFormField(
+                              controller: _discountController,
+                              keyboardType: TextInputType.number,
+                              textAlign: TextAlign.right,
+                              decoration: InputDecoration(
+                                prefixText: 'â‚¹',
+                                isDense: true,
+                                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                              ),
+                              onChanged: (val) {
+                                final amount = double.tryParse(val) ?? 0.0;
+                                final percent = _gameCharge > 0 ? (amount / _gameCharge) * 100 : 0.0;
+                                setState(() {
+                                  _discountAmount = amount;
+                                  _discountPercentController.text = percent == 0 ? '' : percent.toStringAsFixed(1);
+                                });
+                                _initializeLiabilities();
+                              },
+                            ),
+                          ),
+                        ],
                       ),
-                      Text(
-                        '₹${_grandTotal.toStringAsFixed(2)}',
-                        style: theme.textTheme.titleSmall?.copyWith(
-                          color: theme.colorScheme.onSurfaceVariant,
-                        ),
-                      ),
+                    ],
+                  ),
+                  const Divider(height: 16),
+                  
+                  // ── Final Amounts ──
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text('Discounted Game', style: theme.textTheme.titleSmall),
+                      Text('â‚¹${_discountedGameCharge.toStringAsFixed(2)}', style: theme.textTheme.titleSmall),
+                    ],
+                  ),
+                  const Gap(4),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text('Orders', style: theme.textTheme.titleSmall),
+                      Text('â‚¹${_ordersTotal.toStringAsFixed(2)}', style: theme.textTheme.titleSmall),
                     ],
                   ),
                   const Gap(12),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
+                      Text('Final Bill Amount', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
                       Text(
-                        'Final Bill Amount',
-                        style: theme.textTheme.titleMedium?.copyWith(
+                        'â‚¹${_roundedTotal.toStringAsFixed(0)}',
+                        style: theme.textTheme.titleLarge?.copyWith(
+                          color: AppColors.primary,
                           fontWeight: FontWeight.w700,
                         ),
                       ),
-                      SizedBox(
-                        width: 120,
-                        child: TextFormField(
-                          controller: _finalAmountController,
-                          keyboardType: TextInputType.number,
-                          textAlign: TextAlign.right,
-                          style: theme.textTheme.titleLarge?.copyWith(
-                            color: AppColors.primary,
-                            fontWeight: FontWeight.w700,
-                          ),
-                          decoration: InputDecoration(
-                            prefixText: '₹',
-                            isDense: true,
-                            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                          ),
-                          onChanged: (val) {
-                            setState(() {
-                              _customSplit.clear();
-                            });
-                            _initializeLiabilities();
-                          },
-                        ),
-                      ),
-                  ],
-                ),
+                    ],
+                  ),
               ],
             ),
             const Gap(16),
 
             // ── Payment Method & Liability Distribution ──
-            if (_isMultiRoundTP || _session.gameType != GameType.standard) ...[
+            if (_isMultiPayer) ...[
               Text(
                 'Player Liabilities & Payment',
                 style: theme.textTheme.titleMedium,
@@ -673,7 +595,7 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
               child: FilledButton(
                 onPressed:
                     (_isProcessing ||
-                        (_isMultiRoundTP ||
+                        (_isMultiPayer ||
                                 _session.gameType != GameType.standard) &&
                             !isBalanced)
                     ? null
@@ -729,7 +651,7 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
                 const Gap(8),
                 Expanded(
                   child: Text(
-                    'Split amounts (₹) do not equal the grand total (₹).',
+                    'Split amounts (â‚¹) do not equal the grand total (â‚¹).',
                     style: TextStyle(
                       color: AppColors.error,
                       fontWeight: FontWeight.w600,
@@ -868,20 +790,9 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
 
   Future<void> _confirmPayment() async {
     if (_isProcessing) return;
-    if (!_isMultiRoundTP &&
-        _session.gameType == GameType.standard &&
-        _session.matchType == MatchType.loserPays &&
-        _winnerId == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please select a winner before confirming payment.'),
-          backgroundColor: AppColors.error,
-        ),
-      );
-      return;
-    }
 
-    if (!_isMultiRoundTP &&
+
+    if (!_isMultiPayer &&
         _session.gameType == GameType.standard &&
         _paymentMethod == PaymentMethod.credit &&
         _PlayerProfileName == null) {
@@ -902,7 +813,7 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
     final finalDate = DateFormat('yyyy-MM-dd').format(finalEndTime);
 
     final finalSession =
-        (_isMultiRoundTP || _session.gameType != GameType.standard)
+        (_isMultiPayer || _session.gameType != GameType.standard)
         ? _session.copyWith(
             endTime: finalEndTime,
             status: TableStatus.available,
@@ -921,7 +832,7 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
         : _session.copyWith(
             endTime: finalEndTime,
             status: TableStatus.available,
-            winnerId: _winnerId,
+            
             paidBy: _paymentMethod == PaymentMethod.credit
                 ? _PlayerProfileName
                 : null,

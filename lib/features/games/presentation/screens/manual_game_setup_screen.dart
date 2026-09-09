@@ -52,7 +52,7 @@ class _ManualGameSetupScreenState extends ConsumerState<ManualGameSetupScreen> {
   GameType _gameType = GameType.standard;
   int? _targetPoints;
   BillingType? _billingType;
-  MatchType _matchType = TablePricingConfig.defaultMatchType;
+
   bool _useCustomPrice = false;
   final TextEditingController _customPriceController = TextEditingController();
 
@@ -307,25 +307,7 @@ class _ManualGameSetupScreenState extends ConsumerState<ManualGameSetupScreen> {
               ),
           ],
         ],
-        const Gap(16),
-        Text('Match Type', style: theme.textTheme.titleMedium),
-        const Gap(12),
-        Row(
-          children: MatchType.values.map((type) {
-            return Expanded(
-              child: Padding(
-                padding: const EdgeInsets.only(right: 8.0),
-                child: GestureDetector(
-                  onTap: () => setState(() => _matchType = type),
-                  child: _SelectionTile(
-                    title: type.displayName,
-                    isSelected: _matchType == type,
-                  ),
-                ),
-              ),
-            );
-          }).toList(),
-        ),
+
       ],
     );
   }
@@ -476,7 +458,7 @@ class _ManualGameSetupScreenState extends ConsumerState<ManualGameSetupScreen> {
     setState(() => _isLoading = true);
 
     final actualBillingType = _gameType == GameType.standard ? _billingType! : BillingType.perMinute;
-    final actualMatchType = _matchType;
+    final actualMatchType = MatchType.friendly;
 
     final now = DateTime.now();
     final h = int.tryParse(_elapsedHoursController.text) ?? 0;

@@ -372,6 +372,7 @@ class GameRound {
   final int roundNumber;
   final String? winner; // Player name or Team A / Team B
   final String? loser; // Player name or Team A / Team B
+  final List<String>? framePayers;
   final double roundCost;
   final DateTime? startTime;
   final DateTime? endTime;
@@ -384,6 +385,7 @@ class GameRound {
     required this.roundNumber,
     this.winner,
     this.loser,
+    this.framePayers,
     required this.roundCost,
     this.startTime,
     this.endTime,
@@ -397,6 +399,7 @@ class GameRound {
     int? roundNumber,
     String? winner,
     String? loser,
+    List<String>? framePayers,
     double? roundCost,
     DateTime? startTime,
     DateTime? endTime,
@@ -409,6 +412,7 @@ class GameRound {
       roundNumber: roundNumber ?? this.roundNumber,
       winner: winner ?? this.winner,
       loser: loser ?? this.loser,
+      framePayers: framePayers ?? this.framePayers,
       roundCost: roundCost ?? this.roundCost,
       startTime: startTime ?? this.startTime,
       endTime: endTime ?? this.endTime,
@@ -423,6 +427,7 @@ class GameRound {
         'roundNumber': roundNumber,
         'winner': winner,
         'loser': loser,
+        'framePayers': framePayers,
         'roundCost': roundCost,
         'startTime': startTime != null ? Timestamp.fromDate(startTime!) : null,
         'endTime': endTime != null ? Timestamp.fromDate(endTime!) : null,
@@ -436,6 +441,7 @@ class GameRound {
         roundNumber: (map['roundNumber'] as num?)?.toInt() ?? 1,
         winner: map['winner'] as String?,
         loser: map['loser'] as String?,
+        framePayers: map['framePayers'] != null ? List<String>.from(map['framePayers']) : null,
         roundCost: (map['roundCost'] as num?)?.toDouble() ?? 0.0,
         startTime: map['startTime'] != null
             ? (map['startTime'] is Timestamp
@@ -489,6 +495,9 @@ class GameSession {
   final Map<String, PaymentMethod>? playerPaymentMethods;
   final Map<String, double>? playerLiabilities;
   final String? winnerId; // player name or "Team A" / "Team B"
+  final List<String>? selectedPayers;
+  final double? discountAmount;
+  final double? discountedGameCharge;
   final String? paidBy; // customer name paying (for credit)
   final PaymentMethod? paymentMethod;
   final String? paymentStatus; // e.g., 'Outstanding', 'Partially Paid', 'Paid'
@@ -544,6 +553,9 @@ class GameSession {
     this.playerPaymentMethods,
     this.playerLiabilities,
     this.winnerId,
+    this.selectedPayers,
+    this.discountAmount,
+    this.discountedGameCharge,
     this.paidBy,
     this.paymentMethod,
     this.paymentStatus,
@@ -648,6 +660,9 @@ class GameSession {
     Map<String, PaymentMethod>? playerPaymentMethods,
     Map<String, double>? playerLiabilities,
     String? winnerId,
+    List<String>? selectedPayers,
+    double? discountAmount,
+    double? discountedGameCharge,
     String? paidBy,
     PaymentMethod? paymentMethod,
     String? paymentStatus,
@@ -703,6 +718,9 @@ class GameSession {
       playerPaymentMethods: playerPaymentMethods ?? this.playerPaymentMethods,
       playerLiabilities: playerLiabilities ?? this.playerLiabilities,
       winnerId: winnerId ?? this.winnerId,
+      selectedPayers: selectedPayers ?? this.selectedPayers,
+      discountAmount: discountAmount ?? this.discountAmount,
+      discountedGameCharge: discountedGameCharge ?? this.discountedGameCharge,
       paidBy: paidBy ?? this.paidBy,
       paymentMethod: paymentMethod ?? this.paymentMethod,
       paymentStatus: paymentStatus ?? this.paymentStatus,
@@ -762,6 +780,11 @@ class GameSession {
       'playerPaymentMethods': playerPaymentMethods?.map((k, v) => MapEntry(k, v.name)),
       'playerLiabilities': playerLiabilities,
       'winnerId': winnerId,
+      'selectedPayers': selectedPayers,
+      'discountAmount': discountAmount,
+      'discountedGameCharge': discountedGameCharge,
+      'roundedAmount': roundedAmount,
+      'finalAmount': finalAmount,
       'paidBy': paidBy,
       'paymentMethod': paymentMethod?.name,
       'paymentStatus': paymentStatus,
@@ -865,6 +888,11 @@ class GameSession {
             )
           : null,
       winnerId: map['winnerId'] as String?,
+      selectedPayers: map['selectedPayers'] != null ? List<String>.from(map['selectedPayers']) : null,
+      discountAmount: (map['discountAmount'] as num?)?.toDouble(),
+      discountedGameCharge: (map['discountedGameCharge'] as num?)?.toDouble(),
+      customExtraCharge: (map['customExtraCharge'] as num?)?.toDouble(),
+      coinQuantity: (map['coinQuantity'] as num?)?.toInt(),
       paidBy: map['paidBy'] as String?,
       paymentMethod: map['paymentMethod'] != null
           ? PaymentMethod.values.firstWhere(

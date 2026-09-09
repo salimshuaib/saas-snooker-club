@@ -338,10 +338,10 @@ CompleteAnalyticsData getCompleteAnalyticsData(dynamic ref) {
 
   // Maps and Accumulators
   final Map<String, GameCategoryData> gameCatMap = {};
-  double tpBilled = 0;
-  double friendlyBilled = 0;
-  int tpCount = 0;
-  int friendlyCount = 0;
+  double splitBilled = 0;
+  double singlePayerBilled = 0;
+  int splitCount = 0;
+  int singlePayerCount = 0;
   double perMinBilled = 0;
   double perFrameBilled = 0;
   
@@ -440,8 +440,13 @@ CompleteAnalyticsData getCompleteAnalyticsData(dynamic ref) {
       uniqueCustomers.add(p.trim().toLowerCase());
     }
     
-    if (g.matchType == MatchType.loserPays) { tpBilled += gTotal; tpCount++; }
-    else { friendlyBilled += gTotal; friendlyCount++; }
+    if (g.selectedPayers != null && g.selectedPayers!.length > 1) { 
+      splitBilled += gTotal; 
+      splitCount++; 
+    } else { 
+      singlePayerBilled += gTotal; 
+      singlePayerCount++; 
+    }
     
     if (g.billingType == BillingType.perFrame) perFrameBilled += gTotal;
     else perMinBilled += gTotal;
@@ -571,10 +576,10 @@ CompleteAnalyticsData getCompleteAnalyticsData(dynamic ref) {
     gameAnalytics: GameAnalyticsData(
       categories: gameCatMap.values.toList(),
       totalGameSessions: games.length,
-      tpBilled: tpBilled,
-      friendlyBilled: friendlyBilled,
-      tpCount: tpCount,
-      friendlyCount: friendlyCount,
+      splitBilled: splitBilled,
+      singlePayerBilled: singlePayerBilled,
+      splitCount: splitCount,
+      singlePayerCount: singlePayerCount,
       perMinuteBilled: perMinBilled,
       perFrameBilled: perFrameBilled,
     ),

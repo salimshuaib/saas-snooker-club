@@ -14,6 +14,7 @@ import 'package:snooker_club/features/games/presentation/widgets/admin_passcode_
 import 'package:snooker_club/features/games/presentation/widgets/game_setup_sheet.dart';
 import 'package:snooker_club/features/games/presentation/widgets/orders_sheet.dart';
 import 'package:snooker_club/features/games/providers/games_providers.dart';
+import 'package:snooker_club/features/games/presentation/widgets/payer_selection_widget.dart';
 import 'package:snooker_club/features/settings/providers/settings_providers.dart';
 
 class TableDetailsScreen extends ConsumerStatefulWidget {
@@ -829,56 +830,35 @@ class _ActiveGameCardState extends ConsumerState<_ActiveGameCard> {
   GameRound _buildCompletedFrameRecord({
     required GameSession game,
     required int roundNumber,
-    String? winner,
-    String? loser,
+    required List<String> framePayers,
   }) {
+    final now = DateTime.now();
+    final duration = now.difference(game.startTime);
+    int activeSeconds = duration.inSeconds;
+
+
+
     final appSettings = ref.read(appSettingsProvider);
-    final pricing = game.pricingSnapshot ?? appSettings.pricing;
-    final roundCost =
-        TablePricingConfig.getPrice(
-          widget.table,
-          game.gameType,
-          game.billingType,
-          pricing,
-        ) ??
-        0.0;
-    final startTime = game.rounds.isNotEmpty
-        ? (game.rounds.last.endTime ?? game.startTime)
-        : game.startTime;
-    final endTime = DateTime.now();
-    final previousSeconds = game.rounds.fold<int>(
-      0,
-      (sum, r) => sum + (r.durationSeconds ?? 0),
+    final charge = TablePricingConfig.calculateCharge(
+      tableType: game.tableType,
+      gameType: game.gameType,
+      billingType: game.billingType,
+      activeSeconds: activeSeconds,
+      framesPlayed: roundNumber,
+      pricingConfig: game.pricingSnapshot ?? appSettings.pricing,
+      gameConfig: game.gameSettingsSnapshot ?? appSettings.game,
+      completedRounds: game.rounds,
+      customPrice: game.customPrice,
     );
-    final durationSeconds = (game.activeSeconds - previousSeconds).clamp(
-      0,
-      999999,
-    );
-    final graceMinutes = TablePricingConfig.frameGracePeriodMinutes;
-    final overtimeSecs = durationSeconds - (graceMinutes * 60);
-    final int overtimeMins = overtimeSecs > 0
-        ? (overtimeSecs / 60.0).ceil()
-        : 0;
-    final double perMinRate = game.customPrice ?? TablePricingConfig.getPerMinutePrice(
-      game.tableType,
-      game.gameType,
-      pricing,
-    );
-    final double overtimeChg = overtimeSecs > 0
-        ? overtimeSecs * (perMinRate / 60.0)
-        : 0.0;
+
+    final previousTotal = game.rounds.fold<double>(0, (s, r) => s + r.roundCost + (r.overtimeCharge ?? 0));
+    final roundCost = charge.totalCharge - previousTotal;
 
     return GameRound(
       roundNumber: roundNumber,
-      winner: winner,
-      loser: loser,
+      framePayers: framePayers,
       roundCost: roundCost,
-      startTime: startTime,
-      endTime: endTime,
-      durationSeconds: durationSeconds,
-      gracePeriodMinutes: graceMinutes,
-      overtimeMinutes: overtimeMins,
-      overtimeCharge: overtimeChg,
+      durationSeconds: activeSeconds - game.rounds.fold<int>(0, (s, r) => s + (r.durationSeconds ?? 0)),
     );
   }
 
@@ -893,128 +873,57 @@ class _ActiveGameCardState extends ConsumerState<_ActiveGameCard> {
     }
 
     if (game.billingType == BillingType.perFrame) {
-      if (game.matchType == MatchType.loserPays) {
-        if (!context.mounted) return;
-        final result = await showDialog<Map<String, dynamic>>(
-          context: context,
-          builder: (ctx) => _RoundCompletionDialog(game: game),
-        );
-        if (result == null || !mounted || !context.mounted) return;
+      if (!context.mounted) return;
+      final result = await showDialog<Map<String, dynamic>>(
+        context: context,
+        builder: (ctx) => _RoundCompletionDialog(game: game),
+      );
+      if (result == null || !mounted || !context.mounted) return;
 
-        final winner = result['winner'] as String;
-        final loser = result['loser'] as String;
-        final continueRound = result['continue'] as bool;
+      final framePayers = result['framePayers'] as List<String>;
+      final continueRound = result['continue'] as bool;
 
-        final newRound = _buildCompletedFrameRecord(
-          game: game,
-          roundNumber: game.rounds.length + 1,
-          winner: winner,
-          loser: loser,
-        );
-        final updatedRounds = [...game.rounds, newRound];
+      final newRound = _buildCompletedFrameRecord(
+        game: game,
+        roundNumber: game.rounds.length + 1,
+        framePayers: framePayers,
+      );
+      final updatedRounds = [...game.rounds, newRound];
 
-        if (continueRound) {
-          await ref
-              .read(gameSessionControllerProvider.notifier)
-              .updateGameRounds(
-                game.id,
-                updatedRounds,
-                updatedRounds.length + 1,
-                updatedRounds.length,
-              );
-          if (mounted && context.mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(
-                  'Round ${newRound.roundNumber} recorded. Round ${newRound.roundNumber + 1} started.',
-                ),
-                backgroundColor: AppColors.success,
-              ),
+      if (continueRound) {
+        await ref
+            .read(gameSessionControllerProvider.notifier)
+            .updateGameRounds(
+              game.id,
+              updatedRounds,
+              updatedRounds.length + 1,
+              updatedRounds.length,
             );
-          }
-          return;
-        } else {
-          final updatedSession = game.copyWith(
-            rounds: updatedRounds,
-            framesPlayed: updatedRounds.length,
-            totalFrames: updatedRounds.length,
-          );
-          if (mounted && context.mounted) {
-            await Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (_) => BillingScreen(session: updatedSession),
+        if (mounted && context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                'Round ${newRound.roundNumber} recorded. Round ${newRound.roundNumber + 1} started.',
               ),
-            );
-          }
-          return;
-        }
-      } else {
-        // Friendly match perFrame
-        if (!context.mounted) return;
-        final continueFrame = await showDialog<bool>(
-          context: context,
-          builder: (ctx) => AlertDialog(
-            title: const Text('Frame Complete'),
-            content: Text(
-              'Frame ${math.max(game.framesPlayed, game.totalFrames)} finished. Play one more round?',
+              backgroundColor: AppColors.success,
             ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(ctx, false),
-                child: const Text('No, Finish & Bill'),
-              ),
-              FilledButton(
-                onPressed: () => Navigator.pop(ctx, true),
-                child: const Text('Yes, Play Another'),
-              ),
-            ],
-          ),
-        );
-        if (continueFrame == null || !mounted || !context.mounted) return;
-
-        final newRound = _buildCompletedFrameRecord(
-          game: game,
-          roundNumber: game.rounds.length + 1,
-          winner: 'Friendly',
-        );
-        final updatedRounds = [...game.rounds, newRound];
-
-        if (continueFrame == true) {
-          await Future.delayed(const Duration(milliseconds: 400));
-          await ref
-              .read(gameSessionControllerProvider.notifier)
-              .updateGameRounds(
-                game.id,
-                updatedRounds,
-                updatedRounds.length + 1,
-                updatedRounds.length,
-              );
-          if (mounted && context.mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(
-                  'Frame ${newRound.roundNumber} recorded. Frame ${newRound.roundNumber + 1} started.',
-                ),
-                backgroundColor: AppColors.success,
-              ),
-            );
-          }
-          return;
-        } else {
-          final updatedSession = game.copyWith(
-            rounds: updatedRounds,
-            framesPlayed: updatedRounds.length,
-            totalFrames: updatedRounds.length,
           );
-          if (mounted && context.mounted) {
-            await Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (_) => BillingScreen(session: updatedSession),
-              ),
-            );
-          }
-          return;
         }
+        return;
+      } else {
+        final updatedSession = game.copyWith(
+          rounds: updatedRounds,
+          framesPlayed: updatedRounds.length,
+          totalFrames: updatedRounds.length,
+        );
+        if (mounted && context.mounted) {
+          await Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (_) => BillingScreen(session: updatedSession),
+            ),
+          );
+        }
+        return;
       }
     }
 
@@ -1029,182 +938,63 @@ class _ActiveGameCardState extends ConsumerState<_ActiveGameCard> {
 
 class _RoundCompletionDialog extends StatefulWidget {
   final GameSession game;
-  final bool isRace;
-  const _RoundCompletionDialog({required this.game, this.isRace = false});
+  const _RoundCompletionDialog({required this.game, super.key});
 
   @override
   State<_RoundCompletionDialog> createState() => _RoundCompletionDialogState();
 }
 
 class _RoundCompletionDialogState extends State<_RoundCompletionDialog> {
-  String? _selectedWinner;
-  String? _selectedLoser;
+  late List<String> _selectedPayers;
 
   @override
   void initState() {
     super.initState();
-    final candidates = widget.game.mode == GameMode.team
-        ? ['Team A', 'Team B']
-        : widget.game.allPlayers;
-    if (candidates.isNotEmpty) {
-      _selectWinner(candidates.first);
-    }
-  }
-
-  void _selectWinner(String winner) {
-    setState(() {
-      _selectedWinner = winner;
-      if (widget.game.mode == GameMode.team) {
-        _selectedLoser = winner == 'Team A' ? 'Team B' : 'Team A';
-      } else {
-        final remaining = widget.game.allPlayers
-            .where((p) => p != winner)
-            .toList();
-        if (remaining.length == 1) {
-          _selectedLoser = remaining.first;
-        } else if (remaining.isNotEmpty &&
-            (_selectedLoser == null || _selectedLoser == winner)) {
-          _selectedLoser = remaining.first;
-        } else if (remaining.isEmpty) {
-          _selectedLoser = winner;
-        }
-      }
-    });
-  }
-
-  String _getDisplayName(String id) {
-    if (id == 'Team A') return widget.game.teamA.join(' & ');
-    if (id == 'Team B') return widget.game.teamB.join(' & ');
-    return id;
+    _selectedPayers = List.from(widget.game.allPlayers);
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final candidates = widget.game.mode == GameMode.team
-        ? ['Team A', 'Team B']
-        : widget.game.allPlayers;
-    final needsLoserSelect =
-        widget.game.mode != GameMode.team && widget.game.allPlayers.length > 2;
-
+    
     return AlertDialog(
-      title: Text('Round ${widget.game.rounds.length + 1} Complete'),
+      title: const Text('Frame Completed'),
       content: SingleChildScrollView(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              'Who won this round?',
-              style: theme.textTheme.titleSmall?.copyWith(
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-            const Gap(8),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: candidates.map((c) {
-                final isSel = _selectedWinner == c;
-                return ChoiceChip(
-                  label: Text(_getDisplayName(c)),
-                  selected: isSel,
-                  onSelected: (selected) {
-                    if (selected) _selectWinner(c);
-                  },
-                );
-              }).toList(),
-            ),
-            const Gap(16),
-            if (needsLoserSelect) ...[
-              Text(
-                'Who lost this round? (Loser Pays)',
-                style: theme.textTheme.titleSmall?.copyWith(
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-              const Gap(8),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: candidates.where((c) => c != _selectedWinner).map((
-                  c,
-                ) {
-                  final isSel = _selectedLoser == c;
-                  return ChoiceChip(
-                    label: Text(_getDisplayName(c)),
-                    selected: isSel,
-                    onSelected: (selected) {
-                      if (selected) setState(() => _selectedLoser = c);
-                    },
-                    selectedColor: AppColors.error.withValues(alpha: 0.2),
-                  );
-                }).toList(),
-              ),
-              const Gap(16),
-            ],
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: theme.colorScheme.surfaceContainerHighest,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Row(
-                children: [
-                  const Icon(
-                    Icons.info_outline,
-                    size: 20,
-                    color: AppColors.primary,
-                  ),
-                  const Gap(8),
-                  Expanded(
-                    child: Text(
-                      'Winner: ${_selectedWinner != null ? _getDisplayName(_selectedWinner!) : "None"}\nLoser (Pays): ${_selectedLoser != null ? _getDisplayName(_selectedLoser!) : "None"}',
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const Gap(16),
-            Text(
-              'Play One More Round?',
-              style: theme.textTheme.titleSmall?.copyWith(
-                fontWeight: FontWeight.w700,
-              ),
+            PayerSelectionWidget(
+              allPlayers: widget.game.allPlayers,
+              selectedPayers: _selectedPayers,
+              onChanged: (newPayers) {
+                setState(() {
+                  _selectedPayers = newPayers;
+                });
+              },
             ),
           ],
         ),
       ),
       actions: [
         TextButton(
-          onPressed: () {
-            if (_selectedWinner == null || _selectedLoser == null) return;
-            Navigator.pop(context, {
-              'winner': _selectedWinner!,
-              'loser': _selectedLoser!,
-              'continue': false,
-            });
-          },
-          child: const Text('No, Finish & Bill'),
+          onPressed: () => Navigator.pop(context),
+          child: Text('Cancel', style: TextStyle(color: theme.colorScheme.onSurface)),
+        ),
+        TextButton(
+          onPressed: () => Navigator.pop(context, {'framePayers': _selectedPayers, 'continue': true}),
+          child: const Text('Play Another'),
         ),
         FilledButton(
-          onPressed: () {
-            if (_selectedWinner == null || _selectedLoser == null) return;
-            Navigator.pop(context, {
-              'winner': _selectedWinner!,
-              'loser': _selectedLoser!,
-              'continue': true,
-            });
-          },
-          child: const Text('Yes, Next Round'),
+          onPressed: () => Navigator.pop(context, {'framePayers': _selectedPayers, 'continue': false}),
+          child: const Text('Finish & Bill'),
         ),
       ],
     );
   }
 }
+
+  
 
 // ─────────────────────────────────────────────
 // No Active Game Card

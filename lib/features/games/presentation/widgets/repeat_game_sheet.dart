@@ -36,7 +36,7 @@ class _RepeatGameSheetState extends ConsumerState<RepeatGameSheet> {
   
   // Standard configs
   BillingType _billingType = BillingType.perMinute;
-  MatchType _matchType = MatchType.loserPays;
+
   int _totalFrames = 1;
 
   // Players
@@ -52,7 +52,7 @@ class _RepeatGameSheetState extends ConsumerState<RepeatGameSheet> {
     _targetPoints = widget.originalSession.targetPoints;
     _mode = widget.originalSession.mode;
     _billingType = widget.originalSession.billingType;
-    _matchType = widget.originalSession.matchType;
+
     _totalFrames = widget.originalSession.totalFrames;
 
     // Load initial players
@@ -484,7 +484,7 @@ class _RepeatGameSheetState extends ConsumerState<RepeatGameSheet> {
         status: TableStatus.running,
         targetPoints: _targetPoints,
         billingType: actualBillingType,
-        matchType: _gameType == GameType.standard ? _matchType : MatchType.friendly,
+        matchType: MatchType.friendly,
         totalFrames: (_gameType == GameType.standard && actualBillingType == BillingType.perFrame) ? _totalFrames : 1,
         framesPlayed: 0,
         teamA: teamAIds,
