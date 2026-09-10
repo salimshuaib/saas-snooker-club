@@ -421,8 +421,8 @@ class GamesRepository {
       'endTime': Timestamp.fromDate(session.endTime!),
       'orders': session.orders.map((o) => o.toMap()).toList(),
       'rounds': session.rounds.map((r) => r.toMap()).toList(),
-      'playerPaymentMethods': session.playerPaymentMethods?.map(
-        (k, v) => MapEntry(k, v.name),
+      'playerPaymentSplits': session.playerPaymentSplits?.map(
+        (k, v) => MapEntry(k, v.map((km, vm) => MapEntry(km.name, vm))),
       ),
       'playerLiabilities': session.playerLiabilities,
       'selectedPayers': session.selectedPayers,
@@ -476,23 +476,24 @@ class GamesRepository {
 
     final creditRepo = CreditRepository(_db, ref: _ref, clubId: clubId);
     
-    if (session.paymentMethod == null && session.playerPaymentMethods != null && session.playerPaymentMethods!.isNotEmpty) {
-      for (final entry in session.playerPaymentMethods!.entries) {
-        final customerName = entry.key;
-        final paymentMethod = entry.value;
-        final amount = session.playerLiabilities?[customerName] ?? 0.0;
+    if (session.paymentMethod == null && session.playerPaymentSplits != null && session.playerPaymentSplits!.isNotEmpty) {
+      for (final playerEntry in session.playerPaymentSplits!.entries) {
+        final customerName = playerEntry.key;
+        final splits = playerEntry.value;
         
-        if (amount > 0 && paymentMethod == PaymentMethod.credit) {
+        final creditAmount = splits[PaymentMethod.credit] ?? 0.0;
+        
+        if (creditAmount > 0) {
           await creditRepo.appendCreditToBatch(
             batch: batch,
             customerName: customerName,
             customerId: session.playerIdentities != null ? session.playerIdentities![customerName] : null,
-            amount: amount,
+            amount: creditAmount,
             type: CreditTransactionType.game,
             referenceId: session.id,
             title: 'Game on Table ${session.tableName}',
-            subtitle: 'Split Match (Ã¢â€šÂ¹${amount.toStringAsFixed(2)})',
-            paymentMethod: paymentMethod,
+            subtitle: 'Split Match (₹${creditAmount.toStringAsFixed(2)})',
+            paymentMethod: PaymentMethod.credit,
           );
         }
       }
@@ -664,12 +665,12 @@ class GamesRepository {
       }
     }
 
-    Map<String, PaymentMethod>? newPaymentMethods;
-    if (session.playerPaymentMethods != null) {
-      newPaymentMethods = {};
-      for (final entry in session.playerPaymentMethods!.entries) {
+    Map<String, Map<PaymentMethod, double>>? newPaymentSplits;
+    if (session.playerPaymentSplits != null) {
+      newPaymentSplits = {};
+      for (final entry in session.playerPaymentSplits!.entries) {
         final key = nameMap[entry.key] ?? entry.key;
-        newPaymentMethods[key] = entry.value;
+        newPaymentSplits[key] = entry.value;
       }
     }
 
@@ -725,9 +726,10 @@ class GamesRepository {
       );
     }
 
-    if (session.playerPaymentMethods != null) {
-      for (final entry in session.playerPaymentMethods!.entries) {
-        if (entry.value == PaymentMethod.credit &&
+    if (session.playerPaymentSplits != null) {
+      for (final entry in session.playerPaymentSplits!.entries) {
+        final splits = entry.value;
+        if ((splits[PaymentMethod.credit] ?? 0.0) > 0.0 &&
             nameMap.containsKey(entry.key)) {
           final oldName = entry.key;
           final newName = nameMap[oldName]!;
@@ -753,9 +755,9 @@ class GamesRepository {
       'teamB': newTeamB,
       if (newPaidBy != null) 'paidBy': newPaidBy,
       if (newWinner != null) 'winnerId': newWinner,
-      if (newPaymentMethods != null)
-        'playerPaymentMethods': newPaymentMethods.map(
-          (k, v) => MapEntry(k, v.name),
+      if (newPaymentSplits != null)
+        'playerPaymentSplits': newPaymentSplits.map(
+          (k, v) => MapEntry(k, v.map((km, vm) => MapEntry(km.name, vm))),
         ),
       if (newLiabilities != null) 'playerLiabilities': newLiabilities,
       if (newSelectedPayers != null) 'selectedPayers': newSelectedPayers,
@@ -771,7 +773,6 @@ class GamesRepository {
     required GameSession session,
     PaymentMethod? newPaymentMethod,
     String? newPaidBy,
-    Map<String, PaymentMethod>? newPlayerPaymentMethods,
     required String employeeName,
   }) async {
     if (AppConfig.guardWrite('GamesRepository.updateGamePaymentMethods'))
@@ -782,63 +783,7 @@ class GamesRepository {
     bool anyChanged = false;
     final updateMap = <String, dynamic>{};
     final amountToPay = session.finalAmount ?? session.grandTotal ?? 0.0;
-
-    if (newPlayerPaymentMethods != null && newPlayerPaymentMethods.isNotEmpty) {
-      final oldPlayerMethods = session.playerPaymentMethods ?? {};
-      for (final entry in newPlayerPaymentMethods.entries) {
-        final player = entry.key;
-        final newMethod = entry.value;
-        final oldMethod =
-            oldPlayerMethods[player] ??
-            session.paymentMethod ??
-            PaymentMethod.cash;
-        if (oldMethod != newMethod) {
-          anyChanged = true;
-          newLogs.add(
-            AuditLog(
-              id: '${session.id}_pay_$player',
-              editedBy: employeeName,
-              timestamp: DateTime.now(),
-              field: 'Payment Method ($player)',
-              previousValue: oldMethod.displayName,
-              newValue: newMethod.displayName,
-            ),
-          );
-
-          final amount =
-              session.playerLiabilities?[player] ??
-              amountToPay / newPlayerPaymentMethods.length;
-
-          if (newMethod == PaymentMethod.credit) {
-            await creditRepo.appendCreditToBatch(
-            batch: batch,
-            customerName: player,
-            customerId: session.playerIdentities != null ? session.playerIdentities![player] : null,
-            amount: amount,
-            type: CreditTransactionType.game,
-            referenceId: session.id,
-            title: 'Game on Table ${session.tableName}',
-            subtitle: 'Split Liability (Ã¢â€šÂ¹${amount.toStringAsFixed(2)})',
-            paymentMethod: newMethod,
-            );
-          }
-          if (oldMethod == PaymentMethod.credit && newMethod != PaymentMethod.credit) {
-            await creditRepo.removeCreditFromBatch(
-              batch: batch,
-              referenceId: session.id,
-              customerName: player,
-            );
-          }
-        }
-      }
-      if (anyChanged) {
-        updateMap['playerPaymentMethods'] = newPlayerPaymentMethods.map(
-          (k, v) => MapEntry(k, v.name),
-        );
-        updateMap['paymentMethod'] = null;
-        updateMap['paidBy'] = null;
-      }
-    } else if (newPaymentMethod != null) {
+    if (newPaymentMethod != null) {
       final oldMethod = session.paymentMethod ?? PaymentMethod.cash;
       if (oldMethod != newPaymentMethod) {
         anyChanged = true;

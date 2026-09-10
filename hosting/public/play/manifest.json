@@ -1,6 +1,6 @@
 {
-    "name": "snooker_club",
-    "short_name": "snooker_club",
+    "name": "S&B Manager",
+    "short_name": "S&B Manager",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",

@@ -1,4 +1,4 @@
-﻿import 'dart:math' as math;
+import 'dart:math' as math;
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:snooker_club/features/team/providers/team_providers.dart';
@@ -398,8 +398,8 @@ class CreditRepository {
       if (session.paidBy != null && session.paidBy!.isNotEmpty) {
         customerNames.add(session.paidBy!);
       }
-      if (session.playerPaymentMethods != null) {
-        for (final entry in session.playerPaymentMethods!.entries) {
+      if (session.playerPaymentSplits != null) {
+        for (final entry in session.playerPaymentSplits!.entries) {
           customerNames.add(entry.key);
         }
       }
@@ -433,7 +433,7 @@ class CreditRepository {
           final statusStr = data['status'] as String? ?? '';
           
           bool wasCredit = false;
-          if (session.playerPaymentMethods != null && session.playerPaymentMethods!.isNotEmpty) {
+          if (session.playerPaymentSplits != null && session.playerPaymentSplits!.isNotEmpty) {
             final subtitle = data['subtitle'] as String? ?? '';
             if (subtitle.contains('- Paid via')) {
               wasCredit = false;
@@ -716,13 +716,13 @@ class CreditRepository {
             changed = true;
           }
 
-          Map<String, PaymentMethod>? newPaymentMethods;
-          if (game.playerPaymentMethods != null) {
-            newPaymentMethods = {};
-            for (final entry in game.playerPaymentMethods!.entries) {
+          Map<String, Map<PaymentMethod, double>>? newPaymentSplits;
+          if (game.playerPaymentSplits != null) {
+            newPaymentSplits = {};
+            for (final entry in game.playerPaymentSplits!.entries) {
               final k = entry.key == oldName ? newName : entry.key;
               if (entry.key == oldName) changed = true;
-              newPaymentMethods[k] = entry.value;
+              newPaymentSplits[k] = entry.value;
             }
           }
 
@@ -752,8 +752,8 @@ class CreditRepository {
               'teamB': newTeamB,
               if (newPaidBy != null) 'paidBy': newPaidBy,
               if (newWinner != null) 'winnerId': newWinner,
-              if (newPaymentMethods != null)
-                'playerPaymentMethods': newPaymentMethods.map((k, v) => MapEntry(k, v.name)),
+              if (newPaymentSplits != null)
+                'playerPaymentSplits': newPaymentSplits.map((k, v) => MapEntry(k, v.map((km, vm) => MapEntry(km.name, vm)))),
               if (newLiabilities != null) 'playerLiabilities': newLiabilities,
               'auditLogs': updatedAuditLogs.map((a) => a.toMap()).toList(),
             });

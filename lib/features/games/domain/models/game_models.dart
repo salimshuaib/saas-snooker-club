@@ -490,7 +490,7 @@ class GameSession {
   final int framesPlayed;
   final List<GameOrder> orders;
   final List<GameRound> rounds;
-  final Map<String, PaymentMethod>? playerPaymentMethods;
+  final Map<String, Map<PaymentMethod, double>>? playerPaymentSplits;
   final Map<String, double>? playerLiabilities;
   final String? winnerId; // player name or "Team A" / "Team B"
   final List<String>? selectedPayers;
@@ -548,7 +548,7 @@ class GameSession {
     this.framesPlayed = 0,
     this.orders = const [],
     this.rounds = const [],
-    this.playerPaymentMethods,
+    this.playerPaymentSplits,
     this.playerLiabilities,
     this.winnerId,
     this.selectedPayers,
@@ -655,7 +655,7 @@ class GameSession {
     int? framesPlayed,
     List<GameOrder>? orders,
     List<GameRound>? rounds,
-    Map<String, PaymentMethod>? playerPaymentMethods,
+    Map<String, Map<PaymentMethod, double>>? playerPaymentSplits,
     Map<String, double>? playerLiabilities,
     String? winnerId,
     List<String>? selectedPayers,
@@ -713,7 +713,7 @@ class GameSession {
       framesPlayed: framesPlayed ?? this.framesPlayed,
       orders: orders ?? this.orders,
       rounds: rounds ?? this.rounds,
-      playerPaymentMethods: playerPaymentMethods ?? this.playerPaymentMethods,
+      playerPaymentSplits: playerPaymentSplits ?? this.playerPaymentSplits,
       playerLiabilities: playerLiabilities ?? this.playerLiabilities,
       winnerId: winnerId ?? this.winnerId,
       selectedPayers: selectedPayers ?? this.selectedPayers,
@@ -775,7 +775,7 @@ class GameSession {
       'framesPlayed': framesPlayed,
       'orders': orders.map((o) => o.toMap()).toList(),
       'rounds': rounds.map((r) => r.toMap()).toList(),
-      'playerPaymentMethods': playerPaymentMethods?.map((k, v) => MapEntry(k, v.name)),
+      'playerPaymentSplits': playerPaymentSplits?.map((k, v) => MapEntry(k, v.map((k2, v2) => MapEntry(k2.name, v2)))),
       'playerLiabilities': playerLiabilities,
       'winnerId': winnerId,
       'selectedPayers': selectedPayers,
@@ -869,17 +869,34 @@ class GameSession {
               ?.map((r) => GameRound.fromMap(r as Map<String, dynamic>))
               .toList() ??
           [],
-      playerPaymentMethods: map['playerPaymentMethods'] != null
-          ? (map['playerPaymentMethods'] as Map<String, dynamic>).map(
-              (key, value) => MapEntry(
-                key,
-                PaymentMethod.values.firstWhere(
-                  (p) => p.name == value,
-                  orElse: () => PaymentMethod.cash,
-                ),
-              ),
-            )
-          : null,
+      playerPaymentSplits: () {
+        if (map['playerPaymentSplits'] != null) {
+          final splits = map['playerPaymentSplits'] as Map<String, dynamic>;
+          return splits.map((player, methodsMap) {
+            final parsedMethods = (methodsMap as Map<String, dynamic>).map((methodName, amount) {
+              final method = PaymentMethod.values.firstWhere(
+                (p) => p.name == methodName,
+                orElse: () => PaymentMethod.cash,
+              );
+              return MapEntry(method, (amount as num).toDouble());
+            });
+            return MapEntry(player, parsedMethods);
+          });
+        }
+        if (map['playerPaymentMethods'] != null) {
+          final legacy = map['playerPaymentMethods'] as Map<String, dynamic>;
+          final liabilities = map['playerLiabilities'] as Map<String, dynamic>?;
+          return legacy.map((player, methodName) {
+            final method = PaymentMethod.values.firstWhere(
+              (p) => p.name == methodName,
+              orElse: () => PaymentMethod.cash,
+            );
+            final amount = (liabilities?[player] as num?)?.toDouble() ?? 0.0;
+            return MapEntry(player, {method: amount});
+          });
+        }
+        return null;
+      }(),
       playerLiabilities: map['playerLiabilities'] != null
           ? (map['playerLiabilities'] as Map<String, dynamic>).map(
               (key, value) => MapEntry(key, (value as num).toDouble()),

@@ -244,13 +244,13 @@ RevenueOverviewData _computeRevenue(List<GameSession> games, List<QuickSale> qui
     totalBilled += actualPaid;
     totalGameBilled += actualPaid;
     
-    final ppm = g.playerPaymentMethods;
+    final ppm = g.playerPaymentSplits;
     if (ppm != null && ppm.isNotEmpty) {
       for (final kv in ppm.entries) {
-        final amount = g.playerLiabilities?[kv.key] ?? 0.0;
-        if (kv.value == PaymentMethod.cash) cashCollected += amount;
-        else if (kv.value == PaymentMethod.upi) upiCollected += amount;
-        else if (kv.value == PaymentMethod.credit) creditCreated += amount;
+        final splits = kv.value;
+        cashCollected += splits[PaymentMethod.cash] ?? 0.0;
+        upiCollected += splits[PaymentMethod.upi] ?? 0.0;
+        creditCreated += splits[PaymentMethod.credit] ?? 0.0;
       }
     } else {
       final method = g.paymentMethod ?? PaymentMethod.cash;

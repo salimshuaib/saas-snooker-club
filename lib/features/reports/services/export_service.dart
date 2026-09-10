@@ -56,7 +56,7 @@ class ExportService {
         TextCellValue('Payment Method'), TextCellValue('Status')
       ]);
       for (var g in games) {
-        final paymentMethods = g.playerPaymentMethods != null ? g.playerPaymentMethods!.values.map((e) => e.name).join(', ') : 'unknown';
+        final paymentMethods = g.playerPaymentSplits != null ? g.playerPaymentSplits!.values.expand((splits) => splits.keys).map((e) => e.name).toSet().join(', ') : 'unknown';
         s2.appendRow([
           TextCellValue(g.id),
           TextCellValue(g.startTime.toIso8601String()),
@@ -230,7 +230,7 @@ class ExportService {
       ];
 
       for (var g in games) {
-        final paymentMethods = g.playerPaymentMethods != null ? g.playerPaymentMethods!.values.map((e) => e.name).join(', ') : 'unknown';
+        final paymentMethods = g.playerPaymentSplits != null ? g.playerPaymentSplits!.values.expand((splits) => splits.keys).map((e) => e.name).toSet().join(', ') : 'unknown';
         rows.add([
           g.id,
           g.startTime.toIso8601String(),

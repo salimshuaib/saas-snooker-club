@@ -320,47 +320,51 @@ class _BillDetailsScreenState extends ConsumerState<BillDetailsScreen> {
             // ── Payment Information ──
             Text('Payment Information', style: theme.textTheme.titleMedium),
             const Gap(8),
-            if (session.playerPaymentMethods != null && session.playerPaymentMethods!.isNotEmpty) ...[
+            if (session.playerPaymentSplits != null && session.playerPaymentSplits!.isNotEmpty) ...[
               _SectionCard(
-                children: session.playerPaymentMethods!.entries.map((entry) {
+                children: session.playerPaymentSplits!.entries.map((entry) {
                   final player = entry.key;
-                  final method = entry.value;
-                  final amount = session.playerLiabilities?[player] ?? 0.0;
+                  final splits = entry.value;
                   return Padding(
-                    padding: const EdgeInsets.only(bottom: 8.0),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    padding: const EdgeInsets.only(bottom: 12.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(player, style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700)),
-                              const Gap(2),
-                              Row(
-                                children: [
-                                  Icon(_paymentIcon(method), size: 14, color: theme.colorScheme.onSurfaceVariant),
-                                  const Gap(4),
-                                  Text(method.displayName, style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
-                                  if (method == PaymentMethod.credit) ...[
-                                    const Gap(6),
-                                    Text('(${session.paymentStatus ?? 'Outstanding'})', 
-                                      style: theme.textTheme.labelSmall?.copyWith(
-                                        color: session.paymentStatus == 'Paid' ? AppColors.success 
-                                          : (session.paymentStatus == 'Partially Paid' ? AppColors.warning : AppColors.creditStatus),
-                                        fontWeight: FontWeight.w600,
+                        Text(player, style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700)),
+                        const Gap(4),
+                        ...splits.entries.map((splitEntry) {
+                          final method = splitEntry.key;
+                          final amount = splitEntry.value;
+                          return Padding(
+                            padding: const EdgeInsets.only(bottom: 4.0),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Row(
+                                  children: [
+                                    Icon(_paymentIcon(method), size: 14, color: theme.colorScheme.onSurfaceVariant),
+                                    const Gap(4),
+                                    Text(method.displayName, style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
+                                    if (method == PaymentMethod.credit) ...[
+                                      const Gap(6),
+                                      Text('(${session.paymentStatus ?? 'Outstanding'})', 
+                                        style: theme.textTheme.labelSmall?.copyWith(
+                                          color: session.paymentStatus == 'Paid' ? AppColors.success 
+                                            : (session.paymentStatus == 'Partially Paid' ? AppColors.warning : AppColors.creditStatus),
+                                          fontWeight: FontWeight.w600,
+                                        ),
                                       ),
-                                    ),
+                                    ],
                                   ],
-                                ],
-                              ),
-                            ],
-                          ),
-                        ),
-                        Text(
-                          '₹${amount.toStringAsFixed(2)}',
-                          style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
-                        ),
+                                ),
+                                Text(
+                                  '₹${amount.toStringAsFixed(amount.truncateToDouble() == amount ? 0 : 2)}',
+                                  style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600, color: AppColors.primary),
+                                ),
+                              ],
+                            ),
+                          );
+                        }),
                       ],
                     ),
                   );
@@ -565,69 +569,13 @@ class _BillDetailsScreenState extends ConsumerState<BillDetailsScreen> {
     );
     if (verified != true || !context.mounted) return;
 
-    final isSplit = session.playerPaymentMethods != null && session.playerPaymentMethods!.isNotEmpty;
+    final isSplit = session.playerPaymentSplits != null && session.playerPaymentSplits!.isNotEmpty;
 
     if (isSplit) {
-      final Map<String, PaymentMethod> selectedMethods = Map.from(session.playerPaymentMethods!);
-      final result = await showDialog<bool>(
-        context: context,
-        builder: (ctx) => StatefulBuilder(
-          builder: (ctx, setState) => AlertDialog(
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-            title: const Text('Edit Split Payment Methods'),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: selectedMethods.keys.map((player) {
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 12.0),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Expanded(child: Text(player, style: const TextStyle(fontWeight: FontWeight.w600))),
-                      DropdownButton<PaymentMethod>(
-                        value: selectedMethods[player],
-                        items: PaymentMethod.values.map((m) => DropdownMenuItem(value: m, child: Text(m.displayName))).toList(),
-                        onChanged: (val) {
-                          if (val != null) setState(() => selectedMethods[player] = val);
-                        },
-                      ),
-                    ],
-                  ),
-                );
-              }).toList(),
-            ),
-            actions: [
-              TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: Text(AppLocalizations.of(context)!.cancel)),
-              ElevatedButton(
-                onPressed: () => Navigator.of(ctx).pop(true),
-                style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary, foregroundColor: Colors.white),
-                child: const Text('Save Changes'),
-              ),
-            ],
-          ),
-        ),
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Editing individual player payment methods is currently unsupported for split payments.')),
       );
-
-      if (result == true && context.mounted) {
-        try {
-          await ref.read(gamesRepositoryProvider).updateGamePaymentMethods(
-            session: session,
-            newPlayerPaymentMethods: selectedMethods,
-            employeeName: 'Admin',
-          );
-          if (context.mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Payment methods updated & credit accounts adjusted.'), backgroundColor: AppColors.success),
-            );
-          }
-        } catch (e) {
-          if (context.mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('Error: $e'), backgroundColor: AppColors.error),
-            );
-          }
-        }
-      }
+      return;
     } else {
       PaymentMethod selectedMethod = session.paymentMethod ?? PaymentMethod.cash;
       final payerController = TextEditingController(text: session.paidBy ?? '');

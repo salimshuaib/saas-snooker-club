@@ -462,6 +462,9 @@ class _ManualGameSetupScreenState extends ConsumerState<ManualGameSetupScreen> w
   }
 
   Future<void> _startManualGame() async {
+    FocusScope.of(context).unfocus();
+    await Future.delayed(const Duration(milliseconds: 50));
+    
     // 1. Frame validation
     if (_gameType == GameType.standard && _billingType == BillingType.perFrame) {
       if (_totalFrames <= 0) {
@@ -542,14 +545,11 @@ class _ManualGameSetupScreenState extends ConsumerState<ManualGameSetupScreen> w
 
     final appSettings = ref.read(appSettingsProvider);
     final pricingSnapshot = appSettings.pricing;
-    double? customPrice;
+    final double? customPrice = (_useCustomPrice && !_selectedTable!.type.isOtherGame) 
+      ? double.tryParse(_customPriceController.text)
+      : TablePricingConfig.getPrice(_selectedTable!, _gameType, actualBillingType, pricingSnapshot);
 
-    if (actualBillingType == BillingType.perMinute && _useCustomPrice) {
-      final parsed = double.tryParse(_customPriceController.text);
-      if (parsed != null && parsed > 0) {
-        customPrice = parsed;
-      }
-    }
+    final double? customExtraCharge = TablePricingConfig.getExtraCharge(_selectedTable!, _gameType, actualBillingType, pricingSnapshot);
 
     if (actualBillingType == BillingType.perFrame) {
       framesPlayed = _currentFrame;
@@ -611,6 +611,7 @@ class _ManualGameSetupScreenState extends ConsumerState<ManualGameSetupScreen> w
       pricingSnapshot: pricingSnapshot,
       gameSettingsSnapshot: appSettings.game,
       customPrice: customPrice,
+      customExtraCharge: customExtraCharge,
     );
 
     if (mounted) {

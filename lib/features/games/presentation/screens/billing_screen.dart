@@ -10,6 +10,7 @@ import 'package:snooker_club/features/settings/providers/settings_providers.dart
 import 'package:snooker_club/features/games/domain/models/game_models.dart';
 import 'package:snooker_club/features/games/providers/games_providers.dart';
 import 'package:snooker_club/features/games/presentation/widgets/payer_selection_widget.dart';
+import 'package:snooker_club/features/games/presentation/widgets/player_split_payment_sheet.dart';
 
 class BillingScreen extends ConsumerStatefulWidget {
   final GameSession session;
@@ -24,7 +25,7 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
   late GameSession _session;
   PaymentMethod _paymentMethod = PaymentMethod.cash;
   String? _PlayerProfileName;
-  late Map<String, PaymentMethod> _playerPaymentMethods;
+  late Map<String, Map<PaymentMethod, double>> _playerPaymentSplits;
   late Map<String, double> _customLiabilities;
   bool _isProcessing = false;
   
@@ -54,8 +55,8 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
     // so we will just initialize empty and let the UI handle it or we can calculate base.
     _discountPercentController = TextEditingController();
     
-    _playerPaymentMethods = {
-      for (final p in _session.allPlayers) p: PaymentMethod.cash,
+    _playerPaymentSplits = {
+      for (final p in _session.allPlayers) p: {PaymentMethod.cash: 0.0},
     };
   }
 
@@ -123,6 +124,15 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
 
     setState(() {
       _customLiabilities = liabilities;
+      for (final p in _session.allPlayers) {
+        final amount = liabilities[p] ?? 0.0;
+        final currentSplits = _playerPaymentSplits[p] ?? {PaymentMethod.cash: amount};
+        if (currentSplits.length == 1) {
+          _playerPaymentSplits[p] = {currentSplits.keys.first: amount};
+        } else {
+          _playerPaymentSplits[p] = {PaymentMethod.cash: amount};
+        }
+      }
     });
   }
 
@@ -189,10 +199,8 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
 
   bool get _hasCredit {
     if ((_isMultiPayer || _session.gameType != GameType.standard)) {
-      return _playerPaymentMethods.entries.any(
-        (e) =>
-            e.value == PaymentMethod.credit &&
-            (_customLiabilities[e.key] ?? 0) > 0,
+      return _playerPaymentSplits.entries.any(
+        (e) => (e.value[PaymentMethod.credit] ?? 0.0) > 0.0,
       );
     }
     return _paymentMethod == PaymentMethod.credit;
@@ -691,8 +699,8 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
         _SectionCard(
           children: players.map((player) {
             final amount = liabilities[player] ?? 0.0;
-            final selectedMethod =
-                _playerPaymentMethods[player] ?? PaymentMethod.cash;
+            final splits = _playerPaymentSplits[player] ?? {PaymentMethod.cash: amount};
+            final isSplit = splits.length > 1;
 
             return Padding(
               padding: const EdgeInsets.symmetric(vertical: 12),
@@ -702,11 +710,40 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(
-                        player,
-                        style: theme.textTheme.titleSmall?.copyWith(
-                          fontWeight: FontWeight.w700,
-                        ),
+                      Row(
+                        children: [
+                          Text(
+                            player,
+                            style: theme.textTheme.titleSmall?.copyWith(
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                          const Gap(8),
+                          TextButton(
+                            onPressed: () {
+                              showModalBottomSheet(
+                                context: context,
+                                isScrollControlled: true,
+                                builder: (ctx) => PlayerSplitPaymentSheet(
+                                  playerName: player,
+                                  totalLiability: liabilities[player] ?? 0.0,
+                                  initialSplits: splits,
+                                  onSplitsSaved: (newSplits) {
+                                    setState(() {
+                                      _playerPaymentSplits[player] = newSplits;
+                                    });
+                                  },
+                                ),
+                              );
+                            },
+                            style: TextButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                              minimumSize: Size.zero,
+                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                            ),
+                            child: const Text('Split', style: TextStyle(fontSize: 12)),
+                          ),
+                        ],
                       ),
                       SizedBox(
                         width: 120,
@@ -731,8 +768,14 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
                           ),
                           onChanged: (val) {
                             setState(() {
-                              _customLiabilities[player] =
-                                  double.tryParse(val) ?? 0.0;
+                              final newAmount = double.tryParse(val) ?? 0.0;
+                              _customLiabilities[player] = newAmount;
+                              final currentSplits = _playerPaymentSplits[player] ?? {PaymentMethod.cash: newAmount};
+                              if (currentSplits.length == 1) {
+                                _playerPaymentSplits[player] = {currentSplits.keys.first: newAmount};
+                              } else {
+                                _playerPaymentSplits[player] = {PaymentMethod.cash: newAmount};
+                              }
                             });
                           },
                         ),
@@ -740,59 +783,77 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
                     ],
                   ),
                   const Gap(12),
-                  Row(
-                    children: PaymentMethod.values.map((method) {
-                      final isSelected = selectedMethod == method;
-                      return Expanded(
-                        child: GestureDetector(
-                          onTap: () => setState(
-                            () => _playerPaymentMethods[player] = method,
-                          ),
-                          child: Container(
-                            margin: EdgeInsets.only(
-                              right: method != PaymentMethod.credit ? 8 : 0,
+                  if (isSplit)
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.surfaceContainerHighest,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        splits.entries.map((e) => '₹${e.value.toStringAsFixed(e.value.truncateToDouble() == e.value ? 0 : 2)} ${e.key.displayName}').join(' + '),
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: AppColors.primary,
+                          fontWeight: FontWeight.bold,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    )
+                  else
+                    Row(
+                      children: PaymentMethod.values.map((method) {
+                        final isSelected = splits.keys.first == method;
+                        return Expanded(
+                          child: GestureDetector(
+                            onTap: () => setState(
+                              () => _playerPaymentSplits[player] = {method: liabilities[player] ?? 0.0},
                             ),
-                            padding: const EdgeInsets.symmetric(vertical: 10),
-                            decoration: BoxDecoration(
-                              color: isSelected
-                                  ? AppColors.primary
-                                  : theme.colorScheme.surfaceContainerHighest,
-                              borderRadius: BorderRadius.circular(8),
-                              border: isSelected
-                                  ? null
-                                  : Border.all(
-                                      color: theme.colorScheme.outlineVariant,
-                                    ),
-                            ),
-                            alignment: Alignment.center,
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(
-                                  _paymentIcon(method),
-                                  size: 16,
-                                  color: isSelected
-                                      ? Colors.white
-                                      : theme.colorScheme.onSurfaceVariant,
-                                ),
-                                const Gap(4),
-                                Text(
-                                  method.displayName,
-                                  style: TextStyle(
+                            child: Container(
+                              margin: EdgeInsets.only(
+                                right: method != PaymentMethod.credit ? 8 : 0,
+                              ),
+                              padding: const EdgeInsets.symmetric(vertical: 10),
+                              decoration: BoxDecoration(
+                                color: isSelected
+                                    ? AppColors.primary
+                                    : theme.colorScheme.surfaceContainerHighest,
+                                borderRadius: BorderRadius.circular(8),
+                                border: isSelected
+                                    ? null
+                                    : Border.all(
+                                        color: theme.colorScheme.outlineVariant,
+                                      ),
+                              ),
+                              alignment: Alignment.center,
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(
+                                    _paymentIcon(method),
+                                    size: 16,
                                     color: isSelected
                                         ? Colors.white
-                                        : theme.colorScheme.onSurface,
-                                    fontWeight: FontWeight.w600,
-                                    fontSize: 11,
+                                        : theme.colorScheme.onSurfaceVariant,
                                   ),
-                                ),
-                              ],
+                                  const Gap(4),
+                                  Text(
+                                    method.displayName,
+                                    style: TextStyle(
+                                      color: isSelected
+                                          ? Colors.white
+                                          : theme.colorScheme.onSurface,
+                                      fontWeight: FontWeight.w600,
+                                      fontSize: 11,
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
-                        ),
-                      );
-                    }).toList(),
-                  ),
+                        );
+                      }).toList(),
+                    ),
                   if (player != players.last) const Divider(height: 24),
                 ],
               ),
@@ -843,7 +904,7 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
         ? _session.copyWith(
             endTime: finalEndTime,
             status: TableStatus.available,
-            playerPaymentMethods: _playerPaymentMethods,
+            playerPaymentSplits: _playerPaymentSplits,
             playerLiabilities: _customLiabilities,
             gameCharge: _gameCharge,
             baseGameCharge: _baseGameCharge,
