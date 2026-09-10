@@ -357,7 +357,7 @@ class _GameSetupSheetState extends ConsumerState<GameSetupSheet> {
                     },
                   ),
                 ),
-                if (selections.length > 2)
+                if (selections.length > 1)
                   IconButton(
                     icon: const Icon(Icons.remove_circle_outline, color: AppColors.error),
                     onPressed: () {
