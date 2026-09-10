@@ -15,7 +15,6 @@ class RouteNames {
   static const String reports = '/more/reports';
   static const String settings = '/more/settings';
   static const String team = '/team';
-  static const String gameActivity = '/game-activity';
   static const String history = '/history';
   static const String bookings = '/bookings';
 
@@ -25,5 +24,4 @@ class RouteNames {
   static const String noClub = '/no-club';
   static const String onboarding = '/onboarding';
 }
-
 

@@ -425,42 +425,39 @@ class _GameSetupSheetState extends ConsumerState<GameSetupSheet> {
 
     bool didPop = false;
     try {
-      var teamAPlayers = _teamASelections
+      final teamAPlayers = _teamASelections
           .where((p) => p != null && p.name.trim().isNotEmpty)
           .map((p) => p!)
           .toList();
 
-      var teamBPlayers = _mode == GameMode.team
+      final teamBPlayers = _mode == GameMode.team
           ? _teamBSelections
               .where((p) => p != null && p.name.trim().isNotEmpty)
               .map((p) => p!)
               .toList()
           : <PlayerSelection>[];
 
-              if (teamAPlayers.isEmpty && teamBPlayers.isEmpty) {
-          if (_mode == GameMode.solo) {
-            teamAPlayers.add(PlayerSelection(name: 'Default 1'));
-          } else {
-            teamAPlayers.add(PlayerSelection(name: 'Default 1'));
-            teamBPlayers.add(PlayerSelection(name: 'Default 2'));
-          }
-        }
-        final combinedSelections = [...teamAPlayers, ...teamBPlayers];
+      final combinedSelections = [...teamAPlayers, ...teamBPlayers];
       
       final actualBillingType = _gameType == GameType.standard ? _billingType : BillingType.perMinute;
       
-      
+      if (combinedSelections.isEmpty) {
+        if (mounted) {
+           ScaffoldMessenger.of(context).showSnackBar(
+             const SnackBar(content: Text('At least one player must be selected to start a game.'), backgroundColor: AppColors.error),
+           );
+           setState(() => _isLoading = false);
+        }
+        return;
+      }
 
       final allProfiles = ref.read(allCustomersProvider).value ?? [];
       final Map<String, String> resolvedIdentities = {};
       final List<String> finalPlayerIds = [];
       final List<PlayerProfile> newProfilesToCreate = [];
 
-              for (final p in combinedSelections) {
-          if (p.name.trim().startsWith('Default ')) {
-            continue;
-          }
-          if (p.id != null) {
+      for (final p in combinedSelections) {
+        if (p.id != null) {
           resolvedIdentities[p.name] = p.id!;
           finalPlayerIds.add(p.id!);
         } else {
@@ -605,5 +602,3 @@ class _GameSetupSheetState extends ConsumerState<GameSetupSheet> {
     }
   }
 }
-
-

@@ -1,4 +1,3 @@
-import 'package:snooker_club/features/games/presentation/screens/game_activity_screen.dart' as snooker_game_activity;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -44,8 +43,8 @@ final GlobalKey<NavigatorState> _rootNavigatorKey =
     GlobalKey<NavigatorState>(debugLabel: 'root');
 final GlobalKey<NavigatorState> _dashboardNavigatorKey =
     GlobalKey<NavigatorState>(debugLabel: 'dashboard');
-final GlobalKey<NavigatorState> _gameActivityNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'gameActivity');
-final GlobalKey<NavigatorState> _historyNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'history');
+final GlobalKey<NavigatorState> _historyNavigatorKey =
+    GlobalKey<NavigatorState>(debugLabel: 'history');
 
 class RouterNotifier extends ChangeNotifier {
   bool _isScheduled = false;
@@ -182,18 +181,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             ],
           ),
 
-                    // Branch 1: Game Activity
-          StatefulShellBranch(
-            navigatorKey: _gameActivityNavigatorKey,
-            routes: [
-              GoRoute(
-                path: RouteNames.gameActivity,
-                builder: (context, state) => const TickerMode(enabled: true, child: const snooker_game_activity.GameActivityScreen()),
-              ),
-            ],
-          ),
-
-          // Branch 2: History
+          // Branch 1: History
           StatefulShellBranch(
             navigatorKey: _historyNavigatorKey,
             routes: [
@@ -300,6 +288,3 @@ final appRouterProvider = Provider<GoRouter>((ref) {
     ],
   );
 });
-
-
-
