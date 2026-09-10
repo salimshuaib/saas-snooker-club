@@ -1,3 +1,6 @@
+import 'package:snooker_club/features/credit/domain/models/credit_models.dart';
+import 'package:snooker_club/features/credit/providers/credit_providers.dart' as snooker_club_credit_providers;
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -936,6 +939,41 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
     }
   }
 
+    Future<String?> _promptRealName(String defaultName) async {
+    final controller = TextEditingController();
+    return showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Real Name Required'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text("$defaultName cannot take credit without a real customer profile."),
+            const SizedBox(height: 16),
+            TextField(
+              controller: controller,
+              autofocus: true,
+              decoration: const InputDecoration(
+                labelText: 'Customer Name',
+                border: OutlineInputBorder(),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, controller.text.trim()),
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
+  }
+
   Future<void> _confirmPayment() async {
     if (_isProcessing) return;
 
@@ -956,7 +994,69 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
       return;
     }
 
-    setState(() => _isProcessing = true);
+          setState(() => _isProcessing = true);
+
+      // Check for Default players taking credit
+      final creditPlayers = _playerPaymentSplits.entries
+          .where((e) => (e.value[PaymentMethod.credit] ?? 0.0) > 0)
+          .map((e) => e.key)
+          .toList();
+
+      for (final payer in creditPlayers) {
+        if (payer.startsWith('Default ')) {
+          setState(() => _isProcessing = false);
+          final realName = await _promptRealName(payer);
+          if (realName == null || realName.isEmpty) {
+            return;
+          }
+          setState(() => _isProcessing = true);
+          
+          final splits = _playerPaymentSplits.remove(payer)!;
+          _playerPaymentSplits[realName] = splits;
+          
+          if (_customLiabilities.containsKey(payer)) {
+            final liability = _customLiabilities.remove(payer)!;
+            _customLiabilities[realName] = liability;
+          }
+          
+          if (_PlayerProfileName == payer) {
+            _PlayerProfileName = realName;
+          }
+          
+          final newTeamA = List<String>.from(_session.teamA);
+          final teamAIndex = newTeamA.indexOf(payer);
+          if (teamAIndex != -1) newTeamA[teamAIndex] = realName;
+          
+          final newTeamB = List<String>.from(_session.teamB);
+          final teamBIndex = newTeamB.indexOf(payer);
+          if (teamBIndex != -1) newTeamB[teamBIndex] = realName;
+
+          final creditRepo = ref.read(snooker_club_credit_providers.creditRepositoryProvider);
+          final newId = FirebaseFirestore.instance.collection('credits').doc().id;
+          await creditRepo.savePlayerProfile(PlayerProfile(
+            id: newId,
+            name: realName,
+            outstandingAmount: 0.0,
+            totalPendingTransactions: 0,
+            lastTransactionDate: DateTime.now(),
+          ));
+          
+          final newIdentities = Map<String, String>.from(_session.playerIdentities ?? {});
+          newIdentities[realName] = newId;
+          
+          final newPlayerIds = List<String>.from(_session.playerIds);
+          if (!newPlayerIds.contains(newId)) {
+             newPlayerIds.add(newId);
+          }
+
+          _session = _session.copyWith(
+            teamA: newTeamA,
+            teamB: newTeamB,
+            playerIdentities: newIdentities,
+            playerIds: newPlayerIds,
+          );
+        }
+      }
 
     if (!_isMultiPayer) {
       if (!isSplit) {
@@ -1136,3 +1236,8 @@ class _WinnerTile extends StatelessWidget {
     );
   }
 }
+
+
+
+
+
