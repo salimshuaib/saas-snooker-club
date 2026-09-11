@@ -22,11 +22,15 @@ extension GameModeExtension on GameMode {
 class GameSetupSheet extends ConsumerStatefulWidget {
   final TableModel table;
   final String employeeId;
+  final bool isInline;
+  final VoidCallback? onCancel;
 
   const GameSetupSheet({
     super.key,
     required this.table,
     required this.employeeId,
+    this.isInline = false,
+    this.onCancel,
   });
 
   @override
@@ -52,8 +56,8 @@ class _GameSetupSheetState extends ConsumerState<GameSetupSheet> {
   final TextEditingController _customPriceController = TextEditingController();
 
   // Players
-  final List<PlayerSelection?> _teamASelections = [null];
-  final List<PlayerSelection?> _teamBSelections = [null];
+  final List<PlayerSelection?> _teamASelections = [PlayerSelection(name: 'Default 1')];
+  final List<PlayerSelection?> _teamBSelections = [PlayerSelection(name: 'Default 2')];
 
   bool _isLoading = false;
 
@@ -87,15 +91,15 @@ class _GameSetupSheetState extends ConsumerState<GameSetupSheet> {
     final theme = Theme.of(context);
 
     return Container(
-      constraints: BoxConstraints(
+      constraints: widget.isInline ? null : BoxConstraints(
         maxHeight: MediaQuery.of(context).size.height * 0.9,
       ),
-      padding: EdgeInsets.only(
+      padding: widget.isInline ? EdgeInsets.zero : EdgeInsets.only(
         bottom: MediaQuery.of(context).viewInsets.bottom,
       ),
       decoration: BoxDecoration(
-        color: theme.colorScheme.surface,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        color: widget.isInline ? Colors.transparent : theme.colorScheme.surface,
+        borderRadius: widget.isInline ? BorderRadius.zero : const BorderRadius.vertical(top: Radius.circular(24)),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -132,8 +136,10 @@ class _GameSetupSheetState extends ConsumerState<GameSetupSheet> {
           ),
           const Divider(height: 1),
 
-          Expanded(
+          Flexible(
             child: ListView(
+              shrinkWrap: widget.isInline,
+              physics: widget.isInline ? const NeverScrollableScrollPhysics() : null,
               padding: const EdgeInsets.all(20),
               children: [
                 // Game Type Selection
@@ -572,8 +578,12 @@ class _GameSetupSheetState extends ConsumerState<GameSetupSheet> {
       final gamesRepo = ref.read(gamesRepositoryProvider);
 
       if (mounted) {
-        Navigator.pop(context, gameSession);
-        didPop = true;
+        if (widget.isInline) {
+           widget.onCancel?.call();
+        } else {
+           Navigator.pop(context, gameSession);
+           didPop = true;
+        }
       }
 
       // Defer state-modifying writes to avoid Riverpod TickerMode exceptions during pop animation

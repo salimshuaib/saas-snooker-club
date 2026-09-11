@@ -1,4 +1,4 @@
-import 'package:snooker_club/l10n/app_localizations.dart';
+﻿import 'package:snooker_club/l10n/app_localizations.dart';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -90,7 +90,7 @@ class _RunningTableTile extends ConsumerWidget {
                     style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.error),
                   );
                 }
-                return _RunningGameDetails(table: table, game: game);
+                return RunningGameDetails(table: table, game: game);
               },
             ),
           ),
@@ -100,11 +100,11 @@ class _RunningTableTile extends ConsumerWidget {
   }
 }
 
-class _RunningGameDetails extends ConsumerWidget {
+class RunningGameDetails extends ConsumerWidget {
   final TableModel table;
   final GameSession game;
 
-  const _RunningGameDetails({required this.table, required this.game});
+  const RunningGameDetails({required this.table, required this.game});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -276,3 +276,5 @@ class _RunningGameDetails extends ConsumerWidget {
     );
   }
 }
+
+

@@ -1,4 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:snooker_club/features/games/presentation/screens/game_activity_screen.dart';
+import 'package:snooker_club/features/quick_sales/presentation/screens/quick_sales_screen.dart';
+import 'package:snooker_club/features/quick_sales/presentation/screens/new_quick_sale_screen.dart';
+import 'package:snooker_club/features/quick_sales/presentation/screens/quick_sale_details_screen.dart';
+import 'package:snooker_club/features/quick_sales/domain/models/quick_sale_models.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:snooker_club/core/routes/route_names.dart';
@@ -41,10 +46,10 @@ import 'package:snooker_club/features/subscription/presentation/screens/subscrip
 
 final GlobalKey<NavigatorState> _rootNavigatorKey =
     GlobalKey<NavigatorState>(debugLabel: 'root');
-final GlobalKey<NavigatorState> _dashboardNavigatorKey =
-    GlobalKey<NavigatorState>(debugLabel: 'dashboard');
-final GlobalKey<NavigatorState> _historyNavigatorKey =
-    GlobalKey<NavigatorState>(debugLabel: 'history');
+final GlobalKey<NavigatorState> _liveNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'live');
+final GlobalKey<NavigatorState> _quickSalesNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'quickSales');
+final GlobalKey<NavigatorState> _historyNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'history');
+final GlobalKey<NavigatorState> _dashboardNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'dashboard');
 
 class RouterNotifier extends ChangeNotifier {
   bool _isScheduled = false;
@@ -170,24 +175,59 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           return MainScreen(navigationShell: navigationShell);
         },
         branches: [
-          // Branch 0: Dashboard
+          // Branch 0: Live
           StatefulShellBranch(
-            navigatorKey: _dashboardNavigatorKey,
+            navigatorKey: _liveNavigatorKey,
             routes: [
               GoRoute(
-                path: RouteNames.dashboard,
-                builder: (context, state) => const TickerMode(enabled: true, child: const DashboardScreen()),
+                path: RouteNames.live,
+                builder: (context, state) => const TickerMode(enabled: true, child: GameActivityScreen()),
+              ),
+            ],
+          ),
+          
+          // Branch 1: Quick Sales
+          StatefulShellBranch(
+            navigatorKey: _quickSalesNavigatorKey,
+            routes: [
+              GoRoute(
+                path: RouteNames.quickSales,
+                builder: (context, state) => const TickerMode(enabled: true, child: QuickSalesScreen()),
+                routes: [
+                  GoRoute(
+                    path: 'new',
+                    builder: (context, state) => const TickerMode(enabled: true, child: NewQuickSaleScreen()),
+                  ),
+                  GoRoute(
+                    path: 'details',
+                    builder: (context, state) {
+                      final sale = state.extra as QuickSale;
+                      return QuickSaleDetailsScreen(sale: sale);
+                    },
+                  ),
+                ],
               ),
             ],
           ),
 
-          // Branch 1: History
+          // Branch 2: History
           StatefulShellBranch(
             navigatorKey: _historyNavigatorKey,
             routes: [
               GoRoute(
                 path: RouteNames.history,
-                builder: (context, state) => const TickerMode(enabled: true, child: const TransactionHistoryScreen()),
+                builder: (context, state) => const TickerMode(enabled: true, child: TransactionHistoryScreen()),
+              ),
+            ],
+          ),
+          
+          // Branch 3: Dashboard
+          StatefulShellBranch(
+            navigatorKey: _dashboardNavigatorKey,
+            routes: [
+              GoRoute(
+                path: RouteNames.dashboard,
+                builder: (context, state) => const TickerMode(enabled: true, child: DashboardScreen()),
               ),
             ],
           ),
@@ -241,23 +281,6 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: RouteNames.more,
         builder: (context, state) => const TickerMode(enabled: true, child: const MoreScreen()),
         routes: [
-          GoRoute(
-            path: 'quick-sales',
-            builder: (context, state) => const TickerMode(enabled: true, child: const QuickSalesScreen()),
-            routes: [
-              GoRoute(
-                path: 'new',
-                builder: (context, state) => const TickerMode(enabled: true, child: const NewQuickSaleScreen()),
-              ),
-              GoRoute(
-                path: 'details',
-                builder: (context, state) {
-                  final sale = state.extra as QuickSale;
-                  return QuickSaleDetailsScreen(sale: sale);
-                },
-              ),
-            ],
-          ),
           GoRoute(
             path: 'analytics',
             builder: (context, state) => const TickerMode(enabled: true, child: const AnalyticsScreen()),

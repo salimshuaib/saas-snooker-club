@@ -5,10 +5,11 @@ class RouteNames {
   static const String splash = '/';
   static const String login = '/login';
   static const String dashboard = '/dashboard';
+  static const String live = '/live';
   static const String games = '/games';
   static const String tableDetails = '/games/table';
   static const String inventory = '/inventory';
-  static const String quickSales = '/more/quick-sales';
+  static const String quickSales = '/quick-sales';
   static const String analytics = '/more/analytics';
   static const String financialReview = '/financial-review';
   static const String credit = '/more/credit';
