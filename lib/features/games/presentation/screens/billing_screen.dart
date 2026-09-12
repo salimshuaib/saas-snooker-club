@@ -311,36 +311,55 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // ── Session Summary ──
-            _SectionCard(
-              children: [
-                _InfoRow(label: 'Table', value: _session.tableName),
-                _InfoRow(
-                  label: 'Billing',
-                  value: _session.billingType.displayName,
-                ),
-                _InfoRow(
-                  label: 'Players',
-                  value: _session.allPlayers.join(', '),
-                ),
-                _InfoRow(
-                  label: 'Start Time',
-                  value: dtFmt.format(_session.startTime),
-                ),
-                _InfoRow(
-                  label: 'End Time',
-                  value: dtFmt.format(_session.endTime!),
-                ),
-                _InfoRow(
-                  label: 'Duration',
-                  value: _formatDuration(_session.activeSeconds),
-                ),
-                if (_session.billingType == BillingType.perFrame)
-                  _InfoRow(
-                    label: 'Frames',
-                    value:
-                        '${_session.framesPlayed > 0 ? _session.framesPlayed : _session.totalFrames}',
+            Container(
+              decoration: BoxDecoration(
+                color: theme.colorScheme.surface,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: theme.colorScheme.outlineVariant),
+              ),
+              child: Theme(
+                data: theme.copyWith(dividerColor: Colors.transparent),
+                child: ExpansionTile(
+                  tilePadding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 0,
                   ),
-              ],
+                  childrenPadding: const EdgeInsets.only(
+                    left: 16,
+                    right: 16,
+                    bottom: 16,
+                  ),
+                  title: _InfoRow(label: 'Table', value: _session.tableName),
+                  subtitle: _InfoRow(
+                    label: 'Duration',
+                    value: _formatDuration(_session.activeSeconds),
+                  ),
+                  children: [
+                    _InfoRow(
+                      label: 'Billing',
+                      value: _session.billingType.displayName,
+                    ),
+                    _InfoRow(
+                      label: 'Players',
+                      value: _session.allPlayers.join(', '),
+                    ),
+                    _InfoRow(
+                      label: 'Start Time',
+                      value: dtFmt.format(_session.startTime),
+                    ),
+                    _InfoRow(
+                      label: 'End Time',
+                      value: dtFmt.format(_session.endTime!),
+                    ),
+                    if (_session.billingType == BillingType.perFrame)
+                      _InfoRow(
+                        label: 'Frames',
+                        value:
+                            '${_session.framesPlayed > 0 ? _session.framesPlayed : _session.totalFrames}',
+                      ),
+                  ],
+                ),
+              ),
             ),
             const Gap(16),
 
