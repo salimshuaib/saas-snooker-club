@@ -606,21 +606,18 @@ class GamesRepository {
   /// and syncing with Credit module if credit was charged.
   Future<void> updateGameNames({
     required GameSession session,
-    required List<String> newTeamA,
-    required List<String> newTeamB,
+    required List<String> newPlayers,
     required String? newPaidBy,
     required String employeeName,
   }) async {
     if (AppConfig.guardWrite('GamesRepository.updateGameNames')) return;
-    final oldTeamA = session.teamA;
-    final oldTeamB = session.teamB;
+    final oldPlayers = session.players;
     final oldPaidBy = session.paidBy;
 
     bool changed = false;
     final List<AuditLog> newLogs = [];
 
-    if (oldTeamA.join(', ') != newTeamA.join(', ') ||
-        oldTeamB.join(', ') != newTeamB.join(', ')) {
+    if (oldPlayers.join(', ') != newPlayers.join(', ')) {
       changed = true;
       newLogs.add(
         AuditLog(
@@ -628,10 +625,8 @@ class GamesRepository {
           editedBy: employeeName,
           timestamp: DateTime.now(),
           field: 'Player Names',
-          previousValue:
-              'Team A: ${oldTeamA.join(", ")}, Team B: ${oldTeamB.join(", ")}',
-          newValue:
-              'Team A: ${newTeamA.join(", ")}, Team B: ${newTeamB.join(", ")}',
+          previousValue: 'Players: ${oldPlayers.join(", ")}',
+          newValue: 'Players: ${newPlayers.join(", ")}',
         ),
       );
     }
@@ -654,14 +649,9 @@ class GamesRepository {
 
     // Create mapping of old names to new names for payment methods and liabilities
     final Map<String, String> nameMap = {};
-    for (int i = 0; i < oldTeamA.length; i++) {
-      if (i < newTeamA.length && oldTeamA[i] != newTeamA[i]) {
-        nameMap[oldTeamA[i]] = newTeamA[i];
-      }
-    }
-    for (int i = 0; i < oldTeamB.length; i++) {
-      if (i < newTeamB.length && oldTeamB[i] != newTeamB[i]) {
-        nameMap[oldTeamB[i]] = newTeamB[i];
+    for (int i = 0; i < oldPlayers.length; i++) {
+      if (i < newPlayers.length && oldPlayers[i] != newPlayers[i]) {
+        nameMap[oldPlayers[i]] = newPlayers[i];
       }
     }
 
@@ -751,8 +741,7 @@ class GamesRepository {
     final updatedAuditLogs = [...session.auditLogs, ...newLogs];
 
     await _gamesRef.doc(session.id).update({
-      'teamA': newTeamA,
-      'teamB': newTeamB,
+      'players': newPlayers,
       if (newPaidBy != null) 'paidBy': newPaidBy,
       if (newWinner != null) 'winnerId': newWinner,
       if (newPaymentSplits != null)

@@ -327,42 +327,6 @@ class DashboardScreen extends ConsumerWidget {
                 childAspectRatio: 1.2,
                 children: [
                   _ModuleCard(
-                    icon: Icons.sports_esports,
-                    label: 'Games',
-                    description: 'Manage tables & sessions',
-                    color: AppColors.primary,
-                    onTap: () => context.push(RouteNames.games),
-                  ),
-                  _ModuleCard(
-                    icon: Icons.inventory_2,
-                    label: 'Inventory',
-                    description: 'Stock & products',
-                    color: AppColors.tertiary,
-                    onTap: () => context.push(RouteNames.inventory),
-                  ),
-
-                  _ModuleCard(
-                    icon: Icons.analytics,
-                    label: 'Analytics',
-                    description: 'Business insights',
-                    color: AppColors.running,
-                    onTap: () => context.push(RouteNames.analytics),
-                  ),
-                  _ModuleCard(
-                    icon: Icons.credit_card,
-                    label: 'Credit',
-                    description: 'Customer tabs',
-                    color: AppColors.creditStatus,
-                    onTap: () => context.push(RouteNames.credit),
-                  ),
-                  _ModuleCard(
-                    icon: Icons.assessment,
-                    label: 'Reports',
-                    description: 'Daily summaries',
-                    color: AppColors.success,
-                    onTap: () => context.push(RouteNames.reports),
-                  ),
-                  _ModuleCard(
                     icon: Icons.settings,
                     label: 'Settings',
                     description: 'App config',

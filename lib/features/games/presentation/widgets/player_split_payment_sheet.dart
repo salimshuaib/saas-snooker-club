@@ -122,7 +122,7 @@ class _PlayerSplitPaymentSheetState extends State<PlayerSplitPaymentSheet> {
             ),
           ),
           const Gap(16),
-          ...PaymentMethod.values.map((method) {
+          ...PaymentMethod.values.where((m) => !(m == PaymentMethod.credit && widget.playerName.toLowerCase().startsWith('default'))).map((method) {
             return Padding(
               padding: const EdgeInsets.only(bottom: 12),
               child: Row(

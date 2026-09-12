@@ -426,7 +426,8 @@ class SettingsScreen extends ConsumerWidget {
 
   void _showCurrencyPicker(BuildContext context, WidgetRef ref, Currency currentCurrency) {
     showModalBottomSheet(
-      context: context,
+useRootNavigator: true,
+context: context,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
       builder: (context) {
         return SafeArea(

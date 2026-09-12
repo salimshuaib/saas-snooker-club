@@ -110,7 +110,8 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen> {
                   child: FilledButton.icon(
                     onPressed: () {
                       showModalBottomSheet(
-                        context: context,
+useRootNavigator: true,
+context: context,
                         isScrollControlled: true,
                         builder: (_) => AddStockSheet(item: currentItem),
                       );
@@ -128,7 +129,8 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen> {
                   child: OutlinedButton.icon(
                     onPressed: () {
                       showModalBottomSheet(
-                        context: context,
+useRootNavigator: true,
+context: context,
                         isScrollControlled: true,
                         builder: (_) => AddProductSheet(initialItem: currentItem),
                       );

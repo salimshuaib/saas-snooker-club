@@ -23,7 +23,8 @@ class AppBottomSheet extends StatelessWidget {
     bool isScrollControlled = true,
   }) {
     return showModalBottomSheet<T>(
-      context: context,
+useRootNavigator: true,
+context: context,
       isScrollControlled: isScrollControlled,
       useSafeArea: true,
       builder: (context) => AppBottomSheet(

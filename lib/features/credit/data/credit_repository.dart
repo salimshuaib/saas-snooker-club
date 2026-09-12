@@ -688,15 +688,7 @@ class CreditRepository {
           final game = GameSession.fromMap(gameDoc.data()!);
           bool changed = false;
 
-          final newTeamA = game.teamA.map((p) {
-            if (p == oldName) {
-              changed = true;
-              return newName;
-            }
-            return p;
-          }).toList();
-
-          final newTeamB = game.teamB.map((p) {
+          final newPlayers = game.players.map((p) {
             if (p == oldName) {
               changed = true;
               return newName;
@@ -748,8 +740,7 @@ class CreditRepository {
             final updatedAuditLogs = [...game.auditLogs, audit];
 
             await gamesCollection.doc(refId).update({
-              'teamA': newTeamA,
-              'teamB': newTeamB,
+              'players': newPlayers,
               if (newPaidBy != null) 'paidBy': newPaidBy,
               if (newWinner != null) 'winnerId': newWinner,
               if (newPaymentSplits != null)

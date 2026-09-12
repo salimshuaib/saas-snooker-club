@@ -1,9 +1,13 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import 'package:snooker_club/core/routes/route_names.dart';
 import 'package:snooker_club/core/theme/app_colors.dart';
+import 'package:snooker_club/core/providers/club_scope_provider.dart';
 import 'package:snooker_club/features/games/domain/models/game_models.dart';
 import 'package:snooker_club/features/games/providers/games_providers.dart';
 import 'package:snooker_club/features/games/presentation/widgets/game_activity_card.dart';
+
 
 class GameActivityScreen extends ConsumerWidget {
   const GameActivityScreen({super.key});
@@ -12,19 +16,20 @@ class GameActivityScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final tablesAsync = ref.watch(resolvedTablesProvider);
+    final club = ref.watch(clubProfileProvider).value;
+    final clubName = club?.clubName ?? 'Loading...';
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
         backgroundColor: theme.scaffoldBackgroundColor,
         surfaceTintColor: Colors.transparent,
-        title: Text('Staging Club', style: TextStyle(color: theme.colorScheme.onSurface, fontWeight: FontWeight.bold)),
         leading: IconButton(
-          icon: Icon(Icons.menu, color: theme.colorScheme.onSurface),
-          onPressed: () {
-            // Scaffold.of(context).openDrawer();
-          },
+          icon: const Icon(Icons.menu),
+          onPressed: () => context.push(RouteNames.more),
         ),
+        title: Text(clubName, style: TextStyle(color: theme.colorScheme.onSurface, fontWeight: FontWeight.bold)),
+
         actions: [
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16.0),
@@ -82,12 +87,30 @@ class GameActivityScreen extends ConsumerWidget {
                       else if (type == 'Console & PC') tabTables = consoleTables;
                       else if (type == 'Other') tabTables = otherTables;
 
-                      return ListView.builder(
+                      final grouped = <TableType, List<TableModel>>{};
+                      for (final t in tabTables) {
+                        grouped.putIfAbsent(t.type, () => []).add(t);
+                      }
+                      
+                      final sortedKeys = grouped.keys.toList()..sort((a, b) => a.index.compareTo(b.index));
+
+                      return ListView(
                         padding: const EdgeInsets.all(16).copyWith(bottom: 100),
-                        itemCount: tabTables.length,
-                        itemBuilder: (context, index) {
-                          return GameActivityCard(table: tabTables[index]);
-                        },
+                        children: [
+                          for (int i = 0; i < sortedKeys.length; i++) ...[
+                            Padding(
+                              padding: EdgeInsets.only(left: 4, bottom: 12, top: i > 0 ? 8 : 0),
+                              child: Text(
+                                sortedKeys[i].displayName,
+                                style: theme.textTheme.titleMedium?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                  color: theme.colorScheme.onSurface,
+                                ),
+                              ),
+                            ),
+                            ...grouped[sortedKeys[i]]!.map((t) => GameActivityCard(table: t)),
+                          ]
+                        ],
                       );
                     }).toList(),
                   ),

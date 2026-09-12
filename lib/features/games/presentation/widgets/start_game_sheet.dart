@@ -4,7 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:snooker_club/core/theme/app_colors.dart';
 import 'package:snooker_club/features/games/domain/models/game_models.dart';
 import 'package:snooker_club/features/games/providers/games_providers.dart';
-import 'package:snooker_club/features/games/presentation/widgets/game_setup_sheet.dart';
+import 'package:snooker_club/features/games/presentation/widgets/game_setup_dialog.dart';
 import 'package:snooker_club/features/team/providers/team_providers.dart';
 
 class StartGameSheet extends ConsumerWidget {
@@ -162,11 +162,7 @@ class StartGameSheet extends ConsumerWidget {
         onTap: () {
           // Close this sheet, open the setup sheet
           Navigator.pop(context);
-          showModalBottomSheet(
-            context: context,
-            isScrollControlled: true,
-            backgroundColor: Colors.transparent,
-            builder: (context) => GameSetupSheet(
+          showDialog(context: context, builder: (context) => GameSetupDialog(
               table: table,
               employeeId: employeeId,
             ),

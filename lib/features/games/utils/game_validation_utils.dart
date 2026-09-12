@@ -1,4 +1,4 @@
-﻿
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:snooker_club/features/games/domain/models/game_models.dart';
 import 'package:snooker_club/features/games/providers/games_providers.dart';
@@ -37,6 +37,8 @@ class GameValidationUtils {
     final seenNames = <String>{};
 
     for (final p in allPlayers) {
+      if (p.name.trim().toLowerCase().startsWith('default')) continue;
+      
       if (p.id != null) {
         if (seenIds.contains(p.id)) {
           return '${p.name} is added multiple times. A player can only participate once per game.';
@@ -79,13 +81,15 @@ class GameValidationUtils {
       final activeNames = game.playerIdentities?.keys.map(normalizePlayerName).toList() ?? [];
 
       for (final p in allPlayers) {
+        if (p.name.trim().toLowerCase().startsWith('default')) continue;
+
         if (p.id != null) {
           if (activeIds.contains(p.id)) {
-            return '⚠️ ${p.name} is currently playing ${game.gameType.displayName} on ${table.name}. They cannot start a new game until that one is finished.';
+            return '⚠️ ${p.name} is currently playing ${game.billingType.displayName} on ${table.name}. They cannot start a new game until that one is finished.';
           }
         } else {
           if (activeNames.contains(normalizePlayerName(p.name))) {
-             return '⚠️ ${p.name} is currently playing ${game.gameType.displayName} on ${table.name}. They cannot start a new game until that one is finished.';
+             return '⚠️ ${p.name} is currently playing ${game.billingType.displayName} on ${table.name}. They cannot start a new game until that one is finished.';
           }
         }
       }

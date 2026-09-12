@@ -135,7 +135,8 @@ class AdministrativeSettingsScreen extends ConsumerWidget {
             trailing: OutlinedButton.icon(
               onPressed: () {
                 showModalBottomSheet(
-                  context: context,
+useRootNavigator: true,
+context: context,
                   isScrollControlled: true,
                   shape: const RoundedRectangleBorder(
                     borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
@@ -220,7 +221,8 @@ class AdministrativeSettingsScreen extends ConsumerWidget {
             trailing: ElevatedButton.icon(
               onPressed: () {
                 showModalBottomSheet(
-                  context: context,
+useRootNavigator: true,
+context: context,
                   isScrollControlled: true,
                   shape: const RoundedRectangleBorder(
                     borderRadius: BorderRadius.vertical(top: Radius.circular(20)),

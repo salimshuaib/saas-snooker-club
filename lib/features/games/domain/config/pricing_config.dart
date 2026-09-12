@@ -102,7 +102,7 @@ class TablePricingConfig {
 
     maxPlayersPerTeam = settings.game.maxPlayersPerTeam;
 
-    defaultMatchType = settings.game.defaultMatchType;
+    // defaultMatchType = settings.game.defaultMatchType;
 
   }
 
@@ -522,6 +522,8 @@ class TablePricingConfig {
     double? customExtraCharge,
     int? coinQuantity,
     int? playersCount,
+    bool isMinimumBillEnabled = false,
+    double minimumBillAmount = 0.0,
   }) {
 
     final dummyTable = TableModel(id: '', name: '', type: tableType);
@@ -573,10 +575,11 @@ class TablePricingConfig {
 
 
 
+    GameChargeBreakdown rawBreakdown;
     switch (billingType) {
 
       case BillingType.perCoin:
-        return GameChargeBreakdown(
+        rawBreakdown = GameChargeBreakdown(
           baseCharge: price * (coinQuantity ?? 1),
           overtimeMinutes: 0,
           overtimeCharge: 0,
@@ -584,7 +587,7 @@ class TablePricingConfig {
 
       case BillingType.perMinute:
 
-        return GameChargeBreakdown(
+        rawBreakdown = GameChargeBreakdown(
 
           baseCharge: activeSeconds * perSecondRate,
 
@@ -640,7 +643,7 @@ class TablePricingConfig {
 
 
 
-        return GameChargeBreakdown(
+        rawBreakdown = GameChargeBreakdown(
 
           baseCharge: baseCharge,
 
@@ -662,7 +665,7 @@ class TablePricingConfig {
 
         
 
-        return GameChargeBreakdown(
+        rawBreakdown = GameChargeBreakdown(
 
           baseCharge: price,
 
@@ -684,7 +687,7 @@ class TablePricingConfig {
 
         
 
-        return GameChargeBreakdown(
+        rawBreakdown = GameChargeBreakdown(
 
           baseCharge: price,
 
@@ -695,8 +698,19 @@ class TablePricingConfig {
         );
 
     }
-
+    if (isMinimumBillEnabled && minimumBillAmount > 0) {
+      if (tableType == TableType.snooker || tableType == TableType.indianPool || tableType == TableType.americanPool) {
+        if (rawBreakdown.totalCharge < minimumBillAmount) {
+          final diff = minimumBillAmount - rawBreakdown.totalCharge;
+          return GameChargeBreakdown(
+            baseCharge: rawBreakdown.baseCharge,
+            overtimeMinutes: rawBreakdown.overtimeMinutes,
+            overtimeCharge: rawBreakdown.overtimeCharge,
+            minimumBillAdjustment: diff,
+          );
+        }
+      }
+    }
+    return rawBreakdown;
   }
-
 }
-

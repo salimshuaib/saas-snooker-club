@@ -30,6 +30,7 @@ class CreditScreen extends ConsumerWidget {
 
     return DefaultTabController(
       length: 3,
+      initialIndex: 1,
       child: Scaffold(
         appBar: AppBar(
           leading: selectedIds.isNotEmpty
@@ -96,7 +97,7 @@ class CreditScreen extends ConsumerWidget {
               indicatorColor: AppColors.primary,
               tabs: [
                 Tab(text: 'Players'),
-                Tab(text: 'Ledger'),
+                Tab(text: 'Khata'),
                 Tab(text: 'History'),
               ],
             ),

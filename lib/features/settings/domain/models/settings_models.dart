@@ -1,5 +1,3 @@
-﻿import 'package:snooker_club/features/games/domain/models/game_models.dart';
-
 class BusinessSettings {
   final String clubName;
   final String address;
@@ -64,14 +62,12 @@ class GameSettings {
   final bool enableOvertimeBilling;
   final bool allowPauseResume;
   final int maxPlayersPerTeam;
-  final MatchType defaultMatchType;
 
   const GameSettings({
     this.frameGracePeriodMinutes = 20,
     this.enableOvertimeBilling = true,
     this.allowPauseResume = true,
     this.maxPlayersPerTeam = 3,
-    this.defaultMatchType = MatchType.friendly,
   });
 
   GameSettings copyWith({
@@ -79,14 +75,12 @@ class GameSettings {
     bool? enableOvertimeBilling,
     bool? allowPauseResume,
     int? maxPlayersPerTeam,
-    MatchType? defaultMatchType,
   }) {
     return GameSettings(
       frameGracePeriodMinutes: frameGracePeriodMinutes ?? this.frameGracePeriodMinutes,
       enableOvertimeBilling: enableOvertimeBilling ?? this.enableOvertimeBilling,
       allowPauseResume: allowPauseResume ?? this.allowPauseResume,
       maxPlayersPerTeam: maxPlayersPerTeam ?? this.maxPlayersPerTeam,
-      defaultMatchType: defaultMatchType ?? this.defaultMatchType,
     );
   }
 
@@ -96,7 +90,6 @@ class GameSettings {
       'enableOvertimeBilling': enableOvertimeBilling,
       'allowPauseResume': allowPauseResume,
       'maxPlayersPerTeam': maxPlayersPerTeam,
-      'defaultMatchType': defaultMatchType.name,
     };
   }
 
@@ -107,10 +100,6 @@ class GameSettings {
       enableOvertimeBilling: map['enableOvertimeBilling'] as bool? ?? true,
       allowPauseResume: map['allowPauseResume'] as bool? ?? true,
       maxPlayersPerTeam: (map['maxPlayersPerTeam'] as num?)?.toInt() ?? 3,
-      defaultMatchType: MatchType.values.firstWhere(
-        (m) => m.name == map['defaultMatchType'],
-        orElse: () => MatchType.friendly,
-      ),
     );
   }
 }

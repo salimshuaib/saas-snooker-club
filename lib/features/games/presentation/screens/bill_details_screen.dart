@@ -121,8 +121,8 @@ class _BillDetailsScreenState extends ConsumerState<BillDetailsScreen> {
               children: [
                 _InfoRow(label: 'Table Name', value: session.tableName),
                 _InfoRow(label: 'Table Type', value: session.tableType.displayName),
-                  _InfoRow(label: 'Game Type', value: session.gameType.displayName),
-                _InfoRow(label: 'Match Type', value: session.matchType.displayName),
+                _InfoRow(label: 'Game Type', value: session.billingType.displayName),
+                _InfoRow(label: 'Match Type', value: 'Standard'),
                 _InfoRow(label: 'Billing Type', value: session.billingType.displayName),
                 _InfoRow(label: 'Game Date', value: session.date),
                 _InfoRow(label: 'Start Time', value: dtFmt.format(session.startTime)),
@@ -142,11 +142,11 @@ class _BillDetailsScreenState extends ConsumerState<BillDetailsScreen> {
             const Gap(8),
             _SectionCard(
               children: [
-                if (session.mode == GameMode.team) ...[
-                  _InfoRow(label: 'Team A', value: session.teamA.join(', ')),
-                  _InfoRow(label: 'Team B', value: session.teamB.join(', ')),
+                if (false) ...[
+                  _InfoRow(label: 'Team A', value: session.players.join(', ')),
+                  _InfoRow(label: 'Team B', value: const <String>[].join(', ')),
                 ] else
-                  _InfoRow(label: 'Players', value: session.allPlayers.join(', ')),
+                  _InfoRow(label: 'Players', value: session.players.join(', ')),
               ],
             ),
             const Gap(24),
@@ -165,7 +165,7 @@ class _BillDetailsScreenState extends ConsumerState<BillDetailsScreen> {
                         child: Text(
                           r.winner == 'Friendly'
                               ? 'Frame ${r.roundNumber} · ${(r.durationSeconds ?? 0) ~/ 60} mins${(r.overtimeMinutes ?? 0) > 0 ? " (+${r.overtimeMinutes}m OT)" : ""}'
-                              : 'Round ${r.roundNumber} · Winner: ${r.winner == 'Team A' ? session.teamA.join(' & ') : r.winner == 'Team B' ? session.teamB.join(' & ') : (r.winner ?? "N/A")}${r.loser != null ? " · Loser: ${r.loser == 'Team A' ? session.teamA.join(' & ') : r.loser == 'Team B' ? session.teamB.join(' & ') : r.loser}" : ""}${(r.overtimeMinutes ?? 0) > 0 ? " (+${r.overtimeMinutes}m OT)" : ""}',
+                              : 'Round ${r.roundNumber} · Winner: ${r.winner == 'Team A' ? session.players.join(' & ') : r.winner == 'Team B' ? const <String>[].join(' & ') : (r.winner ?? "N/A")}${r.loser != null ? " · Loser: ${r.loser == 'Team A' ? session.players.join(' & ') : r.loser == 'Team B' ? const <String>[].join(' & ') : r.loser}" : ""}${(r.overtimeMinutes ?? 0) > 0 ? " (+${r.overtimeMinutes}m OT)" : ""}',
                           style: theme.textTheme.bodyMedium,
                         ),
                       ),
@@ -180,7 +180,7 @@ class _BillDetailsScreenState extends ConsumerState<BillDetailsScreen> {
               const Gap(8),
               _SectionCard(
                 children: [
-                  if (session.matchType == MatchType.loserPays) ...[
+                  if (false) ...[
                     _InfoRow(label: 'Winner', value: session.winnerDisplayName ?? 'N/A'),
                     _InfoRow(
                       label: 'Loser',
@@ -468,8 +468,7 @@ class _BillDetailsScreenState extends ConsumerState<BillDetailsScreen> {
     );
     if (verified != true || !context.mounted) return;
 
-    final teamAControllers = session.teamA.map((name) => TextEditingController(text: name)).toList();
-    final teamBControllers = session.teamB.map((name) => TextEditingController(text: name)).toList();
+    final playerControllers = session.players.map((name) => TextEditingController(text: name)).toList();
     final payerController = TextEditingController(text: session.paidBy ?? '');
 
     final result = await showDialog<bool>(
@@ -482,24 +481,12 @@ class _BillDetailsScreenState extends ConsumerState<BillDetailsScreen> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              if (session.mode == GameMode.team) const Text('Team A', style: TextStyle(fontWeight: FontWeight.bold)),
-              for (int i = 0; i < teamAControllers.length; i++) ...[
-                const Gap(8),
+              for (int i = 0; i < playerControllers.length; i++) ...[
+                if (i > 0) const Gap(8),
                 AppTextField(
-                  label: session.mode == GameMode.team ? 'Player ${i + 1}' : 'Player Name',
-                  controller: teamAControllers[i],
+                  label: playerControllers.length > 1 ? 'Player ${i + 1}' : 'Player Name',
+                  controller: playerControllers[i],
                 ),
-              ],
-              if (teamBControllers.isNotEmpty) ...[
-                const Gap(16),
-                if (session.mode == GameMode.team) const Text('Team B', style: TextStyle(fontWeight: FontWeight.bold)),
-                for (int i = 0; i < teamBControllers.length; i++) ...[
-                  const Gap(8),
-                  AppTextField(
-                    label: 'Player ${i + 1}',
-                    controller: teamBControllers[i],
-                  ),
-                ],
               ],
               if (session.paidBy != null) ...[
                 const Gap(16),
@@ -525,15 +512,13 @@ class _BillDetailsScreenState extends ConsumerState<BillDetailsScreen> {
     );
 
     if (result == true && context.mounted) {
-      final newTeamA = teamAControllers.map((c) => c.text.trim()).toList();
-      final newTeamB = teamBControllers.map((c) => c.text.trim()).toList();
+      final newPlayers = playerControllers.map((c) => c.text.trim()).toList();
       final newPaidBy = session.paidBy != null ? payerController.text.trim() : null;
 
       try {
         await ref.read(gamesRepositoryProvider).updateGameNames(
           session: session,
-          newTeamA: newTeamA,
-          newTeamB: newTeamB,
+          newPlayers: newPlayers,
           newPaidBy: newPaidBy,
           employeeName: 'Admin',
         );
@@ -551,10 +536,7 @@ class _BillDetailsScreenState extends ConsumerState<BillDetailsScreen> {
       }
     }
 
-    for (final c in teamAControllers) {
-      c.dispose();
-    }
-    for (final c in teamBControllers) {
+    for (final c in playerControllers) {
       c.dispose();
     }
     payerController.dispose();
@@ -577,7 +559,11 @@ class _BillDetailsScreenState extends ConsumerState<BillDetailsScreen> {
       );
       return;
     } else {
+      final hasDefaultPlayer = session.players.any((p) => p.toLowerCase().startsWith('default'));
       PaymentMethod selectedMethod = session.paymentMethod ?? PaymentMethod.cash;
+      if (selectedMethod == PaymentMethod.credit && hasDefaultPlayer) {
+        selectedMethod = PaymentMethod.cash;
+      }
       final payerController = TextEditingController(text: session.paidBy ?? '');
 
       final result = await showDialog<bool>(
@@ -593,7 +579,10 @@ class _BillDetailsScreenState extends ConsumerState<BillDetailsScreen> {
                 DropdownButtonFormField<PaymentMethod>(
                   value: selectedMethod,
                   decoration: const InputDecoration(labelText: 'Payment Method', border: OutlineInputBorder()),
-                  items: PaymentMethod.values.map((m) => DropdownMenuItem(value: m, child: Text(m.displayName))).toList(),
+                  items: PaymentMethod.values
+                      .where((m) => !(m == PaymentMethod.credit && session.players.any((p) => p.toLowerCase().startsWith('default'))))
+                      .map((m) => DropdownMenuItem(value: m, child: Text(m.displayName)))
+                      .toList(),
                   onChanged: (val) {
                     if (val != null) setState(() => selectedMethod = val);
                   },

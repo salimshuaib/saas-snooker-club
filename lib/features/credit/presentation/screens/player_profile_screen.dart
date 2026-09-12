@@ -170,7 +170,8 @@ class _PlayerProfileScreenState extends ConsumerState<PlayerProfileScreen> {
 
   void _showPaymentBottomSheet(BuildContext context, PlayerProfile customer) {
     showModalBottomSheet(
-      context: context,
+useRootNavigator: true,
+context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (context) => Padding(

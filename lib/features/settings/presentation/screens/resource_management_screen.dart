@@ -11,10 +11,10 @@ class ResourceManagementScreen extends ConsumerStatefulWidget {
 }
 
 class _ResourceManagementScreenState extends ConsumerState<ResourceManagementScreen> {
-  void _showAddResourceDialog() {
+  void _showResourceDialog([TableModel? table]) {
     showDialog(
       context: context,
-      builder: (context) => const _AddResourceDialog(),
+      builder: (context) => _ResourceDialog(tableToEdit: table),
     );
   }
 
@@ -28,7 +28,7 @@ class _ResourceManagementScreenState extends ConsumerState<ResourceManagementScr
         title: const Text('Manage Games & Tables'),
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: _showAddResourceDialog,
+        onPressed: _showResourceDialog,
         child: const Icon(Icons.add),
       ),
       body: tablesAsync.when(
@@ -36,41 +36,67 @@ class _ResourceManagementScreenState extends ConsumerState<ResourceManagementScr
           if (tables.isEmpty) {
             return const Center(child: Text('No resources found.'));
           }
-          return ListView.builder(
-            padding: const EdgeInsets.all(16),
-            itemCount: tables.length,
-            itemBuilder: (context, index) {
-              final table = tables[index];
-              return Card(
-                child: ListTile(
-                  title: Text(table.name),
-                  subtitle: Text(table.type.displayName),
-                  trailing: IconButton(
-                    icon: const Icon(Icons.delete, color: Colors.red),
-                    onPressed: () async {
-                      final confirm = await showDialog<bool>(
-                        context: context,
-                        builder: (context) => AlertDialog(
-                          title: const Text('Delete Resource'),
-                          content: Text('Are you sure you want to delete ?'),
-                          actions: [
-                            TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
-                            FilledButton(
-                              style: FilledButton.styleFrom(backgroundColor: Colors.red),
-                              onPressed: () => Navigator.pop(context, true),
-                              child: const Text('Delete'),
-                            ),
-                          ],
-                        ),
-                      );
-                      if (confirm == true && context.mounted) {
-                        await ref.read(gamesRepositoryProvider).deleteTable(table.id);
-                      }
-                    },
+          final grouped = <TableType, List<TableModel>>{};
+          for (final t in tables) {
+            grouped.putIfAbsent(t.type, () => []).add(t);
+          }
+          final sortedKeys = grouped.keys.toList()..sort((a, b) => a.index.compareTo(b.index));
+
+          return ListView(
+            padding: const EdgeInsets.all(16).copyWith(bottom: 100),
+            children: [
+              for (int i = 0; i < sortedKeys.length; i++) ...[
+                Padding(
+                  padding: EdgeInsets.only(left: 4, bottom: 12, top: i > 0 ? 24 : 0),
+                  child: Text(
+                    sortedKeys[i].displayName,
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: theme.colorScheme.primary,
+                    ),
                   ),
                 ),
-              );
-            },
+                ...grouped[sortedKeys[i]]!.map((table) => Card(
+                  margin: const EdgeInsets.only(bottom: 8),
+                  child: ListTile(
+                    title: Text(table.name),
+                    subtitle: Text(table.type.displayName),
+                    trailing: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        IconButton(
+                          icon: const Icon(Icons.edit, color: Colors.blue),
+                          onPressed: () => _showResourceDialog(table),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.delete, color: Colors.red),
+                          onPressed: () async {
+                            final confirm = await showDialog<bool>(
+                              context: context,
+                              builder: (context) => AlertDialog(
+                                title: const Text('Delete Resource'),
+                                content: Text('Are you sure you want to delete ${table.name}?'),
+                                actions: [
+                                  TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
+                                  FilledButton(
+                                    style: FilledButton.styleFrom(backgroundColor: Colors.red),
+                                    onPressed: () => Navigator.pop(context, true),
+                                    child: const Text('Delete'),
+                                  ),
+                                ],
+                              ),
+                            );
+                            if (confirm == true && context.mounted) {
+                              await ref.read(gamesRepositoryProvider).deleteTable(table.id);
+                            }
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
+                )),
+              ]
+            ],
           );
         },
         loading: () => const Center(child: CircularProgressIndicator()),
@@ -80,21 +106,31 @@ class _ResourceManagementScreenState extends ConsumerState<ResourceManagementScr
   }
 }
 
-class _AddResourceDialog extends ConsumerStatefulWidget {
-  const _AddResourceDialog();
+class _ResourceDialog extends ConsumerStatefulWidget {
+  final TableModel? tableToEdit;
+  const _ResourceDialog({this.tableToEdit});
   @override
-  ConsumerState<_AddResourceDialog> createState() => _AddResourceDialogState();
+  ConsumerState<_ResourceDialog> createState() => _ResourceDialogState();
 }
 
-class _AddResourceDialogState extends ConsumerState<_AddResourceDialog> {
+class _ResourceDialogState extends ConsumerState<_ResourceDialog> {
   final _nameController = TextEditingController();
   TableType _type = TableType.snooker;
   bool _isLoading = false;
 
   @override
+  void initState() {
+    super.initState();
+    if (widget.tableToEdit != null) {
+      _nameController.text = widget.tableToEdit!.name;
+      _type = widget.tableToEdit!.type;
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: const Text('Add Resource'),
+      title: Text(widget.tableToEdit == null ? 'Add Resource' : 'Edit Resource'),
       content: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -127,13 +163,21 @@ class _AddResourceDialogState extends ConsumerState<_AddResourceDialog> {
           onPressed: _isLoading ? null : () async {
             if (_nameController.text.trim().isEmpty) return;
             setState(() => _isLoading = true);
-            final newTable = TableModel(
-              id: DateTime.now().millisecondsSinceEpoch.toString(),
-              name: _nameController.text.trim(),
-              type: _type,
-              order: DateTime.now().millisecondsSinceEpoch,
-            );
-            await ref.read(gamesRepositoryProvider).addTable(newTable);
+            if (widget.tableToEdit == null) {
+              final newTable = TableModel(
+                id: DateTime.now().millisecondsSinceEpoch.toString(),
+                name: _nameController.text.trim(),
+                type: _type,
+                order: DateTime.now().millisecondsSinceEpoch,
+              );
+              await ref.read(gamesRepositoryProvider).addTable(newTable);
+            } else {
+              final updatedTable = widget.tableToEdit!.copyWith(
+                name: _nameController.text.trim(),
+                type: _type,
+              );
+              await ref.read(gamesRepositoryProvider).updateTable(updatedTable);
+            }
             if (context.mounted) {
               Navigator.pop(context);
             }

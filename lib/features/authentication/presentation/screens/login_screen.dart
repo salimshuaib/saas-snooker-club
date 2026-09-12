@@ -59,7 +59,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
   void _showHelpOptions(BuildContext context) {
     showModalBottomSheet(
-      context: context,
+useRootNavigator: true,
+context: context,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),

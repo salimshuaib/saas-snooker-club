@@ -6,11 +6,15 @@ import 'package:gap/gap.dart';
 import 'package:intl/intl.dart';
 import 'package:snooker_club/core/theme/app_colors.dart';
 import 'package:snooker_club/features/games/domain/config/pricing_config.dart';
+import 'package:snooker_club/core/utils/billing_utils.dart';
+
 import 'package:snooker_club/features/settings/providers/settings_providers.dart';
 import 'package:snooker_club/features/games/domain/models/game_models.dart';
 import 'package:snooker_club/features/games/providers/games_providers.dart';
 import 'package:snooker_club/features/games/presentation/widgets/payer_selection_widget.dart';
 import 'package:snooker_club/features/games/presentation/widgets/player_split_payment_sheet.dart';
+import 'package:snooker_club/features/credit/presentation/widgets/player_search_field.dart';
+import 'package:snooker_club/features/credit/presentation/widgets/player_search_field.dart';
 
 class BillingScreen extends ConsumerStatefulWidget {
   final GameSession session;
@@ -80,18 +84,76 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
     }
   }
 
+
+  void _showAddPlayerDialog() {
+    PlayerSelection? newPlayerSelection;
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Add Player to Bill'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              PlayerSearchField(
+                hint: 'Player Name',
+                onSelected: (sel) {
+                  newPlayerSelection = sel;
+                },
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: () {
+                final name = newPlayerSelection?.name.trim();
+                if (name != null && name.isNotEmpty) {
+                  Navigator.pop(context, name);
+                }
+              },
+              child: const Text('Add'),
+            ),
+          ],
+        );
+      },
+    ).then((playerName) {
+      if (playerName != null && playerName is String) {
+        setState(() {
+          final newTeamA = List<String>.from(_session.teamA)..add(playerName);
+          _session = _session.copyWith(teamA: newTeamA);
+          
+          if (!_selectedPayers.contains(playerName)) {
+            _selectedPayers.add(playerName);
+          }
+          
+          _playerPaymentSplits[playerName] = {PaymentMethod.cash: 0.0};
+          _liabilityControllers[playerName] = TextEditingController();
+          
+          _initializeLiabilities();
+        });
+      }
+    });
+  }
+
   void _initializeLiabilities() {
     final Map<String, double> liabilities = {
       for (final p in _session.allPlayers) p: 0.0,
     };
 
-    if (_session.allPlayers.isEmpty) return;
+    if (_session.allPlayers.isEmpty) {
+      setState(() => _customLiabilities = liabilities);
+      return;
+    }
 
     final double discountedGame = _gameCharge - _discountAmount;
 
     if (_selectedPayers.isNotEmpty) {
       final rawShare = discountedGame / _selectedPayers.length;
-      final roundedShare = (rawShare / 10).roundToDouble() * 10;
+      final roundedShare = BillingUtils.roundAmount(rawShare);
       
       for (final p in _selectedPayers) {
         liabilities[p] = roundedShare;
@@ -153,6 +215,8 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
       customExtraCharge: _session.customExtraCharge,
       playersCount: _session.playerIds.length,
       coinQuantity: _session.coinQuantity,
+      isMinimumBillEnabled: _session.isMinimumBillEnabled,
+      minimumBillAmount: _session.minimumBillAmount,
     );
   }
 
@@ -176,10 +240,10 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
     if (_isMultiPayer) {
       if (_selectedPayers.isEmpty) return _finalTotal;
       final rawShare = _discountedGameCharge / _selectedPayers.length;
-      final roundedShare = (rawShare / 10).roundToDouble() * 10;
+      final roundedShare = BillingUtils.roundAmount(rawShare);
       return (roundedShare * _selectedPayers.length) + _ordersTotal;
     }
-    return (_finalTotal / 10).roundToDouble() * 10;
+    return BillingUtils.roundAmount(_finalTotal);
   }
   
   String _formatDuration(int seconds) {
@@ -324,20 +388,19 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
               const Gap(16),
             ],
 
-            // ── Payer Selection ──
-            if (_session.allPlayers.isNotEmpty) ...[
-              PayerSelectionWidget(
-                allPlayers: _session.allPlayers,
-                selectedPayers: _selectedPayers,
-                onChanged: (newPayers) {
-                  setState(() {
-                    _selectedPayers = newPayers;
-                  });
-                  _initializeLiabilities();
-                },
-              ),
-              const Gap(16),
-            ],
+            //             // ─── Payer Selection ───
+            PayerSelectionWidget(
+              allPlayers: _session.allPlayers,
+              selectedPayers: _selectedPayers,
+              onAddPlayer: _showAddPlayerDialog,
+              onChanged: (newPayers) {
+                setState(() {
+                  _selectedPayers = newPayers;
+                });
+                _initializeLiabilities();
+              },
+            ),
+            const Gap(16),
 
 
 
@@ -556,7 +619,7 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
                   Text('Payment Method', style: theme.textTheme.titleMedium),
                   TextButton.icon(
                     onPressed: () {
-                      final player = _selectedPayers.isNotEmpty ? _selectedPayers.first : _session.allPlayers.first;
+                      final player = _selectedPayers.isNotEmpty ? _selectedPayers.first : _session.allPlayers.isEmpty ? 'Guest' : _session.allPlayers.first;
                       showModalBottomSheet(
                         context: context,
                         isScrollControlled: true,
@@ -585,7 +648,7 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
               const Gap(8),
               Builder(
                 builder: (context) {
-                  final player = _selectedPayers.isNotEmpty ? _selectedPayers.first : _session.allPlayers.first;
+                  final player = _selectedPayers.isNotEmpty ? _selectedPayers.first : _session.allPlayers.isEmpty ? 'Guest' : _session.allPlayers.first;
                   final splits = _playerPaymentSplits[player] ?? {};
                   final isSplit = splits.keys.length > 1;
                   
@@ -670,15 +733,34 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
                 ),
                 const Gap(8),
                 _SectionCard(
-                  children: _session.allPlayers
-                      .map(
-                        (p) => _WinnerTile(
-                          label: p,
-                          isSelected: _PlayerProfileName == p,
-                          onTap: () => setState(() => _PlayerProfileName = p),
-                        ),
-                      )
-                      .toList(),
+                  children: [
+                    ..._session.allPlayers.map((p) {
+                      final isDefault = p.toLowerCase().startsWith('default');
+                      return _WinnerTile(
+                        label: p,
+                        isSelected: _PlayerProfileName == p,
+                        onTap: () {
+                          if (isDefault) {
+                            _showCreditNameDialog(p);
+                          } else {
+                            setState(() => _PlayerProfileName = p);
+                          }
+                        },
+                      );
+                    }),
+                    if (_PlayerProfileName != null && !_session.allPlayers.contains(_PlayerProfileName))
+                      _WinnerTile(
+                        label: _PlayerProfileName!,
+                        isSelected: true,
+                        onTap: () => _showCreditNameDialog(_PlayerProfileName!),
+                      ),
+                    const Gap(8),
+                    TextButton.icon(
+                      onPressed: () => _showCreditNameDialog(''),
+                      icon: const Icon(Icons.edit),
+                      label: const Text('Enter Custom Name'),
+                    ),
+                  ],
                 ),
               ],
               const Gap(32),
@@ -936,6 +1018,40 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
     }
   }
 
+
+  void _showCreditNameDialog(String defaultName) {
+    final nameCtrl = TextEditingController(
+      text: defaultName.toLowerCase().startsWith('default') ? '' : defaultName,
+    );
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Customer Name for Credit'),
+        content: TextField(
+          controller: nameCtrl,
+          decoration: const InputDecoration(hintText: 'Enter real name'),
+          autofocus: true,
+          textCapitalization: TextCapitalization.words,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () {
+              if (nameCtrl.text.trim().isNotEmpty) {
+                setState(() => _PlayerProfileName = nameCtrl.text.trim());
+                Navigator.pop(ctx);
+              }
+            },
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
+  }
+
   Future<void> _confirmPayment() async {
     if (_isProcessing) return;
 
@@ -946,7 +1062,7 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
         !isSplit &&
         _session.gameType == GameType.standard &&
         _paymentMethod == PaymentMethod.credit &&
-        _PlayerProfileName == null) {
+        (_PlayerProfileName == null || _PlayerProfileName!.toLowerCase().startsWith('default'))) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Please select the customer taking the credit.'),

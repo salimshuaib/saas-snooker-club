@@ -14,10 +14,7 @@ import 'package:snooker_club/core/providers/update_provider.dart';
 class MainScreen extends ConsumerStatefulWidget {
   final StatefulNavigationShell navigationShell;
 
-  const MainScreen({
-    super.key,
-    required this.navigationShell,
-  });
+  const MainScreen({super.key, required this.navigationShell});
 
   @override
   ConsumerState<MainScreen> createState() => _MainScreenState();
@@ -41,7 +38,7 @@ class _MainScreenState extends ConsumerState<MainScreen> {
   @override
   void initState() {
     super.initState();
-    
+
     // Artificial delay to let Firebase fully sync and prevent synchronous cache emission exceptions
     Future.delayed(const Duration(milliseconds: 500), () {
       if (mounted) {
@@ -52,23 +49,33 @@ class _MainScreenState extends ConsumerState<MainScreen> {
     });
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _subscriptions.add(ref.listenManual<String?>(clubIdProvider, (previous, next) {
-        if (next != null) {
-          _triggerInitialization(next);
-        }
-      }, fireImmediately: true));
+      _subscriptions.add(
+        ref.listenManual<String?>(clubIdProvider, (previous, next) {
+          if (next != null) {
+            _triggerInitialization(next);
+          }
+        }, fireImmediately: true),
+      );
 
-      // Keep critical providers active at the root level to prevent 
+      // Keep critical providers active at the root level to prevent
       // Riverpod TickerMode crashes when switching GoRouter tabs or dialogs.
       // Using listenManual bypasses TickerMode pausing completely.
       _subscriptions.add(ref.listenManual(tablesProvider, (_, __) {}));
       _subscriptions.add(ref.listenManual(resolvedTablesProvider, (_, __) {}));
-      _subscriptions.add(ref.listenManual(runningTablesCountProvider, (_, __) {}));
-      _subscriptions.add(ref.listenManual(availableTablesCountProvider, (_, __) {}));
+      _subscriptions.add(
+        ref.listenManual(runningTablesCountProvider, (_, __) {}),
+      );
+      _subscriptions.add(
+        ref.listenManual(availableTablesCountProvider, (_, __) {}),
+      );
       _subscriptions.add(ref.listenManual(appSettingsProvider, (_, __) {}));
-      _subscriptions.add(ref.listenManual(todaysGamesRevenueStreamProvider, (_, __) {}));
+      _subscriptions.add(
+        ref.listenManual(todaysGamesRevenueStreamProvider, (_, __) {}),
+      );
       _subscriptions.add(ref.listenManual(pendingCreditsProvider, (_, __) {}));
-      _subscriptions.add(ref.listenManual(todaysQuickSalesCountProvider, (_, __) {}));
+      _subscriptions.add(
+        ref.listenManual(todaysQuickSalesCountProvider, (_, __) {}),
+      );
       _subscriptions.add(ref.listenManual(inventoryItemsProvider, (_, __) {}));
       _subscriptions.add(ref.listenManual(currentStaffProvider, (_, __) {}));
       _subscriptions.add(ref.listenManual(updateStateProvider, (_, __) {}));
@@ -92,6 +99,7 @@ class _MainScreenState extends ConsumerState<MainScreen> {
 
   void _showStartGameFlow() {
     showModalBottomSheet(
+      useRootNavigator: true,
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
@@ -114,7 +122,7 @@ class _MainScreenState extends ConsumerState<MainScreen> {
     final currentIndex = widget.navigationShell.currentIndex;
 
     return Scaffold(
-      extendBody: true, // Needed for floating bottom nav
+      extendBody: false,
       body: widget.navigationShell,
       bottomNavigationBar: SafeArea(
         child: Container(
@@ -151,26 +159,35 @@ class _MainScreenState extends ConsumerState<MainScreen> {
                   label: 'Quick Sale',
                   isActive: currentIndex == 1,
                   activeColor: theme.colorScheme.primary,
-                  
+
                   onTap: () => _onItemTapped(1),
                   theme: theme,
                 ),
                 _buildNavItem(
-                  icon: Icons.receipt_long_outlined,
-                  activeIcon: Icons.receipt_long,
-                  label: 'History',
+                  icon: Icons.menu_book_outlined,
+                  activeIcon: Icons.menu_book,
+                  label: 'Khata',
                   isActive: currentIndex == 2,
                   activeColor: theme.colorScheme.primary,
                   onTap: () => _onItemTapped(2),
                   theme: theme,
                 ),
                 _buildNavItem(
-                  icon: Icons.bar_chart_outlined,
-                  activeIcon: Icons.bar_chart,
-                  label: 'Overview',
+                  icon: Icons.receipt_long_outlined,
+                  activeIcon: Icons.receipt_long,
+                  label: 'History',
                   isActive: currentIndex == 3,
                   activeColor: theme.colorScheme.primary,
                   onTap: () => _onItemTapped(3),
+                  theme: theme,
+                ),
+                _buildNavItem(
+                  icon: Icons.bar_chart_outlined,
+                  activeIcon: Icons.bar_chart,
+                  label: 'Overview',
+                  isActive: currentIndex == 4,
+                  activeColor: theme.colorScheme.primary,
+                  onTap: () => _onItemTapped(4),
                   theme: theme,
                 ),
               ],
@@ -191,16 +208,17 @@ class _MainScreenState extends ConsumerState<MainScreen> {
     required VoidCallback onTap,
     required ThemeData theme,
   }) {
-    final effectiveInactiveColor = inactiveColor ?? theme.colorScheme.onSurfaceVariant;
+    final effectiveInactiveColor =
+        inactiveColor ?? theme.colorScheme.onSurfaceVariant;
     final color = isActive ? activeColor : effectiveInactiveColor;
     final labelColor = isActive ? activeColor : effectiveInactiveColor;
-    
+
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(24),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+        padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 8.0),
         decoration: BoxDecoration(
           color: isActive ? activeColor.withOpacity(0.15) : Colors.transparent,
           borderRadius: BorderRadius.circular(24),

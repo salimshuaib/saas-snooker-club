@@ -72,6 +72,66 @@ class MoreScreen extends ConsumerWidget {
             ),
 
             Text(
+              'CLUB OPERATIONS',
+              style: theme.textTheme.labelSmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+                letterSpacing: 1.2,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const Gap(12),
+            _MoreMenuItem(
+              icon: Icons.sports_esports,
+              title: 'Games',
+              subtitle: 'Manage tables & sessions',
+              iconColor: AppColors.primary,
+              onTap: () => context.push(RouteNames.games),
+            ),
+            const Gap(12),
+            _MoreMenuItem(
+              icon: Icons.inventory_2,
+              title: 'Inventory',
+              subtitle: 'Stock & products',
+              iconColor: AppColors.tertiary,
+              onTap: () => context.push(RouteNames.inventory),
+            ),
+            const Gap(12),
+            _MoreMenuItem(
+              icon: Icons.credit_card,
+              title: 'Credit',
+              subtitle: 'Customer tabs',
+              iconColor: AppColors.creditStatus,
+              onTap: () => context.push(RouteNames.credit),
+            ),
+            const Gap(32),
+
+            Text(
+              'REPORTS & INSIGHTS',
+              style: theme.textTheme.labelSmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+                letterSpacing: 1.2,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const Gap(12),
+            _MoreMenuItem(
+              icon: Icons.analytics,
+              title: 'Analytics',
+              subtitle: 'Business insights',
+              iconColor: AppColors.running,
+              onTap: () => context.push(RouteNames.analytics),
+            ),
+            const Gap(12),
+            _MoreMenuItem(
+              icon: Icons.assessment,
+              title: 'Reports',
+              subtitle: 'Daily summaries',
+              iconColor: AppColors.success,
+              onTap: () => context.push(RouteNames.reports),
+            ),
+            const Gap(32),
+
+            Text(
               'TEAM & ADMINISTRATION',
               style: theme.textTheme.labelSmall?.copyWith(
                 color: theme.colorScheme.onSurfaceVariant,

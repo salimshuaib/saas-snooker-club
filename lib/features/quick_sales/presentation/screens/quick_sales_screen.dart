@@ -1,6 +1,8 @@
 import 'package:snooker_club/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:snooker_club/core/routes/route_names.dart';
+
 import 'package:intl/intl.dart';
 import 'package:go_router/go_router.dart';
 import 'package:snooker_club/core/theme/app_colors.dart';
@@ -235,7 +237,7 @@ class _QuickSalesScreenState extends ConsumerState<QuickSalesScreen> {
                   if (_isSelectionMode) {
                     _toggleSelection(sale.id);
                   } else {
-                    context.push('/more/quick-sales/details', extra: sale);
+                    context.push('${RouteNames.quickSales}/details', extra: sale);
                   }
                 },
                 child: Card(
@@ -351,7 +353,7 @@ class _QuickSalesScreenState extends ConsumerState<QuickSalesScreen> {
           ? null
           : FloatingActionButton.extended(
               onPressed: () {
-                context.push('/more/quick-sales/new');
+                context.push('${RouteNames.quickSales}/new');
               },
               icon: const Icon(Icons.add),
               label: const Text('New Sale', style: TextStyle(fontWeight: FontWeight.w700)),

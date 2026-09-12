@@ -11,6 +11,7 @@ import 'package:snooker_club/features/credit/domain/models/credit_models.dart';
 import 'package:snooker_club/features/team/providers/team_providers.dart';
 import 'package:snooker_club/core/models/audit_log.dart';
 import 'package:snooker_club/features/games/utils/game_validation_utils.dart';
+import 'package:snooker_club/features/games/domain/config/pricing_config.dart';
 
 class RepeatGameSheet extends ConsumerStatefulWidget {
   final GameSession originalSession;
@@ -30,9 +31,6 @@ class _RepeatGameSheetState extends ConsumerState<RepeatGameSheet> {
   bool _samePlayers = true;
 
   TableModel? _selectedTable;
-  late GameType _gameType;
-  int? _targetPoints;
-  late GameMode _mode;
   
   // Standard configs
   BillingType _billingType = BillingType.perMinute;
@@ -40,46 +38,31 @@ class _RepeatGameSheetState extends ConsumerState<RepeatGameSheet> {
   int _totalFrames = 1;
 
   // Players
-  final List<PlayerSelection?> _teamASelections = [];
-  final List<PlayerSelection?> _teamBSelections = [];
+  final List<PlayerSelection?> _playerSelections = [];
 
   bool _isLoading = false;
 
   @override
   void initState() {
     super.initState();
-    _gameType = widget.originalSession.gameType;
-    _targetPoints = widget.originalSession.targetPoints;
-    _mode = widget.originalSession.mode;
     _billingType = widget.originalSession.billingType;
-
     _totalFrames = widget.originalSession.totalFrames;
 
     // Load initial players
     if (widget.originalSession.playerIdentities != null) {
-      for (final pName in widget.originalSession.teamA) {
-        _teamASelections.add(PlayerSelection(
-          id: widget.originalSession.playerIdentities![pName], 
-          name: pName,
-        ));
-      }
-      for (final pName in widget.originalSession.teamB) {
-        _teamBSelections.add(PlayerSelection(
+      for (final pName in widget.originalSession.players) {
+        _playerSelections.add(PlayerSelection(
           id: widget.originalSession.playerIdentities![pName], 
           name: pName,
         ));
       }
     } else {
-      for (final pName in widget.originalSession.teamA) {
-        _teamASelections.add(PlayerSelection(name: pName));
-      }
-      for (final pName in widget.originalSession.teamB) {
-        _teamBSelections.add(PlayerSelection(name: pName));
+      for (final pName in widget.originalSession.players) {
+        _playerSelections.add(PlayerSelection(name: pName));
       }
     }
     
-    if (_teamASelections.isEmpty) _teamASelections.add(null);
-    if (_teamBSelections.isEmpty) _teamBSelections.add(null);
+    if (_playerSelections.isEmpty) _playerSelections.add(null);
   }
 
   @override
@@ -96,14 +79,16 @@ class _RepeatGameSheetState extends ConsumerState<RepeatGameSheet> {
       }
     }
 
-    return Container(
-      constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.9),
-      padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surface,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      child: Column(
+    return Material(
+      color: Colors.transparent,
+      child: Container(
+        constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.9),
+        padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+        decoration: BoxDecoration(
+          color: theme.colorScheme.surface,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           // Handle
@@ -157,6 +142,7 @@ class _RepeatGameSheetState extends ConsumerState<RepeatGameSheet> {
           ),
         ],
       ),
+    ),
     );
   }
 
@@ -226,113 +212,123 @@ class _RepeatGameSheetState extends ConsumerState<RepeatGameSheet> {
 
   List<Widget> _buildStep1(ThemeData theme) {
     return [
-      Text('Mode', style: theme.textTheme.labelMedium),
+      Text('Players', style: theme.textTheme.labelMedium),
       const Gap(8),
-      Row(
-        children: GameMode.values.map((mode) {
-          final isSelected = _mode == mode;
-          return Expanded(
-            child: InkWell(
-              onTap: () => setState(() => _mode = mode),
-              child: Container(
-                padding: const EdgeInsets.symmetric(vertical: 12),
-                decoration: BoxDecoration(
-                  color: isSelected ? AppColors.primary : Colors.transparent,
-                  border: Border.all(color: isSelected ? AppColors.primary : theme.colorScheme.outlineVariant),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Center(
-                  child: Text(mode == GameMode.team ? 'Team' : 'Solo', style: TextStyle(color: isSelected ? Colors.white : theme.colorScheme.onSurface, fontWeight: FontWeight.w600)),
-                ),
-              ),
-            ),
-          );
-        }).toList(),
-      ),
-      const Gap(24),
-      if (_mode == GameMode.solo) ...[
-        _buildTeamSection('Players', _teamASelections, 10, theme),
-      ] else ...[
-        _buildTeamSection('Team A', _teamASelections, 5, theme),
-        const Gap(24),
-        _buildTeamSection('Team B', _teamBSelections, 5, theme),
-      ],
+      _buildPlayerSection('Players', _playerSelections, 10, theme),
     ];
   }
 
-  Widget _buildTeamSection(String title, List<PlayerSelection?> selections, int maxPlayers, ThemeData theme) {
+  Widget _buildPlayerSection(String title, List<PlayerSelection?> list, int max, ThemeData theme) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(title, style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
-        const Gap(8),
-        ...List.generate(selections.length, (index) {
-          return Padding(
-            padding: const EdgeInsets.only(bottom: 8),
+        for (int i = 0; i < list.length; i++)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 8.0),
             child: Row(
               children: [
                 Expanded(
                   child: PlayerSearchField(
-                    hint: 'Select or create player',
-                    initialSelection: selections[index],
-                    onSelected: (selection) => setState(() => selections[index] = selection),
+                    hint: 'Player ${i + 1}',
+                    initialSelection: list[i],
+                    onSelected: (selection) {
+                      setState(() {
+                        list[i] = selection;
+                      });
+                    },
                   ),
                 ),
-                if (selections.length > 1 || _mode == GameMode.team)
+                if (list.length > 1)
                   IconButton(
-                    icon: const Icon(Icons.remove_circle_outline, color: AppColors.error),
-                    onPressed: () => setState(() => selections.removeAt(index)),
+                    icon: const Icon(Icons.remove_circle_outline, color: Colors.red),
+                    onPressed: () => setState(() => list.removeAt(i)),
                   ),
               ],
             ),
-          );
-        }),
-        if (selections.length < maxPlayers)
+          ),
+        if (list.length < max)
           TextButton.icon(
-            onPressed: () => setState(() => selections.add(null)),
-            icon: const Icon(Icons.add), label: const Text('Add Player'),
+            onPressed: () => setState(() => list.add(null)),
+            icon: const Icon(Icons.add),
+            label: const Text('Add Player'),
           ),
       ],
     );
   }
 
   List<Widget> _buildStep2(ThemeData theme, List<TableModel> tables) {
-    return [
-      Text('Select Table', style: theme.textTheme.labelMedium),
-      const Gap(8),
-      DropdownButtonFormField<TableModel>(
-        isExpanded: true,
-        value: _selectedTable,
-        decoration: InputDecoration(isDense: true, border: OutlineInputBorder(borderRadius: BorderRadius.circular(12))),
-        items: tables.where((t) => t.status == TableStatus.available).map((t) => DropdownMenuItem(value: t, child: Text(t.name))).toList(),
-        onChanged: (val) {
-          if (val != null) setState(() {
-            _selectedTable = val;
-            if (val.type != TableType.snooker && _gameType == GameType.rummy) _gameType = GameType.standard;
-          });
-        },
-      ),
-      const Gap(24),
-      Text('Game Type', style: theme.textTheme.labelMedium),
-      const Gap(8),
-      DropdownButtonFormField<GameType>(
-        isExpanded: true, value: _gameType,
-        decoration: InputDecoration(isDense: true, border: OutlineInputBorder(borderRadius: BorderRadius.circular(12))),
-        items: GameType.values.where((t) => !(t == GameType.rummy && _selectedTable?.type != TableType.snooker)).map((t) => DropdownMenuItem(value: t, child: Text(t == GameType.standard ? 'Standard' : t == GameType.race ? 'Race' : 'Rummy'))).toList(),
-        onChanged: (val) {
-          if (val != null) setState(() => _gameType = val);
-        },
-      ),
+    // Determine available billing types for the selected table
+    final availableBilling = _selectedTable != null 
+        ? TablePricingConfig.supportedBillingTypes(_selectedTable!, GameType.standard)
+        : <BillingType>[BillingType.perMinute];
+    
+    if (!availableBilling.contains(_billingType)) {
+      _billingType = availableBilling.first;
+    }
 
+    return [
+      Text('Table', style: theme.textTheme.labelMedium),
+      const Gap(8),
+      Wrap(
+        spacing: 8, runSpacing: 8,
+        children: tables.where((t) => t.status == TableStatus.available || t.id == _selectedTable?.id).map((t) {
+          final isSelected = _selectedTable?.id == t.id;
+          final isUnavailable = t.status != TableStatus.available && !isSelected;
+          return ChoiceChip(
+            label: Text(t.name),
+            selected: isSelected,
+            onSelected: isUnavailable ? null : (selected) {
+              if (selected) setState(() => _selectedTable = t);
+            },
+            selectedColor: AppColors.primary,
+            labelStyle: TextStyle(color: isSelected ? Colors.white : (isUnavailable ? Colors.grey : Colors.black)),
+          );
+        }).toList(),
+      ),
+      if (tables.isEmpty || tables.where((t) => t.status == TableStatus.available).isEmpty)
+        Padding(
+          padding: const EdgeInsets.only(top: 8),
+          child: Text('No tables currently available.', style: TextStyle(color: Colors.red.shade400)),
+        ),
+        
       const Gap(24),
-      if (_gameType == GameType.standard) ...[
-        Text('Billing Type', style: theme.textTheme.labelMedium),
+      Text('Billing Type', style: theme.textTheme.labelMedium),
+      const Gap(8),
+      if (_selectedTable == null)
+        const Text('Select a table first', style: TextStyle(color: Colors.grey, fontStyle: FontStyle.italic))
+      else
+        Wrap(
+          spacing: 8,
+          children: availableBilling.map((bt) {
+            final isSelected = _billingType == bt;
+            return ChoiceChip(
+              label: Text(bt.name.toUpperCase()),
+              selected: isSelected,
+              onSelected: (selected) {
+                if (selected) setState(() => _billingType = bt);
+              },
+              selectedColor: AppColors.primary,
+              labelStyle: TextStyle(color: isSelected ? Colors.white : Colors.black),
+            );
+          }).toList(),
+        ),
+
+      if (_billingType == BillingType.perFrame) ...[
+        const Gap(24),
+        Text('Total Frames', style: theme.textTheme.labelMedium),
         const Gap(8),
-        DropdownButtonFormField<BillingType>(
-          isExpanded: true, value: _billingType,
-          decoration: InputDecoration(isDense: true, border: OutlineInputBorder(borderRadius: BorderRadius.circular(12))),
-          items: BillingType.values.where((t) => !(_selectedTable?.type == TableType.snooker && t == BillingType.perFrame)).map((t) => DropdownMenuItem(value: t, child: Text(t.displayName))).toList(),
-          onChanged: (v) => setState(() => _billingType = v!),
+        Row(
+          children: [
+            IconButton(
+              icon: const Icon(Icons.remove_circle_outline),
+              onPressed: _totalFrames > 1 ? () => setState(() => _totalFrames--) : null,
+            ),
+            Text('$_totalFrames', style: theme.textTheme.titleMedium),
+            IconButton(
+              icon: const Icon(Icons.add_circle_outline),
+              onPressed: () => setState(() => _totalFrames++),
+            ),
+          ],
         ),
       ],
     ];
@@ -340,27 +336,27 @@ class _RepeatGameSheetState extends ConsumerState<RepeatGameSheet> {
 
   List<Widget> _buildStep3(ThemeData theme) {
     return [
-      Text('Review & Start', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
+      Text('Review', style: theme.textTheme.labelMedium),
       const Gap(16),
-      _buildSummaryRow('Table', _selectedTable?.name ?? 'None'),
-      _buildSummaryRow('Game Type', _gameType == GameType.standard ? 'Standard' : _gameType == GameType.race ? 'Race' : 'Rummy'),
-
-      _buildSummaryRow('Billing', _gameType == GameType.standard ? _billingType.displayName : 'Per Minute (Fixed)'),
-      const Gap(12),
-      Text('Players', style: theme.textTheme.labelMedium),
-      const Gap(4),
-      if (_mode == GameMode.solo) 
-        Text(_teamASelections.where((p) => p != null && p.name.trim().isNotEmpty).map((p) => p!.name).join(', '))
-      else ...[
-        Text('Team A: '),
-        Text('Team B: '),
-      ],
+      _buildReviewRow('Table', _selectedTable?.name ?? 'None'),
+      _buildReviewRow('Billing', _billingType.name.toUpperCase()),
+      if (_billingType == BillingType.perFrame)
+        _buildReviewRow('Frames', '$_totalFrames'),
+      const Gap(16),
+      const Text('Players:', style: TextStyle(fontWeight: FontWeight.bold)),
+      const Gap(8),
+      ..._playerSelections
+          .where((p) => p != null && p.name.trim().isNotEmpty)
+          .map((p) => Padding(
+                padding: const EdgeInsets.only(bottom: 4),
+                child: Text('• ${p!.name}'),
+              )),
     ];
   }
 
-  Widget _buildSummaryRow(String label, String value) {
+  Widget _buildReviewRow(String label, String value) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.only(bottom: 8.0),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
@@ -373,7 +369,7 @@ class _RepeatGameSheetState extends ConsumerState<RepeatGameSheet> {
 
   Future<void> _startGame() async {
     // 1. Frame validation
-    if (_gameType == GameType.standard && _billingType == BillingType.perFrame) {
+    if (_billingType == BillingType.perFrame) {
       if (_totalFrames <= 0) {
         if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Frame count must be a valid number greater than 0.')));
         return;
@@ -382,8 +378,8 @@ class _RepeatGameSheetState extends ConsumerState<RepeatGameSheet> {
 
     // 2. Duplicate Players Check
     final duplicateError = GameValidationUtils.validateDuplicatePlayersWithinGame(
-      _teamASelections, 
-      _mode == GameMode.team ? _teamBSelections : []
+      _playerSelections, 
+      []
     );
     
     if (duplicateError != null) {
@@ -394,7 +390,7 @@ class _RepeatGameSheetState extends ConsumerState<RepeatGameSheet> {
     // 3. Active Elsewhere Check
     if (_selectedTable != null) {
       final activeElsewhereError = await GameValidationUtils.checkPlayerActiveElsewhere(
-        [..._teamASelections, if (_mode == GameMode.team) ..._teamBSelections], 
+        _playerSelections, 
         ref, 
         _selectedTable!.id
       );
@@ -408,11 +404,8 @@ class _RepeatGameSheetState extends ConsumerState<RepeatGameSheet> {
     setState(() => _isLoading = true);
 
     try {
-      final teamAPlayers = _teamASelections.where((p) => p != null && p.name.trim().isNotEmpty).map((p) => p!).toList();
-      final teamBPlayers = _mode == GameMode.team ? _teamBSelections.where((p) => p != null && p.name.trim().isNotEmpty).map((p) => p!).toList() : <PlayerSelection>[];
-
-      final combinedSelections = [...teamAPlayers, ...teamBPlayers];
-      final actualBillingType = _gameType == GameType.standard ? _billingType : BillingType.perMinute;
+      final combinedSelections = _playerSelections.where((p) => p != null && p.name.trim().isNotEmpty).map((p) => p!).toList();
+      final actualBillingType = _billingType;
       
       if (combinedSelections.isEmpty) {
         if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('At least one player is required.'), backgroundColor: AppColors.error));
@@ -453,9 +446,6 @@ class _RepeatGameSheetState extends ConsumerState<RepeatGameSheet> {
         }
       }
 
-      final teamAIds = teamAPlayers.map((p) => p.name).toList();
-      final teamBIds = teamBPlayers.map((p) => p.name).toList();
-
       final now = DateTime.now();
       final dateStr = '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
       
@@ -478,17 +468,15 @@ class _RepeatGameSheetState extends ConsumerState<RepeatGameSheet> {
         tableId: _selectedTable!.id,
         tableName: _selectedTable!.name,
         tableType: _selectedTable!.type,
-        gameType: _gameType,
-        mode: _mode,
         startTime: now,
         status: TableStatus.running,
-        targetPoints: _targetPoints,
-        billingType: actualBillingType,
-        matchType: MatchType.friendly,
-        totalFrames: (_gameType == GameType.standard && actualBillingType == BillingType.perFrame) ? _totalFrames : 1,
+        mode: GameMode.solo,
+      matchType: MatchType.friendly,
+      billingType: actualBillingType,
+        totalFrames: (actualBillingType == BillingType.perFrame) ? _totalFrames : 1,
         framesPlayed: 0,
-        teamA: teamAIds,
-        teamB: teamBIds,
+        teamA: combinedSelections.map((p) => p.name).toList(),
+        teamB: const [],
         playerIds: finalPlayerIds,
         playerIdentities: resolvedIdentities,
         orders: const [],

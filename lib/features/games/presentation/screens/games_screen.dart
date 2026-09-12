@@ -66,7 +66,8 @@ class _GamesScreenState extends ConsumerState<GamesScreen> {
           ? FloatingActionButton.extended(
               onPressed: () {
                 showModalBottomSheet(
-                  context: context,
+useRootNavigator: true,
+context: context,
                   builder: (context) => SafeArea(
                     child: Column(
                       mainAxisSize: MainAxisSize.min,

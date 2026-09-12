@@ -503,16 +503,23 @@ class _NewQuickSaleScreenState extends ConsumerState<NewQuickSaleScreen> {
         child: InkWell(
           onTap: () {
             showModalBottomSheet(
+              useRootNavigator: true,
               context: context,
               isScrollControlled: true,
               backgroundColor: theme.colorScheme.surface,
               shape: const RoundedRectangleBorder(
                 borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
               ),
-              builder: (context) => StatefulBuilder(
-                builder: (context, setModalState) => FractionallySizedBox(
-                  heightFactor: 0.85,
-                  child: _buildCartPanel(theme, customerNames, isModal: true, onModalUpdate: () => setModalState(() {})),
+              builder: (sheetContext) => StatefulBuilder(
+                builder: (stfContext, setModalState) => Container(
+                  constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.85),
+                  child: _buildCartPanel(
+                    theme, 
+                    customerNames, 
+                    isModal: true, 
+                    onModalUpdate: () => setModalState(() {}),
+                    sheetContext: sheetContext,
+                  ),
                 ),
               ),
             );
@@ -564,7 +571,7 @@ class _NewQuickSaleScreenState extends ConsumerState<NewQuickSaleScreen> {
     );
   }
 
-  Widget _buildCartPanel(ThemeData theme, List<String> customerNames, {bool isModal = false, VoidCallback? onModalUpdate}) {
+  Widget _buildCartPanel(ThemeData theme, List<String> customerNames, {bool isModal = false, VoidCallback? onModalUpdate, BuildContext? sheetContext}) {
     double total = 0;
     if (_cart.isNotEmpty) {
       final items = ref.read(inventoryItemsProvider).value ?? [];
@@ -579,6 +586,7 @@ class _NewQuickSaleScreenState extends ConsumerState<NewQuickSaleScreen> {
     return Container(
       color: theme.colorScheme.surface,
       child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
           if (isModal) ...[
             Container(
@@ -598,17 +606,18 @@ class _NewQuickSaleScreenState extends ConsumerState<NewQuickSaleScreen> {
                   Text('Cart & Checkout', style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold)),
                   IconButton(
                     icon: const Icon(Icons.close),
-                    onPressed: () => Navigator.pop(context),
+                    onPressed: () => Navigator.pop(sheetContext ?? context),
                   ),
                 ],
               ),
             ),
             const Divider(height: 1),
           ],
-          Expanded(
+          Flexible(
             child: _cart.isEmpty
                 ? Center(
                     child: Column(
+                      mainAxisSize: MainAxisSize.min,
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Icon(Icons.shopping_cart_outlined, size: 56, color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.4)),
@@ -631,6 +640,7 @@ class _NewQuickSaleScreenState extends ConsumerState<NewQuickSaleScreen> {
                     ),
                   )
                 : ListView.builder(
+                    shrinkWrap: true,
                     padding: const EdgeInsets.all(16),
                     itemCount: _cart.length,
                     itemBuilder: (context, index) {

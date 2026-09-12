@@ -43,12 +43,18 @@ class _PricingEditSheetState extends ConsumerState<PricingEditSheet> {
   final Map<String, Map<String, TextEditingController>> _controllers = {};
 
   final Map<String, Map<String, bool>> _toggles = {};
+  final Map<String, bool> _minBillToggles = {};
+  final Map<String, TextEditingController> _minBillControllers = {};
+  final Map<String, bool> _customPriceToggles = {};
 
 
 
   @override
 
   void dispose() {
+    for (final controller in _minBillControllers.values) {
+      controller.dispose();
+    }
 
     for (final tableMap in _controllers.values) {
 
@@ -72,6 +78,9 @@ class _PricingEditSheetState extends ConsumerState<PricingEditSheet> {
 
 
 
+    _minBillToggles[table.id] = table.isMinimumBillEnabled;
+    _customPriceToggles[table.id] = table.allowCustomPrice;
+    _minBillControllers[table.id] = TextEditingController(text: table.minimumBillAmount.toStringAsFixed(table.minimumBillAmount.truncateToDouble() == table.minimumBillAmount ? 0 : 2));
     _controllers[table.id] = {};
 
     _toggles[table.id] = {};
@@ -472,7 +481,12 @@ class _PricingEditSheetState extends ConsumerState<PricingEditSheet> {
 
         
 
-        final updatedTable = table.copyWith(billingOptions: newBillingOptions);
+        final updatedTable = table.copyWith(
+          billingOptions: newBillingOptions,
+          isMinimumBillEnabled: _minBillToggles[table.id] ?? false,
+          allowCustomPrice: _customPriceToggles[table.id] ?? false,
+          minimumBillAmount: double.tryParse(_minBillControllers[table.id]?.text.trim() ?? '0') ?? 0.0,
+        );
 
         await repo.updateTable(updatedTable);
 
@@ -729,6 +743,68 @@ class _PricingEditSheetState extends ConsumerState<PricingEditSheet> {
             ),
 
             const Gap(16),
+            if (table.type == TableType.snooker || table.type == TableType.indianPool || table.type == TableType.americanPool) ...[
+              const Divider(),
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                child: Row(
+                  children: [
+                    Expanded(
+                      flex: 3,
+                      child: Row(
+                        children: [
+                          Switch(
+                            value: _minBillToggles[table.id] ?? false,
+                            onChanged: (val) {
+                              setState(() {
+                                _minBillToggles[table.id] = val;
+                              });
+                            },
+                          ),
+                          const Gap(8),
+                          const Expanded(child: Text('Minimum Bill', style: TextStyle(fontWeight: FontWeight.w500))),
+                        ],
+                      ),
+                    ),
+                    const Gap(12),
+                    if (_minBillToggles[table.id] ?? false)
+                      Expanded(
+                        flex: 2,
+                        child: _buildTextField('Amount', _minBillControllers[table.id]!),
+                      )
+                    else
+                      const Expanded(flex: 2, child: SizedBox()),
+                  ],
+                ),
+              ),
+              const Divider(),
+
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Row(
+                        children: [
+                          Switch(
+                            value: _customPriceToggles[table.id] ?? false,
+                            onChanged: (val) {
+                              setState(() {
+                                _customPriceToggles[table.id] = val;
+                              });
+                            },
+                          ),
+                          const Gap(8),
+                          const Expanded(child: Text('Allow Custom Base Price', style: TextStyle(fontWeight: FontWeight.w500))),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const Divider(),
+              const Gap(8),
+            ],
 
             ...options.map((opt) {
 

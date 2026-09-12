@@ -5,6 +5,8 @@ class PayerSelectionWidget extends StatefulWidget {
   final List<String> selectedPayers;
   final ValueChanged<List<String>> onChanged;
   final String title;
+  final void Function(String)? onEditPlayer;
+  final VoidCallback? onAddPlayer;
 
   const PayerSelectionWidget({
     super.key,
@@ -12,6 +14,8 @@ class PayerSelectionWidget extends StatefulWidget {
     required this.selectedPayers,
     required this.onChanged,
     this.title = 'Who will Pay?',
+    this.onEditPlayer,
+    this.onAddPlayer,
   });
 
   @override
@@ -100,12 +104,16 @@ class _PayerSelectionWidgetState extends State<PayerSelectionWidget> {
                 ),
                 const SizedBox(width: 16),
                 Expanded(
-                  child: Text(
-                    title,
-                    style: theme.textTheme.titleSmall?.copyWith(
-                      fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                      color: isSelected ? highlightColor : theme.colorScheme.onSurface,
-                    ),
+                  child: Row(
+                    children: [
+                      Text(
+                        title,
+                        style: theme.textTheme.titleSmall?.copyWith(
+                          fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                          color: isSelected ? highlightColor : theme.colorScheme.onSurface,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
                 if (isSelected)
@@ -158,6 +166,17 @@ class _PayerSelectionWidgetState extends State<PayerSelectionWidget> {
               onTap: () => _togglePlayer(player),
             );
           }),
+          if (widget.onAddPlayer != null) ...[
+            const SizedBox(height: 8),
+            TextButton.icon(
+              onPressed: widget.onAddPlayer,
+              icon: const Icon(Icons.person_add),
+              label: const Text('Add Player to Bill'),
+              style: TextButton.styleFrom(
+                alignment: Alignment.center,
+              ),
+            ),
+          ],
         ],
       ),
     );

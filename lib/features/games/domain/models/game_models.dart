@@ -207,6 +207,9 @@ class TableModel {
   final String? activeGameId;
   final int order;
   final Map<String, TableBillingOption>? billingOptions;
+  final bool isMinimumBillEnabled;
+  final double minimumBillAmount;
+  final bool allowCustomPrice;
 
   const TableModel({
     required this.id,
@@ -216,6 +219,9 @@ class TableModel {
     this.activeGameId,
     this.order = 0,
     this.billingOptions,
+    this.isMinimumBillEnabled = false,
+    this.minimumBillAmount = 0.0,
+    this.allowCustomPrice = false,
   });
 
   TableModel copyWith({
@@ -226,6 +232,9 @@ class TableModel {
     String? activeGameId,
     int? order,
     Map<String, TableBillingOption>? billingOptions,
+    bool? isMinimumBillEnabled,
+    double? minimumBillAmount,
+    bool? allowCustomPrice,
   }) {
     return TableModel(
       id: id ?? this.id,
@@ -235,6 +244,9 @@ class TableModel {
       activeGameId: activeGameId ?? this.activeGameId,
       order: order ?? this.order,
       billingOptions: billingOptions ?? this.billingOptions,
+      isMinimumBillEnabled: isMinimumBillEnabled ?? this.isMinimumBillEnabled,
+      minimumBillAmount: minimumBillAmount ?? this.minimumBillAmount,
+      allowCustomPrice: allowCustomPrice ?? this.allowCustomPrice,
     );
   }
 
@@ -248,6 +260,9 @@ class TableModel {
       'order': order,
       if (billingOptions != null)
         'billingOptions': billingOptions!.map((k, v) => MapEntry(k, v.toMap())),
+      'isMinimumBillEnabled': isMinimumBillEnabled,
+      'minimumBillAmount': minimumBillAmount,
+      'allowCustomPrice': allowCustomPrice,
     };
   }
 
@@ -270,6 +285,9 @@ class TableModel {
               (k, v) => MapEntry(k, TableBillingOption.fromMap(v as Map<String, dynamic>)),
             )
           : null,
+      isMinimumBillEnabled: map['isMinimumBillEnabled'] as bool? ?? false,
+      minimumBillAmount: (map['minimumBillAmount'] as num?)?.toDouble() ?? 0.0,
+      allowCustomPrice: map['allowCustomPrice'] as bool? ?? false,
     );
   }
 }
@@ -352,14 +370,16 @@ class GameChargeBreakdown {
   final double baseCharge;
   final int overtimeMinutes;
   final double overtimeCharge;
+  final double minimumBillAdjustment;
 
   const GameChargeBreakdown({
     required this.baseCharge,
     required this.overtimeMinutes,
     required this.overtimeCharge,
+    this.minimumBillAdjustment = 0.0,
   });
 
-  double get totalCharge => baseCharge + overtimeCharge;
+  double get totalCharge => baseCharge + overtimeCharge + minimumBillAdjustment;
 }
 
 // ─────────────────────────────────────────────
@@ -479,6 +499,7 @@ class GameSession {
   final MatchType matchType;
   final List<String> teamA;
   final List<String> teamB;
+  List<String> get players => allPlayers;
   final List<String> playerIds;
   final Map<String, String>? playerIdentities;
   final TableStatus status;
@@ -517,6 +538,8 @@ class GameSession {
   final PricingSettings? pricingSnapshot;
   final GameSettings? gameSettingsSnapshot;
   final double? customExtraCharge;
+  final bool isMinimumBillEnabled;
+  final double minimumBillAmount;
   final int? coinQuantity;
   final double? customPrice;
 
@@ -575,6 +598,8 @@ class GameSession {
     this.pricingSnapshot,
     this.gameSettingsSnapshot,
     this.customExtraCharge,
+    this.isMinimumBillEnabled = false,
+    this.minimumBillAmount = 0.0,
     this.coinQuantity,
     this.customPrice,
   });
@@ -740,6 +765,8 @@ class GameSession {
       pricingSnapshot: pricingSnapshot ?? this.pricingSnapshot,
       gameSettingsSnapshot: gameSettingsSnapshot ?? this.gameSettingsSnapshot,
       customExtraCharge: customExtraCharge ?? this.customExtraCharge,
+      isMinimumBillEnabled: isMinimumBillEnabled ?? this.isMinimumBillEnabled,
+      minimumBillAmount: minimumBillAmount ?? this.minimumBillAmount,
       coinQuantity: coinQuantity ?? this.coinQuantity,
       customPrice: customPrice ?? this.customPrice,
     );
@@ -802,6 +829,8 @@ class GameSession {
       'pricingSnapshot': pricingSnapshot?.toMap(),
       'gameSettingsSnapshot': gameSettingsSnapshot?.toMap(),
       'customExtraCharge': customExtraCharge,
+      'isMinimumBillEnabled': isMinimumBillEnabled,
+      'minimumBillAmount': minimumBillAmount,
       'coinQuantity': coinQuantity,
       'customPrice': customPrice,
     };
@@ -907,6 +936,8 @@ class GameSession {
       discountAmount: (map['discountAmount'] as num?)?.toDouble(),
       discountedGameCharge: (map['discountedGameCharge'] as num?)?.toDouble(),
       customExtraCharge: (map['customExtraCharge'] as num?)?.toDouble(),
+      isMinimumBillEnabled: map['isMinimumBillEnabled'] as bool? ?? false,
+      minimumBillAmount: (map['minimumBillAmount'] as num?)?.toDouble() ?? 0.0,
       coinQuantity: (map['coinQuantity'] as num?)?.toInt(),
       paidBy: map['paidBy'] as String?,
       paymentMethod: map['paymentMethod'] != null

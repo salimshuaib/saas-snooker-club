@@ -6,6 +6,7 @@ class RouteNames {
   static const String login = '/login';
   static const String dashboard = '/dashboard';
   static const String live = '/live';
+  static const String khata = '/khata';
   static const String games = '/games';
   static const String tableDetails = '/games/table';
   static const String inventory = '/inventory';
@@ -25,4 +26,3 @@ class RouteNames {
   static const String noClub = '/no-club';
   static const String onboarding = '/onboarding';
 }
-

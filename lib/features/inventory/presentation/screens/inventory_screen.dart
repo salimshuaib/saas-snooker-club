@@ -181,7 +181,8 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () {
           showModalBottomSheet(
-            context: context,
+useRootNavigator: true,
+context: context,
             isScrollControlled: true,
             builder: (_) => const AddProductSheet(),
           );

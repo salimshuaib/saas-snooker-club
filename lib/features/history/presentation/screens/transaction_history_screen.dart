@@ -276,7 +276,8 @@ class _GameTransactionTile extends StatelessWidget {
         child: InkWell(
           onLongPress: () {
             showModalBottomSheet(
-              context: context,
+useRootNavigator: true,
+context: context,
               isScrollControlled: true,
               backgroundColor: Colors.transparent,
               builder: (context) => RepeatGameSheet(originalSession: session),

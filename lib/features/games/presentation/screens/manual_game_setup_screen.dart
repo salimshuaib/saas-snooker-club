@@ -19,64 +19,57 @@ import 'package:snooker_club/features/games/utils/game_validation_utils.dart';
 class ManualGameSetupScreen extends ConsumerStatefulWidget {
   final String employeeId;
   final bool isCompletedGame;
+  final TableModel? initialTable;
 
   const ManualGameSetupScreen({
     super.key,
     required this.employeeId,
     required this.isCompletedGame,
+    this.initialTable,
   });
 
   @override
   ConsumerState<ManualGameSetupScreen> createState() => _ManualGameSetupScreenState();
 }
 
-class _ManualGameSetupScreenState extends ConsumerState<ManualGameSetupScreen> with SingleTickerProviderStateMixin {
-  int _step = 0; 
-  final int _maxSteps = 5;
-
-  late TabController _tabController;
-
-  @override
-  void initState() {
-    super.initState();
-    _tabController = TabController(length: 2, vsync: this);
-    _tabController.addListener(() {
-      setState(() {});
-    });
-  }
-
-  // Step 0: Table Selection
+class _ManualGameSetupScreenState extends ConsumerState<ManualGameSetupScreen> {
+  late bool _isCompletedMode;
   TableModel? _selectedTable;
 
-  // Step 1: Start Time
-  bool _useActualTime = true; // true = Option A (Time Picker), false = Option B (Elapsed Hours/Mins)
-  TimeOfDay? _actualStartTime;
+  // Time State
+  bool _useManualDuration = false;
+  TimeOfDay? _startTime;
+  TimeOfDay? _endTime;
   final TextEditingController _elapsedHoursController = TextEditingController();
   final TextEditingController _elapsedMinsController = TextEditingController();
+  final TextEditingController _elapsedSecsController = TextEditingController();
 
-  // Step 2: Mode & Players
-  GameMode _mode = GameMode.solo;
-  final List<PlayerSelection?> _teamASelections = [null];
-  final List<PlayerSelection?> _teamBSelections = [null];
+  // Players
+  final List<PlayerSelection?> _playerSelections = [null];
 
-  // Step 3: Game Type, Billing & Match Type
-  GameType _gameType = GameType.standard;
-  int? _targetPoints;
+  // Billing
   BillingType? _billingType;
-
   bool _useCustomPrice = false;
   final TextEditingController _customPriceController = TextEditingController();
 
-  // Step 4: Frame Setup
+  // Frame Setup (For Per Frame)
   int _totalFrames = 1;
   int _currentFrame = 1;
-  int _elapsedCurrentFrameMins = 0;
 
   bool _isLoading = false;
 
   @override
+  void initState() {
+    super.initState();
+    _isCompletedMode = widget.isCompletedGame;
+    _selectedTable = widget.initialTable;
+    if (_selectedTable != null) {
+      _billingType = BillingType.perMinute;
+    }
+  }
+
+  @override
   void dispose() {
-    _tabController.dispose();
     _elapsedHoursController.dispose();
     _elapsedMinsController.dispose();
     _elapsedSecsController.dispose();
@@ -90,568 +83,226 @@ class _ManualGameSetupScreenState extends ConsumerState<ManualGameSetupScreen> w
     );
   }
 
-  // ─────────────────────────────────────────────
-  // UI Builders
-  // ─────────────────────────────────────────────
-
-  Widget _buildStep0TableSelection(ThemeData theme, List<TableModel> tables) {
-    final availableTables = tables.where((t) => t.status == TableStatus.available).toList();
-    final billiardsTables = availableTables.where((t) => !t.type.isOtherGame).toList();
-    final otherGamesTables = availableTables.where((t) => t.type.isOtherGame).toList();
-
-    if (availableTables.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.event_seat, size: 64, color: theme.colorScheme.onSurfaceVariant),
-            const Gap(16),
-            Text('No Tables Available', style: theme.textTheme.titleLarge),
-            const Gap(8),
-            Text('All tables are currently occupied.',
-                style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
-          ],
-        ),
-      );
+  Future<void> _pickTime(bool isStart) async {
+    final TimeOfDay? picked = await showTimePicker(
+      context: context,
+      initialTime: isStart 
+          ? (_startTime ?? TimeOfDay.now()) 
+          : (_endTime ?? TimeOfDay.now()),
+    );
+    if (picked != null) {
+      setState(() {
+        if (isStart) {
+          _startTime = picked;
+        } else {
+          _endTime = picked;
+        }
+      });
     }
-
-    final currentList = _tabController.index == 0 ? billiardsTables : otherGamesTables;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          widget.isCompletedGame 
-            ? 'Select the table where this completed game took place.' 
-            : 'Select an available table to resume a game on.',
-          style: theme.textTheme.bodyMedium,
-        ),
-        const Gap(16),
-        TabBar(
-          controller: _tabController,
-          labelColor: AppColors.primary,
-          unselectedLabelColor: Colors.grey,
-          indicatorColor: AppColors.primary,
-          tabs: const [
-            Tab(text: 'Tables'),
-            Tab(text: 'Other Games'),
-          ],
-        ),
-        const Gap(16),
-        if (currentList.isEmpty)
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 32),
-            child: Center(
-              child: Text(
-                _tabController.index == 0 ? 'No Billiard Tables Available' : 'No Other Games Available',
-                style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant),
-              ),
-            ),
-          )
-        else
-          ...currentList.map((t) {
-            final isSelected = _selectedTable?.id == t.id;
-            return GestureDetector(
-              onTap: () {
-                setState(() {
-                  _selectedTable = t;
-                  if (t.type == TableType.snooker && _billingType == BillingType.perFrame) {
-                    _billingType = null;
-                  }
-                });
-              },
-              child: _SelectionTile(
-                title: t.name,
-                subtitle: t.type.displayName,
-                isSelected: isSelected,
-              ),
-            );
-          }),
-      ],
-    );
   }
 
-  final TextEditingController _elapsedSecsController = TextEditingController();
-
-  Widget _buildStep1TimeSelection(ThemeData theme) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text('How long did they play?', style: theme.textTheme.titleMedium),
-        const Gap(8),
-        Text('Enter the total duration of the completed game.', style: theme.textTheme.bodyMedium),
-        const Gap(24),
-        Row(
-          children: [
-            Expanded(
-              child: AppTextField(
-                controller: _elapsedHoursController,
-                label: 'Hours',
-                keyboardType: TextInputType.number,
-              ),
-            ),
-            const Gap(12),
-            Expanded(
-              child: AppTextField(
-                controller: _elapsedMinsController,
-                label: 'Minutes',
-                keyboardType: TextInputType.number,
-              ),
-            ),
-            const Gap(12),
-            Expanded(
-              child: AppTextField(
-                controller: _elapsedSecsController,
-                label: 'Seconds',
-                keyboardType: TextInputType.number,
-              ),
-            ),
-          ],
-        )
-      ],
-    );
+  void _addPlayer() {
+    setState(() {
+      _playerSelections.add(null);
+    });
   }
 
-  Widget _buildStep2Players(ThemeData theme) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: GameMode.values.map((mode) {
-            final isSelected = _mode == mode;
-            return Expanded(
-              child: GestureDetector(
-                onTap: () => setState(() => _mode = mode),
-                child: Container(
-                  margin: EdgeInsets.only(right: mode == GameMode.solo ? 8 : 0),
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                  decoration: BoxDecoration(
-                    color: isSelected ? AppColors.primary : theme.colorScheme.surfaceContainerHighest,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  alignment: Alignment.center,
-                  child: Text(
-                    mode == GameMode.solo ? 'Solo' : 'Team',
-                    style: TextStyle(
-                      color: isSelected ? Colors.white : theme.colorScheme.onSurface,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
-              ),
-            );
-          }).toList(),
-        ),
-        const Gap(20),
-        if (_mode == GameMode.solo) ...[
-          Text('Player Name', style: theme.textTheme.labelMedium),
-          const Gap(8),
-          PlayerSearchField(hint: 'Player 1', onSelected: (val) => setState(() => _teamASelections[0] = val)),
-        ] else ...[
-          _TeamPlayerFields(
-            teamLabel: 'Team A',
-            selections: _teamASelections,
-            onChange: (i, val) => setState(() => _teamASelections[i] = val),
-            onAdd: () => setState(() => _teamASelections.add(null)),
-            onRemove: (i) => setState(() => _teamASelections.removeAt(i)),
-          ),
-          const Gap(20),
-          _TeamPlayerFields(
-            teamLabel: 'Team B',
-            selections: _teamBSelections,
-            onChange: (i, val) => setState(() => _teamBSelections[i] = val),
-            onAdd: () => setState(() => _teamBSelections.add(null)),
-            onRemove: (i) => setState(() => _teamBSelections.removeAt(i)),
-          ),
-        ],
-      ],
-    );
+  void _removePlayer(int index) {
+    if (_playerSelections.length > 1) {
+      setState(() {
+        _playerSelections.removeAt(index);
+      });
+    }
   }
 
-  Widget _buildStep3Billing(ThemeData theme) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // GAME TYPE
-        Text('Game Type', style: theme.textTheme.titleMedium),
-        const Gap(12),
-        DropdownButtonFormField<GameType>(
-          isExpanded: true,
-          value: _gameType,
-          decoration: InputDecoration(
-            isDense: true,
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-          ),
-          items: GameType.values
-              .where((type) {
-                if (type == GameType.rummy && _selectedTable?.type != TableType.snooker) {
-                  return false;
-                }
-                return true;
-              })
-              .map((type) => DropdownMenuItem(
-                value: type,
-                child: Text(type.displayName, style: const TextStyle(fontWeight: FontWeight.w600)),
-              ))
-              .toList(),
-          onChanged: (val) {
-            if (val != null) {
-              setState(() {
-                _gameType = val;
-                if (val != GameType.standard && _teamASelections.length < 2) {
-                  _teamASelections.clear();
-                  _teamASelections.addAll([null, null]);
-                }
-              });
-            }
-          },
-        ),
-
-
-
-        const Gap(24),
-
-        if (_gameType == GameType.standard) ...[
-          Text('Billing Type', style: theme.textTheme.titleMedium),
-          const Gap(12),
-          ...BillingType.values
-            .where((type) => !(_selectedTable?.type == TableType.snooker && type == BillingType.perFrame))
-            .map((type) {
-            return GestureDetector(
-              onTap: () => setState(() => _billingType = type),
-              child: _SelectionTile(
-                title: type.displayName,
-                isSelected: _billingType == type,
-              ),
-            );
-          }),
-          if (_billingType == BillingType.perMinute) ...[
-            const Gap(16),
-            SwitchListTile(
-              contentPadding: EdgeInsets.zero,
-              title: const Text('Custom Per-Minute Price'),
-              subtitle: const Text('Override the global rate for this game only'),
-              value: _useCustomPrice,
-              onChanged: (v) => setState(() => _useCustomPrice = v),
-            ),
-            if (_useCustomPrice)
-              Padding(
-                padding: const EdgeInsets.only(top: 8),
-                child: AppTextField(
-                  controller: _customPriceController,
-                  label: 'Custom Rate (â‚¹/min)',
-                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                ),
-              ),
-          ],
-        ],
-
-      ],
-    );
-  }
-
-  Widget _buildStep4Frames(ThemeData theme) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text('Frame Setup', style: theme.textTheme.titleMedium),
-        const Gap(8),
-        Text('Since this is a per-frame game, specify the current frame.', style: theme.textTheme.bodySmall),
-        const Gap(24),
-        Row(
-          children: [
-            Expanded(
-              child: AppTextField(
-                controller: TextEditingController(text: _totalFrames.toString()),
-                label: 'Total Frames',
-                keyboardType: TextInputType.number,
-                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                onChanged: (v) {
-                  final n = int.tryParse(v);
-                  if (n != null && n > 0) _totalFrames = n;
-                },
-              ),
-            ),
-            const Gap(16),
-            Expanded(
-              child: AppTextField(
-                controller: TextEditingController(text: _currentFrame.toString()),
-                label: 'Current Frame #',
-                keyboardType: TextInputType.number,
-                onChanged: (v) {
-                  final n = int.tryParse(v);
-                  if (n != null && n > 0) _currentFrame = n;
-                },
-              ),
-            ),
-          ],
-        ),
-        const Gap(16),
-        AppTextField(
-          controller: TextEditingController(text: _elapsedCurrentFrameMins.toString()),
-          label: 'Mins elapsed in Current Frame',
-          keyboardType: TextInputType.number,
-          onChanged: (v) {
-            final n = int.tryParse(v);
-            if (n != null && n >= 0) _elapsedCurrentFrameMins = n;
-          },
-        ),
-      ],
-    );
-  }
-
-  // ─────────────────────────────────────────────
-  // Action Handlers
-  // ─────────────────────────────────────────────
-
-
-  void _handleNext() {
-    if (_step == 0 && _selectedTable == null) {
+  Future<void> _handleSave() async {
+    if (_selectedTable == null) {
       _showError('Please select a table.');
       return;
     }
 
-    if (_step == 1) {
-      final h = int.tryParse(_elapsedHoursController.text) ?? 0;
-      final m = int.tryParse(_elapsedMinsController.text) ?? 0;
-      final s = int.tryParse(_elapsedSecsController.text) ?? 0;
-      if (h == 0 && m == 0 && s == 0) {
-        _showError('Please enter the elapsed duration.');
-        return;
-      }
-    }
+    // Time Validation
+    DateTime now = DateTime.now();
+    DateTime? finalStartTime;
+    int durationSeconds = 0;
 
-    if (_step == 2) {
-      final teamANames = _teamASelections.where((s) => s != null).map((s) => s!.name.trim()).where((n) => n.isNotEmpty).toList();
-      if (teamANames.isEmpty) {
-        _showError('At least one player name is required.');
+    if (_isCompletedMode) {
+      if (_startTime == null || _endTime == null) {
+        _showError('Please provide both Start and End Time.');
         return;
       }
-      if (_mode == GameMode.team) {
-        final teamBNames = _teamBSelections.where((s) => s != null).map((s) => s!.name.trim()).where((n) => n.isNotEmpty).toList();
-        if (teamBNames.isEmpty) {
-          _showError('Team B must have at least one player.');
+      finalStartTime = DateTime(now.year, now.month, now.day, _startTime!.hour, _startTime!.minute);
+      DateTime finalEndTime = DateTime(now.year, now.month, now.day, _endTime!.hour, _endTime!.minute);
+      if (finalEndTime.isBefore(finalStartTime)) {
+        // Assume next day
+        finalEndTime = finalEndTime.add(const Duration(days: 1));
+      }
+      durationSeconds = finalEndTime.difference(finalStartTime).inSeconds;
+    } else {
+      if (_useManualDuration) {
+        int h = int.tryParse(_elapsedHoursController.text) ?? 0;
+        int m = int.tryParse(_elapsedMinsController.text) ?? 0;
+        int s = int.tryParse(_elapsedSecsController.text) ?? 0;
+        durationSeconds = (h * 3600) + (m * 60) + s;
+        if (durationSeconds <= 0) {
+          _showError('Please enter a valid elapsed duration.');
           return;
         }
+        finalStartTime = now.subtract(Duration(seconds: durationSeconds));
+      } else {
+        if (_startTime == null) {
+          _showError('Please provide a Start Time.');
+          return;
+        }
+        finalStartTime = DateTime(now.year, now.month, now.day, _startTime!.hour, _startTime!.minute);
+        if (finalStartTime.isAfter(now)) {
+          finalStartTime = finalStartTime.subtract(const Duration(days: 1));
+        }
+        durationSeconds = now.difference(finalStartTime).inSeconds;
+        if (durationSeconds <= 0) durationSeconds = 60; // fallback
       }
     }
 
-    if (_step == 3 && _gameType == GameType.standard && _billingType == null) {
-      _showError('Please select a billing type.');
+    if (_billingType == null) {
+      _showError('Please select a Billing Type.');
       return;
     }
 
-
-
-    final isPerFrame = _gameType == GameType.standard && _billingType == BillingType.perFrame;
-    if (_step == 3 && !isPerFrame) {
-      _startManualGame(); // Skip frame step if not per frame
+    final hasValidPlayer = _playerSelections.any((s) => s != null && s.name.trim().isNotEmpty);
+    if (!hasValidPlayer) {
+      _showError('Please add at least one player.');
       return;
     }
 
-    if (_step == 4) {
-      if (_currentFrame > _totalFrames) {
-        _showError('Current frame cannot exceed total frames.');
+    double? customPrice;
+    if (_useCustomPrice) {
+      customPrice = double.tryParse(_customPriceController.text);
+      if (customPrice == null || customPrice <= 0) {
+        _showError('Please enter a valid custom price.');
         return;
       }
-      _startManualGame();
-      return;
-    }
-
-    setState(() => _step++);
-  }
-
-  Future<void> _startManualGame() async {
-    FocusScope.of(context).unfocus();
-    await Future.delayed(const Duration(milliseconds: 50));
-    
-    // 1. Frame validation
-    if (_gameType == GameType.standard && _billingType == BillingType.perFrame) {
-      if (_totalFrames <= 0) {
-        _showError('Frame count must be a valid number greater than 0.');
-        return;
-      }
-    }
-
-    // 2. Duplicate Players Check
-    final duplicateError = GameValidationUtils.validateDuplicatePlayersWithinGame(
-      _teamASelections, 
-      _mode == GameMode.team ? _teamBSelections : []
-    );
-    
-    if (duplicateError != null) {
-      _showError(duplicateError);
-      return;
     }
 
     setState(() => _isLoading = true);
 
-    // 3. Active Elsewhere Check
-    final activeElsewhereError = await GameValidationUtils.checkPlayerActiveElsewhere(
-      [..._teamASelections, if (_mode == GameMode.team) ..._teamBSelections], 
-      ref, 
-      _selectedTable!.id
-    );
+    try {
+      final gamesRepo = ref.read(gamesRepositoryProvider);
+      final creditRepo = ref.read(creditRepositoryProvider);
+      final appSettings = ref.read(appSettingsProvider);
 
-    if (activeElsewhereError != null) {
-      _showError(activeElsewhereError);
-      setState(() => _isLoading = false);
-      return;
-    }
+      // Process Players
+      final newProfilesToCreate = <PlayerProfile>[];
+      final teamANames = <String>[];
+      final finalPlayerIds = <String>[];
 
-    final actualBillingType = _gameType == GameType.standard ? _billingType! : BillingType.perMinute;
-    final actualMatchType = MatchType.friendly;
-
-    final now = DateTime.now();
-    final h = int.tryParse(_elapsedHoursController.text) ?? 0;
-    final m = int.tryParse(_elapsedMinsController.text) ?? 0;
-    final s = int.tryParse(_elapsedSecsController.text) ?? 0;
-    final durationSeconds = (h * 3600) + (m * 60) + s;
-    final startTime = now.subtract(Duration(seconds: durationSeconds));
-
-    final teamANames = _teamASelections.where((s) => s != null).map((s) => s!.name.trim()).where((n) => n.isNotEmpty).toList();
-    final teamBNames = _mode == GameMode.team ? _teamBSelections.where((s) => s != null).map((s) => s!.name.trim()).where((n) => n.isNotEmpty).toList() : <String>[];
-
-    final allSelections = [..._teamASelections, if (_mode == GameMode.team) ..._teamBSelections]
-        .where((s) => s != null)
-        .map((s) => s!)
-        .toList();
-
-    final List<String> finalPlayerIds = [];
-    final creditRepo = ref.read(creditRepositoryProvider);
-    final gamesRepo = ref.read(gamesRepositoryProvider);
-    final List<PlayerProfile> newProfilesToCreate = [];
-
-    for (final sel in allSelections) {
-      if (sel.name.trim().isEmpty) continue;
-      if (sel.id != null) {
-        finalPlayerIds.add(sel.id!);
-      } else {
-        final newId = FirebaseFirestore.instance.collection('credits').doc().id;
-        final newProfile = PlayerProfile(
-          id: newId,
-          name: sel.name.trim(),
-          lastTransactionDate: now,
-        );
-        newProfilesToCreate.add(newProfile);
-        finalPlayerIds.add(newId);
-      }
-    }
-
-    final docRef = FirebaseFirestore.instance.collection('games').doc();
-
-    List<GameRound> rounds = [];
-    int framesPlayed = 0;
-
-    final appSettings = ref.read(appSettingsProvider);
-    final pricingSnapshot = appSettings.pricing;
-    final double? customPrice = (_useCustomPrice && !_selectedTable!.type.isOtherGame) 
-      ? double.tryParse(_customPriceController.text)
-      : TablePricingConfig.getPrice(_selectedTable!, _gameType, actualBillingType, pricingSnapshot);
-
-    final double? customExtraCharge = TablePricingConfig.getExtraCharge(_selectedTable!, _gameType, actualBillingType, pricingSnapshot);
-
-    if (actualBillingType == BillingType.perFrame) {
-      framesPlayed = _currentFrame;
-      final perFrameDuration = durationSeconds ~/ framesPlayed;
-      final graceSeconds = appSettings.game.frameGracePeriodMinutes * 60;
-      final overtimeEnabled = appSettings.game.enableOvertimeBilling;
-      
-      final perMinutePrice = TablePricingConfig.getPerMinutePrice(_selectedTable!.type, _gameType, pricingSnapshot);
-      final perSecondRate = customPrice != null ? (customPrice / 60.0) : (perMinutePrice / 60.0);
-
-      for (int i = 1; i <= framesPlayed; i++) {
-        final roundStart = startTime.add(Duration(seconds: perFrameDuration * (i - 1)));
-        final roundEnd = startTime.add(Duration(seconds: perFrameDuration * i));
+      for (var s in _playerSelections) {
+        if (s == null) continue;
+        String name = s.name.trim();
+        if (name.isEmpty) continue;
+        teamANames.add(name);
         
-        int? roundOvertimeMinutes;
-        double? roundOvertimeCharge;
-        
-        final overtimeSeconds = perFrameDuration - graceSeconds;
-        if (overtimeEnabled && overtimeSeconds > 0) {
-          roundOvertimeMinutes = (overtimeSeconds / 60.0).ceil();
-          roundOvertimeCharge = overtimeSeconds * perSecondRate;
+        if (s.id != null) {
+          finalPlayerIds.add(s.id!);
+        } else {
+          // New player - don't create profiles for default players
+          if (!name.toLowerCase().startsWith('default ')) {
+             final newId = FirebaseFirestore.instance.collection('credits').doc().id;
+             final newProfile = PlayerProfile(
+               id: newId,
+               name: name,
+               lastTransactionDate: now,
+             );
+             newProfilesToCreate.add(newProfile);
+             finalPlayerIds.add(newId);
+          }
         }
+      }
 
-        rounds.add(GameRound(
-          roundNumber: i,
-          roundCost: 0,
-          startTime: roundStart,
-          endTime: roundEnd,
-          durationSeconds: perFrameDuration,
-          overtimeMinutes: roundOvertimeMinutes,
-          overtimeCharge: roundOvertimeCharge,
+      int framesPlayed = (_billingType == BillingType.perFrame) ? _currentFrame : 0;
+      List<GameRound> rounds = [];
+      if (_billingType == BillingType.perFrame) {
+        rounds = List.generate(_currentFrame, (index) => GameRound(
+          roundNumber: index + 1,
+          durationSeconds: index == _currentFrame - 1 ? durationSeconds : 0,
+          startTime: finalStartTime!,
+          endTime: index == _currentFrame - 1 ? (now) : null,
+          roundCost: 0.0,
         ));
       }
-    }
 
-    final session = GameSession(
-      id: docRef.id,
-      tableId: _selectedTable!.id,
-      tableName: _selectedTable!.name,
-      tableType: _selectedTable!.type,
-      gameType: _gameType,
-      targetPoints: _targetPoints,
-      mode: _mode,
-      billingType: actualBillingType,
-      matchType: actualMatchType,
-      teamA: teamANames,
-      teamB: teamBNames,
-      playerIds: finalPlayerIds,
-      status: widget.isCompletedGame ? TableStatus.billing : TableStatus.running,
-      startTime: startTime,
-      endTime: widget.isCompletedGame ? now : null,
-      totalFrames: _totalFrames,
-      framesPlayed: framesPlayed,
-      rounds: rounds,
-      employeeId: widget.employeeId,
-      date: DateFormat('yyyy-MM-dd').format(startTime),
-      isManualEntry: widget.isCompletedGame, // True only for completed backdated games
-      recordedTime: now,
-      pricingSnapshot: pricingSnapshot,
-      gameSettingsSnapshot: appSettings.game,
-      customPrice: customPrice,
-      customExtraCharge: customExtraCharge,
-    );
+      final pricingSnapshot = appSettings.pricing;
 
-    if (mounted) {
-      if (widget.isCompletedGame) {
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(
-            builder: (context) => BillingScreen(session: session),
-          ),
-        );
-      } else {
-        Navigator.of(context).pop();
+      double? customExtraCharge = TablePricingConfig.getExtraCharge(_selectedTable!, GameType.standard, _billingType!, pricingSnapshot);
+
+      final session = GameSession(
+        id: FirebaseFirestore.instance.collection('dummy').doc().id,
+        tableId: _selectedTable!.id,
+        tableName: _selectedTable!.name,
+        tableType: _selectedTable!.type,
+        gameType: GameType.standard,
+        matchType: MatchType.friendly,
+        billingType: _billingType!,
+        mode: GameMode.solo,
+        teamA: teamANames,
+        teamB: [],
+        playerIds: finalPlayerIds,
+        status: _isCompletedMode ? TableStatus.billing : TableStatus.running,
+        startTime: finalStartTime!,
+        endTime: _isCompletedMode ? finalStartTime.add(Duration(seconds: durationSeconds)) : null,
+        totalFrames: _currentFrame,
+        framesPlayed: framesPlayed,
+        rounds: rounds,
+        employeeId: widget.employeeId,
+        date: DateFormat('yyyy-MM-dd').format(finalStartTime),
+        isManualEntry: _isCompletedMode,
+        recordedTime: now,
+        pricingSnapshot: pricingSnapshot,
+        gameSettingsSnapshot: appSettings.game,
+        customPrice: customPrice,
+        customExtraCharge: customExtraCharge,
+      );
+
+      if (mounted) {
+        if (_isCompletedMode) {
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(
+              builder: (context) => BillingScreen(session: session),
+            ),
+          );
+        } else {
+          Navigator.of(context).pop();
+        }
+      }
+
+      Future.delayed(const Duration(milliseconds: 400), () async {
+        try {
+          for (final p in newProfilesToCreate) {
+            await creditRepo.savePlayerProfile(p);
+          }
+          if (!_isCompletedMode) {
+            await gamesRepo.startGame(session);
+          }
+        } catch (e) {
+          debugPrint('Failed to process manual game setup in background.');
+        }
+      });
+      
+    } catch (e) {
+      if (mounted) {
+        _showError('Error: $e');
+        setState(() => _isLoading = false);
       }
     }
-
-    Future.delayed(const Duration(milliseconds: 400), () async {
-      try {
-        for (final p in newProfilesToCreate) {
-          await creditRepo.savePlayerProfile(p);
-        }
-        if (!widget.isCompletedGame) {
-          await gamesRepo.startGame(session);
-        }
-      } catch (e) {
-        debugPrint('Failed to process manual game setup in background: ');
-      }
-    });
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final tables = ref.watch(resolvedTablesProvider);
-    final stepTitles = ['Select Table', 'Start Time', 'Players', 'Billing', 'Frame Setup'];
-    
-    final isPerFrame = _gameType == GameType.standard && _billingType == BillingType.perFrame;
-    final totalSteps = isPerFrame ? 5 : 4;
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.isCompletedGame ? 'Record Completed Game' : 'Record Ongoing Game'),
+        title: const Text('Manual Entry'),
         leading: IconButton(
           icon: const Icon(Icons.close),
           onPressed: () => Navigator.of(context).pop(),
@@ -659,175 +310,305 @@ class _ManualGameSetupScreenState extends ConsumerState<ManualGameSetupScreen> w
       ),
       body: Column(
         children: [
-          // Step Progress
+          // Segmented Button
           Padding(
             padding: const EdgeInsets.all(20),
-            child: Row(
-              children: List.generate(totalSteps, (i) {
-                return Expanded(
-                  child: Container(
-                    height: 4,
-                    margin: EdgeInsets.only(right: i < totalSteps - 1 ? 4 : 0),
-                    decoration: BoxDecoration(
-                      color: i <= _step ? AppColors.primary : theme.colorScheme.outlineVariant,
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                  ),
-                );
-              }),
+            child: SegmentedButton<bool>(
+              segments: const [
+                ButtonSegment(value: false, label: Text('Ongoing Game')),
+                ButtonSegment(value: true, label: Text('Completed Game')),
+              ],
+              selected: {_isCompletedMode},
+              onSelectionChanged: (Set<bool> newSelection) {
+                setState(() {
+                  _isCompletedMode = newSelection.first;
+                });
+              },
             ),
           ),
-          Text(
-            'Step ${_step + 1} of ${totalSteps} — ${stepTitles[_step]}',
-            style: theme.textTheme.labelMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant),
-          ),
-          const Gap(16),
-          // Content
+
           Expanded(
             child: SingleChildScrollView(
               padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Builder(builder: (context) {
-                switch (_step) {
-                  case 0: return _buildStep0TableSelection(theme, tables);
-                  case 1: return _buildStep1TimeSelection(theme);
-                  case 2: return _buildStep2Players(theme);
-                  case 3: return _buildStep3Billing(theme);
-                  case 4: return _buildStep4Frames(theme);
-                  default: return const SizedBox();
-                }
-              }),
-            ),
-          ),
-          // Actions
-          Padding(
-            padding: const EdgeInsets.all(20),
-            child: Row(
-              children: [
-                if (_step > 0)
-                  Expanded(
-                    child: OutlinedButton(
-                      onPressed: () => setState(() => _step--),
-                      child: const Text('Back'),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // --- TABLE SELECTION ---
+                  if (widget.initialTable == null) ...[
+                    Text('Table', style: theme.textTheme.labelMedium),
+                    const Gap(8),
+                    DropdownButtonFormField<TableModel>(
+                      value: _selectedTable,
+                      hint: const Text('Select a table'),
+                      items: tables.map((t) => DropdownMenuItem(value: t, child: Text(t.name))).toList(),
+                      onChanged: (val) {
+                        setState(() {
+                          _selectedTable = val;
+                          _billingType = BillingType.perMinute; // Reset billing when table changes
+                        });
+                      },
+                      decoration: InputDecoration(
+                        filled: true,
+                        fillColor: theme.colorScheme.surfaceContainerHighest,
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                      ),
+                    ),
+                    const Gap(32),
+                  ],
+
+                  // --- TIME SELECTION ---
+                  Text('Time', style: theme.textTheme.labelMedium),
+                  const Gap(8),
+                  if (_isCompletedMode) ...[
+                    Row(
+                      children: [
+                        Expanded(
+                          child: InkWell(
+                            onTap: () => _pickTime(true),
+                            borderRadius: BorderRadius.circular(12),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                              decoration: BoxDecoration(
+                                color: theme.colorScheme.surfaceContainerHighest,
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Row(
+                                children: [
+                                  Icon(Icons.access_time, color: theme.colorScheme.primary, size: 20),
+                                  const Gap(8),
+                                  Text(_startTime?.format(context) ?? 'Start Time'),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                        const Gap(12),
+                        Expanded(
+                          child: InkWell(
+                            onTap: () => _pickTime(false),
+                            borderRadius: BorderRadius.circular(12),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                              decoration: BoxDecoration(
+                                color: theme.colorScheme.surfaceContainerHighest,
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Row(
+                                children: [
+                                  Icon(Icons.access_time, color: theme.colorScheme.primary, size: 20),
+                                  const Gap(8),
+                                  Text(_endTime?.format(context) ?? 'End Time'),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ] else ...[
+                    // Ongoing Mode
+                    Row(
+                      children: [
+                        Expanded(
+                          child: ChoiceChip(
+                            label: const Text('Set Start Time'),
+                            selected: !_useManualDuration,
+                            onSelected: (val) => setState(() => _useManualDuration = !val),
+                          ),
+                        ),
+                        const Gap(12),
+                        Expanded(
+                          child: ChoiceChip(
+                            label: const Text('Enter Duration'),
+                            selected: _useManualDuration,
+                            onSelected: (val) => setState(() => _useManualDuration = val),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const Gap(16),
+                    if (!_useManualDuration)
+                      InkWell(
+                        onTap: () => _pickTime(true),
+                        borderRadius: BorderRadius.circular(12),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                          decoration: BoxDecoration(
+                            color: theme.colorScheme.surfaceContainerHighest,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(Icons.access_time, color: theme.colorScheme.primary, size: 20),
+                              const Gap(8),
+                              Text(_startTime?.format(context) ?? 'Tap to select start time'),
+                            ],
+                          ),
+                        ),
+                      )
+                    else
+                      Row(
+                        children: [
+                          Expanded(
+                            child: AppTextField(
+                              controller: _elapsedHoursController,
+                              label: 'Hours',
+                              keyboardType: TextInputType.number,
+                              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                            ),
+                          ),
+                          const Gap(8),
+                          Expanded(
+                            child: AppTextField(
+                              controller: _elapsedMinsController,
+                              label: 'Mins',
+                              keyboardType: TextInputType.number,
+                              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                            ),
+                          ),
+                          const Gap(8),
+                          Expanded(
+                            child: AppTextField(
+                              controller: _elapsedSecsController,
+                              label: 'Secs',
+                              keyboardType: TextInputType.number,
+                              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                            ),
+                          ),
+                        ],
+                      ),
+                  ],
+                  const Gap(32),
+
+                  // --- PLAYERS ---
+                  Text('Players', style: theme.textTheme.labelMedium),
+                  const Gap(8),
+                  for (int i = 0; i < _playerSelections.length; i++)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 8.0),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: PlayerSearchField(
+                              hint: 'Player ' + (i + 1).toString(),
+                              initialSelection: _playerSelections[i],
+                              onSelected: (val) {
+                                setState(() {
+                                  _playerSelections[i] = val;
+                                });
+                              },
+                            ),
+                          ),
+                          if (_playerSelections.length > 1)
+                            IconButton(
+                              icon: const Icon(Icons.remove_circle_outline, color: Colors.red),
+                              onPressed: () => _removePlayer(i),
+                            ),
+                        ],
+                      ),
+                    ),
+                  TextButton.icon(
+                    onPressed: _addPlayer,
+                    icon: const Icon(Icons.add),
+                    label: const Text('Add Player'),
+                  ),
+                  const Gap(32),
+
+                  // --- BILLING TYPE ---
+                  Text('Billing', style: theme.textTheme.labelMedium),
+                  const Gap(8),
+                  if (_selectedTable != null) ...[
+                    DropdownButtonFormField<BillingType>(
+                      value: _billingType,
+                      hint: const Text('Select Billing Type'),
+                      items: BillingType.values.where((b) {
+                        if (b == BillingType.perCoin) return false; // Not for manual entry
+                        if (_selectedTable!.billingOptions != null) {
+                          return _selectedTable!.billingOptions![b.name]?.enabled == true;
+                        }
+                        if (_selectedTable!.type == TableType.snooker && b == BillingType.perFrame) return false;
+                        return true;
+                      }).map((b) {
+                        String label = '';
+                        switch (b) {
+                          case BillingType.perMinute: label = 'Per Minute'; break;
+                          case BillingType.halfHour: label = 'Half Hour'; break;
+                          case BillingType.oneHour: label = 'One Hour'; break;
+                          case BillingType.perFrame: label = 'Per Frame'; break;
+                          case BillingType.perCoin: label = 'Per Coin'; break;
+                        }
+                        return DropdownMenuItem(value: b, child: Text(label));
+                      }).toList(),
+                      onChanged: (val) => setState(() => _billingType = val),
+                      decoration: InputDecoration(
+                        filled: true,
+                        fillColor: theme.colorScheme.surfaceContainerHighest,
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                      ),
+                    ),
+                    const Gap(16),
+                    if (_billingType == BillingType.perMinute && _selectedTable!.allowCustomPrice) ...[
+                      SwitchListTile(
+                        title: const Text('Custom Base Price'),
+                        value: _useCustomPrice,
+                        onChanged: (val) {
+                          setState(() {
+                            _useCustomPrice = val;
+                            if (!val) _customPriceController.clear();
+                          });
+                        },
+                        contentPadding: EdgeInsets.zero,
+                      ),
+                      if (_useCustomPrice)
+                        AppTextField(
+                          controller: _customPriceController,
+                          label: 'Custom Base Price (\$/min)',
+                          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                        ),
+                    ],
+                    if (_billingType == BillingType.perFrame) ...[
+                      const Gap(16),
+                      Text('Frames Played', style: theme.textTheme.titleSmall),
+                      Row(
+                        children: [
+                          IconButton(
+                            icon: const Icon(Icons.remove_circle_outline),
+                            onPressed: () {
+                              if (_currentFrame > 1) setState(() => _currentFrame--);
+                            },
+                          ),
+                          Text('$_currentFrame', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                          IconButton(
+                            icon: const Icon(Icons.add_circle_outline),
+                            onPressed: () => setState(() => _currentFrame++),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ] else
+                    Text('Select a table first', style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
+                  
+                  const Gap(32),
+
+                  // --- ACTION BUTTON ---
+                  SizedBox(
+                    width: double.infinity,
+                    height: 52,
+                    child: FilledButton(
+                      onPressed: _isLoading ? null : _handleSave,
+                      child: _isLoading
+                          ? const CircularProgressIndicator(color: Colors.white)
+                          : Text(_isCompletedMode ? 'Generate Bill' : 'Start Game', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                     ),
                   ),
-                if (_step > 0) const Gap(12),
-                Expanded(
-                  flex: 2,
-                  child: FilledButton(
-                    onPressed: _isLoading ? null : _handleNext,
-                    child: _isLoading
-                        ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
-                        : Text(_step == totalSteps - 1 ? (widget.isCompletedGame ? 'Generate Bill' : 'Start Game') : 'Next'),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _SelectionTile extends StatelessWidget {
-  final String title;
-  final String? subtitle;
-  final bool isSelected;
-
-  const _SelectionTile({
-    required this.title,
-    this.subtitle,
-    required this.isSelected,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Container(
-      margin: const EdgeInsets.only(bottom: 10),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-      decoration: BoxDecoration(
-        color: isSelected ? AppColors.primary.withValues(alpha: 0.08) : theme.colorScheme.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(12),
-        border: isSelected ? Border.all(color: AppColors.primary, width: 1.5) : Border.all(color: Colors.transparent),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: theme.textTheme.titleSmall?.copyWith(
-                    color: isSelected ? AppColors.primary : theme.colorScheme.onSurface,
-                  ),
-                ),
-                if (subtitle != null) ...[
-                  const Gap(2),
-                  Text(
-                    subtitle!,
-                    style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
-                  ),
+                  const Gap(64),
                 ],
-              ],
+              ),
             ),
           ),
-          if (isSelected) const Icon(Icons.check_circle, color: AppColors.primary),
         ],
       ),
     );
   }
 }
 
-class _TeamPlayerFields extends StatelessWidget {
-  final String teamLabel;
-  final List<PlayerSelection?> selections;
-  final void Function(int, PlayerSelection) onChange;
-  final VoidCallback onAdd;
-  final void Function(int) onRemove;
-
-  const _TeamPlayerFields({
-    required this.teamLabel,
-    required this.selections,
-    required this.onChange,
-    required this.onAdd,
-    required this.onRemove,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(teamLabel, style: Theme.of(context).textTheme.labelMedium),
-        const SizedBox(height: 8),
-        for (int i = 0; i < selections.length; i++)
-          Padding(
-            padding: const EdgeInsets.only(bottom: 8.0),
-            child: Row(
-              children: [
-                Expanded(
-                  child: PlayerSearchField(
-                    hint: 'Player ' + (i + 1).toString(),
-                    initialSelection: selections[i],
-                    onSelected: (val) => onChange(i, val),
-                  ),
-                ),
-                if (selections.length > 1)
-                  IconButton(
-                    icon: const Icon(Icons.remove_circle_outline, color: Colors.red),
-                    onPressed: () => onRemove(i),
-                  ),
-              ],
-            ),
-          ),
-        TextButton.icon(
-          onPressed: onAdd,
-          icon: const Icon(Icons.add),
-          label: const Text('Add Player'),
-        ),
-      ],
-    );
-  }
-}
