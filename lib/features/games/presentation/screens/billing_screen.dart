@@ -1091,7 +1091,7 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
             child: const Text('Cancel'),
           ),
           FilledButton(
-            onPressed: () {
+            onPressed: () async {
               if (nameCtrl.text.trim().isNotEmpty) {
                 setState(() {
                   _PlayerProfileName = nameCtrl.text.trim();
@@ -1104,7 +1104,11 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
                 });
                 Navigator.pop(ctx);
                 if (autoConfirm) {
-                  _confirmPayment();
+                  // Wait for dialog exit animation to finish before navigating away
+                  await Future.delayed(const Duration(milliseconds: 300));
+                  if (mounted) {
+                    _confirmPayment();
+                  }
                 }
               }
             },
@@ -1188,13 +1192,13 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
           .read(gameSessionControllerProvider.notifier)
           .endGame(finalSession);
       if (mounted) {
+        context.go('/games');
         messenger.showSnackBar(
           const SnackBar(
             content: Text('Payment recorded. Table is now available.'),
             backgroundColor: AppColors.success,
           ),
         );
-        context.go('/games');
         return; // Skip finally block to prevent setState during disposal
       }
     } catch (e) {
