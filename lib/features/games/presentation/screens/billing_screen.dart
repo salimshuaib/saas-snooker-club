@@ -311,55 +311,10 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // ── Session Summary ──
-            Container(
-              decoration: BoxDecoration(
-                color: theme.colorScheme.surface,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: theme.colorScheme.outlineVariant),
-              ),
-              child: Theme(
-                data: theme.copyWith(dividerColor: Colors.transparent),
-                child: ExpansionTile(
-                  tilePadding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 0,
-                  ),
-                  childrenPadding: const EdgeInsets.only(
-                    left: 16,
-                    right: 16,
-                    bottom: 16,
-                  ),
-                  title: _InfoRow(label: 'Table', value: _session.tableName),
-                  subtitle: _InfoRow(
-                    label: 'Duration',
-                    value: _formatDuration(_session.activeSeconds),
-                  ),
-                  children: [
-                    _InfoRow(
-                      label: 'Billing',
-                      value: _session.billingType.displayName,
-                    ),
-                    _InfoRow(
-                      label: 'Players',
-                      value: _session.allPlayers.join(', '),
-                    ),
-                    _InfoRow(
-                      label: 'Start Time',
-                      value: dtFmt.format(_session.startTime),
-                    ),
-                    _InfoRow(
-                      label: 'End Time',
-                      value: dtFmt.format(_session.endTime!),
-                    ),
-                    if (_session.billingType == BillingType.perFrame)
-                      _InfoRow(
-                        label: 'Frames',
-                        value:
-                            '${_session.framesPlayed > 0 ? _session.framesPlayed : _session.totalFrames}',
-                      ),
-                  ],
-                ),
-              ),
+            _ExpandableSessionCard(
+              session: _session,
+              dtFmt: dtFmt,
+              durationStr: _formatDuration(_session.activeSeconds),
             ),
             const Gap(16),
 
@@ -1340,6 +1295,97 @@ class _WinnerTile extends StatelessWidget {
             if (isSelected)
               const Icon(Icons.check_circle, color: AppColors.success),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ExpandableSessionCard extends StatefulWidget {
+  final GameSession session;
+  final DateFormat dtFmt;
+  final String durationStr;
+
+  const _ExpandableSessionCard({
+    required this.session,
+    required this.dtFmt,
+    required this.durationStr,
+  });
+
+  @override
+  State<_ExpandableSessionCard> createState() => _ExpandableSessionCardState();
+}
+
+class _ExpandableSessionCardState extends State<_ExpandableSessionCard> {
+  bool _isExpanded = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final s = widget.session;
+    return Container(
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: theme.colorScheme.outlineVariant),
+      ),
+      child: InkWell(
+        onTap: () => setState(() => _isExpanded = !_isExpanded),
+        borderRadius: BorderRadius.circular(16),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Table',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                  Row(
+                    children: [
+                      Text(
+                        s.tableName,
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Icon(
+                        _isExpanded ? Icons.expand_less : Icons.expand_more,
+                        size: 20,
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              _InfoRow(label: 'Duration', value: widget.durationStr),
+              if (_isExpanded) ...[
+                _InfoRow(label: 'Billing', value: s.billingType.displayName),
+                _InfoRow(label: 'Players', value: s.allPlayers.join(', ')),
+                _InfoRow(
+                  label: 'Start Time',
+                  value: widget.dtFmt.format(s.startTime),
+                ),
+                _InfoRow(
+                  label: 'End Time',
+                  value: widget.dtFmt.format(s.endTime!),
+                ),
+                if (s.billingType == BillingType.perFrame)
+                  _InfoRow(
+                    label: 'Frames',
+                    value:
+                        '${s.framesPlayed > 0 ? s.framesPlayed : s.totalFrames}',
+                  ),
+              ],
+            ],
+          ),
         ),
       ),
     );
