@@ -1162,17 +1162,19 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
     );
 
     try {
+      final messenger = ScaffoldMessenger.of(context);
       await ref
           .read(gameSessionControllerProvider.notifier)
           .endGame(finalSession);
       if (mounted) {
-        context.go('/games');
-        ScaffoldMessenger.of(context).showSnackBar(
+        messenger.showSnackBar(
           const SnackBar(
             content: Text('Payment recorded. Table is now available.'),
             backgroundColor: AppColors.success,
           ),
         );
+        context.go('/games');
+        return; // Skip finally block to prevent setState during disposal
       }
     } catch (e) {
       if (mounted) {
@@ -1183,8 +1185,9 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
           ),
         );
       }
-    } finally {
-      if (mounted) setState(() => _isProcessing = false);
+    }
+    if (mounted) {
+      setState(() => _isProcessing = false);
     }
   }
 }
@@ -1337,53 +1340,75 @@ class _ExpandableSessionCardState extends State<_ExpandableSessionCard> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    'Table',
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: theme.colorScheme.onSurfaceVariant,
-                    ),
-                  ),
-                  Row(
-                    children: [
-                      Text(
-                        s.tableName,
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          fontWeight: FontWeight.w600,
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 4),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Row(
+                      children: [
+                        Text(
+                          'Table',
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: theme.colorScheme.onSurfaceVariant,
+                          ),
                         ),
+                        const SizedBox(width: 6),
+                        AnimatedRotation(
+                          turns: _isExpanded ? 0.5 : 0.0,
+                          duration: const Duration(milliseconds: 300),
+                          curve: Curves.easeInOut,
+                          child: Icon(
+                            Icons.expand_more,
+                            size: 18,
+                            color: theme.colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ],
+                    ),
+                    Text(
+                      s.tableName,
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        fontWeight: FontWeight.w600,
                       ),
-                      const SizedBox(width: 8),
-                      Icon(
-                        _isExpanded ? Icons.expand_less : Icons.expand_more,
-                        size: 20,
-                        color: theme.colorScheme.onSurfaceVariant,
-                      ),
-                    ],
-                  ),
-                ],
+                    ),
+                  ],
+                ),
               ),
-              const SizedBox(height: 8),
               _InfoRow(label: 'Duration', value: widget.durationStr),
-              if (_isExpanded) ...[
-                _InfoRow(label: 'Billing', value: s.billingType.displayName),
-                _InfoRow(label: 'Players', value: s.allPlayers.join(', ')),
-                _InfoRow(
-                  label: 'Start Time',
-                  value: widget.dtFmt.format(s.startTime),
-                ),
-                _InfoRow(
-                  label: 'End Time',
-                  value: widget.dtFmt.format(s.endTime!),
-                ),
-                if (s.billingType == BillingType.perFrame)
-                  _InfoRow(
-                    label: 'Frames',
-                    value:
-                        '${s.framesPlayed > 0 ? s.framesPlayed : s.totalFrames}',
-                  ),
-              ],
+              AnimatedSize(
+                duration: const Duration(milliseconds: 300),
+                curve: Curves.easeInOut,
+                alignment: Alignment.topCenter,
+                child: _isExpanded
+                    ? Column(
+                        children: [
+                          _InfoRow(
+                            label: 'Billing',
+                            value: s.billingType.displayName,
+                          ),
+                          _InfoRow(
+                            label: 'Players',
+                            value: s.allPlayers.join(', '),
+                          ),
+                          _InfoRow(
+                            label: 'Start Time',
+                            value: widget.dtFmt.format(s.startTime),
+                          ),
+                          _InfoRow(
+                            label: 'End Time',
+                            value: widget.dtFmt.format(s.endTime!),
+                          ),
+                          if (s.billingType == BillingType.perFrame)
+                            _InfoRow(
+                              label: 'Frames',
+                              value:
+                                  '${s.framesPlayed > 0 ? s.framesPlayed : s.totalFrames}',
+                            ),
+                        ],
+                      )
+                    : const SizedBox.shrink(),
+              ),
             ],
           ),
         ),
