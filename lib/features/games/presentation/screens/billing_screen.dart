@@ -644,7 +644,7 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
                       tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                     ),
                     icon: const Icon(Icons.call_split, size: 16),
-                    label: const Text('Split'),
+                    label: const Text('Payment Breakdown'),
                   ),
                 ],
               ),
@@ -693,12 +693,18 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
                           (splits.isNotEmpty && splits.keys.first == method);
                       return Expanded(
                         child: GestureDetector(
-                          onTap: () => setState(() {
-                            _paymentMethod = method;
-                            _playerPaymentSplits[player] = {
-                              method: _finalTotal,
-                            };
-                          }),
+                          onTap: () {
+                            if (method == PaymentMethod.credit && !isSplit && _session.allPlayers.length == 1 && player.toLowerCase().startsWith('default')) {
+                              _showCreditNameDialog(player, autoConfirm: true);
+                            } else {
+                              setState(() {
+                                _paymentMethod = method;
+                                _playerPaymentSplits[player] = {
+                                  method: _finalTotal,
+                                };
+                              });
+                            }
+                          },
                           child: Container(
                             margin: EdgeInsets.only(
                               right: method != PaymentMethod.credit ? 8 : 0,
@@ -744,7 +750,8 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
                   );
                 },
               ),
-              if (_paymentMethod == PaymentMethod.credit) ...[
+              if (_paymentMethod == PaymentMethod.credit && 
+                  !(_session.allPlayers.length == 1 && _session.allPlayers.first.toLowerCase().startsWith('default'))) ...[
                 const Gap(24),
                 Text(
                   'Select Customer for Credit',
@@ -909,7 +916,7 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
                               tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                             ),
                             child: const Text(
-                              'Split',
+                              'Payment Breakdown',
                               style: TextStyle(fontSize: 12),
                             ),
                           ),
@@ -1061,10 +1068,13 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
     }
   }
 
-  void _showCreditNameDialog(String defaultName) {
-    final nameCtrl = TextEditingController(
-      text: defaultName.toLowerCase().startsWith('default') ? '' : defaultName,
-    );
+  void _showCreditNameDialog(String defaultName, {bool autoConfirm = false}) {
+    final initialText = _PlayerProfileName != null && !_PlayerProfileName!.toLowerCase().startsWith('default') 
+        ? _PlayerProfileName! 
+        : (defaultName.toLowerCase().startsWith('default') ? '' : defaultName);
+        
+    final nameCtrl = TextEditingController(text: initialText);
+    
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -1083,11 +1093,22 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
           FilledButton(
             onPressed: () {
               if (nameCtrl.text.trim().isNotEmpty) {
-                setState(() => _PlayerProfileName = nameCtrl.text.trim());
+                setState(() {
+                  _PlayerProfileName = nameCtrl.text.trim();
+                  if (autoConfirm) {
+                    _paymentMethod = PaymentMethod.credit;
+                    _playerPaymentSplits[defaultName] = {
+                      PaymentMethod.credit: _finalTotal,
+                    };
+                  }
+                });
                 Navigator.pop(ctx);
+                if (autoConfirm) {
+                  _confirmPayment();
+                }
               }
             },
-            child: const Text('Save'),
+            child: Text(autoConfirm ? 'Record Payment' : 'Save'),
           ),
         ],
       ),
