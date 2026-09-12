@@ -1,8 +1,5 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/foundation.dart';
 
 void logToFirestore(String message) {
-  FirebaseFirestore.instance.collection('debug_logs').add({
-    'timestamp': FieldValue.serverTimestamp(),
-    'message': message,
-  });
+  debugPrint('Debug Log: $message');
 }
