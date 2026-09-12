@@ -514,9 +514,7 @@ class _GameSetupDialogState extends ConsumerState<GameSetupDialog> {
           for (final profile in newProfilesToCreate) {
             await creditRepo.savePlayerProfile(profile);
           }
-          if (_tableType == TableType.arcade) {
-            await gamesRepo.saveGameOnly(gameSession);
-          } else {
+          if (_tableType != TableType.arcade) {
             await gamesRepo.startGame(gameSession);
           }
         } catch (e) {

@@ -6,6 +6,7 @@ import 'package:snooker_club/features/games/domain/models/game_models.dart';
 import 'package:snooker_club/features/games/providers/games_providers.dart';
 import 'package:snooker_club/features/games/presentation/widgets/game_setup_dialog.dart';
 import 'package:snooker_club/features/team/providers/team_providers.dart';
+import 'package:snooker_club/features/games/presentation/screens/billing_screen.dart';
 
 class StartGameSheet extends ConsumerWidget {
   const StartGameSheet({super.key});
@@ -159,14 +160,18 @@ class StartGameSheet extends ConsumerWidget {
         title: Text(table.name, style: const TextStyle(fontWeight: FontWeight.bold)),
         subtitle: Text(AppLocalizations.of(context)!.available),
         trailing: const Icon(Icons.chevron_right),
-        onTap: () {
+        onTap: () async {
           // Close this sheet, open the setup sheet
-          Navigator.pop(context);
-          showDialog(context: context, builder: (context) => GameSetupDialog(
+          final navigator = Navigator.of(context);
+          navigator.pop();
+          final result = await showDialog<GameSession>(context: context, builder: (_) => GameSetupDialog(
               table: table,
               employeeId: employeeId,
             ),
           );
+          if (result != null && result.status == TableStatus.billing) {
+            navigator.push(MaterialPageRoute(builder: (_) => BillingScreen(session: result)));
+          }
         },
       ),
     );

@@ -1,4 +1,5 @@
 import 'package:gap/gap.dart';
+import 'package:snooker_club/features/games/presentation/screens/billing_screen.dart';
 import 'package:snooker_club/features/games/presentation/screens/manual_game_setup_screen.dart';
 import 'package:snooker_club/features/games/presentation/widgets/table_history_sheet.dart';
 import 'package:flutter/material.dart';
@@ -84,12 +85,17 @@ class GameActivityCard extends ConsumerWidget {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   ElevatedButton(
-                    onPressed: () {
+                    onPressed: () async {
                       final employeeId = ref.read(currentStaffProvider).value?.id ?? '';
-                      showDialog(
+                      final result = await showDialog<GameSession>(
                         context: context,
                         builder: (_) => GameSetupDialog(table: table, employeeId: employeeId),
                       );
+                      if (result != null && result.status == TableStatus.billing && context.mounted) {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(builder: (_) => BillingScreen(session: result)),
+                        );
+                      }
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: theme.colorScheme.primary,

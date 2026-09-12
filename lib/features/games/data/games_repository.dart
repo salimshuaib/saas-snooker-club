@@ -456,7 +456,7 @@ class GamesRepository {
       updateMap['remainingAmount'] = 0.0;
     }
 
-    if (session.isManualEntry) {
+    if (session.isManualEntry || session.tableType == TableType.arcade) {
       final fullMap = session.toMap();
       fullMap['status'] = TableStatus.available.name;
       if (session.paymentMethod == PaymentMethod.cash ||
