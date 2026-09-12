@@ -32,14 +32,14 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
   late Map<String, Map<PaymentMethod, double>> _playerPaymentSplits;
   late Map<String, double> _customLiabilities;
   bool _isProcessing = false;
-  
+
   late List<String> _selectedPayers;
   double _discountAmount = 0.0;
   bool _hasDiscount = false;
-  
+
   late TextEditingController _discountController;
   late TextEditingController _discountPercentController;
-  
+
   final Map<String, TextEditingController> _liabilityControllers = {};
 
   bool _liabilitiesInitialized = false;
@@ -51,14 +51,16 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
     _selectedPayers = List.from(_session.selectedPayers ?? _session.allPlayers);
     _discountAmount = _session.discountAmount ?? 0.0;
     _hasDiscount = _discountAmount > 0;
-    
-    _discountController = TextEditingController(text: _discountAmount == 0 ? '' : _discountAmount.toStringAsFixed(0));
+
+    _discountController = TextEditingController(
+      text: _discountAmount == 0 ? '' : _discountAmount.toStringAsFixed(0),
+    );
     // Calculate initial percent if amount exists
     double initialPercent = 0.0;
     // We cannot use _gameCharge here because it requires context for appSettings,
     // so we will just initialize empty and let the UI handle it or we can calculate base.
     _discountPercentController = TextEditingController();
-    
+
     _playerPaymentSplits = {
       for (final p in _session.allPlayers) p: {PaymentMethod.cash: 0.0},
     };
@@ -74,7 +76,6 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
     super.dispose();
   }
 
-
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
@@ -83,7 +84,6 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
       _liabilitiesInitialized = true;
     }
   }
-
 
   void _showAddPlayerDialog() {
     PlayerSelection? newPlayerSelection;
@@ -125,14 +125,14 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
         setState(() {
           final newTeamA = List<String>.from(_session.teamA)..add(playerName);
           _session = _session.copyWith(teamA: newTeamA);
-          
+
           if (!_selectedPayers.contains(playerName)) {
             _selectedPayers.add(playerName);
           }
-          
+
           _playerPaymentSplits[playerName] = {PaymentMethod.cash: 0.0};
           _liabilityControllers[playerName] = TextEditingController();
-          
+
           _initializeLiabilities();
         });
       }
@@ -154,7 +154,7 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
     if (_selectedPayers.isNotEmpty) {
       final rawShare = discountedGame / _selectedPayers.length;
       final roundedShare = BillingUtils.roundAmount(rawShare);
-      
+
       for (final p in _selectedPayers) {
         liabilities[p] = roundedShare;
       }
@@ -162,7 +162,8 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
 
     for (final o in _session.orders) {
       if (o.playerName != null && liabilities.containsKey(o.playerName)) {
-        liabilities[o.playerName!] = (liabilities[o.playerName!] ?? 0.0) + o.total;
+        liabilities[o.playerName!] =
+            (liabilities[o.playerName!] ?? 0.0) + o.total;
       } else {
         final split = o.total / _session.allPlayers.length;
         for (final p in _session.allPlayers) {
@@ -176,7 +177,7 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
       final textValue = amount == 0
           ? '0'
           : amount.toStringAsFixed(amount.truncateToDouble() == amount ? 0 : 2);
-          
+
       if (!_liabilityControllers.containsKey(p)) {
         _liabilityControllers[p] = TextEditingController(text: textValue);
       } else if (_liabilityControllers[p]!.text != textValue) {
@@ -188,7 +189,8 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
       _customLiabilities = liabilities;
       for (final p in _session.allPlayers) {
         final amount = liabilities[p] ?? 0.0;
-        final currentSplits = _playerPaymentSplits[p] ?? {PaymentMethod.cash: amount};
+        final currentSplits =
+            _playerPaymentSplits[p] ?? {PaymentMethod.cash: amount};
         if (currentSplits.length == 1) {
           _playerPaymentSplits[p] = {currentSplits.keys.first: amount};
         } else {
@@ -198,7 +200,9 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
     });
   }
 
-  bool get _isMultiPayer => _selectedPayers.length > 1 || (_selectedPayers.isEmpty && _session.allPlayers.length > 1);
+  bool get _isMultiPayer =>
+      _selectedPayers.length > 1 ||
+      (_selectedPayers.isEmpty && _session.allPlayers.length > 1);
 
   GameChargeBreakdown get _breakdown {
     final appSettings = ref.read(appSettingsProvider);
@@ -225,12 +229,13 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
   int get _overtimeMinutes => _breakdown.overtimeMinutes;
   double get _overtimeCharge => _breakdown.overtimeCharge;
 
-  double get _ordersTotal => _session.orders.fold<double>(0, (s, o) => s + o.total);
+  double get _ordersTotal =>
+      _session.orders.fold<double>(0, (s, o) => s + o.total);
 
   double get _discountedGameCharge => _gameCharge - _discountAmount;
 
   double get _grandTotal => _gameCharge + _ordersTotal;
-  
+
   double get _finalTotal => _discountedGameCharge + _ordersTotal;
 
   double get _roundedTotal {
@@ -245,7 +250,7 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
     }
     return BillingUtils.roundAmount(_finalTotal);
   }
-  
+
   String _formatDuration(int seconds) {
     final h = (seconds ~/ 3600).toString().padLeft(2, '0');
     final m = ((seconds % 3600) ~/ 60).toString().padLeft(2, '0');
@@ -259,7 +264,6 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
     }
     return _customLiabilities.values.where((v) => v > 0).length;
   }
-
 
   bool get _hasCredit {
     if ((_isMultiPayer || _session.gameType != GameType.standard)) {
@@ -311,21 +315,8 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
               children: [
                 _InfoRow(label: 'Table', value: _session.tableName),
                 _InfoRow(
-                  label: 'Table Type',
-                  value: _session.tableType.displayName,
-                ),
-                _InfoRow(
-                  label: 'Game Type',
-                  value: _session.gameType.displayName,
-                ),
-                _InfoRow(
                   label: 'Billing',
                   value: _session.billingType.displayName,
-                ),
-                _InfoRow(label: 'Match', value: _session.matchType.displayName),
-                _InfoRow(
-                  label: 'Mode',
-                  value: _session.mode == GameMode.team ? 'Team' : 'Solo',
                 ),
                 _InfoRow(
                   label: 'Players',
@@ -402,8 +393,6 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
             ),
             const Gap(16),
 
-
-
             // ── Orders ──
             if (_session.orders.isNotEmpty) ...[
               Text('Orders', style: theme.textTheme.titleMedium),
@@ -456,7 +445,8 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
                   if (_session.billingType == BillingType.perMinute)
                     _InfoRow(
                       label: 'Rate',
-                      value: '\u20B9${(_session.customPrice ?? TablePricingConfig.getPerMinutePrice(_session.tableType, _session.gameType, _session.pricingSnapshot ?? appSettings.pricing)).toStringAsFixed(2)} / min',
+                      value:
+                          '\u20B9${(_session.customPrice ?? TablePricingConfig.getPerMinutePrice(_session.tableType, _session.gameType, _session.pricingSnapshot ?? appSettings.pricing)).toStringAsFixed(2)} / min',
                     ),
                   _InfoRow(
                     label: 'Base Charge',
@@ -479,126 +469,156 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
                     label: 'Orders Total',
                     value: '\u20B9${_ordersTotal.toStringAsFixed(2)}',
                   ),
-                  // ── Discount ──
-                  const Gap(16),
+                // ── Discount ──
+                const Gap(16),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text('Apply Discount', style: theme.textTheme.titleSmall),
+                    Switch(
+                      value: _hasDiscount,
+                      onChanged: (val) {
+                        setState(() {
+                          _hasDiscount = val;
+                          if (!val) {
+                            _discountAmount = 0.0;
+                            _discountPercentController.clear();
+                            _discountController.clear();
+                            _initializeLiabilities();
+                          }
+                        });
+                      },
+                    ),
+                  ],
+                ),
+                if (_hasDiscount) ...[
+                  const Gap(12),
                   Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('Apply Discount', style: theme.textTheme.titleSmall),
-                      Switch(
-                        value: _hasDiscount,
-                        onChanged: (val) {
-                          setState(() {
-                            _hasDiscount = val;
-                            if (!val) {
-                              _discountAmount = 0.0;
-                              _discountPercentController.clear();
-                              _discountController.clear();
-                              _initializeLiabilities();
-                            }
-                          });
-                        },
+                      Expanded(
+                        child: TextFormField(
+                          controller: _discountPercentController,
+                          keyboardType: TextInputType.number,
+                          decoration: InputDecoration(
+                            labelText: 'Percentage',
+                            suffixText: '%',
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                          onChanged: (val) {
+                            final percent = double.tryParse(val) ?? 0.0;
+                            final amount = (_gameCharge * (percent / 100));
+                            setState(() {
+                              _discountAmount = amount;
+                              _discountController.text = amount == 0
+                                  ? ''
+                                  : amount.toStringAsFixed(0);
+                            });
+                            _initializeLiabilities();
+                          },
+                        ),
+                      ),
+                      const Gap(16),
+                      Expanded(
+                        child: TextFormField(
+                          controller: _discountController,
+                          keyboardType: TextInputType.number,
+                          decoration: InputDecoration(
+                            labelText: 'Amount',
+                            prefixText: '\u20B9',
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                          onChanged: (val) {
+                            final amount = double.tryParse(val) ?? 0.0;
+                            final percent = _gameCharge > 0
+                                ? (amount / _gameCharge) * 100
+                                : 0.0;
+                            setState(() {
+                              _discountAmount = amount;
+                              _discountPercentController.text = percent == 0
+                                  ? ''
+                                  : percent.toStringAsFixed(1);
+                            });
+                            _initializeLiabilities();
+                          },
+                        ),
                       ),
                     ],
                   ),
-                  if (_hasDiscount) ...[
-                    const Gap(12),
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Expanded(
-                          child: TextFormField(
-                            controller: _discountPercentController,
-                            keyboardType: TextInputType.number,
-                            decoration: InputDecoration(
-                              labelText: 'Percentage',
-                              suffixText: '%',
-                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                            ),
-                            onChanged: (val) {
-                              final percent = double.tryParse(val) ?? 0.0;
-                              final amount = (_gameCharge * (percent / 100));
-                              setState(() {
-                                _discountAmount = amount;
-                                _discountController.text = amount == 0 ? '' : amount.toStringAsFixed(0);
-                              });
-                              _initializeLiabilities();
-                            },
-                          ),
-                        ),
-                        const Gap(16),
-                        Expanded(
-                          child: TextFormField(
-                            controller: _discountController,
-                            keyboardType: TextInputType.number,
-                            decoration: InputDecoration(
-                              labelText: 'Amount',
-                              prefixText: '\u20B9',
-                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                            ),
-                            onChanged: (val) {
-                              final amount = double.tryParse(val) ?? 0.0;
-                              final percent = _gameCharge > 0 ? (amount / _gameCharge) * 100 : 0.0;
-                              setState(() {
-                                _discountAmount = amount;
-                                _discountPercentController.text = percent == 0 ? '' : percent.toStringAsFixed(1);
-                              });
-                              _initializeLiabilities();
-                            },
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                  const Divider(height: 16),
-                  
-                  // ── Final Amounts ──
-                  if (_hasDiscount) ...[
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text('Discounted Game', style: theme.textTheme.titleSmall),
-                        Text('\u20B9${_discountedGameCharge.toStringAsFixed(2)}', style: theme.textTheme.titleSmall),
-                      ],
-                    ),
-                    const Gap(4),
-                  ],
-                  if (_ordersTotal > 0) ...[
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text('Orders', style: theme.textTheme.titleSmall),
-                        Text('\u20B9${_ordersTotal.toStringAsFixed(2)}', style: theme.textTheme.titleSmall),
-                      ],
-                    ),
-                    const Gap(12),
-                  ] else if (!_hasDiscount) ...[
-                    // Add a small gap if both are hidden so the divider doesn't look too close
-                    const Gap(8),
-                  ],
-                  if ((_roundedTotal - _finalTotal).abs() > 0.01) ...[
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text('Rounding Adjustment', style: theme.textTheme.titleSmall),
-                        Text('${(_roundedTotal - _finalTotal) > 0 ? '+' : '-'}\u20B9${(_roundedTotal - _finalTotal).abs().toStringAsFixed(2)}', style: theme.textTheme.titleSmall),
-                      ],
-                    ),
-                    const Gap(12),
-                  ],
+                ],
+                const Divider(height: 16),
+
+                // ── Final Amounts ──
+                if (_hasDiscount) ...[
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text('Final Bill Amount', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
                       Text(
-                        '\u20B9${_roundedTotal.toStringAsFixed(0)}',
-                        style: theme.textTheme.titleLarge?.copyWith(
-                          color: AppColors.primary,
-                          fontWeight: FontWeight.w700,
-                        ),
+                        'Discounted Game',
+                        style: theme.textTheme.titleSmall,
+                      ),
+                      Text(
+                        '\u20B9${_discountedGameCharge.toStringAsFixed(2)}',
+                        style: theme.textTheme.titleSmall,
                       ),
                     ],
                   ),
+                  const Gap(4),
+                ],
+                if (_ordersTotal > 0) ...[
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text('Orders', style: theme.textTheme.titleSmall),
+                      Text(
+                        '\u20B9${_ordersTotal.toStringAsFixed(2)}',
+                        style: theme.textTheme.titleSmall,
+                      ),
+                    ],
+                  ),
+                  const Gap(12),
+                ] else if (!_hasDiscount) ...[
+                  // Add a small gap if both are hidden so the divider doesn't look too close
+                  const Gap(8),
+                ],
+                if ((_roundedTotal - _finalTotal).abs() > 0.01) ...[
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'Rounding Adjustment',
+                        style: theme.textTheme.titleSmall,
+                      ),
+                      Text(
+                        '${(_roundedTotal - _finalTotal) > 0 ? '+' : '-'}\u20B9${(_roundedTotal - _finalTotal).abs().toStringAsFixed(2)}',
+                        style: theme.textTheme.titleSmall,
+                      ),
+                    ],
+                  ),
+                  const Gap(12),
+                ],
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Final Bill Amount',
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    Text(
+                      '\u20B9${_roundedTotal.toStringAsFixed(0)}',
+                      style: theme.textTheme.titleLarge?.copyWith(
+                        color: AppColors.primary,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
+                ),
               ],
             ),
             const Gap(16),
@@ -619,14 +639,20 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
                   Text('Payment Method', style: theme.textTheme.titleMedium),
                   TextButton.icon(
                     onPressed: () {
-                      final player = _selectedPayers.isNotEmpty ? _selectedPayers.first : _session.allPlayers.isEmpty ? 'Guest' : _session.allPlayers.first;
+                      final player = _selectedPayers.isNotEmpty
+                          ? _selectedPayers.first
+                          : _session.allPlayers.isEmpty
+                          ? 'Guest'
+                          : _session.allPlayers.first;
                       showModalBottomSheet(
                         context: context,
                         isScrollControlled: true,
                         builder: (ctx) => PlayerSplitPaymentSheet(
                           playerName: player,
                           totalLiability: _finalTotal,
-                          initialSplits: _playerPaymentSplits[player] ?? {_paymentMethod: _finalTotal},
+                          initialSplits:
+                              _playerPaymentSplits[player] ??
+                              {_paymentMethod: _finalTotal},
                           onSplitsSaved: (newSplits) {
                             setState(() {
                               _playerPaymentSplits[player] = newSplits;
@@ -636,7 +662,10 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
                       );
                     },
                     style: TextButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
                       minimumSize: Size.zero,
                       tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                     ),
@@ -648,20 +677,32 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
               const Gap(8),
               Builder(
                 builder: (context) {
-                  final player = _selectedPayers.isNotEmpty ? _selectedPayers.first : _session.allPlayers.isEmpty ? 'Guest' : _session.allPlayers.first;
+                  final player = _selectedPayers.isNotEmpty
+                      ? _selectedPayers.first
+                      : _session.allPlayers.isEmpty
+                      ? 'Guest'
+                      : _session.allPlayers.first;
                   final splits = _playerPaymentSplits[player] ?? {};
                   final isSplit = splits.keys.length > 1;
-                  
+
                   if (isSplit) {
                     return Container(
                       width: double.infinity,
-                      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                      padding: const EdgeInsets.symmetric(
+                        vertical: 12,
+                        horizontal: 16,
+                      ),
                       decoration: BoxDecoration(
                         color: theme.colorScheme.surfaceContainerHighest,
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Text(
-                        splits.entries.map((e) => '₹${e.value.toStringAsFixed(e.value.truncateToDouble() == e.value ? 0 : 2)} ${e.key.displayName}').join(' + '),
+                        splits.entries
+                            .map(
+                              (e) =>
+                                  '₹${e.value.toStringAsFixed(e.value.truncateToDouble() == e.value ? 0 : 2)} ${e.key.displayName}',
+                            )
+                            .join(' + '),
                         style: theme.textTheme.bodyMedium?.copyWith(
                           color: AppColors.primary,
                           fontWeight: FontWeight.bold,
@@ -670,15 +711,19 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
                       ),
                     );
                   }
-                  
+
                   return Row(
                     children: PaymentMethod.values.map((method) {
-                      final isSelected = (splits.isEmpty && _paymentMethod == method) || (splits.isNotEmpty && splits.keys.first == method);
+                      final isSelected =
+                          (splits.isEmpty && _paymentMethod == method) ||
+                          (splits.isNotEmpty && splits.keys.first == method);
                       return Expanded(
                         child: GestureDetector(
                           onTap: () => setState(() {
                             _paymentMethod = method;
-                            _playerPaymentSplits[player] = {method: _finalTotal};
+                            _playerPaymentSplits[player] = {
+                              method: _finalTotal,
+                            };
                           }),
                           child: Container(
                             margin: EdgeInsets.only(
@@ -723,7 +768,7 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
                       );
                     }).toList(),
                   );
-                }
+                },
               ),
               if (_paymentMethod == PaymentMethod.credit) ...[
                 const Gap(24),
@@ -748,7 +793,8 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
                         },
                       );
                     }),
-                    if (_PlayerProfileName != null && !_session.allPlayers.contains(_PlayerProfileName))
+                    if (_PlayerProfileName != null &&
+                        !_session.allPlayers.contains(_PlayerProfileName))
                       _WinnerTile(
                         label: _PlayerProfileName!,
                         isSelected: true,
@@ -842,7 +888,8 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
         _SectionCard(
           children: players.map((player) {
             final amount = liabilities[player] ?? 0.0;
-            final splits = _playerPaymentSplits[player] ?? {PaymentMethod.cash: amount};
+            final splits =
+                _playerPaymentSplits[player] ?? {PaymentMethod.cash: amount};
             final isSplit = splits.length > 1;
 
             return Padding(
@@ -880,11 +927,17 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
                               );
                             },
                             style: TextButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 4,
+                              ),
                               minimumSize: Size.zero,
                               tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                             ),
-                            child: const Text('Split', style: TextStyle(fontSize: 12)),
+                            child: const Text(
+                              'Split',
+                              style: TextStyle(fontSize: 12),
+                            ),
                           ),
                         ],
                       ),
@@ -913,11 +966,17 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
                             setState(() {
                               final newAmount = double.tryParse(val) ?? 0.0;
                               _customLiabilities[player] = newAmount;
-                              final currentSplits = _playerPaymentSplits[player] ?? {PaymentMethod.cash: newAmount};
+                              final currentSplits =
+                                  _playerPaymentSplits[player] ??
+                                  {PaymentMethod.cash: newAmount};
                               if (currentSplits.length == 1) {
-                                _playerPaymentSplits[player] = {currentSplits.keys.first: newAmount};
+                                _playerPaymentSplits[player] = {
+                                  currentSplits.keys.first: newAmount,
+                                };
                               } else {
-                                _playerPaymentSplits[player] = {PaymentMethod.cash: newAmount};
+                                _playerPaymentSplits[player] = {
+                                  PaymentMethod.cash: newAmount,
+                                };
                               }
                             });
                           },
@@ -929,13 +988,21 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
                   if (isSplit)
                     Container(
                       width: double.infinity,
-                      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                      padding: const EdgeInsets.symmetric(
+                        vertical: 12,
+                        horizontal: 16,
+                      ),
                       decoration: BoxDecoration(
                         color: theme.colorScheme.surfaceContainerHighest,
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Text(
-                        splits.entries.map((e) => '₹${e.value.toStringAsFixed(e.value.truncateToDouble() == e.value ? 0 : 2)} ${e.key.displayName}').join(' + '),
+                        splits.entries
+                            .map(
+                              (e) =>
+                                  '₹${e.value.toStringAsFixed(e.value.truncateToDouble() == e.value ? 0 : 2)} ${e.key.displayName}',
+                            )
+                            .join(' + '),
                         style: theme.textTheme.bodyMedium?.copyWith(
                           color: AppColors.primary,
                           fontWeight: FontWeight.bold,
@@ -950,7 +1017,9 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
                         return Expanded(
                           child: GestureDetector(
                             onTap: () => setState(
-                              () => _playerPaymentSplits[player] = {method: liabilities[player] ?? 0.0},
+                              () => _playerPaymentSplits[player] = {
+                                method: liabilities[player] ?? 0.0,
+                              },
                             ),
                             child: Container(
                               margin: EdgeInsets.only(
@@ -1018,7 +1087,6 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
     }
   }
 
-
   void _showCreditNameDialog(String defaultName) {
     final nameCtrl = TextEditingController(
       text: defaultName.toLowerCase().startsWith('default') ? '' : defaultName,
@@ -1055,14 +1123,17 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
   Future<void> _confirmPayment() async {
     if (_isProcessing) return;
 
-    final singlePayer = _selectedPayers.isNotEmpty ? _selectedPayers.first : _session.allPlayers.first;
+    final singlePayer = _selectedPayers.isNotEmpty
+        ? _selectedPayers.first
+        : _session.allPlayers.first;
     final isSplit = (_playerPaymentSplits[singlePayer]?.keys.length ?? 0) > 1;
 
     if (!_isMultiPayer &&
         !isSplit &&
         _session.gameType == GameType.standard &&
         _paymentMethod == PaymentMethod.credit &&
-        (_PlayerProfileName == null || _PlayerProfileName!.toLowerCase().startsWith('default'))) {
+        (_PlayerProfileName == null ||
+            _PlayerProfileName!.toLowerCase().startsWith('default'))) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Please select the customer taking the credit.'),
@@ -1076,13 +1147,15 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
 
     if (!_isMultiPayer) {
       if (!isSplit) {
-        final creditPayer = (_paymentMethod == PaymentMethod.credit && _PlayerProfileName != null) 
-            ? _PlayerProfileName! 
+        final creditPayer =
+            (_paymentMethod == PaymentMethod.credit &&
+                _PlayerProfileName != null)
+            ? _PlayerProfileName!
             : singlePayer;
-        
+
         _playerPaymentSplits.clear();
         _playerPaymentSplits[creditPayer] = {_paymentMethod: _finalTotal};
-        
+
         _customLiabilities.clear();
         _customLiabilities[creditPayer] = _finalTotal;
       }
@@ -1107,7 +1180,8 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
       roundedAmount: _roundedTotal,
       finalAmount: _finalTotal,
       date: finalDate,
-      paidBy: (_paymentMethod == PaymentMethod.credit && !_isMultiPayer && !isSplit)
+      paidBy:
+          (_paymentMethod == PaymentMethod.credit && !_isMultiPayer && !isSplit)
           ? _PlayerProfileName
           : null,
       paymentMethod: (!isSplit) ? _paymentMethod : null,
