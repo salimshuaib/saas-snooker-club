@@ -16,6 +16,7 @@ import 'package:snooker_club/core/providers/update_provider.dart';
 import 'package:snooker_club/features/updater/presentation/screens/force_update_screen.dart';
 
 import 'package:snooker_club/features/credit/presentation/screens/credit_screen.dart';
+import 'package:snooker_club/features/credit/presentation/screens/players_screen.dart';
 import 'package:snooker_club/features/credit/presentation/screens/player_profile_screen.dart';
 import 'package:snooker_club/features/credit/domain/models/credit_models.dart';
 import 'package:snooker_club/features/dashboard/presentation/screens/dashboard_screen.dart';
@@ -345,6 +346,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             path: 'analytics',
             builder: (context, state) =>
                 const TickerMode(enabled: true, child: const AnalyticsScreen()),
+          ),
+          GoRoute(
+            path: 'players',
+            builder: (context, state) =>
+                const TickerMode(enabled: true, child: PlayersScreen()),
           ),
           GoRoute(
             path: 'credit',

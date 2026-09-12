@@ -14,10 +14,7 @@ class MoreScreen extends ConsumerWidget {
     final theme = Theme.of(context);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Menu'),
-        centerTitle: false,
-      ),
+      appBar: AppBar(title: const Text('Menu'), centerTitle: false),
       body: SafeArea(
         child: ListView(
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
@@ -40,8 +37,14 @@ class MoreScreen extends ConsumerWidget {
                         backgroundColor: theme.colorScheme.primary,
                         radius: 28,
                         child: Text(
-                          staff.name.isNotEmpty ? staff.name[0].toUpperCase() : '?',
-                          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 24),
+                          staff.name.isNotEmpty
+                              ? staff.name[0].toUpperCase()
+                              : '?',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 24,
+                          ),
                         ),
                       ),
                       const Gap(16),
@@ -51,16 +54,23 @@ class MoreScreen extends ConsumerWidget {
                           children: [
                             Text(
                               staff.name,
-                              style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+                              style: theme.textTheme.titleLarge?.copyWith(
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
                             Text(
                               'Role: ${staff.role.name.toUpperCase()}',
-                              style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.primary, fontWeight: FontWeight.w600),
+                              style: theme.textTheme.bodyMedium?.copyWith(
+                                color: theme.colorScheme.primary,
+                                fontWeight: FontWeight.w600,
+                              ),
                             ),
                             if (!staff.isActive)
                               Text(
                                 'Account Disabled',
-                                style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.error),
+                                style: theme.textTheme.labelSmall?.copyWith(
+                                  color: theme.colorScheme.error,
+                                ),
                               ),
                           ],
                         ),
@@ -68,7 +78,7 @@ class MoreScreen extends ConsumerWidget {
                     ],
                   ),
                 );
-              }
+              },
             ),
 
             Text(
@@ -102,6 +112,14 @@ class MoreScreen extends ConsumerWidget {
               subtitle: 'Customer tabs',
               iconColor: AppColors.creditStatus,
               onTap: () => context.push(RouteNames.credit),
+            ),
+            const Gap(12),
+            _MoreMenuItem(
+              icon: Icons.people,
+              title: 'Players',
+              subtitle: 'Manage players & merge',
+              iconColor: AppColors.secondary,
+              onTap: () => context.push(RouteNames.players),
             ),
             const Gap(32),
 
@@ -149,7 +167,7 @@ class MoreScreen extends ConsumerWidget {
               onTap: () => context.push(RouteNames.team),
             ),
             const Gap(12),
-            
+
             _MoreMenuItem(
               icon: Icons.settings,
               title: 'Settings',
@@ -182,7 +200,7 @@ class _MoreMenuItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    
+
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(16),

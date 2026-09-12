@@ -14,6 +14,7 @@ class RouteNames {
   static const String analytics = '/more/analytics';
   static const String financialReview = '/financial-review';
   static const String credit = '/more/credit';
+  static const String players = '/more/players';
   static const String reports = '/more/reports';
   static const String settings = '/more/settings';
   static const String team = '/team';
