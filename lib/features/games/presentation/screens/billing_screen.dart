@@ -1415,10 +1415,11 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
       if (mounted) {
         // Stop the loading spinner and wait a frame to prevent CanvasKit crash
         setState(() => _isProcessing = false);
-        await Future.delayed(const Duration(milliseconds: 50));
+        await Future.delayed(const Duration(milliseconds: 150));
 
         if (mounted) {
-          context.go('/games');
+          Navigator.of(context).popUntil((route) => route.isFirst);
+          context.go('/live');
           messenger.showSnackBar(
             const SnackBar(
               content: Text('Payment recorded. Table is now available.'),
