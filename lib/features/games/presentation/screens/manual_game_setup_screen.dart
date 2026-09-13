@@ -46,7 +46,8 @@ class _ManualGameSetupScreenState extends ConsumerState<ManualGameSetupScreen> {
   final TextEditingController _elapsedSecsController = TextEditingController();
 
   // Players
-  final List<PlayerSelection?> _playerSelections = [null];
+  final List<PlayerSelection?> _playerSelections = [PlayerSelection(name: 'Default 1')];
+  int _nextDefaultNumber = 2;
 
   // Billing
   BillingType? _billingType;
@@ -104,7 +105,8 @@ class _ManualGameSetupScreenState extends ConsumerState<ManualGameSetupScreen> {
 
   void _addPlayer() {
     setState(() {
-      _playerSelections.add(null);
+      _playerSelections.add(PlayerSelection(name: 'Default $_nextDefaultNumber'));
+      _nextDefaultNumber++;
     });
   }
 
