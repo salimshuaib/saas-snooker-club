@@ -88,6 +88,7 @@ class _ManualGameSetupScreenState extends ConsumerState<ManualGameSetupScreen> {
   Future<void> _pickTime(bool isStart) async {
     final TimeOfDay? picked = await showTimePicker(
       context: context,
+      initialEntryMode: TimePickerEntryMode.input,
       initialTime: isStart
           ? (_startTime ?? TimeOfDay.now())
           : (_endTime ?? TimeOfDay.now()),
