@@ -463,7 +463,6 @@ class _ActiveGameCardState extends ConsumerState<ActiveGameCard> {
         .cancelGame(game.id, game.tableId, game.orders);
 
     if (mounted && context.mounted) {
-      Navigator.of(context).pop();
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Game cancelled successfully'),
