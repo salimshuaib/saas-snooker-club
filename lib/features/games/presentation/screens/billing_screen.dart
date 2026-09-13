@@ -1427,12 +1427,15 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
             ),
           );
 
+          // Capture router before widget unmounts to prevent riverpod unmounted ref error
+          final router = ref.read(appRouterProvider);
+          
           // Pop the BillingScreen gracefully
           Navigator.of(context).pop();
 
           // Wait for the pop animation to finish, then safely switch tabs using the global router
           Future.delayed(const Duration(milliseconds: 350), () {
-            ref.read(appRouterProvider).go('/live');
+            router.go('/live');
           });
         }
         return;
