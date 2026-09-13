@@ -9,14 +9,14 @@ void main() async {
 
   final db = FirebaseFirestore.instance;
 
-  print('Updating app config to 1.0.6...');
+  print('Updating app config to 1.0.15...');
 
   await db.collection('settings').doc('app_config').set({
-    'minimum_required_version': '1.0.6',
-    'latest_version': '1.0.6',
+    'minimum_required_version': '1.0.15',
+    'latest_version': '1.0.15',
     'force_update': true,
     'update_url':
-        'https://drive.google.com/file/d/1UhOKTO10JAcgnlDqXBOzwmfGtKBmULna/view?usp=sharing',
+        'https://drive.google.com/file/d/1tKrcCAMc4DmapH4ftFsjmq4JfprIRdkF/view?usp=sharing',
     'update_message':
         'A critical financial accounting update is required. Please download the latest version to continue using the app.',
   }, SetOptions(merge: true));
