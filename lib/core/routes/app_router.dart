@@ -217,35 +217,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             ],
           ),
 
-          // Branch 1: Quick Sales
-          StatefulShellBranch(
-            navigatorKey: _quickSalesNavigatorKey,
-            routes: [
-              GoRoute(
-                path: RouteNames.quickSales,
-                builder: (context, state) =>
-                    const TickerMode(enabled: true, child: QuickSalesScreen()),
-                routes: [
-                  GoRoute(
-                    path: 'new',
-                    builder: (context, state) => const TickerMode(
-                      enabled: true,
-                      child: NewQuickSaleScreen(),
-                    ),
-                  ),
-                  GoRoute(
-                    path: 'details',
-                    builder: (context, state) {
-                      final sale = state.extra as QuickSale;
-                      return QuickSaleDetailsScreen(sale: sale);
-                    },
-                  ),
-                ],
-              ),
-            ],
-          ),
-
-          // Branch: Khata
+          // Branch 1: Khata
           StatefulShellBranch(
             navigatorKey: _khataNavigatorKey,
             routes: [
@@ -271,7 +243,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             ],
           ),
 
-          // Branch 3: Dashboard
+          // Branch 3: Dashboard / Overview
           StatefulShellBranch(
             navigatorKey: _dashboardNavigatorKey,
             routes: [
@@ -279,6 +251,18 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                 path: RouteNames.dashboard,
                 builder: (context, state) =>
                     const TickerMode(enabled: true, child: DashboardScreen()),
+              ),
+            ],
+          ),
+
+          // Branch 4: Quick Sales
+          StatefulShellBranch(
+            navigatorKey: _quickSalesNavigatorKey,
+            routes: [
+              GoRoute(
+                path: RouteNames.quickSales,
+                builder: (context, state) =>
+                    const TickerMode(enabled: true, child: QuickSalesScreen()),
               ),
             ],
           ),
