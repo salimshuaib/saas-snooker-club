@@ -88,10 +88,25 @@ class TablePricingConfig {
   /// Returns the per minute price for a table type and game type (used for overtime).
 
   static double getPerMinutePrice(
-    TableType tableType,
+    TableModel table,
     GameType gameType,
     PricingSettings pricingConfig,
   ) {
+    final tableType = table.type;
+    if (table.billingOptions != null) {
+      String? key;
+      if (gameType == GameType.race) {
+        key = 'racePerMinute';
+      } else if (gameType == GameType.rummy) {
+        key = 'rummyPerMinute';
+      } else {
+        key = 'perMinute';
+      }
+      final option = table.billingOptions![key];
+      if (option != null && option.enabled) {
+        return option.price;
+      }
+    }
     if (gameType == GameType.race) {
       switch (tableType) {
         case TableType.snooker:
@@ -502,7 +517,7 @@ class TablePricingConfig {
   /// Calculate the game charge breakdown for a completed or active session.
 
   static GameChargeBreakdown calculateCharge({
-    required TableType tableType,
+    required TableModel table,
 
     required GameType gameType,
 
@@ -525,11 +540,11 @@ class TablePricingConfig {
     bool isMinimumBillEnabled = false,
     double minimumBillAmount = 0.0,
   }) {
-    final dummyTable = TableModel(id: '', name: '', type: tableType);
+    final tableType = table.type;
 
     double? basePrice =
         customPrice ??
-        getPrice(dummyTable, gameType, billingType, pricingConfig);
+        getPrice(table, gameType, billingType, pricingConfig);
 
     if (basePrice != null &&
         (tableType == TableType.ps5 || tableType == TableType.ps4)) {
@@ -539,7 +554,7 @@ class TablePricingConfig {
       if (controllers > 1) {
         final extraCharge =
             customExtraCharge ??
-            getExtraCharge(dummyTable, gameType, billingType, pricingConfig) ??
+            getExtraCharge(table, gameType, billingType, pricingConfig) ??
             0.0;
         basePrice += (controllers - 1) * extraCharge;
       }
@@ -567,11 +582,11 @@ class TablePricingConfig {
         perSecondRate = basePrice / (60 * 60.0);
       } else {
         perSecondRate =
-            getPerMinutePrice(tableType, gameType, pricingConfig) / 60.0;
+            getPerMinutePrice(table, gameType, pricingConfig) / 60.0;
       }
     } else {
       perSecondRate =
-          getPerMinutePrice(tableType, gameType, pricingConfig) / 60.0;
+          getPerMinutePrice(table, gameType, pricingConfig) / 60.0;
     }
 
     final bool overtimeEnabled = gameConfig.enableOvertimeBilling;

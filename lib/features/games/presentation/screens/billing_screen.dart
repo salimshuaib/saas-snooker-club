@@ -208,8 +208,14 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
 
   GameChargeBreakdown get _breakdown {
     final appSettings = ref.read(appSettingsProvider);
+    final tables = ref.read(tablesProvider).value ?? [];
+    final table = tables.firstWhere(
+      (t) => t.id == _session.tableId,
+      orElse: () => TableModel(id: _session.tableId, name: _session.tableName, type: _session.tableType),
+    );
+
     return TablePricingConfig.calculateCharge(
-      tableType: _session.tableType,
+      table: table,
       gameType: _session.gameType,
       billingType: _session.billingType,
       activeSeconds: _session.activeSeconds,
@@ -297,6 +303,11 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
   @override
   Widget build(BuildContext context) {
     final appSettings = ref.watch(appSettingsProvider);
+    final tables = ref.watch(tablesProvider).value ?? [];
+    final table = tables.firstWhere(
+      (t) => t.id == _session.tableId,
+      orElse: () => TableModel(id: _session.tableId, name: _session.tableName, type: _session.tableType),
+    );
     final currentSum = _customLiabilities.values.fold<double>(
       0.0,
       (s, v) => s + v,
@@ -458,7 +469,7 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
                       _InfoRow(
                         label: 'Rate',
                         value:
-                            '\u20B9${(_session.customPrice ?? TablePricingConfig.getPerMinutePrice(_session.tableType, _session.gameType, _session.pricingSnapshot ?? appSettings.pricing)).toStringAsFixed(2)} / min',
+                            '\u20B9${(_session.customPrice ?? TablePricingConfig.getPerMinutePrice(table, _session.gameType, _session.pricingSnapshot ?? appSettings.pricing)).toStringAsFixed(2)} / min',
                       ),
                     _InfoRow(
                       label: 'Base Charge',

@@ -70,7 +70,7 @@ class _ActiveGameCardState extends ConsumerState<ActiveGameCard> {
                 final seconds = game.activeSeconds;
                 final appSettings = ref.watch(appSettingsProvider);
                 final charge = TablePricingConfig.calculateCharge(
-                  tableType: game.tableType,
+                  table: widget.table,
                   gameType: GameType.standard,
                   billingType: game.billingType,
                   activeSeconds: seconds,
@@ -173,7 +173,7 @@ class _ActiveGameCardState extends ConsumerState<ActiveGameCard> {
                                   final rate =
                                       game.customPrice ??
                                       TablePricingConfig.getPerMinutePrice(
-                                        game.tableType,
+                                        widget.table,
                                         GameType.standard,
                                         game.pricingSnapshot ??
                                             appSettings.pricing,
@@ -499,7 +499,7 @@ class _ActiveGameCardState extends ConsumerState<ActiveGameCard> {
 
     final appSettings = ref.read(appSettingsProvider);
     final charge = TablePricingConfig.calculateCharge(
-      tableType: game.tableType,
+      table: widget.table,
       gameType: GameType.standard,
       billingType: game.billingType,
       activeSeconds: activeSeconds,
