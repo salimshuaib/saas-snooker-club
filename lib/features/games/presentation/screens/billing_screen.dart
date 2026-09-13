@@ -281,7 +281,7 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
       if (_hasCredit) {
         return 'Record Payment & Credit';
       }
-      return 'Confirm Payment (\u20B9${_finalTotal.toStringAsFixed(0)})';
+      return 'Confirm Payment (\u20B9${_roundedTotal.toStringAsFixed(0)})';
     }
   }
 
@@ -623,10 +623,10 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
                         isScrollControlled: true,
                         builder: (ctx) => PlayerSplitPaymentSheet(
                           playerName: player,
-                          totalLiability: _finalTotal,
+                          totalLiability: _roundedTotal,
                           initialSplits:
                               _playerPaymentSplits[player] ??
-                              {_paymentMethod: _finalTotal},
+                              {_paymentMethod: _roundedTotal},
                           onSplitsSaved: (newSplits) {
                             setState(() {
                               _playerPaymentSplits[player] = newSplits;
@@ -700,7 +700,7 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
                               setState(() {
                                 _paymentMethod = method;
                                 _playerPaymentSplits[player] = {
-                                  method: _finalTotal,
+                                  method: _roundedTotal,
                                 };
                               });
                             }
@@ -1098,7 +1098,7 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
                   if (autoConfirm) {
                     _paymentMethod = PaymentMethod.credit;
                     _playerPaymentSplits[defaultName] = {
-                      PaymentMethod.credit: _finalTotal,
+                      PaymentMethod.credit: _roundedTotal,
                     };
                   }
                 });
@@ -1144,6 +1144,11 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
 
     setState(() => _isProcessing = true);
 
+    List<String> finalTeamA = List.from(_session.teamA);
+    List<String> finalTeamB = List.from(_session.teamB);
+    List<String>? finalPlayerIds = _session.playerIds != null ? List.from(_session.playerIds!) : null;
+    Map<String, String>? finalPlayerIdentities = _session.playerIdentities != null ? Map.from(_session.playerIdentities!) : null;
+
     if (!_isMultiPayer) {
       if (!isSplit) {
         final creditPayer =
@@ -1152,11 +1157,28 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
             ? _PlayerProfileName!
             : singlePayer;
 
+        // BUG 2 & 3 FIX: If the single payer was a default player and was renamed for credit,
+        // we must rename them in teamA/teamB so they show up in Khata Game History correctly.
+        if (singlePayer.toLowerCase().startsWith('default') && creditPayer != singlePayer) {
+          if (finalTeamA.contains(singlePayer)) {
+            finalTeamA[finalTeamA.indexOf(singlePayer)] = creditPayer;
+          }
+          if (finalTeamB.contains(singlePayer)) {
+            finalTeamB[finalTeamB.indexOf(singlePayer)] = creditPayer;
+          }
+          if (finalPlayerIdentities != null && finalPlayerIdentities.containsKey(singlePayer)) {
+             final oldId = finalPlayerIdentities.remove(singlePayer);
+             if (finalPlayerIds != null && oldId != null) {
+                finalPlayerIds.remove(oldId);
+             }
+          }
+        }
+
         _playerPaymentSplits.clear();
-        _playerPaymentSplits[creditPayer] = {_paymentMethod: _finalTotal};
+        _playerPaymentSplits[creditPayer] = {_paymentMethod: _roundedTotal};
 
         _customLiabilities.clear();
-        _customLiabilities[creditPayer] = _finalTotal;
+        _customLiabilities[creditPayer] = _roundedTotal;
       }
     }
 
@@ -1168,6 +1190,10 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
     final finalSession = _session.copyWith(
       endTime: finalEndTime,
       status: TableStatus.available,
+      teamA: finalTeamA,
+      teamB: finalTeamB,
+      playerIds: finalPlayerIds,
+      playerIdentities: finalPlayerIdentities,
       playerPaymentSplits: _playerPaymentSplits,
       playerLiabilities: _customLiabilities,
       gameCharge: _gameCharge,
@@ -1177,7 +1203,7 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
       ordersTotal: _ordersTotal,
       grandTotal: _grandTotal,
       roundedAmount: _roundedTotal,
-      finalAmount: _finalTotal,
+      finalAmount: _roundedTotal,
       date: finalDate,
       paidBy:
           (_paymentMethod == PaymentMethod.credit && !_isMultiPayer && !isSplit)
