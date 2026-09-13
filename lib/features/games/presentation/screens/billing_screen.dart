@@ -1251,14 +1251,20 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
           .read(gameSessionControllerProvider.notifier)
           .endGame(finalSession);
       if (mounted) {
-        context.go('/games');
-        messenger.showSnackBar(
-          const SnackBar(
-            content: Text('Payment recorded. Table is now available.'),
-            backgroundColor: AppColors.success,
-          ),
-        );
-        return; // Skip finally block to prevent setState during disposal
+        // Stop the loading spinner and wait a frame to prevent CanvasKit crash
+        setState(() => _isProcessing = false);
+        await Future.delayed(const Duration(milliseconds: 50));
+        
+        if (mounted) {
+          context.go('/games');
+          messenger.showSnackBar(
+            const SnackBar(
+              content: Text('Payment recorded. Table is now available.'),
+              backgroundColor: AppColors.success,
+            ),
+          );
+        }
+        return;
       }
     } catch (e) {
       if (mounted) {
