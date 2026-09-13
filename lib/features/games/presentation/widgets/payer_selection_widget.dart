@@ -28,8 +28,7 @@ class _PayerSelectionWidgetState extends State<PayerSelectionWidget> {
   @override
   void initState() {
     super.initState();
-    // Default to 'All' being visually active if everyone is selected on first load.
-    _isAllExplicitlySelected = widget.selectedPayers.length == widget.allPlayers.length;
+    _isAllExplicitlySelected = false;
   }
 
   @override
@@ -42,11 +41,13 @@ class _PayerSelectionWidgetState extends State<PayerSelectionWidget> {
   }
 
   void _togglePlayer(String player) {
-    final wasAllSelected = _isAllExplicitlySelected && widget.selectedPayers.length == widget.allPlayers.length;
+    final wasAllSelected =
+        _isAllExplicitlySelected &&
+        widget.selectedPayers.length == widget.allPlayers.length;
     setState(() => _isAllExplicitlySelected = false);
 
     if (wasAllSelected) {
-      // Since individual rows look "unselected" when All is active, 
+      // Since individual rows look "unselected" when All is active,
       // tapping one should select ONLY that player.
       widget.onChanged([player]);
       return;
@@ -58,7 +59,7 @@ class _PayerSelectionWidgetState extends State<PayerSelectionWidget> {
     } else {
       newSelection.add(player);
     }
-    
+
     widget.onChanged(newSelection);
   }
 
@@ -80,7 +81,7 @@ class _PayerSelectionWidgetState extends State<PayerSelectionWidget> {
     return Padding(
       padding: const EdgeInsets.only(bottom: 8.0),
       child: Material(
-        color: isSelected 
+        color: isSelected
             ? highlightColor.withValues(alpha: 0.15)
             : theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.4),
         borderRadius: BorderRadius.circular(12),
@@ -91,15 +92,20 @@ class _PayerSelectionWidgetState extends State<PayerSelectionWidget> {
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(12),
-              border: isSelected 
-                  ? Border.all(color: highlightColor.withValues(alpha: 0.5), width: 1.5)
+              border: isSelected
+                  ? Border.all(
+                      color: highlightColor.withValues(alpha: 0.5),
+                      width: 1.5,
+                    )
                   : Border.all(color: Colors.transparent, width: 1.5),
             ),
             child: Row(
               children: [
                 Icon(
-                  Icons.person_outline, 
-                  color: isSelected ? highlightColor : theme.colorScheme.onSurfaceVariant,
+                  Icons.person_outline,
+                  color: isSelected
+                      ? highlightColor
+                      : theme.colorScheme.onSurfaceVariant,
                   size: 22,
                 ),
                 const SizedBox(width: 16),
@@ -109,8 +115,12 @@ class _PayerSelectionWidgetState extends State<PayerSelectionWidget> {
                       Text(
                         title,
                         style: theme.textTheme.titleSmall?.copyWith(
-                          fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                          color: isSelected ? highlightColor : theme.colorScheme.onSurface,
+                          fontWeight: isSelected
+                              ? FontWeight.w700
+                              : FontWeight.w500,
+                          color: isSelected
+                              ? highlightColor
+                              : theme.colorScheme.onSurface,
                         ),
                       ),
                     ],
@@ -133,7 +143,10 @@ class _PayerSelectionWidgetState extends State<PayerSelectionWidget> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final isAllSelected = _isAllExplicitlySelected && widget.selectedPayers.length == widget.allPlayers.length && widget.allPlayers.isNotEmpty;
+    final isAllSelected =
+        _isAllExplicitlySelected &&
+        widget.selectedPayers.length == widget.allPlayers.length &&
+        widget.allPlayers.isNotEmpty;
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -147,18 +160,25 @@ class _PayerSelectionWidgetState extends State<PayerSelectionWidget> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text(widget.title, style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
-          const SizedBox(height: 16),
-          _buildOptionTile(
-            context,
-            title: 'All',
-            isSelected: isAllSelected,
-            onTap: _toggleAll,
+          Text(
+            widget.title,
+            style: theme.textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.bold,
+            ),
           ),
+          const SizedBox(height: 16),
+          if (widget.allPlayers.length > 1)
+            _buildOptionTile(
+              context,
+              title: 'All',
+              isSelected: isAllSelected,
+              onTap: _toggleAll,
+            ),
           ...widget.allPlayers.map((player) {
             // If "All" is explicitly selected, visually unselect the individual rows.
             // Otherwise, show their true individual selection status.
-            final isSelected = !isAllSelected && widget.selectedPayers.contains(player);
+            final isSelected =
+                !isAllSelected && widget.selectedPayers.contains(player);
             return _buildOptionTile(
               context,
               title: player,
@@ -172,9 +192,7 @@ class _PayerSelectionWidgetState extends State<PayerSelectionWidget> {
               onPressed: widget.onAddPlayer,
               icon: const Icon(Icons.person_add),
               label: const Text('Add Player to Bill'),
-              style: TextButton.styleFrom(
-                alignment: Alignment.center,
-              ),
+              style: TextButton.styleFrom(alignment: Alignment.center),
             ),
           ],
         ],
