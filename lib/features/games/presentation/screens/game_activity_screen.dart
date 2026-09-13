@@ -175,8 +175,26 @@ class GameActivityScreen extends ConsumerWidget {
                                 ),
                               ),
                             ),
-                            ...grouped[sortedKeys[i]]!.map(
-                              (t) => GameActivityCard(table: t),
+                            LayoutBuilder(
+                              builder: (context, constraints) {
+                                if (MediaQuery.sizeOf(context).width > 800) {
+                                  return Wrap(
+                                    spacing: 16,
+                                    runSpacing: 16,
+                                    children: grouped[sortedKeys[i]]!.map(
+                                      (t) => SizedBox(
+                                        width: 380,
+                                        child: GameActivityCard(table: t),
+                                      ),
+                                    ).toList(),
+                                  );
+                                }
+                                return Column(
+                                  children: grouped[sortedKeys[i]]!.map(
+                                    (t) => GameActivityCard(table: t),
+                                  ).toList(),
+                                );
+                              },
                             ),
                           ],
                         ],

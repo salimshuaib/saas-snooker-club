@@ -121,10 +121,11 @@ class _MainScreenState extends ConsumerState<MainScreen> {
     final theme = Theme.of(context);
     final currentIndex = widget.navigationShell.currentIndex;
 
+    final isDesktop = MediaQuery.sizeOf(context).width > 800;
     return Scaffold(
       extendBody: false,
       body: widget.navigationShell,
-      bottomNavigationBar: SafeArea(
+      bottomNavigationBar: isDesktop ? null : SafeArea(
         child: Container(
           margin: const EdgeInsets.only(left: 16.0, right: 16.0, bottom: 16.0),
           decoration: BoxDecoration(

@@ -1,3 +1,4 @@
+import 'package:snooker_club/core/widgets/responsive_scaffold_wrapper.dart';
 import 'package:flutter/material.dart';
 import 'package:snooker_club/features/games/presentation/screens/game_activity_screen.dart';
 import 'package:snooker_club/features/quick_sales/presentation/screens/quick_sales_screen.dart';
@@ -198,170 +199,177 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       ),
 
       // â”€â”€â”€ Bottom Navigation Shell â”€â”€â”€
-      StatefulShellRoute.indexedStack(
-        builder: (context, state, navigationShell) {
-          return MainScreen(navigationShell: navigationShell);
+            ShellRoute(
+        builder: (context, state, child) {
+          return ResponsiveScaffoldWrapper(child: child);
         },
-        branches: [
-          // Branch 0: Live
-          StatefulShellBranch(
-            navigatorKey: _liveNavigatorKey,
-            routes: [
-              GoRoute(
-                path: RouteNames.live,
-                builder: (context, state) => const TickerMode(
-                  enabled: true,
-                  child: GameActivityScreen(),
-                ),
-              ),
-            ],
-          ),
-
-          // Branch 1: Khata
-          StatefulShellBranch(
-            navigatorKey: _khataNavigatorKey,
-            routes: [
-              GoRoute(
-                path: RouteNames.khata,
-                builder: (context, state) =>
-                    const TickerMode(enabled: true, child: CreditScreen()),
-              ),
-            ],
-          ),
-
-          // Branch 2: History
-          StatefulShellBranch(
-            navigatorKey: _historyNavigatorKey,
-            routes: [
-              GoRoute(
-                path: RouteNames.history,
-                builder: (context, state) => const TickerMode(
-                  enabled: true,
-                  child: TransactionHistoryScreen(),
-                ),
-              ),
-            ],
-          ),
-
-          // Branch 3: Dashboard / Overview
-          StatefulShellBranch(
-            navigatorKey: _dashboardNavigatorKey,
-            routes: [
-              GoRoute(
-                path: RouteNames.dashboard,
-                builder: (context, state) =>
-                    const TickerMode(enabled: true, child: DashboardScreen()),
-              ),
-            ],
-          ),
-
-          // Branch 4: Quick Sales
-          StatefulShellBranch(
-            navigatorKey: _quickSalesNavigatorKey,
-            routes: [
-              GoRoute(
-                path: RouteNames.quickSales,
-                builder: (context, state) =>
-                    const TickerMode(enabled: true, child: QuickSalesScreen()),
-              ),
-            ],
-          ),
-        ],
-      ),
-      GoRoute(
-        path: RouteNames.bookings,
-        builder: (context, state) =>
-            const TickerMode(enabled: true, child: BookingManagementScreen()),
-      ),
-      GoRoute(
-        path: RouteNames.games,
-        builder: (context, state) =>
-            const TickerMode(enabled: true, child: const GamesScreen()),
         routes: [
-          GoRoute(
-            path: 'table',
-            builder: (context, state) {
-              final extra = state.extra as Map<String, dynamic>? ?? {};
-              final table = extra['table'] as TableModel?;
-              final selectedDate =
-                  extra['selectedDate'] as DateTime? ?? DateTime.now();
-              final isToday = extra['isToday'] as bool? ?? true;
-              if (table == null) {
-                return const Scaffold(
-                  body: Center(child: Text('Table not found.')),
-                );
-              }
-              return TableDetailsScreen(
-                table: table,
-                selectedDate: selectedDate,
-                isToday: isToday,
-              );
-            },
-          ),
-        ],
-      ),
-      GoRoute(
-        path: RouteNames.inventory,
-        builder: (context, state) =>
-            const TickerMode(enabled: true, child: const InventoryScreen()),
-        routes: [
-          GoRoute(
-            path: 'inventory-details',
-            builder: (context, state) {
-              final item = state.extra as InventoryItem;
-              return ProductDetailsScreen(item: item);
-            },
-          ),
-          GoRoute(
-            path: 'inventory-history',
-            builder: (context, state) => const TickerMode(
-              enabled: true,
-              child: const InventoryHistoryScreen(),
+  StatefulShellRoute.indexedStack(
+          builder: (context, state, navigationShell) {
+            return MainScreen(navigationShell: navigationShell);
+          },
+          branches: [
+            // Branch 0: Live
+            StatefulShellBranch(
+              navigatorKey: _liveNavigatorKey,
+              routes: [
+                GoRoute(
+                  path: RouteNames.live,
+                  builder: (context, state) => const TickerMode(
+                    enabled: true,
+                    child: GameActivityScreen(),
+                  ),
+                ),
+              ],
             ),
-          ),
-        ],
-      ),
-      GoRoute(
-        path: RouteNames.more,
-        builder: (context, state) =>
-            const TickerMode(enabled: true, child: const MoreScreen()),
-        routes: [
-          GoRoute(
-            path: 'analytics',
-            builder: (context, state) =>
-                const TickerMode(enabled: true, child: const AnalyticsScreen()),
-          ),
-          GoRoute(
-            path: 'players',
-            builder: (context, state) =>
-                const TickerMode(enabled: true, child: PlayersScreen()),
-          ),
-          GoRoute(
-            path: 'credit',
-            builder: (context, state) =>
-                const TickerMode(enabled: true, child: const CreditScreen()),
-            routes: [
-              GoRoute(
-                path: 'details',
-                builder: (context, state) {
-                  final customer = state.extra as PlayerProfile;
-                  return PlayerProfileScreen(customer: customer);
-                },
+  
+            // Branch 1: Khata
+            StatefulShellBranch(
+              navigatorKey: _khataNavigatorKey,
+              routes: [
+                GoRoute(
+                  path: RouteNames.khata,
+                  builder: (context, state) =>
+                      const TickerMode(enabled: true, child: CreditScreen()),
+                ),
+              ],
+            ),
+  
+            // Branch 2: History
+            StatefulShellBranch(
+              navigatorKey: _historyNavigatorKey,
+              routes: [
+                GoRoute(
+                  path: RouteNames.history,
+                  builder: (context, state) => const TickerMode(
+                    enabled: true,
+                    child: TransactionHistoryScreen(),
+                  ),
+                ),
+              ],
+            ),
+  
+            // Branch 3: Dashboard / Overview
+            StatefulShellBranch(
+              navigatorKey: _dashboardNavigatorKey,
+              routes: [
+                GoRoute(
+                  path: RouteNames.dashboard,
+                  builder: (context, state) =>
+                      const TickerMode(enabled: true, child: DashboardScreen()),
+                ),
+              ],
+            ),
+  
+            // Branch 4: Quick Sales
+            StatefulShellBranch(
+              navigatorKey: _quickSalesNavigatorKey,
+              routes: [
+                GoRoute(
+                  path: RouteNames.quickSales,
+                  builder: (context, state) =>
+                      const TickerMode(enabled: true, child: QuickSalesScreen()),
+                ),
+              ],
+            ),
+          ],
+        ),
+        GoRoute(
+          path: RouteNames.bookings,
+          builder: (context, state) =>
+              const TickerMode(enabled: true, child: BookingManagementScreen()),
+        ),
+        GoRoute(
+          path: RouteNames.games,
+          builder: (context, state) =>
+              const TickerMode(enabled: true, child: const GamesScreen()),
+          routes: [
+            GoRoute(
+              path: 'table',
+              builder: (context, state) {
+                final extra = state.extra as Map<String, dynamic>? ?? {};
+                final table = extra['table'] as TableModel?;
+                final selectedDate =
+                    extra['selectedDate'] as DateTime? ?? DateTime.now();
+                final isToday = extra['isToday'] as bool? ?? true;
+                if (table == null) {
+                  return const Scaffold(
+                    body: Center(child: Text('Table not found.')),
+                  );
+                }
+                return TableDetailsScreen(
+                  table: table,
+                  selectedDate: selectedDate,
+                  isToday: isToday,
+                );
+              },
+            ),
+          ],
+        ),
+        GoRoute(
+          path: RouteNames.inventory,
+          builder: (context, state) =>
+              const TickerMode(enabled: true, child: const InventoryScreen()),
+          routes: [
+            GoRoute(
+              path: 'inventory-details',
+              builder: (context, state) {
+                final item = state.extra as InventoryItem;
+                return ProductDetailsScreen(item: item);
+              },
+            ),
+            GoRoute(
+              path: 'inventory-history',
+              builder: (context, state) => const TickerMode(
+                enabled: true,
+                child: const InventoryHistoryScreen(),
               ),
-            ],
-          ),
-          GoRoute(
-            path: 'reports',
-            builder: (context, state) =>
-                const TickerMode(enabled: true, child: const ReportsScreen()),
-          ),
-          GoRoute(
-            path: 'settings',
-            builder: (context, state) =>
-                const TickerMode(enabled: true, child: const SettingsScreen()),
-          ),
+            ),
+          ],
+        ),
+        GoRoute(
+          path: RouteNames.more,
+          builder: (context, state) =>
+              const TickerMode(enabled: true, child: const MoreScreen()),
+          routes: [
+            GoRoute(
+              path: 'analytics',
+              builder: (context, state) =>
+                  const TickerMode(enabled: true, child: const AnalyticsScreen()),
+            ),
+            GoRoute(
+              path: 'players',
+              builder: (context, state) =>
+                  const TickerMode(enabled: true, child: PlayersScreen()),
+            ),
+            GoRoute(
+              path: 'credit',
+              builder: (context, state) =>
+                  const TickerMode(enabled: true, child: const CreditScreen()),
+              routes: [
+                GoRoute(
+                  path: 'details',
+                  builder: (context, state) {
+                    final customer = state.extra as PlayerProfile;
+                    return PlayerProfileScreen(customer: customer);
+                  },
+                ),
+              ],
+            ),
+            GoRoute(
+              path: 'reports',
+              builder: (context, state) =>
+                  const TickerMode(enabled: true, child: const ReportsScreen()),
+            ),
+            GoRoute(
+              path: 'settings',
+              builder: (context, state) =>
+                  const TickerMode(enabled: true, child: const SettingsScreen()),
+            ),
+          ],
+        ),
+      
         ],
-      ),
-    ],
+      )],
   );
 });
