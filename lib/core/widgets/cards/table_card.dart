@@ -33,9 +33,7 @@ class TableCard extends StatelessWidget {
         decoration: BoxDecoration(
           color: theme.colorScheme.surface,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: theme.colorScheme.outlineVariant,
-          ),
+          border: Border.all(color: theme.colorScheme.outlineVariant),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -43,10 +41,7 @@ class TableCard extends StatelessWidget {
             Row(
               children: [
                 Expanded(
-                  child: Text(
-                    tableName,
-                    style: theme.textTheme.titleMedium,
-                  ),
+                  child: Text(tableName, style: theme.textTheme.titleMedium),
                 ),
                 Container(
                   padding: const EdgeInsets.symmetric(
@@ -67,16 +62,16 @@ class TableCard extends StatelessWidget {
                 ),
               ],
             ),
-            if (runningTime != null || currentBill != null) ...
-            [
+            if (runningTime != null || currentBill != null) ...[
               const Gap(12),
               Row(
                 children: [
-                  if (runningTime != null) ...
-                  [
-                    Icon(Icons.timer_outlined,
-                        size: 16,
-                        color: theme.colorScheme.onSurfaceVariant),
+                  if (runningTime != null) ...[
+                    Icon(
+                      Icons.timer_outlined,
+                      size: 16,
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
                     const Gap(4),
                     Text(
                       runningTime!,
@@ -85,13 +80,13 @@ class TableCard extends StatelessWidget {
                       ),
                     ),
                   ],
-                  if (runningTime != null && currentBill != null)
-                    const Gap(16),
-                  if (currentBill != null) ...
-                  [
-                    Icon(Icons.receipt_outlined,
-                        size: 16,
-                        color: theme.colorScheme.onSurfaceVariant),
+                  if (runningTime != null && currentBill != null) const Gap(16),
+                  if (currentBill != null) ...[
+                    Icon(
+                      Icons.receipt_outlined,
+                      size: 16,
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
                     const Gap(4),
                     Text(
                       currentBill!,
@@ -101,11 +96,12 @@ class TableCard extends StatelessWidget {
                     ),
                   ],
                   const Spacer(),
-                  if (playerCount != null) ...
-                  [
-                    Icon(Icons.people_outline,
-                        size: 16,
-                        color: theme.colorScheme.onSurfaceVariant),
+                  if (playerCount != null) ...[
+                    Icon(
+                      Icons.people_outline,
+                      size: 16,
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
                     const Gap(4),
                     Text(
                       '$playerCount',

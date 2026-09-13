@@ -258,8 +258,7 @@ class _ActiveGameInfoState extends ConsumerState<_ActiveGameInfo> {
     final theme = Theme.of(context);
     return Row(
       children: [
-        Icon(Icons.timer,
-            size: 12, color: theme.colorScheme.onSurfaceVariant),
+        Icon(Icons.timer, size: 12, color: theme.colorScheme.onSurfaceVariant),
         const Gap(4),
         Text(
           timeStr,

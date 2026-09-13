@@ -66,8 +66,8 @@ class _GamesScreenState extends ConsumerState<GamesScreen> {
           ? FloatingActionButton.extended(
               onPressed: () {
                 showModalBottomSheet(
-useRootNavigator: true,
-context: context,
+                  useRootNavigator: true,
+                  context: context,
                   builder: (context) => SafeArea(
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
@@ -75,15 +75,18 @@ context: context,
                         ListTile(
                           leading: const Icon(Icons.play_circle_outline),
                           title: const Text('Record Ongoing Game'),
-                          subtitle: const Text('Start a live timer backdated by elapsed time'),
+                          subtitle: const Text(
+                            'Start a live timer backdated by elapsed time',
+                          ),
                           onTap: () {
                             Navigator.pop(context);
                             Navigator.of(context).push(
                               MaterialPageRoute(
-                                builder: (context) => const ManualGameSetupScreen(
-                                  employeeId: 'admin_123',
-                                  isCompletedGame: false,
-                                ),
+                                builder: (context) =>
+                                    const ManualGameSetupScreen(
+                                      employeeId: 'admin_123',
+                                      isCompletedGame: false,
+                                    ),
                               ),
                             );
                           },
@@ -91,15 +94,18 @@ context: context,
                         ListTile(
                           leading: const Icon(Icons.receipt_long),
                           title: const Text('Record Completed Game'),
-                          subtitle: const Text('Generate a bill directly for a finished game'),
+                          subtitle: const Text(
+                            'Generate a bill directly for a finished game',
+                          ),
                           onTap: () {
                             Navigator.pop(context);
                             Navigator.of(context).push(
                               MaterialPageRoute(
-                                builder: (context) => const ManualGameSetupScreen(
-                                  employeeId: 'admin_123',
-                                  isCompletedGame: true,
-                                ),
+                                builder: (context) =>
+                                    const ManualGameSetupScreen(
+                                      employeeId: 'admin_123',
+                                      isCompletedGame: true,
+                                    ),
                               ),
                             );
                           },

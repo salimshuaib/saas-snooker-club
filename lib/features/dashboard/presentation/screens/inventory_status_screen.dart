@@ -23,12 +23,23 @@ class InventoryStatusScreen extends ConsumerWidget {
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, _) => Center(child: Text('Error loading inventory: $e')),
         data: (items) {
-          final outOfStock = items.where((i) => i.currentStock == 0 && i.isActive).toList();
-          final lowStock = items.where((i) => i.currentStock > 0 && i.currentStock <= 5 && i.isActive).toList();
+          final outOfStock = items
+              .where((i) => i.currentStock == 0 && i.isActive)
+              .toList();
+          final lowStock = items
+              .where(
+                (i) => i.currentStock > 0 && i.currentStock <= 5 && i.isActive,
+              )
+              .toList();
           final disabled = items.where((i) => !i.isActive).toList();
-          final activeOptimal = items.where((i) => i.currentStock > 5 && i.isActive).toList();
+          final activeOptimal = items
+              .where((i) => i.currentStock > 5 && i.isActive)
+              .toList();
 
-          final hasAlerts = outOfStock.isNotEmpty || lowStock.isNotEmpty || disabled.isNotEmpty;
+          final hasAlerts =
+              outOfStock.isNotEmpty ||
+              lowStock.isNotEmpty ||
+              disabled.isNotEmpty;
 
           return CustomScrollView(
             physics: const BouncingScrollPhysics(),
@@ -45,15 +56,21 @@ class InventoryStatusScreen extends ConsumerWidget {
                           : AppColors.warning.withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(20),
                       border: Border.all(
-                        color: !hasAlerts ? AppColors.available : AppColors.warning,
+                        color: !hasAlerts
+                            ? AppColors.available
+                            : AppColors.warning,
                         width: 1.5,
                       ),
                     ),
                     child: Row(
                       children: [
                         Icon(
-                          !hasAlerts ? Icons.check_circle_outline : Icons.warning_amber_rounded,
-                          color: !hasAlerts ? AppColors.available : AppColors.warning,
+                          !hasAlerts
+                              ? Icons.check_circle_outline
+                              : Icons.warning_amber_rounded,
+                          color: !hasAlerts
+                              ? AppColors.available
+                              : AppColors.warning,
                           size: 36,
                         ),
                         const Gap(16),
@@ -62,10 +79,14 @@ class InventoryStatusScreen extends ConsumerWidget {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                !hasAlerts ? 'Everything looks good.' : 'Attention Required',
+                                !hasAlerts
+                                    ? 'Everything looks good.'
+                                    : 'Attention Required',
                                 style: theme.textTheme.titleLarge?.copyWith(
                                   fontWeight: FontWeight.w800,
-                                  color: !hasAlerts ? AppColors.available : AppColors.warning,
+                                  color: !hasAlerts
+                                      ? AppColors.available
+                                      : AppColors.warning,
                                 ),
                               ),
                               const Gap(4),
@@ -89,10 +110,19 @@ class InventoryStatusScreen extends ConsumerWidget {
 
               // ─── Out of Stock Section ───
               if (outOfStock.isNotEmpty) ...[
-                _buildSectionHeader(theme, 'Out of Stock Products', Icons.remove_shopping_cart, AppColors.error),
+                _buildSectionHeader(
+                  theme,
+                  'Out of Stock Products',
+                  Icons.remove_shopping_cart,
+                  AppColors.error,
+                ),
                 SliverList(
                   delegate: SliverChildBuilderDelegate(
-                    (context, index) => _InventoryStatusTile(item: outOfStock[index], statusText: 'OUT OF STOCK', statusColor: AppColors.error),
+                    (context, index) => _InventoryStatusTile(
+                      item: outOfStock[index],
+                      statusText: 'OUT OF STOCK',
+                      statusColor: AppColors.error,
+                    ),
                     childCount: outOfStock.length,
                   ),
                 ),
@@ -100,10 +130,19 @@ class InventoryStatusScreen extends ConsumerWidget {
 
               // ─── Low Stock Section ───
               if (lowStock.isNotEmpty) ...[
-                _buildSectionHeader(theme, 'Low Stock Products', Icons.inventory, AppColors.warning),
+                _buildSectionHeader(
+                  theme,
+                  'Low Stock Products',
+                  Icons.inventory,
+                  AppColors.warning,
+                ),
                 SliverList(
                   delegate: SliverChildBuilderDelegate(
-                    (context, index) => _InventoryStatusTile(item: lowStock[index], statusText: 'LOW STOCK', statusColor: AppColors.warning),
+                    (context, index) => _InventoryStatusTile(
+                      item: lowStock[index],
+                      statusText: 'LOW STOCK',
+                      statusColor: AppColors.warning,
+                    ),
                     childCount: lowStock.length,
                   ),
                 ),
@@ -111,10 +150,19 @@ class InventoryStatusScreen extends ConsumerWidget {
 
               // ─── Disabled Products Section ───
               if (disabled.isNotEmpty) ...[
-                _buildSectionHeader(theme, 'Disabled Products', Icons.block, theme.colorScheme.onSurfaceVariant),
+                _buildSectionHeader(
+                  theme,
+                  'Disabled Products',
+                  Icons.block,
+                  theme.colorScheme.onSurfaceVariant,
+                ),
                 SliverList(
                   delegate: SliverChildBuilderDelegate(
-                    (context, index) => _InventoryStatusTile(item: disabled[index], statusText: 'DISABLED', statusColor: theme.colorScheme.onSurfaceVariant),
+                    (context, index) => _InventoryStatusTile(
+                      item: disabled[index],
+                      statusText: 'DISABLED',
+                      statusColor: theme.colorScheme.onSurfaceVariant,
+                    ),
                     childCount: disabled.length,
                   ),
                 ),
@@ -122,10 +170,19 @@ class InventoryStatusScreen extends ConsumerWidget {
 
               // ─── Active Products Section ───
               if (activeOptimal.isNotEmpty) ...[
-                _buildSectionHeader(theme, 'Active Products (Healthy Stock)', Icons.check_box, AppColors.available),
+                _buildSectionHeader(
+                  theme,
+                  'Active Products (Healthy Stock)',
+                  Icons.check_box,
+                  AppColors.available,
+                ),
                 SliverList(
                   delegate: SliverChildBuilderDelegate(
-                    (context, index) => _InventoryStatusTile(item: activeOptimal[index], statusText: 'ACTIVE', statusColor: AppColors.available),
+                    (context, index) => _InventoryStatusTile(
+                      item: activeOptimal[index],
+                      statusText: 'ACTIVE',
+                      statusColor: AppColors.available,
+                    ),
                     childCount: activeOptimal.length,
                   ),
                 ),
@@ -139,7 +196,12 @@ class InventoryStatusScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildSectionHeader(ThemeData theme, String title, IconData icon, Color color) {
+  Widget _buildSectionHeader(
+    ThemeData theme,
+    String title,
+    IconData icon,
+    Color color,
+  ) {
     return SliverToBoxAdapter(
       child: Padding(
         padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
@@ -199,7 +261,11 @@ class _InventoryStatusTile extends StatelessWidget {
                     color: statusColor.withValues(alpha: 0.12),
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: Icon(Icons.inventory_2_outlined, color: statusColor, size: 24),
+                  child: Icon(
+                    Icons.inventory_2_outlined,
+                    color: statusColor,
+                    size: 24,
+                  ),
                 ),
                 const Gap(16),
                 Expanded(
@@ -208,7 +274,9 @@ class _InventoryStatusTile extends StatelessWidget {
                     children: [
                       Text(
                         item.name,
-                        style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w700,
+                        ),
                         overflow: TextOverflow.ellipsis,
                       ),
                       const Gap(4),
@@ -224,7 +292,10 @@ class _InventoryStatusTile extends StatelessWidget {
                 ),
                 const Gap(12),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 6,
+                  ),
                   decoration: BoxDecoration(
                     color: statusColor.withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(20),
@@ -239,7 +310,10 @@ class _InventoryStatusTile extends StatelessWidget {
                   ),
                 ),
                 const Gap(8),
-                Icon(Icons.chevron_right, color: theme.colorScheme.onSurfaceVariant),
+                Icon(
+                  Icons.chevron_right,
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
               ],
             ),
           ),

@@ -22,7 +22,7 @@ class ExportService {
     _showLoading(context);
     try {
       final range = ref.read(analyticsTimeRangeProvider);
-      
+
       final analyticsData = getCompleteAnalyticsData(ref);
       final gamesAsync = ref.read(analyticsGamesStreamProvider);
       final quickSalesAsync = ref.read(analyticsQuickSalesStreamProvider);
@@ -33,38 +33,80 @@ class ExportService {
       final credits = creditsAsync.value ?? [];
 
       var excel = Excel.createExcel();
-      
+
       if (excel.sheets.keys.contains('Sheet1')) {
         excel.delete('Sheet1');
       }
 
       final s1 = excel['Financial Summary'];
       s1.appendRow([TextCellValue('Metric'), TextCellValue('Amount')]);
-      s1.appendRow([TextCellValue('Total Billed'), DoubleCellValue(analyticsData.revenueOverview.totalBilled)]);
-      s1.appendRow([TextCellValue('Cash Collected'), DoubleCellValue(analyticsData.revenueOverview.cashCollected)]);
-      s1.appendRow([TextCellValue('UPI Collected'), DoubleCellValue(analyticsData.revenueOverview.upiCollected)]);
-      s1.appendRow([TextCellValue('Credit Created'), DoubleCellValue(analyticsData.revenueOverview.creditCreated)]);
-      s1.appendRow([TextCellValue('Credit Collected'), DoubleCellValue(analyticsData.revenueOverview.creditCollected)]);
-      s1.appendRow([TextCellValue('Outstanding Credit'), DoubleCellValue(analyticsData.revenueOverview.outstandingCredit)]);
+      s1.appendRow([
+        TextCellValue('Total Billed'),
+        DoubleCellValue(analyticsData.revenueOverview.totalBilled),
+      ]);
+      s1.appendRow([
+        TextCellValue('Cash Collected'),
+        DoubleCellValue(analyticsData.revenueOverview.cashCollected),
+      ]);
+      s1.appendRow([
+        TextCellValue('UPI Collected'),
+        DoubleCellValue(analyticsData.revenueOverview.upiCollected),
+      ]);
+      s1.appendRow([
+        TextCellValue('Credit Created'),
+        DoubleCellValue(analyticsData.revenueOverview.creditCreated),
+      ]);
+      s1.appendRow([
+        TextCellValue('Credit Collected'),
+        DoubleCellValue(analyticsData.revenueOverview.creditCollected),
+      ]);
+      s1.appendRow([
+        TextCellValue('Outstanding Credit'),
+        DoubleCellValue(analyticsData.revenueOverview.outstandingCredit),
+      ]);
       s1.appendRow([TextCellValue('')]);
-      s1.appendRow([TextCellValue('Report Start Date'), TextCellValue(range.start.toIso8601String())]);
-      s1.appendRow([TextCellValue('Report End Date'), TextCellValue(range.end.toIso8601String())]);
-      s1.appendRow([TextCellValue('Generated At'), TextCellValue(DateTime.now().toIso8601String())]);
+      s1.appendRow([
+        TextCellValue('Report Start Date'),
+        TextCellValue(range.start.toIso8601String()),
+      ]);
+      s1.appendRow([
+        TextCellValue('Report End Date'),
+        TextCellValue(range.end.toIso8601String()),
+      ]);
+      s1.appendRow([
+        TextCellValue('Generated At'),
+        TextCellValue(DateTime.now().toIso8601String()),
+      ]);
 
       final s2 = excel['Games'];
       s2.appendRow([
-        TextCellValue('ID'), TextCellValue('Start Time'), TextCellValue('End Time'), 
-        TextCellValue('Table ID'), TextCellValue('Duration (mins)'), TextCellValue('Amount'), 
-        TextCellValue('Payment Method'), TextCellValue('Status')
+        TextCellValue('ID'),
+        TextCellValue('Start Time'),
+        TextCellValue('End Time'),
+        TextCellValue('Table ID'),
+        TextCellValue('Duration (mins)'),
+        TextCellValue('Amount'),
+        TextCellValue('Payment Method'),
+        TextCellValue('Status'),
       ]);
       for (var g in games) {
-        final paymentMethods = g.playerPaymentSplits != null ? g.playerPaymentSplits!.values.expand((splits) => splits.keys).map((e) => e.name).toSet().join(', ') : 'unknown';
+        final paymentMethods = g.playerPaymentSplits != null
+            ? g.playerPaymentSplits!.values
+                  .expand((splits) => splits.keys)
+                  .map((e) => e.name)
+                  .toSet()
+                  .join(', ')
+            : 'unknown';
         s2.appendRow([
           TextCellValue(g.id),
           TextCellValue(g.startTime.toIso8601String()),
           TextCellValue(g.endTime?.toIso8601String() ?? ''),
           TextCellValue(g.tableId),
-          IntCellValue(g.endTime != null ? g.endTime!.difference(g.startTime).inMinutes : 0),
+          IntCellValue(
+            g.endTime != null
+                ? g.endTime!.difference(g.startTime).inMinutes
+                : 0,
+          ),
           DoubleCellValue(g.finalAmount ?? g.grandTotal ?? 0.0),
           TextCellValue(paymentMethods),
           TextCellValue(g.status.name),
@@ -73,8 +115,12 @@ class ExportService {
 
       final s3 = excel['Quick Sales'];
       s3.appendRow([
-        TextCellValue('ID'), TextCellValue('Time'), TextCellValue('Item'), 
-        TextCellValue('Quantity'), TextCellValue('Total Amount'), TextCellValue('Payment Method')
+        TextCellValue('ID'),
+        TextCellValue('Time'),
+        TextCellValue('Item'),
+        TextCellValue('Quantity'),
+        TextCellValue('Total Amount'),
+        TextCellValue('Payment Method'),
       ]);
       for (var q in quickSales) {
         final paymentMethod = q.paymentMethod.name;
@@ -90,8 +136,12 @@ class ExportService {
 
       final s4 = excel['Credit Transactions'];
       s4.appendRow([
-        TextCellValue('ID'), TextCellValue('Time'), TextCellValue('Customer ID'), 
-        TextCellValue('Original Amount'), TextCellValue('Remaining Amount'), TextCellValue('Status')
+        TextCellValue('ID'),
+        TextCellValue('Time'),
+        TextCellValue('Customer ID'),
+        TextCellValue('Original Amount'),
+        TextCellValue('Remaining Amount'),
+        TextCellValue('Status'),
       ]);
       for (var c in credits) {
         s4.appendRow([
@@ -109,20 +159,26 @@ class ExportService {
         final xfile = XFile.fromData(
           Uint8List.fromList(fileBytes),
           name: 'snooker_report_${DateTime.now().millisecondsSinceEpoch}.xlsx',
-          mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+          mimeType:
+              'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
         );
-        
+
         if (context.mounted) {
           _hideLoading(context);
-          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Excel Generated Successfully')));
-          final clubName = ref.read(clubProfileProvider).value?.clubName ?? 'S&B Manager';
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Excel Generated Successfully')),
+          );
+          final clubName =
+              ref.read(clubProfileProvider).value?.clubName ?? 'S&B Manager';
           Share.shareXFiles([xfile], text: '$clubName Financial Excel Report');
         }
       }
     } catch (e) {
       if (context.mounted) {
         _hideLoading(context);
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+        );
       }
     }
   }
@@ -137,68 +193,106 @@ class ExportService {
       final font = await PdfGoogleFonts.robotoRegular();
       final boldFont = await PdfGoogleFonts.robotoBold();
 
-      final clubName = ref.read(clubProfileProvider).value?.clubName ?? 'S&B Manager';
+      final clubName =
+          ref.read(clubProfileProvider).value?.clubName ?? 'S&B Manager';
 
       final pdf = pw.Document();
 
-      pdf.addPage(pw.MultiPage(
-        pageFormat: PdfPageFormat.a4,
-        theme: pw.ThemeData.withFont(
-          base: font,
-          bold: boldFont,
+      pdf.addPage(
+        pw.MultiPage(
+          pageFormat: PdfPageFormat.a4,
+          theme: pw.ThemeData.withFont(base: font, bold: boldFont),
+          build: (pw.Context ctx) {
+            final symbol = currency.symbol;
+            return [
+              pw.Header(
+                level: 0,
+                child: pw.Text(
+                  '$clubName - Financial Report',
+                  style: pw.TextStyle(
+                    fontSize: 24,
+                    fontWeight: pw.FontWeight.bold,
+                  ),
+                ),
+              ),
+              pw.Text(
+                'Date Range: ${DateFormat("MMM d, yyyy").format(range.start)} to ${DateFormat("MMM d, yyyy").format(range.end)}',
+              ),
+              pw.Text(
+                'Generated: ${DateFormat("MMMM d, yyyy 'at' h:mm a").format(DateTime.now())}',
+                style: const pw.TextStyle(color: PdfColors.grey700),
+              ),
+              pw.SizedBox(height: 20),
+
+              pw.Header(level: 1, child: pw.Text('Financial Summary')),
+              pw.TableHelper.fromTextArray(
+                context: ctx,
+                data: <List<String>>[
+                  ['Metric', 'Amount'],
+                  [
+                    'Total Billed',
+                    '$symbol${analyticsData.revenueOverview.totalBilled.toStringAsFixed(0)}',
+                  ],
+                  [
+                    'Cash Collected',
+                    '$symbol${analyticsData.revenueOverview.cashCollected.toStringAsFixed(0)}',
+                  ],
+                  [
+                    'UPI Collected',
+                    '$symbol${analyticsData.revenueOverview.upiCollected.toStringAsFixed(0)}',
+                  ],
+                  [
+                    'Credit Created',
+                    '$symbol${analyticsData.revenueOverview.creditCreated.toStringAsFixed(0)}',
+                  ],
+                  [
+                    'Credit Collected',
+                    '$symbol${analyticsData.revenueOverview.creditCollected.toStringAsFixed(0)}',
+                  ],
+                  [
+                    'Outstanding Credit',
+                    '$symbol${analyticsData.revenueOverview.outstandingCredit.toStringAsFixed(0)}',
+                  ],
+                ],
+              ),
+              pw.SizedBox(height: 20),
+
+              pw.Header(level: 1, child: pw.Text('Game Category Performance')),
+              pw.TableHelper.fromTextArray(
+                context: ctx,
+                data: <List<String>>[
+                  ['Category', 'Games', 'Total Billed'],
+                  ...analyticsData.gameAnalytics.categories.map(
+                    (c) => [
+                      c.categoryName,
+                      c.transactionCount.toString(),
+                      '$symbol${c.totalBilled.toStringAsFixed(0)}',
+                    ],
+                  ),
+                ],
+              ),
+              pw.SizedBox(height: 20),
+
+              pw.Header(level: 1, child: pw.Text('Top Quick Sale Products')),
+              pw.TableHelper.fromTextArray(
+                context: ctx,
+                data: <List<String>>[
+                  ['Product', 'Qty Sold', 'Total Revenue'],
+                  ...analyticsData.bestSellingProducts
+                      .take(15)
+                      .map(
+                        (p) => [
+                          p.productName,
+                          p.unitsSold.toString(),
+                          '$symbol${p.salesAmount.toStringAsFixed(0)}',
+                        ],
+                      ),
+                ],
+              ),
+            ];
+          },
         ),
-        build: (pw.Context ctx) {
-          final symbol = currency.symbol;
-          return [
-            pw.Header(level: 0, child: pw.Text('$clubName - Financial Report', style: pw.TextStyle(fontSize: 24, fontWeight: pw.FontWeight.bold))),
-            pw.Text('Date Range: ${DateFormat("MMM d, yyyy").format(range.start)} to ${DateFormat("MMM d, yyyy").format(range.end)}'),
-            pw.Text('Generated: ${DateFormat("MMMM d, yyyy 'at' h:mm a").format(DateTime.now())}', style: const pw.TextStyle(color: PdfColors.grey700)),
-            pw.SizedBox(height: 20),
-            
-            pw.Header(level: 1, child: pw.Text('Financial Summary')),
-            pw.TableHelper.fromTextArray(
-              context: ctx,
-              data: <List<String>>[
-                ['Metric', 'Amount'],
-                ['Total Billed', '$symbol${analyticsData.revenueOverview.totalBilled.toStringAsFixed(0)}'],
-                ['Cash Collected', '$symbol${analyticsData.revenueOverview.cashCollected.toStringAsFixed(0)}'],
-                ['UPI Collected', '$symbol${analyticsData.revenueOverview.upiCollected.toStringAsFixed(0)}'],
-                ['Credit Created', '$symbol${analyticsData.revenueOverview.creditCreated.toStringAsFixed(0)}'],
-                ['Credit Collected', '$symbol${analyticsData.revenueOverview.creditCollected.toStringAsFixed(0)}'],
-                ['Outstanding Credit', '$symbol${analyticsData.revenueOverview.outstandingCredit.toStringAsFixed(0)}'],
-              ],
-            ),
-            pw.SizedBox(height: 20),
-
-            pw.Header(level: 1, child: pw.Text('Game Category Performance')),
-            pw.TableHelper.fromTextArray(
-              context: ctx,
-              data: <List<String>>[
-                ['Category', 'Games', 'Total Billed'],
-                ...analyticsData.gameAnalytics.categories.map((c) => [
-                  c.categoryName,
-                  c.transactionCount.toString(),
-                  '$symbol${c.totalBilled.toStringAsFixed(0)}'
-                ]),
-              ],
-            ),
-            pw.SizedBox(height: 20),
-
-            pw.Header(level: 1, child: pw.Text('Top Quick Sale Products')),
-            pw.TableHelper.fromTextArray(
-              context: ctx,
-              data: <List<String>>[
-                ['Product', 'Qty Sold', 'Total Revenue'],
-                ...analyticsData.bestSellingProducts.take(15).map((p) => [
-                  p.productName,
-                  p.unitsSold.toString(),
-                  '$symbol${p.salesAmount.toStringAsFixed(0)}'
-                ]),
-              ],
-            ),
-          ];
-        },
-      ));
+      );
 
       final bytes = await pdf.save();
       final xfile = XFile.fromData(
@@ -209,14 +303,19 @@ class ExportService {
 
       if (context.mounted) {
         _hideLoading(context);
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('PDF Generated Successfully')));
-        final clubName = ref.read(clubProfileProvider).value?.clubName ?? 'S&B Manager';
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('PDF Generated Successfully')),
+        );
+        final clubName =
+            ref.read(clubProfileProvider).value?.clubName ?? 'S&B Manager';
         Share.shareXFiles([xfile], text: '$clubName Financial Report');
       }
     } catch (e) {
       if (context.mounted) {
         _hideLoading(context);
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+        );
       }
     }
   }
@@ -228,33 +327,54 @@ class ExportService {
       final games = gamesAsync.value ?? [];
 
       List<List<dynamic>> rows = [
-        ['ID', 'Start Time', 'End Time', 'Table ID', 'Duration (mins)', 'Amount', 'Payment Method', 'Status']
+        [
+          'ID',
+          'Start Time',
+          'End Time',
+          'Table ID',
+          'Duration (mins)',
+          'Amount',
+          'Payment Method',
+          'Status',
+        ],
       ];
 
       for (var g in games) {
-        final paymentMethods = g.playerPaymentSplits != null ? g.playerPaymentSplits!.values.expand((splits) => splits.keys).map((e) => e.name).toSet().join(', ') : 'unknown';
+        final paymentMethods = g.playerPaymentSplits != null
+            ? g.playerPaymentSplits!.values
+                  .expand((splits) => splits.keys)
+                  .map((e) => e.name)
+                  .toSet()
+                  .join(', ')
+            : 'unknown';
         rows.add([
           g.id,
           g.startTime.toIso8601String(),
           g.endTime?.toIso8601String() ?? '',
           g.tableId,
-          (g.endTime != null ? g.endTime!.difference(g.startTime).inMinutes : 0),
+          (g.endTime != null
+              ? g.endTime!.difference(g.startTime).inMinutes
+              : 0),
           (g.finalAmount ?? g.grandTotal ?? 0.0),
           paymentMethods,
           g.status.name,
         ]);
       }
 
-      String csvData = rows.map((row) {
-        return row.map((field) {
-          String s = field.toString();
-          if (s.contains(',') || s.contains('"') || s.contains('\n')) {
-            s = s.replaceAll('"', '""');
-            return '"$s"';
-          }
-          return s;
-        }).join(',');
-      }).join('\n');
+      String csvData = rows
+          .map((row) {
+            return row
+                .map((field) {
+                  String s = field.toString();
+                  if (s.contains(',') || s.contains('"') || s.contains('\n')) {
+                    s = s.replaceAll('"', '""');
+                    return '"$s"';
+                  }
+                  return s;
+                })
+                .join(',');
+          })
+          .join('\n');
 
       final bytes = utf8.encode(csvData);
       final xfile = XFile.fromData(
@@ -265,44 +385,68 @@ class ExportService {
 
       if (context.mounted) {
         _hideLoading(context);
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('CSV Generated Successfully')));
-        final clubName = ref.read(clubProfileProvider).value?.clubName ?? 'S&B Manager';
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('CSV Generated Successfully')),
+        );
+        final clubName =
+            ref.read(clubProfileProvider).value?.clubName ?? 'S&B Manager';
         Share.shareXFiles([xfile], text: '$clubName Games CSV Export');
       }
     } catch (e) {
       if (context.mounted) {
         _hideLoading(context);
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+        );
       }
     }
   }
 
-  static Future<void> exportDueCreditToPdf(BuildContext context, WidgetRef ref) async {
+  static Future<void> exportDueCreditToPdf(
+    BuildContext context,
+    WidgetRef ref,
+  ) async {
     _showLoading(context);
     try {
       final currency = ref.read(currencyProvider);
       final repo = ref.read(creditRepositoryProvider);
       final customers = await repo.watchAllCustomers().first;
-      
-      final dueCustomers = customers.where((c) => c.outstandingAmount > 0).toList();
-      dueCustomers.sort((a, b) => b.outstandingAmount.compareTo(a.outstandingAmount));
-      
+
+      final dueCustomers = customers
+          .where((c) => c.outstandingAmount > 0)
+          .toList();
+      dueCustomers.sort(
+        (a, b) => b.outstandingAmount.compareTo(a.outstandingAmount),
+      );
+
       final font = await PdfGoogleFonts.robotoRegular();
       final boldFont = await PdfGoogleFonts.robotoBold();
-      final clubName = ref.read(clubProfileProvider).value?.clubName ?? 'S&B Manager';
+      final clubName =
+          ref.read(clubProfileProvider).value?.clubName ?? 'S&B Manager';
       final symbol = currency.symbol;
 
       final List<List<String>> tableData = [
-        ['Player Name', 'Mobile', 'Total Games', 'Total Paid', 'Outstanding Due']
+        [
+          'Player Name',
+          'Mobile',
+          'Total Games',
+          'Total Paid',
+          'Outstanding Due',
+        ],
       ];
-      
+
       for (final customer in dueCustomers) {
         final txs = await repo.watchAllTransactions(customer.id).first;
         final payments = await repo.watchPaymentHistory(customer.id).first;
-        
-        final gamesPlayed = txs.where((t) => t.type == CreditTransactionType.game).length;
-        final totalPaid = payments.fold<double>(0.0, (sum, p) => sum + p.amountPaid);
-        
+
+        final gamesPlayed = txs
+            .where((t) => t.type == CreditTransactionType.game)
+            .length;
+        final totalPaid = payments.fold<double>(
+          0.0,
+          (sum, p) => sum + p.amountPaid,
+        );
+
         tableData.add([
           customer.name,
           customer.mobileNumber ?? 'N/A',
@@ -314,44 +458,62 @@ class ExportService {
 
       final pdf = pw.Document();
 
-      pdf.addPage(pw.MultiPage(
-        pageFormat: PdfPageFormat.a4,
-        theme: pw.ThemeData.withFont(
-          base: font,
-          bold: boldFont,
+      pdf.addPage(
+        pw.MultiPage(
+          pageFormat: PdfPageFormat.a4,
+          theme: pw.ThemeData.withFont(base: font, bold: boldFont),
+          build: (pw.Context ctx) {
+            return [
+              pw.Header(
+                level: 0,
+                child: pw.Text(
+                  '$clubName - Outstanding Credit Report',
+                  style: pw.TextStyle(
+                    fontSize: 24,
+                    fontWeight: pw.FontWeight.bold,
+                  ),
+                ),
+              ),
+              pw.Text(
+                'Generated: ${DateFormat("MMMM d, yyyy 'at' h:mm a").format(DateTime.now())}',
+                style: const pw.TextStyle(color: PdfColors.grey700),
+              ),
+              pw.SizedBox(height: 20),
+
+              pw.TableHelper.fromTextArray(
+                context: ctx,
+                cellAlignment: pw.Alignment.centerLeft,
+                headerStyle: pw.TextStyle(fontWeight: pw.FontWeight.bold),
+                data: tableData,
+              ),
+            ];
+          },
         ),
-        build: (pw.Context ctx) {
-          return [
-            pw.Header(level: 0, child: pw.Text('$clubName - Outstanding Credit Report', style: pw.TextStyle(fontSize: 24, fontWeight: pw.FontWeight.bold))),
-            pw.Text('Generated: ${DateFormat("MMMM d, yyyy 'at' h:mm a").format(DateTime.now())}', style: const pw.TextStyle(color: PdfColors.grey700)),
-            pw.SizedBox(height: 20),
-            
-            pw.TableHelper.fromTextArray(
-              context: ctx,
-              cellAlignment: pw.Alignment.centerLeft,
-              headerStyle: pw.TextStyle(fontWeight: pw.FontWeight.bold),
-              data: tableData,
-            ),
-          ];
-        },
-      ));
+      );
 
       final fileBytes = await pdf.save();
       final xfile = XFile.fromData(
         fileBytes,
-        name: 'outstanding_credit_report_${DateTime.now().millisecondsSinceEpoch}.pdf',
+        name:
+            'outstanding_credit_report_${DateTime.now().millisecondsSinceEpoch}.pdf',
         mimeType: 'application/pdf',
       );
-      
+
       if (context.mounted) {
         _hideLoading(context);
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Credit Report PDF Generated Successfully')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Credit Report PDF Generated Successfully'),
+          ),
+        );
         Share.shareXFiles([xfile], text: '$clubName Outstanding Credit Report');
       }
     } catch (e) {
       if (context.mounted) {
         _hideLoading(context);
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+        );
       }
     }
   }

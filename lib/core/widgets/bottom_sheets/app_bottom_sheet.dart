@@ -23,15 +23,12 @@ class AppBottomSheet extends StatelessWidget {
     bool isScrollControlled = true,
   }) {
     return showModalBottomSheet<T>(
-useRootNavigator: true,
-context: context,
+      useRootNavigator: true,
+      context: context,
       isScrollControlled: isScrollControlled,
       useSafeArea: true,
-      builder: (context) => AppBottomSheet(
-        title: title,
-        actions: actions,
-        child: child,
-      ),
+      builder: (context) =>
+          AppBottomSheet(title: title, actions: actions, child: child),
     );
   }
 
@@ -50,19 +47,14 @@ context: context,
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if (title != null) ...
-          [
+          if (title != null) ...[
             Text(title!, style: theme.textTheme.titleLarge),
             const Gap(16),
           ],
           child,
-          if (actions != null) ...
-          [
+          if (actions != null) ...[
             const Gap(16),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: actions!,
-            ),
+            Row(mainAxisAlignment: MainAxisAlignment.end, children: actions!),
           ],
           const Gap(20),
         ],

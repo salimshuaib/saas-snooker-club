@@ -12,11 +12,14 @@ class TablePerformanceCard extends StatelessWidget {
   final TablePerformanceItem data;
   final Currency currency;
 
-  const TablePerformanceCard({super.key, required this.data, required this.currency});
+  const TablePerformanceCard({
+    super.key,
+    required this.data,
+    required this.currency,
+  });
 
   @override
   Widget build(BuildContext context) {
-
     return Card(
       margin: const EdgeInsets.only(bottom: 16),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -32,18 +35,30 @@ class TablePerformanceCard extends StatelessWidget {
                   child: Row(
                     children: [
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
                         decoration: BoxDecoration(
                           color: AppColors.primary.withValues(alpha: 0.2),
                           borderRadius: BorderRadius.circular(8),
                         ),
-                        child: Text(data.tableType, style: const TextStyle(color: AppColors.primary, fontSize: 12, fontWeight: FontWeight.bold)),
+                        child: Text(
+                          data.tableType,
+                          style: const TextStyle(
+                            color: AppColors.primary,
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                       ),
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
-                          data.tableName, 
-                          style: AppTypography.textTheme.titleMedium!.copyWith(fontWeight: FontWeight.bold),
+                          data.tableName,
+                          style: AppTypography.textTheme.titleMedium!.copyWith(
+                            fontWeight: FontWeight.bold,
+                          ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
@@ -52,7 +67,13 @@ class TablePerformanceCard extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(width: 8),
-                Text(CurrencyHelper.formatWhole(data.totalBilled, currency), style: AppTypography.textTheme.titleMedium!.copyWith(fontWeight: FontWeight.bold, color: AppColors.success)),
+                Text(
+                  CurrencyHelper.formatWhole(data.totalBilled, currency),
+                  style: AppTypography.textTheme.titleMedium!.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.success,
+                  ),
+                ),
               ],
             ),
             const Divider(height: 24),
@@ -60,9 +81,18 @@ class TablePerformanceCard extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
                 _buildMetric('Sessions', data.sessionsCount.toString()),
-                _buildMetric('Avg Session', CurrencyHelper.formatWhole(data.averageSessionValue, currency)),
+                _buildMetric(
+                  'Avg Session',
+                  CurrencyHelper.formatWhole(
+                    data.averageSessionValue,
+                    currency,
+                  ),
+                ),
                 _buildMetric('Avg Duration', '${data.avgDurationMinutes}m'),
-                _buildMetric('Rev/Hour', CurrencyHelper.formatWhole(data.revenuePerHour, currency)),
+                _buildMetric(
+                  'Rev/Hour',
+                  CurrencyHelper.formatWhole(data.revenuePerHour, currency),
+                ),
               ],
             ),
             const SizedBox(height: 16),
@@ -81,7 +111,10 @@ class TablePerformanceCard extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(width: 8),
-                    Text('${data.utilizationPercent.toStringAsFixed(1)}%', style: const TextStyle(fontWeight: FontWeight.bold)),
+                    Text(
+                      '${data.utilizationPercent.toStringAsFixed(1)}%',
+                      style: const TextStyle(fontWeight: FontWeight.bold),
+                    ),
                   ],
                 ),
               ],
@@ -95,7 +128,10 @@ class TablePerformanceCard extends StatelessWidget {
   Widget _buildMetric(String label, String value) {
     return Column(
       children: [
-        Text(value, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+        Text(
+          value,
+          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+        ),
         Text(label, style: const TextStyle(color: Colors.grey, fontSize: 12)),
       ],
     );

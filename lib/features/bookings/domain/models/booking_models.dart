@@ -1,20 +1,19 @@
-﻿import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:snooker_club/features/games/domain/models/game_models.dart';
 
-enum BookingStatus {
-  pending,
-  confirmed,
-  cancelled,
-  completed
-}
+enum BookingStatus { pending, confirmed, cancelled, completed }
 
 extension BookingStatusExtension on BookingStatus {
   String get displayName {
     switch (this) {
-      case BookingStatus.pending: return 'Pending';
-      case BookingStatus.confirmed: return 'Confirmed';
-      case BookingStatus.cancelled: return 'Cancelled';
-      case BookingStatus.completed: return 'Completed';
+      case BookingStatus.pending:
+        return 'Pending';
+      case BookingStatus.confirmed:
+        return 'Confirmed';
+      case BookingStatus.cancelled:
+        return 'Cancelled';
+      case BookingStatus.completed:
+        return 'Completed';
     }
   }
 }
@@ -25,7 +24,7 @@ class BookingModel {
   final String tableId;
   final String tableName;
   final TableType tableType;
-  
+
   final String customerName;
   final String customerPhone;
   final int? playerCount;
@@ -36,7 +35,7 @@ class BookingModel {
   final DateTime endTime;
 
   final BookingStatus status;
-  
+
   final DateTime createdAt;
   final DateTime updatedAt;
   final String? managedBy;
@@ -112,7 +111,8 @@ class BookingModel {
       customerPhone: map['customerPhone'] as String? ?? '',
       playerCount: map['playerCount'] as int?,
       notes: map['notes'] as String?,
-      bookingDate: (map['bookingDate'] as Timestamp?)?.toDate() ?? DateTime.now(),
+      bookingDate:
+          (map['bookingDate'] as Timestamp?)?.toDate() ?? DateTime.now(),
       startTime: (map['startTime'] as Timestamp?)?.toDate() ?? DateTime.now(),
       endTime: (map['endTime'] as Timestamp?)?.toDate() ?? DateTime.now(),
       status: BookingStatus.values.firstWhere(

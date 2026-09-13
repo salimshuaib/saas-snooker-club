@@ -17,7 +17,11 @@ class AnalyticsTimeFilterBar extends ConsumerWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Padding(
-      padding: const EdgeInsets.only(top: AppSpacing.lg, left: AppSpacing.lg, right: AppSpacing.lg),
+      padding: const EdgeInsets.only(
+        top: AppSpacing.lg,
+        left: AppSpacing.lg,
+        right: AppSpacing.lg,
+      ),
       child: Row(
         children: [
           // Dropdown / PopupMenu
@@ -28,9 +32,14 @@ class AnalyticsTimeFilterBar extends ConsumerWidget {
             ),
             child: PopupMenuButton<AnalyticsTimeFilter>(
               initialValue: selectedFilter,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 8,
+                ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
@@ -42,7 +51,11 @@ class AnalyticsTimeFilterBar extends ConsumerWidget {
                       ),
                     ),
                     const SizedBox(width: 4),
-                    const Icon(Icons.arrow_drop_down, color: Colors.white, size: 20),
+                    const Icon(
+                      Icons.arrow_drop_down,
+                      color: Colors.white,
+                      size: 20,
+                    ),
                   ],
                 ),
               ),
@@ -52,13 +65,18 @@ class AnalyticsTimeFilterBar extends ConsumerWidget {
                     context: context,
                     firstDate: DateTime(2025),
                     lastDate: DateTime(2030),
-                    initialDateRange: DateTimeRange(start: timeRange.start, end: timeRange.end),
+                    initialDateRange: DateTimeRange(
+                      start: timeRange.start,
+                      end: timeRange.end,
+                    ),
                     builder: (context, child) {
                       return Theme(
                         data: Theme.of(context).copyWith(
                           colorScheme: ColorScheme.fromSeed(
                             seedColor: AppColors.primary,
-                            brightness: isDark ? Brightness.dark : Brightness.light,
+                            brightness: isDark
+                                ? Brightness.dark
+                                : Brightness.light,
                           ),
                         ),
                         child: child!,
@@ -66,11 +84,17 @@ class AnalyticsTimeFilterBar extends ConsumerWidget {
                     },
                   );
                   if (customRange != null) {
-                    ref.read(analyticsCustomDateRangeProvider.notifier).setCustomRange(customRange);
-                    ref.read(analyticsTimeFilterProvider.notifier).setFilter(filter);
+                    ref
+                        .read(analyticsCustomDateRangeProvider.notifier)
+                        .setCustomRange(customRange);
+                    ref
+                        .read(analyticsTimeFilterProvider.notifier)
+                        .setFilter(filter);
                   }
                 } else {
-                  ref.read(analyticsTimeFilterProvider.notifier).setFilter(filter);
+                  ref
+                      .read(analyticsTimeFilterProvider.notifier)
+                      .setFilter(filter);
                 }
               },
               itemBuilder: (context) {
@@ -80,8 +104,12 @@ class AnalyticsTimeFilterBar extends ConsumerWidget {
                     child: Text(
                       filter.label,
                       style: TextStyle(
-                        fontWeight: filter == selectedFilter ? FontWeight.bold : FontWeight.normal,
-                        color: filter == selectedFilter ? AppColors.primary : null,
+                        fontWeight: filter == selectedFilter
+                            ? FontWeight.bold
+                            : FontWeight.normal,
+                        color: filter == selectedFilter
+                            ? AppColors.primary
+                            : null,
                       ),
                     ),
                   );
@@ -93,15 +121,24 @@ class AnalyticsTimeFilterBar extends ConsumerWidget {
           // Active Range Display Badge
           Expanded(
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: 8),
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.md,
+                vertical: 8,
+              ),
               decoration: BoxDecoration(
                 color: AppColors.primary.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: AppColors.primary.withValues(alpha: 0.3)),
+                border: Border.all(
+                  color: AppColors.primary.withValues(alpha: 0.3),
+                ),
               ),
               child: Row(
                 children: [
-                  const Icon(Icons.date_range_rounded, size: 14, color: AppColors.primary),
+                  const Icon(
+                    Icons.date_range_rounded,
+                    size: 14,
+                    color: AppColors.primary,
+                  ),
                   const SizedBox(width: AppSpacing.xs),
                   Expanded(
                     child: Text(

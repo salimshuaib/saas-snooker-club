@@ -18,9 +18,9 @@ class AdminPasscodeDialog extends ConsumerStatefulWidget {
   });
 
   static Future<bool> verify(
-    BuildContext context, 
+    BuildContext context,
     WidgetRef ref, {
-    String? title, 
+    String? title,
     String? subtitle,
     String actionLabel = 'Confirm',
     bool isDestructive = false,
@@ -42,7 +42,8 @@ class AdminPasscodeDialog extends ConsumerStatefulWidget {
   }
 
   @override
-  ConsumerState<AdminPasscodeDialog> createState() => _AdminPasscodeDialogState();
+  ConsumerState<AdminPasscodeDialog> createState() =>
+      _AdminPasscodeDialogState();
 }
 
 class _AdminPasscodeDialogState extends ConsumerState<AdminPasscodeDialog> {
@@ -68,7 +69,10 @@ class _AdminPasscodeDialogState extends ConsumerState<AdminPasscodeDialog> {
   }
 
   void _onSubmit() {
-    final configuredPasscode = ref.read(appSettingsProvider).security.adminPasscode;
+    final configuredPasscode = ref
+        .read(appSettingsProvider)
+        .security
+        .adminPasscode;
     if (_enteredPin == configuredPasscode) {
       Navigator.of(context).pop(true);
     } else {
@@ -95,20 +99,26 @@ class _AdminPasscodeDialogState extends ConsumerState<AdminPasscodeDialog> {
             mainAxisSize: MainAxisSize.min,
             children: [
               Icon(
-                Icons.lock_outline_rounded, 
-                size: 44, 
-                color: widget.isDestructive ? theme.colorScheme.error : theme.colorScheme.primary,
+                Icons.lock_outline_rounded,
+                size: 44,
+                color: widget.isDestructive
+                    ? theme.colorScheme.error
+                    : theme.colorScheme.primary,
               ),
               const Gap(12),
               Text(
                 widget.title,
-                style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
+                style: theme.textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.w700,
+                ),
                 textAlign: TextAlign.center,
               ),
               const Gap(8),
               Text(
                 widget.subtitle,
-                style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
                 textAlign: TextAlign.center,
               ),
               const Gap(20),
@@ -118,7 +128,9 @@ class _AdminPasscodeDialogState extends ConsumerState<AdminPasscodeDialog> {
                 width: double.infinity,
                 alignment: Alignment.center,
                 decoration: BoxDecoration(
-                  color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+                  color: theme.colorScheme.surfaceContainerHighest.withValues(
+                    alpha: 0.5,
+                  ),
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
                     color: _errorMessage != null
@@ -131,7 +143,9 @@ class _AdminPasscodeDialogState extends ConsumerState<AdminPasscodeDialog> {
                         '• • • • •',
                         style: TextStyle(
                           fontSize: 24,
-                          color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.4),
+                          color: theme.colorScheme.onSurfaceVariant.withValues(
+                            alpha: 0.4,
+                          ),
                           letterSpacing: 8,
                         ),
                       )
@@ -172,15 +186,22 @@ class _AdminPasscodeDialogState extends ConsumerState<AdminPasscodeDialog> {
                         ),
                       ),
                       onPressed: () => Navigator.of(context).pop(false),
-                      child: const Text('Cancel', style: TextStyle(fontWeight: FontWeight.w600)),
+                      child: const Text(
+                        'Cancel',
+                        style: TextStyle(fontWeight: FontWeight.w600),
+                      ),
                     ),
                   ),
                   const Gap(12),
                   Expanded(
                     child: ElevatedButton(
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: widget.isDestructive ? theme.colorScheme.error : theme.colorScheme.primary,
-                        foregroundColor: widget.isDestructive ? theme.colorScheme.onError : theme.colorScheme.onPrimary,
+                        backgroundColor: widget.isDestructive
+                            ? theme.colorScheme.error
+                            : theme.colorScheme.primary,
+                        foregroundColor: widget.isDestructive
+                            ? theme.colorScheme.onError
+                            : theme.colorScheme.onPrimary,
                         padding: const EdgeInsets.symmetric(vertical: 14),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
@@ -188,7 +209,10 @@ class _AdminPasscodeDialogState extends ConsumerState<AdminPasscodeDialog> {
                         elevation: 0,
                       ),
                       onPressed: _enteredPin.isEmpty ? null : _onSubmit,
-                      child: Text(widget.actionLabel, style: const TextStyle(fontWeight: FontWeight.w700)),
+                      child: Text(
+                        widget.actionLabel,
+                        style: const TextStyle(fontWeight: FontWeight.w700),
+                      ),
                     ),
                   ),
                 ],
@@ -235,7 +259,9 @@ class _AdminPasscodeDialogState extends ConsumerState<AdminPasscodeDialog> {
 
   Widget _buildKeypadRow(List<String> digits, ThemeData theme) {
     return Row(
-      children: digits.map((d) => Expanded(child: _buildKeypadButton(d, theme))).toList(),
+      children: digits
+          .map((d) => Expanded(child: _buildKeypadButton(d, theme)))
+          .toList(),
     );
   }
 
@@ -250,7 +276,9 @@ class _AdminPasscodeDialogState extends ConsumerState<AdminPasscodeDialog> {
           alignment: Alignment.center,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+            color: theme.colorScheme.surfaceContainerHighest.withValues(
+              alpha: 0.3,
+            ),
           ),
           child: Text(
             digit,

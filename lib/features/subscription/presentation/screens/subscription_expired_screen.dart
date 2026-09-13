@@ -15,7 +15,7 @@ class SubscriptionExpiredScreen extends ConsumerWidget {
     final theme = Theme.of(context);
     final price = subscriptionState.price;
     final upiId = subscriptionState.upiId;
-    
+
     // Generate UPI URL: upi://pay?pa=<upi_id>&pn=Snooker%20Club&am=<amount>&cu=INR
     final upiUrl = 'upi://pay?pa=$upiId&pn=SaaS%20Snooker&am=$price&cu=INR';
 
@@ -53,14 +53,16 @@ class SubscriptionExpiredScreen extends ConsumerWidget {
                   textAlign: TextAlign.center,
                 ),
                 const Gap(32),
-                
+
                 // QR Code Section
                 Container(
                   padding: const EdgeInsets.all(24),
                   decoration: BoxDecoration(
                     color: AppColors.darkSurface,
                     borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: AppColors.darkOutline.withValues(alpha: 0.3)),
+                    border: Border.all(
+                      color: AppColors.darkOutline.withValues(alpha: 0.3),
+                    ),
                   ),
                   child: Column(
                     children: [
@@ -87,8 +89,12 @@ class SubscriptionExpiredScreen extends ConsumerWidget {
                           ),
                         )
                       else
-                        const Icon(Icons.qr_code_2, size: 150, color: Colors.grey),
-                      
+                        const Icon(
+                          Icons.qr_code_2,
+                          size: 150,
+                          color: Colors.grey,
+                        ),
+
                       const Gap(16),
                       if (upiId != null)
                         Text(
@@ -100,7 +106,7 @@ class SubscriptionExpiredScreen extends ConsumerWidget {
                     ],
                   ),
                 ),
-                
+
                 const Gap(32),
                 const Text(
                   'After payment, please contact support to restore access:',
@@ -127,7 +133,7 @@ class SubscriptionExpiredScreen extends ConsumerWidget {
                     ],
                   ),
                 const Gap(48),
-                
+
                 TextButton.icon(
                   onPressed: () async {
                     await AuthRepository().signOut();

@@ -56,7 +56,8 @@ class Club {
       isActive: map['isActive'] as bool? ?? true,
       suspensionMessage: map['suspensionMessage'] as String?,
       subscriptionPrice: (map['subscriptionPrice'] as num?)?.toDouble(),
-      subscriptionStartDate: (map['subscriptionStartDate'] as Timestamp?)?.toDate(),
+      subscriptionStartDate: (map['subscriptionStartDate'] as Timestamp?)
+          ?.toDate(),
       subscriptionEndDate: (map['subscriptionEndDate'] as Timestamp?)?.toDate(),
       lastPaymentDate: (map['lastPaymentDate'] as Timestamp?)?.toDate(),
       createdAt: (map['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
@@ -78,9 +79,15 @@ class Club {
       'isActive': isActive,
       'suspensionMessage': suspensionMessage,
       'subscriptionPrice': subscriptionPrice,
-      'subscriptionStartDate': subscriptionStartDate != null ? Timestamp.fromDate(subscriptionStartDate!) : null,
-      'subscriptionEndDate': subscriptionEndDate != null ? Timestamp.fromDate(subscriptionEndDate!) : null,
-      'lastPaymentDate': lastPaymentDate != null ? Timestamp.fromDate(lastPaymentDate!) : null,
+      'subscriptionStartDate': subscriptionStartDate != null
+          ? Timestamp.fromDate(subscriptionStartDate!)
+          : null,
+      'subscriptionEndDate': subscriptionEndDate != null
+          ? Timestamp.fromDate(subscriptionEndDate!)
+          : null,
+      'lastPaymentDate': lastPaymentDate != null
+          ? Timestamp.fromDate(lastPaymentDate!)
+          : null,
       'createdAt': Timestamp.fromDate(createdAt),
       'isOnboarded': isOnboarded,
     };

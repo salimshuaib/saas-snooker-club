@@ -14,29 +14,30 @@ class ProductDetailsScreen extends ConsumerStatefulWidget {
   const ProductDetailsScreen({super.key, required this.item});
 
   @override
-  ConsumerState<ProductDetailsScreen> createState() => _ProductDetailsScreenState();
+  ConsumerState<ProductDetailsScreen> createState() =>
+      _ProductDetailsScreenState();
 }
 
 class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen> {
   // To keep UI reactive to changes, we should probably listen to the item from the stream
   // But for simplicity in this detail view, we rely on the item passed or find it from the stream.
-  
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     // Find the latest item data from the stream to stay updated
-    
+
     // Find the latest item data from the stream to stay updated
     final itemsAsync = ref.watch(inventoryItemsProvider);
-    final currentItem = itemsAsync.asData?.value.firstWhere(
-      (e) => e.id == widget.item.id,
-      orElse: () => widget.item,
-    ) ?? widget.item;
+    final currentItem =
+        itemsAsync.asData?.value.firstWhere(
+          (e) => e.id == widget.item.id,
+          orElse: () => widget.item,
+        ) ??
+        widget.item;
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Product Details'),
-      ),
+      appBar: AppBar(title: const Text('Product Details')),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
         child: Column(
@@ -66,7 +67,10 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen> {
                         ),
                       ),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 6,
+                        ),
                         decoration: BoxDecoration(
                           color: AppColors.primary.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(12),
@@ -85,17 +89,32 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen> {
                   const Gap(24),
                   Row(
                     children: [
-                      _StatColumn('Current Stock', '${currentItem.currentStock}'),
-                      _StatColumn('Selling Price', '₹${currentItem.sellingPrice.toStringAsFixed(0)}'),
-                      _StatColumn('Purchase Price', '₹${currentItem.purchasePrice.toStringAsFixed(0)}'),
+                      _StatColumn(
+                        'Current Stock',
+                        '${currentItem.currentStock}',
+                      ),
+                      _StatColumn(
+                        'Selling Price',
+                        '₹${currentItem.sellingPrice.toStringAsFixed(0)}',
+                      ),
+                      _StatColumn(
+                        'Purchase Price',
+                        '₹${currentItem.purchasePrice.toStringAsFixed(0)}',
+                      ),
                     ],
                   ),
                   const Gap(16),
                   Row(
                     children: [
-                      _StatColumn('Total Purchased', '${currentItem.totalPurchased}'),
+                      _StatColumn(
+                        'Total Purchased',
+                        '${currentItem.totalPurchased}',
+                      ),
                       _StatColumn('Total Sold', '${currentItem.totalSold}'),
-                      _StatColumn('Status', currentItem.isActive ? 'Active' : 'Inactive'),
+                      _StatColumn(
+                        'Status',
+                        currentItem.isActive ? 'Active' : 'Inactive',
+                      ),
                     ],
                   ),
                 ],
@@ -110,8 +129,8 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen> {
                   child: FilledButton.icon(
                     onPressed: () {
                       showModalBottomSheet(
-useRootNavigator: true,
-context: context,
+                        useRootNavigator: true,
+                        context: context,
                         isScrollControlled: true,
                         builder: (_) => AddStockSheet(item: currentItem),
                       );
@@ -129,10 +148,11 @@ context: context,
                   child: OutlinedButton.icon(
                     onPressed: () {
                       showModalBottomSheet(
-useRootNavigator: true,
-context: context,
+                        useRootNavigator: true,
+                        context: context,
                         isScrollControlled: true,
-                        builder: (_) => AddProductSheet(initialItem: currentItem),
+                        builder: (_) =>
+                            AddProductSheet(initialItem: currentItem),
                       );
                     },
                     icon: const Icon(Icons.edit),
@@ -144,7 +164,10 @@ context: context,
                   child: OutlinedButton.icon(
                     onPressed: () => _confirmDisable(context, currentItem),
                     icon: const Icon(Icons.block, color: AppColors.error),
-                    label: const Text('Disable', style: TextStyle(color: AppColors.error)),
+                    label: const Text(
+                      'Disable',
+                      style: TextStyle(color: AppColors.error),
+                    ),
                     style: OutlinedButton.styleFrom(
                       side: const BorderSide(color: AppColors.error),
                     ),
@@ -175,7 +198,9 @@ context: context,
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Disable Product?'),
-        content: Text('Are you sure you want to disable ${item.name}? It will no longer appear in sales or inventory lists.'),
+        content: Text(
+          'Are you sure you want to disable ${item.name}? It will no longer appear in sales or inventory lists.',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),

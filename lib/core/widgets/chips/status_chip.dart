@@ -16,10 +16,7 @@ class StatusChip extends StatelessWidget {
 
   /// Create from status string.
   factory StatusChip.fromStatus(String status) {
-    return StatusChip(
-      label: status,
-      color: AppColors.getStatusColor(status),
-    );
+    return StatusChip(label: status, color: AppColors.getStatusColor(status));
   }
 
   @override
@@ -35,8 +32,7 @@ class StatusChip extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          if (showDot) ...
-          [
+          if (showDot) ...[
             Container(
               width: 6,
               height: 6,

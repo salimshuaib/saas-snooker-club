@@ -27,7 +27,9 @@ class _AddStockSheetState extends ConsumerState<AddStockSheet> {
     super.initState();
     _quantityController = TextEditingController();
     _purchasePriceController = TextEditingController(
-      text: widget.item.purchasePrice > 0 ? widget.item.purchasePrice.toStringAsFixed(0) : '',
+      text: widget.item.purchasePrice > 0
+          ? widget.item.purchasePrice.toStringAsFixed(0)
+          : '',
     );
     _notesController = TextEditingController();
   }
@@ -42,7 +44,7 @@ class _AddStockSheetState extends ConsumerState<AddStockSheet> {
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
-    
+
     setState(() => _isProcessing = true);
 
     try {
@@ -52,19 +54,27 @@ class _AddStockSheetState extends ConsumerState<AddStockSheet> {
         quantityAdded: int.parse(_quantityController.text),
         purchasePrice: double.parse(_purchasePriceController.text),
         employeeName: 'Admin', // Static for now until auth is fully linked
-        notes: _notesController.text.trim().isEmpty ? null : _notesController.text.trim(),
+        notes: _notesController.text.trim().isEmpty
+            ? null
+            : _notesController.text.trim(),
       );
 
       if (mounted) {
         Navigator.pop(context);
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Stock added successfully'), backgroundColor: AppColors.success),
+          const SnackBar(
+            content: Text('Stock added successfully'),
+            backgroundColor: AppColors.success,
+          ),
         );
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e'), backgroundColor: AppColors.error),
+          SnackBar(
+            content: Text('Error: $e'),
+            backgroundColor: AppColors.error,
+          ),
         );
       }
     } finally {

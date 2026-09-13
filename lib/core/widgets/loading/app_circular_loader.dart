@@ -27,8 +27,7 @@ class AppCircularLoader extends StatelessWidget {
               color: color ?? Theme.of(context).colorScheme.primary,
             ),
           ),
-          if (message != null) ...
-          [
+          if (message != null) ...[
             const SizedBox(height: 16),
             Text(
               message!,

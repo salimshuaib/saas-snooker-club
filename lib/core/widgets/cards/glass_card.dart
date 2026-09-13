@@ -43,7 +43,7 @@ class GlassCard extends StatelessWidget {
       onTap: onTap,
       child: ClipRRect(
         borderRadius: BorderRadius.circular(borderRadius),
-        child: hasBlur 
+        child: hasBlur
             ? BackdropFilter(
                 filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
                 child: container,

@@ -77,8 +77,10 @@ class GameSettings {
     int? maxPlayersPerTeam,
   }) {
     return GameSettings(
-      frameGracePeriodMinutes: frameGracePeriodMinutes ?? this.frameGracePeriodMinutes,
-      enableOvertimeBilling: enableOvertimeBilling ?? this.enableOvertimeBilling,
+      frameGracePeriodMinutes:
+          frameGracePeriodMinutes ?? this.frameGracePeriodMinutes,
+      enableOvertimeBilling:
+          enableOvertimeBilling ?? this.enableOvertimeBilling,
       allowPauseResume: allowPauseResume ?? this.allowPauseResume,
       maxPlayersPerTeam: maxPlayersPerTeam ?? this.maxPlayersPerTeam,
     );
@@ -96,7 +98,8 @@ class GameSettings {
   factory GameSettings.fromMap(Map<String, dynamic>? map) {
     if (map == null) return const GameSettings();
     return GameSettings(
-      frameGracePeriodMinutes: (map['frameGracePeriodMinutes'] as num?)?.toInt() ?? 20,
+      frameGracePeriodMinutes:
+          (map['frameGracePeriodMinutes'] as num?)?.toInt() ?? 20,
       enableOvertimeBilling: map['enableOvertimeBilling'] as bool? ?? true,
       allowPauseResume: map['allowPauseResume'] as bool? ?? true,
       maxPlayersPerTeam: (map['maxPlayersPerTeam'] as num?)?.toInt() ?? 3,
@@ -121,7 +124,7 @@ class PricingSettings {
   final double americanPoolPerMinute;
   final double americanPoolHalfHour;
   final double americanPoolOneHour;
-  
+
   final double snookerRacePerMinute;
   final double indianPoolRacePerMinute;
   final double americanPoolRacePerMinute;
@@ -229,13 +232,17 @@ class PricingSettings {
       indianPoolHalfHour: indianPoolHalfHour ?? this.indianPoolHalfHour,
       indianPoolOneHour: indianPoolOneHour ?? this.indianPoolOneHour,
       americanPoolPerFrame: americanPoolPerFrame ?? this.americanPoolPerFrame,
-      americanPoolPerMinute: americanPoolPerMinute ?? this.americanPoolPerMinute,
+      americanPoolPerMinute:
+          americanPoolPerMinute ?? this.americanPoolPerMinute,
       americanPoolHalfHour: americanPoolHalfHour ?? this.americanPoolHalfHour,
       americanPoolOneHour: americanPoolOneHour ?? this.americanPoolOneHour,
       snookerRacePerMinute: snookerRacePerMinute ?? this.snookerRacePerMinute,
-      indianPoolRacePerMinute: indianPoolRacePerMinute ?? this.indianPoolRacePerMinute,
-      americanPoolRacePerMinute: americanPoolRacePerMinute ?? this.americanPoolRacePerMinute,
-      snookerRummyPerMinute: snookerRummyPerMinute ?? this.snookerRummyPerMinute,
+      indianPoolRacePerMinute:
+          indianPoolRacePerMinute ?? this.indianPoolRacePerMinute,
+      americanPoolRacePerMinute:
+          americanPoolRacePerMinute ?? this.americanPoolRacePerMinute,
+      snookerRummyPerMinute:
+          snookerRummyPerMinute ?? this.snookerRummyPerMinute,
       ps5HalfHour: ps5HalfHour ?? this.ps5HalfHour,
       ps5OneHour: ps5OneHour ?? this.ps5OneHour,
       pcHalfHour: pcHalfHour ?? this.pcHalfHour,
@@ -253,8 +260,10 @@ class PricingSettings {
       iceHockeyHalfHour: iceHockeyHalfHour ?? this.iceHockeyHalfHour,
       iceHockeyOneHour: iceHockeyOneHour ?? this.iceHockeyOneHour,
       arcadeCoinPrice: arcadeCoinPrice ?? this.arcadeCoinPrice,
-      extraControllerFeeHalfHour: extraControllerFeeHalfHour ?? this.extraControllerFeeHalfHour,
-      extraControllerFeeOneHour: extraControllerFeeOneHour ?? this.extraControllerFeeOneHour,
+      extraControllerFeeHalfHour:
+          extraControllerFeeHalfHour ?? this.extraControllerFeeHalfHour,
+      extraControllerFeeOneHour:
+          extraControllerFeeOneHour ?? this.extraControllerFeeOneHour,
     );
   }
 
@@ -303,18 +312,30 @@ class PricingSettings {
       snookerPerMinute: (map['snookerPerMinute'] as num?)?.toDouble() ?? 4.50,
       snookerHalfHour: (map['snookerHalfHour'] as num?)?.toDouble() ?? 135.00,
       snookerOneHour: (map['snookerOneHour'] as num?)?.toDouble() ?? 270.00,
-      indianPoolPerFrame: (map['indianPoolPerFrame'] as num?)?.toDouble() ?? 40.00,
-      indianPoolPerMinute: (map['indianPoolPerMinute'] as num?)?.toDouble() ?? 3.50,
-      indianPoolHalfHour: (map['indianPoolHalfHour'] as num?)?.toDouble() ?? 100.00,
-      indianPoolOneHour: (map['indianPoolOneHour'] as num?)?.toDouble() ?? 210.00,
-      americanPoolPerFrame: (map['americanPoolPerFrame'] as num?)?.toDouble() ?? 60.00,
-      americanPoolPerMinute: (map['americanPoolPerMinute'] as num?)?.toDouble() ?? 4.00,
-      americanPoolHalfHour: (map['americanPoolHalfHour'] as num?)?.toDouble() ?? 150.00,
-      americanPoolOneHour: (map['americanPoolOneHour'] as num?)?.toDouble() ?? 240.00,
-      snookerRacePerMinute: (map['snookerRacePerMinute'] as num?)?.toDouble() ?? 3.00,
-      indianPoolRacePerMinute: (map['indianPoolRacePerMinute'] as num?)?.toDouble() ?? 3.00,
-      americanPoolRacePerMinute: (map['americanPoolRacePerMinute'] as num?)?.toDouble() ?? 4.00,
-      snookerRummyPerMinute: (map['snookerRummyPerMinute'] as num?)?.toDouble() ?? 4.00,
+      indianPoolPerFrame:
+          (map['indianPoolPerFrame'] as num?)?.toDouble() ?? 40.00,
+      indianPoolPerMinute:
+          (map['indianPoolPerMinute'] as num?)?.toDouble() ?? 3.50,
+      indianPoolHalfHour:
+          (map['indianPoolHalfHour'] as num?)?.toDouble() ?? 100.00,
+      indianPoolOneHour:
+          (map['indianPoolOneHour'] as num?)?.toDouble() ?? 210.00,
+      americanPoolPerFrame:
+          (map['americanPoolPerFrame'] as num?)?.toDouble() ?? 60.00,
+      americanPoolPerMinute:
+          (map['americanPoolPerMinute'] as num?)?.toDouble() ?? 4.00,
+      americanPoolHalfHour:
+          (map['americanPoolHalfHour'] as num?)?.toDouble() ?? 150.00,
+      americanPoolOneHour:
+          (map['americanPoolOneHour'] as num?)?.toDouble() ?? 240.00,
+      snookerRacePerMinute:
+          (map['snookerRacePerMinute'] as num?)?.toDouble() ?? 3.00,
+      indianPoolRacePerMinute:
+          (map['indianPoolRacePerMinute'] as num?)?.toDouble() ?? 3.00,
+      americanPoolRacePerMinute:
+          (map['americanPoolRacePerMinute'] as num?)?.toDouble() ?? 4.00,
+      snookerRummyPerMinute:
+          (map['snookerRummyPerMinute'] as num?)?.toDouble() ?? 4.00,
       ps5HalfHour: (map['ps5HalfHour'] as num?)?.toDouble() ?? 100.00,
       ps5OneHour: (map['ps5OneHour'] as num?)?.toDouble() ?? 200.00,
       pcHalfHour: (map['pcHalfHour'] as num?)?.toDouble() ?? 80.00,
@@ -327,13 +348,17 @@ class PricingSettings {
       chessOneHour: (map['chessOneHour'] as num?)?.toDouble() ?? 50.00,
       ps4HalfHour: (map['ps4HalfHour'] as num?)?.toDouble() ?? 80.00,
       ps4OneHour: (map['ps4OneHour'] as num?)?.toDouble() ?? 150.00,
-      simulatorHalfHour: (map['simulatorHalfHour'] as num?)?.toDouble() ?? 150.00,
+      simulatorHalfHour:
+          (map['simulatorHalfHour'] as num?)?.toDouble() ?? 150.00,
       simulatorOneHour: (map['simulatorOneHour'] as num?)?.toDouble() ?? 280.00,
-      iceHockeyHalfHour: (map['iceHockeyHalfHour'] as num?)?.toDouble() ?? 50.00,
+      iceHockeyHalfHour:
+          (map['iceHockeyHalfHour'] as num?)?.toDouble() ?? 50.00,
       iceHockeyOneHour: (map['iceHockeyOneHour'] as num?)?.toDouble() ?? 90.00,
       arcadeCoinPrice: (map['arcadeCoinPrice'] as num?)?.toDouble() ?? 10.00,
-      extraControllerFeeHalfHour: (map['extraControllerFeeHalfHour'] as num?)?.toDouble() ?? 50.00,
-      extraControllerFeeOneHour: (map['extraControllerFeeOneHour'] as num?)?.toDouble() ?? 100.00,
+      extraControllerFeeHalfHour:
+          (map['extraControllerFeeHalfHour'] as num?)?.toDouble() ?? 50.00,
+      extraControllerFeeOneHour:
+          (map['extraControllerFeeOneHour'] as num?)?.toDouble() ?? 100.00,
     );
   }
 }
@@ -356,7 +381,8 @@ class InventorySettings {
   }) {
     return InventorySettings(
       lowStockThreshold: lowStockThreshold ?? this.lowStockThreshold,
-      defaultInitialQuantity: defaultInitialQuantity ?? this.defaultInitialQuantity,
+      defaultInitialQuantity:
+          defaultInitialQuantity ?? this.defaultInitialQuantity,
       enableLowStockAlerts: enableLowStockAlerts ?? this.enableLowStockAlerts,
     );
   }
@@ -373,7 +399,8 @@ class InventorySettings {
     if (map == null) return const InventorySettings();
     return InventorySettings(
       lowStockThreshold: (map['lowStockThreshold'] as num?)?.toInt() ?? 5,
-      defaultInitialQuantity: (map['defaultInitialQuantity'] as num?)?.toInt() ?? 10,
+      defaultInitialQuantity:
+          (map['defaultInitialQuantity'] as num?)?.toInt() ?? 10,
       enableLowStockAlerts: map['enableLowStockAlerts'] as bool? ?? true,
     );
   }
@@ -394,7 +421,8 @@ class SecuritySettings {
   }) {
     return SecuritySettings(
       adminPasscode: adminPasscode ?? this.adminPasscode,
-      requirePasscodeForDeletion: requirePasscodeForDeletion ?? this.requirePasscodeForDeletion,
+      requirePasscodeForDeletion:
+          requirePasscodeForDeletion ?? this.requirePasscodeForDeletion,
     );
   }
 
@@ -409,7 +437,8 @@ class SecuritySettings {
     if (map == null) return const SecuritySettings();
     return SecuritySettings(
       adminPasscode: map['adminPasscode'] as String? ?? '96430',
-      requirePasscodeForDeletion: map['requirePasscodeForDeletion'] as bool? ?? true,
+      requirePasscodeForDeletion:
+          map['requirePasscodeForDeletion'] as bool? ?? true,
     );
   }
 }
@@ -520,7 +549,6 @@ class FeatureFlags {
   }
 }
 
-
 class BookingSettings {
   final bool isEnabled;
   final int slotDurationMinutes;
@@ -574,7 +602,11 @@ class BookingSettings {
       advanceBookingDays: map['advanceBookingDays'] as int? ?? 7,
       allowSameDayBooking: map['allowSameDayBooking'] as bool? ?? true,
       requireApproval: map['requireApproval'] as bool? ?? true,
-      activeDays: (map['activeDays'] as List<dynamic>?)?.map((e) => e as int).toList() ?? const [1, 2, 3, 4, 5, 6, 7],
+      activeDays:
+          (map['activeDays'] as List<dynamic>?)
+              ?.map((e) => e as int)
+              .toList() ??
+          const [1, 2, 3, 4, 5, 6, 7],
     );
   }
 
@@ -591,6 +623,7 @@ class BookingSettings {
     };
   }
 }
+
 class AppSettings {
   final BusinessSettings business;
   final GameSettings game;
@@ -610,7 +643,7 @@ class AppSettings {
     this.security = const SecuritySettings(),
     this.notifications = const NotificationSettings(),
     this.features = const FeatureFlags(),
-      this.booking = const BookingSettings(),
+    this.booking = const BookingSettings(),
     this.lastSyncTime,
   });
 
@@ -622,7 +655,7 @@ class AppSettings {
     SecuritySettings? security,
     NotificationSettings? notifications,
     FeatureFlags? features,
-      BookingSettings? booking,
+    BookingSettings? booking,
     DateTime? lastSyncTime,
   }) {
     return AppSettings(
@@ -655,16 +688,25 @@ class AppSettings {
   factory AppSettings.fromMap(Map<String, dynamic>? map) {
     if (map == null) return const AppSettings();
     return AppSettings(
-      business: BusinessSettings.fromMap(map['business'] as Map<String, dynamic>?),
+      business: BusinessSettings.fromMap(
+        map['business'] as Map<String, dynamic>?,
+      ),
       game: GameSettings.fromMap(map['game'] as Map<String, dynamic>?),
       pricing: PricingSettings.fromMap(map['pricing'] as Map<String, dynamic>?),
-      inventory: InventorySettings.fromMap(map['inventory'] as Map<String, dynamic>?),
-      security: SecuritySettings.fromMap(map['security'] as Map<String, dynamic>?),
-      notifications: NotificationSettings.fromMap(map['notifications'] as Map<String, dynamic>?),
+      inventory: InventorySettings.fromMap(
+        map['inventory'] as Map<String, dynamic>?,
+      ),
+      security: SecuritySettings.fromMap(
+        map['security'] as Map<String, dynamic>?,
+      ),
+      notifications: NotificationSettings.fromMap(
+        map['notifications'] as Map<String, dynamic>?,
+      ),
       features: FeatureFlags.fromMap(map['features'] as Map<String, dynamic>?),
       booking: BookingSettings.fromMap(map['booking'] as Map<String, dynamic>?),
-      lastSyncTime: map['lastSyncTime'] != null ? DateTime.tryParse(map['lastSyncTime'] as String) : null,
+      lastSyncTime: map['lastSyncTime'] != null
+          ? DateTime.tryParse(map['lastSyncTime'] as String)
+          : null,
     );
   }
 }
-

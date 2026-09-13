@@ -32,7 +32,10 @@ class InventoryItem {
   static int defaultInitialQuantity = 10;
   static bool enableLowStockAlerts = true;
 
-  bool get isLowStock => enableLowStockAlerts && currentStock > 0 && currentStock <= lowStockThreshold;
+  bool get isLowStock =>
+      enableLowStockAlerts &&
+      currentStock > 0 &&
+      currentStock <= lowStockThreshold;
   bool get isOutOfStock => currentStock <= 0;
 
   InventoryItem copyWith({

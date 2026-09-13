@@ -39,14 +39,21 @@ class _NewQuickSaleScreenState extends ConsumerState<NewQuickSaleScreen> {
     super.dispose();
   }
 
-  void _addToCart(String productId, int availableStock, [VoidCallback? onModalUpdate]) {
+  void _addToCart(
+    String productId,
+    int availableStock, [
+    VoidCallback? onModalUpdate,
+  ]) {
     setState(() {
       final current = _cart[productId] ?? 0;
       if (current < availableStock) {
         _cart[productId] = current + 1;
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Not enough stock available'), backgroundColor: AppColors.error),
+          const SnackBar(
+            content: Text('Not enough stock available'),
+            backgroundColor: AppColors.error,
+          ),
         );
       }
     });
@@ -69,12 +76,16 @@ class _NewQuickSaleScreenState extends ConsumerState<NewQuickSaleScreen> {
     if (_isProcessing) return;
     if (_cart.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Cart is empty'), backgroundColor: AppColors.warning),
+        const SnackBar(
+          content: Text('Cart is empty'),
+          backgroundColor: AppColors.warning,
+        ),
       );
       return;
     }
 
-    if (_paymentMethod == PaymentMethod.credit && _customerNameController.text.trim().isEmpty) {
+    if (_paymentMethod == PaymentMethod.credit &&
+        _customerNameController.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Customer Name is required for Credit payments.'),
@@ -89,7 +100,7 @@ class _NewQuickSaleScreenState extends ConsumerState<NewQuickSaleScreen> {
     try {
       final itemsAsync = ref.read(inventoryItemsProvider);
       if (!itemsAsync.hasValue) throw Exception('Inventory not loaded');
-      
+
       final inventoryItems = itemsAsync.value!;
       final List<GameOrder> saleItems = [];
       double totalAmount = 0;
@@ -104,8 +115,8 @@ class _NewQuickSaleScreenState extends ConsumerState<NewQuickSaleScreen> {
             category: product.category,
             quantity: entry.value,
             pricePerUnit: product.sellingPrice,
-            playerName: _customerNameController.text.trim().isEmpty 
-                ? 'Walk-in' 
+            playerName: _customerNameController.text.trim().isEmpty
+                ? 'Walk-in'
                 : _customerNameController.text.trim(),
           ),
         );
@@ -114,7 +125,9 @@ class _NewQuickSaleScreenState extends ConsumerState<NewQuickSaleScreen> {
 
       final sale = QuickSale(
         id: '',
-        customerName: _customerNameController.text.trim().isEmpty ? null : _customerNameController.text.trim(),
+        customerName: _customerNameController.text.trim().isEmpty
+            ? null
+            : _customerNameController.text.trim(),
         items: saleItems,
         totalAmount: totalAmount,
         paymentMethod: _paymentMethod,
@@ -126,14 +139,20 @@ class _NewQuickSaleScreenState extends ConsumerState<NewQuickSaleScreen> {
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Sale completed successfully'), backgroundColor: AppColors.success),
+          const SnackBar(
+            content: Text('Sale completed successfully'),
+            backgroundColor: AppColors.success,
+          ),
         );
         context.pop();
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error processing sale: $e'), backgroundColor: AppColors.error),
+          SnackBar(
+            content: Text('Error processing sale: $e'),
+            backgroundColor: AppColors.error,
+          ),
         );
       }
     } finally {
@@ -148,7 +167,8 @@ class _NewQuickSaleScreenState extends ConsumerState<NewQuickSaleScreen> {
     final theme = Theme.of(context);
     final inventoryAsync = ref.watch(inventoryItemsProvider);
     final customersAsync = ref.watch(allCustomersProvider);
-    final customerNames = customersAsync.value?.map((c) => c.name).toList() ?? [];
+    final customerNames =
+        customersAsync.value?.map((c) => c.name).toList() ?? [];
 
     return Scaffold(
       appBar: AppBar(
@@ -156,15 +176,35 @@ class _NewQuickSaleScreenState extends ConsumerState<NewQuickSaleScreen> {
         actions: [
           TextButton.icon(
             onPressed: () => context.push(RouteNames.quickSales),
-            icon: Icon(Icons.history, size: 20, color: theme.colorScheme.primary),
-            label: Text('History', style: TextStyle(color: theme.colorScheme.primary, fontWeight: FontWeight.w600)),
+            icon: Icon(
+              Icons.history,
+              size: 20,
+              color: theme.colorScheme.primary,
+            ),
+            label: Text(
+              'History',
+              style: TextStyle(
+                color: theme.colorScheme.primary,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
           ),
           if (_cart.isNotEmpty) ...[
             const SizedBox(width: 4),
             TextButton.icon(
               onPressed: () => setState(() => _cart.clear()),
-              icon: const Icon(Icons.delete_outline, size: 20, color: AppColors.error),
-              label: const Text('Clear', style: TextStyle(color: AppColors.error, fontWeight: FontWeight.w600)),
+              icon: const Icon(
+                Icons.delete_outline,
+                size: 20,
+                color: AppColors.error,
+              ),
+              label: const Text(
+                'Clear',
+                style: TextStyle(
+                  color: AppColors.error,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
             ),
           ],
           const SizedBox(width: 8),
@@ -178,10 +218,9 @@ class _NewQuickSaleScreenState extends ConsumerState<NewQuickSaleScreen> {
             return Column(
               children: [
                 _buildSearchAndFilters(theme, inventoryAsync),
-                Expanded(
-                  child: _buildProductsList(theme, inventoryAsync),
-                ),
-                if (_cart.isNotEmpty) _buildStickyCartBanner(theme, customerNames),
+                Expanded(child: _buildProductsList(theme, inventoryAsync)),
+                if (_cart.isNotEmpty)
+                  _buildStickyCartBanner(theme, customerNames),
               ],
             );
           } else {
@@ -210,12 +249,17 @@ class _NewQuickSaleScreenState extends ConsumerState<NewQuickSaleScreen> {
     );
   }
 
-  Widget _buildSearchAndFilters(ThemeData theme, AsyncValue<List<dynamic>> inventoryAsync) {
+  Widget _buildSearchAndFilters(
+    ThemeData theme,
+    AsyncValue<List<dynamic>> inventoryAsync,
+  ) {
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
       decoration: BoxDecoration(
         color: theme.colorScheme.surface,
-        border: Border(bottom: BorderSide(color: theme.colorScheme.outlineVariant)),
+        border: Border(
+          bottom: BorderSide(color: theme.colorScheme.outlineVariant),
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -224,11 +268,20 @@ class _NewQuickSaleScreenState extends ConsumerState<NewQuickSaleScreen> {
           // Fixed Search Bar
           TextField(
             controller: _searchController,
-            onChanged: (val) => _debouncer.run(() => setState(() => _searchQuery = val.trim().toLowerCase())),
+            onChanged: (val) => _debouncer.run(
+              () => setState(() => _searchQuery = val.trim().toLowerCase()),
+            ),
             decoration: InputDecoration(
               hintText: 'Search products by name...',
-              hintStyle: TextStyle(color: theme.colorScheme.onSurfaceVariant, fontSize: 14),
-              prefixIcon: Icon(Icons.search, size: 20, color: theme.colorScheme.onSurfaceVariant),
+              hintStyle: TextStyle(
+                color: theme.colorScheme.onSurfaceVariant,
+                fontSize: 14,
+              ),
+              prefixIcon: Icon(
+                Icons.search,
+                size: 20,
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
               suffixIcon: _searchQuery.isNotEmpty
                   ? IconButton(
                       icon: const Icon(Icons.clear, size: 18),
@@ -238,11 +291,19 @@ class _NewQuickSaleScreenState extends ConsumerState<NewQuickSaleScreen> {
                       },
                     )
                   : null,
-              contentPadding: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
+              contentPadding: const EdgeInsets.symmetric(
+                vertical: 10,
+                horizontal: 16,
+              ),
               isDense: true,
               filled: true,
-              fillColor: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.4),
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+              fillColor: theme.colorScheme.surfaceContainerHighest.withValues(
+                alpha: 0.4,
+              ),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide.none,
+              ),
             ),
           ),
           const Gap(12),
@@ -264,20 +325,35 @@ class _NewQuickSaleScreenState extends ConsumerState<NewQuickSaleScreen> {
                       child: FilterChip(
                         label: Text(cat),
                         selected: isSelected,
-                        onSelected: (_) => setState(() => _selectedCategory = cat),
+                        onSelected: (_) =>
+                            setState(() => _selectedCategory = cat),
                         labelStyle: TextStyle(
-                          color: isSelected ? Colors.white : theme.colorScheme.onSurface,
-                          fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                          color: isSelected
+                              ? Colors.white
+                              : theme.colorScheme.onSurface,
+                          fontWeight: isSelected
+                              ? FontWeight.bold
+                              : FontWeight.w500,
                           fontSize: 13,
                         ),
-                        backgroundColor: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+                        backgroundColor: theme
+                            .colorScheme
+                            .surfaceContainerHighest
+                            .withValues(alpha: 0.5),
                         selectedColor: AppColors.primary,
                         checkmarkColor: Colors.white,
                         showCheckmark: false,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 6,
+                        ),
                         side: BorderSide(
-                          color: isSelected ? AppColors.primary : theme.colorScheme.outlineVariant,
+                          color: isSelected
+                              ? AppColors.primary
+                              : theme.colorScheme.outlineVariant,
                         ),
                       ),
                     );
@@ -292,13 +368,19 @@ class _NewQuickSaleScreenState extends ConsumerState<NewQuickSaleScreen> {
     );
   }
 
-  Widget _buildProductsList(ThemeData theme, AsyncValue<List<dynamic>> inventoryAsync) {
+  Widget _buildProductsList(
+    ThemeData theme,
+    AsyncValue<List<dynamic>> inventoryAsync,
+  ) {
     return inventoryAsync.when(
       data: (items) {
         final activeItems = items.where((i) {
           if (!i.isActive) return false;
-          if (_selectedCategory != 'All' && i.category != _selectedCategory) return false;
-          if (_searchQuery.isNotEmpty && !i.name.toLowerCase().contains(_searchQuery)) return false;
+          if (_selectedCategory != 'All' && i.category != _selectedCategory)
+            return false;
+          if (_searchQuery.isNotEmpty &&
+              !i.name.toLowerCase().contains(_searchQuery))
+            return false;
           return true;
         }).toList();
 
@@ -307,14 +389,25 @@ class _NewQuickSaleScreenState extends ConsumerState<NewQuickSaleScreen> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(Icons.inventory_2_outlined, size: 48, color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.5)),
+                Icon(
+                  Icons.inventory_2_outlined,
+                  size: 48,
+                  color: theme.colorScheme.onSurfaceVariant.withValues(
+                    alpha: 0.5,
+                  ),
+                ),
                 const Gap(12),
-                Text('No products found', style: theme.textTheme.titleMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
+                Text(
+                  'No products found',
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
               ],
             ),
           );
         }
-        
+
         return ListView.separated(
           padding: const EdgeInsets.all(16),
           itemCount: activeItems.length,
@@ -323,17 +416,24 @@ class _NewQuickSaleScreenState extends ConsumerState<NewQuickSaleScreen> {
             final item = activeItems[index];
             final inCart = _cart[item.id] ?? 0;
             final isLowStock = item.currentStock <= 5;
-            
+
             return InkWell(
               onTap: () => _addToCart(item.id, item.currentStock),
               borderRadius: BorderRadius.circular(14),
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 12,
+                ),
                 decoration: BoxDecoration(
-                  color: inCart > 0 ? AppColors.primary.withValues(alpha: 0.08) : theme.colorScheme.surface,
+                  color: inCart > 0
+                      ? AppColors.primary.withValues(alpha: 0.08)
+                      : theme.colorScheme.surface,
                   borderRadius: BorderRadius.circular(14),
                   border: Border.all(
-                    color: inCart > 0 ? AppColors.primary : theme.colorScheme.outlineVariant,
+                    color: inCart > 0
+                        ? AppColors.primary
+                        : theme.colorScheme.outlineVariant,
                     width: inCart > 0 ? 1.5 : 1,
                   ),
                 ),
@@ -343,11 +443,15 @@ class _NewQuickSaleScreenState extends ConsumerState<NewQuickSaleScreen> {
                     Container(
                       padding: const EdgeInsets.all(10),
                       decoration: BoxDecoration(
-                        color: theme.colorScheme.primary.withValues(alpha: 0.12),
+                        color: theme.colorScheme.primary.withValues(
+                          alpha: 0.12,
+                        ),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Icon(
-                        item.category == 'Drinks' ? Icons.local_drink : Icons.smoking_rooms,
+                        item.category == 'Drinks'
+                            ? Icons.local_drink
+                            : Icons.smoking_rooms,
                         size: 22,
                         color: theme.colorScheme.primary,
                       ),
@@ -360,21 +464,35 @@ class _NewQuickSaleScreenState extends ConsumerState<NewQuickSaleScreen> {
                         children: [
                           Text(
                             item.name,
-                            style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700, fontSize: 15),
+                            style: theme.textTheme.titleSmall?.copyWith(
+                              fontWeight: FontWeight.w700,
+                              fontSize: 15,
+                            ),
                           ),
                           const Gap(4),
                           Row(
                             children: [
                               Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                  vertical: 2,
+                                ),
                                 decoration: BoxDecoration(
-                                  color: isLowStock ? AppColors.warning.withValues(alpha: 0.15) : AppColors.available.withValues(alpha: 0.15),
+                                  color: isLowStock
+                                      ? AppColors.warning.withValues(
+                                          alpha: 0.15,
+                                        )
+                                      : AppColors.available.withValues(
+                                          alpha: 0.15,
+                                        ),
                                   borderRadius: BorderRadius.circular(6),
                                 ),
                                 child: Text(
                                   '${item.currentStock} in stock',
                                   style: TextStyle(
-                                    color: isLowStock ? AppColors.warning : AppColors.available,
+                                    color: isLowStock
+                                        ? AppColors.warning
+                                        : AppColors.available,
                                     fontSize: 11,
                                     fontWeight: FontWeight.w700,
                                   ),
@@ -407,21 +525,33 @@ class _NewQuickSaleScreenState extends ConsumerState<NewQuickSaleScreen> {
                                 child: Container(
                                   padding: const EdgeInsets.all(4),
                                   decoration: BoxDecoration(
-                                    color: theme.colorScheme.surfaceContainerHighest,
+                                    color: theme
+                                        .colorScheme
+                                        .surfaceContainerHighest,
                                     shape: BoxShape.circle,
                                   ),
-                                  child: Icon(Icons.remove, size: 16, color: theme.colorScheme.onSurface),
+                                  child: Icon(
+                                    Icons.remove,
+                                    size: 16,
+                                    color: theme.colorScheme.onSurface,
+                                  ),
                                 ),
                               ),
                               Padding(
-                                padding: const EdgeInsets.symmetric(horizontal: 8),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                ),
                                 child: Text(
                                   '$inCart',
-                                  style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14),
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.w800,
+                                    fontSize: 14,
+                                  ),
                                 ),
                               ),
                               InkWell(
-                                onTap: () => _addToCart(item.id, item.currentStock),
+                                onTap: () =>
+                                    _addToCart(item.id, item.currentStock),
                                 borderRadius: BorderRadius.circular(14),
                                 child: Container(
                                   padding: const EdgeInsets.all(4),
@@ -429,14 +559,21 @@ class _NewQuickSaleScreenState extends ConsumerState<NewQuickSaleScreen> {
                                     color: AppColors.primary,
                                     shape: BoxShape.circle,
                                   ),
-                                  child: const Icon(Icons.add, size: 16, color: Colors.white),
+                                  child: const Icon(
+                                    Icons.add,
+                                    size: 16,
+                                    color: Colors.white,
+                                  ),
                                 ),
                               ),
                             ],
                           )
                         else
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 4,
+                            ),
                             decoration: BoxDecoration(
                               color: AppColors.primary.withValues(alpha: 0.12),
                               borderRadius: BorderRadius.circular(16),
@@ -444,9 +581,20 @@ class _NewQuickSaleScreenState extends ConsumerState<NewQuickSaleScreen> {
                             child: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                Icon(Icons.add, size: 14, color: AppColors.primary),
+                                Icon(
+                                  Icons.add,
+                                  size: 14,
+                                  color: AppColors.primary,
+                                ),
                                 const Gap(2),
-                                Text('Add', style: TextStyle(color: AppColors.primary, fontSize: 12, fontWeight: FontWeight.bold)),
+                                Text(
+                                  'Add',
+                                  style: TextStyle(
+                                    color: AppColors.primary,
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
                               ],
                             ),
                           ),
@@ -466,7 +614,9 @@ class _NewQuickSaleScreenState extends ConsumerState<NewQuickSaleScreen> {
         itemBuilder: (_, __) => Container(
           height: 72,
           decoration: BoxDecoration(
-            color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+            color: theme.colorScheme.surfaceContainerHighest.withValues(
+              alpha: 0.3,
+            ),
             borderRadius: BorderRadius.circular(14),
           ),
         ),
@@ -512,11 +662,13 @@ class _NewQuickSaleScreenState extends ConsumerState<NewQuickSaleScreen> {
               ),
               builder: (sheetContext) => StatefulBuilder(
                 builder: (stfContext, setModalState) => Container(
-                  constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.85),
+                  constraints: BoxConstraints(
+                    maxHeight: MediaQuery.of(context).size.height * 0.85,
+                  ),
                   child: _buildCartPanel(
-                    theme, 
-                    customerNames, 
-                    isModal: true, 
+                    theme,
+                    customerNames,
+                    isModal: true,
                     onModalUpdate: () => setModalState(() {}),
                     sheetContext: sheetContext,
                   ),
@@ -533,14 +685,21 @@ class _NewQuickSaleScreenState extends ConsumerState<NewQuickSaleScreen> {
                 Row(
                   children: [
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 6,
+                      ),
                       decoration: BoxDecoration(
                         color: Colors.white.withValues(alpha: 0.2),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Text(
                         '$totalItems Items',
-                        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 14),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w800,
+                          fontSize: 14,
+                        ),
                       ),
                     ),
                     const Gap(14),
@@ -557,10 +716,17 @@ class _NewQuickSaleScreenState extends ConsumerState<NewQuickSaleScreen> {
                   children: [
                     Text(
                       'View Cart',
-                      style: theme.textTheme.titleMedium?.copyWith(color: Colors.white, fontWeight: FontWeight.w800),
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w800,
+                      ),
                     ),
                     const Gap(4),
-                    const Icon(Icons.arrow_forward, color: Colors.white, size: 20),
+                    const Icon(
+                      Icons.arrow_forward,
+                      color: Colors.white,
+                      size: 20,
+                    ),
                   ],
                 ),
               ],
@@ -571,7 +737,13 @@ class _NewQuickSaleScreenState extends ConsumerState<NewQuickSaleScreen> {
     );
   }
 
-  Widget _buildCartPanel(ThemeData theme, List<String> customerNames, {bool isModal = false, VoidCallback? onModalUpdate, BuildContext? sheetContext}) {
+  Widget _buildCartPanel(
+    ThemeData theme,
+    List<String> customerNames, {
+    bool isModal = false,
+    VoidCallback? onModalUpdate,
+    BuildContext? sheetContext,
+  }) {
     double total = 0;
     if (_cart.isNotEmpty) {
       final items = ref.read(inventoryItemsProvider).value ?? [];
@@ -603,7 +775,12 @@ class _NewQuickSaleScreenState extends ConsumerState<NewQuickSaleScreen> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text('Cart & Checkout', style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold)),
+                  Text(
+                    'Cart & Checkout',
+                    style: theme.textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                   IconButton(
                     icon: const Icon(Icons.close),
                     onPressed: () => Navigator.pop(sheetContext ?? context),
@@ -620,7 +797,13 @@ class _NewQuickSaleScreenState extends ConsumerState<NewQuickSaleScreen> {
                       mainAxisSize: MainAxisSize.min,
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(Icons.shopping_cart_outlined, size: 56, color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.4)),
+                        Icon(
+                          Icons.shopping_cart_outlined,
+                          size: 56,
+                          color: theme.colorScheme.onSurfaceVariant.withValues(
+                            alpha: 0.4,
+                          ),
+                        ),
                         const Gap(12),
                         Text(
                           'Cart is empty',
@@ -646,19 +829,23 @@ class _NewQuickSaleScreenState extends ConsumerState<NewQuickSaleScreen> {
                     itemBuilder: (context, index) {
                       final productId = _cart.keys.elementAt(index);
                       final quantity = _cart[productId]!;
-                      
-                      final items = ref.read(inventoryItemsProvider).value ?? [];
+
+                      final items =
+                          ref.read(inventoryItemsProvider).value ?? [];
                       final pIndex = items.indexWhere((p) => p.id == productId);
                       if (pIndex == -1) return const SizedBox();
                       final product = items[pIndex];
-                      
+
                       return Container(
                         margin: const EdgeInsets.only(bottom: 10),
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
-                          color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.35),
+                          color: theme.colorScheme.surfaceContainerHighest
+                              .withValues(alpha: 0.35),
                           borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: theme.colorScheme.outlineVariant),
+                          border: Border.all(
+                            color: theme.colorScheme.outlineVariant,
+                          ),
                         ),
                         child: Row(
                           children: [
@@ -670,12 +857,18 @@ class _NewQuickSaleScreenState extends ConsumerState<NewQuickSaleScreen> {
                                     product.name,
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
-                                    style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.w600,
+                                      fontSize: 14,
+                                    ),
                                   ),
                                   const Gap(2),
                                   Text(
                                     '₹${product.sellingPrice.toStringAsFixed(0)} each',
-                                    style: TextStyle(color: theme.colorScheme.onSurfaceVariant, fontSize: 12),
+                                    style: TextStyle(
+                                      color: theme.colorScheme.onSurfaceVariant,
+                                      fontSize: 12,
+                                    ),
                                   ),
                                 ],
                               ),
@@ -684,35 +877,57 @@ class _NewQuickSaleScreenState extends ConsumerState<NewQuickSaleScreen> {
                               mainAxisSize: MainAxisSize.min,
                               children: [
                                 InkWell(
-                                  onTap: () => _removeFromCart(productId, onModalUpdate),
+                                  onTap: () =>
+                                      _removeFromCart(productId, onModalUpdate),
                                   borderRadius: BorderRadius.circular(20),
                                   child: Container(
                                     padding: const EdgeInsets.all(6),
                                     decoration: BoxDecoration(
-                                      color: AppColors.error.withValues(alpha: 0.1),
+                                      color: AppColors.error.withValues(
+                                        alpha: 0.1,
+                                      ),
                                       shape: BoxShape.circle,
                                     ),
-                                    child: const Icon(Icons.remove, size: 18, color: AppColors.error),
+                                    child: const Icon(
+                                      Icons.remove,
+                                      size: 18,
+                                      color: AppColors.error,
+                                    ),
                                   ),
                                 ),
                                 Container(
-                                  constraints: const BoxConstraints(minWidth: 36),
+                                  constraints: const BoxConstraints(
+                                    minWidth: 36,
+                                  ),
                                   alignment: Alignment.center,
                                   child: Text(
                                     '$quantity',
-                                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 15,
+                                    ),
                                   ),
                                 ),
                                 InkWell(
-                                  onTap: () => _addToCart(productId, product.currentStock, onModalUpdate),
+                                  onTap: () => _addToCart(
+                                    productId,
+                                    product.currentStock,
+                                    onModalUpdate,
+                                  ),
                                   borderRadius: BorderRadius.circular(20),
                                   child: Container(
                                     padding: const EdgeInsets.all(6),
                                     decoration: BoxDecoration(
-                                      color: AppColors.primary.withValues(alpha: 0.1),
+                                      color: AppColors.primary.withValues(
+                                        alpha: 0.1,
+                                      ),
                                       shape: BoxShape.circle,
                                     ),
-                                    child: const Icon(Icons.add, size: 18, color: AppColors.primary),
+                                    child: const Icon(
+                                      Icons.add,
+                                      size: 18,
+                                      color: AppColors.primary,
+                                    ),
                                   ),
                                 ),
                               ],
@@ -723,13 +938,17 @@ class _NewQuickSaleScreenState extends ConsumerState<NewQuickSaleScreen> {
                     },
                   ),
           ),
-          
+
           // Checkout Section
           Container(
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
-              color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.6),
-              border: Border(top: BorderSide(color: theme.colorScheme.outlineVariant)),
+              color: theme.colorScheme.surfaceContainerHighest.withValues(
+                alpha: 0.6,
+              ),
+              border: Border(
+                top: BorderSide(color: theme.colorScheme.outlineVariant),
+              ),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -741,42 +960,57 @@ class _NewQuickSaleScreenState extends ConsumerState<NewQuickSaleScreen> {
                       return customerNames;
                     }
                     return customerNames.where((String option) {
-                      return option.toLowerCase().contains(textEditingValue.text.toLowerCase());
+                      return option.toLowerCase().contains(
+                        textEditingValue.text.toLowerCase(),
+                      );
                     });
                   },
                   onSelected: (String selection) {
                     _customerNameController.text = selection;
                     onModalUpdate?.call();
                   },
-                  fieldViewBuilder: (context, controller, focusNode, onFieldSubmitted) {
-                    controller.addListener(() {
-                      if (_customerNameController.text != controller.text) {
-                        _customerNameController.text = controller.text;
-                        onModalUpdate?.call();
-                      }
-                    });
-                    
-                    if (controller.text.isEmpty && _customerNameController.text.isNotEmpty) {
-                      controller.text = _customerNameController.text;
-                    }
+                  fieldViewBuilder:
+                      (context, controller, focusNode, onFieldSubmitted) {
+                        controller.addListener(() {
+                          if (_customerNameController.text != controller.text) {
+                            _customerNameController.text = controller.text;
+                            onModalUpdate?.call();
+                          }
+                        });
 
-                    return AppTextField(
-                      label: _paymentMethod == PaymentMethod.credit ? 'Customer Name (Required for Credit)' : 'Customer Name (Optional)',
-                      controller: controller,
-                      focusNode: focusNode,
-                      hint: 'Walk-in',
-                    );
-                  },
+                        if (controller.text.isEmpty &&
+                            _customerNameController.text.isNotEmpty) {
+                          controller.text = _customerNameController.text;
+                        }
+
+                        return AppTextField(
+                          label: _paymentMethod == PaymentMethod.credit
+                              ? 'Customer Name (Required for Credit)'
+                              : 'Customer Name (Optional)',
+                          controller: controller,
+                          focusNode: focusNode,
+                          hint: 'Walk-in',
+                        );
+                      },
                 ),
                 const Gap(12),
                 AppDropdown(
                   label: 'Payment Method',
                   value: _paymentMethod.name,
-                  items: PaymentMethod.values.map((e) => DropdownMenuItem(value: e.name, child: Text(e.name.toUpperCase()))).toList(),
+                  items: PaymentMethod.values
+                      .map(
+                        (e) => DropdownMenuItem(
+                          value: e.name,
+                          child: Text(e.name.toUpperCase()),
+                        ),
+                      )
+                      .toList(),
                   onChanged: (val) {
                     if (val != null) {
                       setState(() {
-                        _paymentMethod = PaymentMethod.values.firstWhere((e) => e.name == val);
+                        _paymentMethod = PaymentMethod.values.firstWhere(
+                          (e) => e.name == val,
+                        );
                       });
                       onModalUpdate?.call();
                     }
@@ -786,7 +1020,12 @@ class _NewQuickSaleScreenState extends ConsumerState<NewQuickSaleScreen> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text('Total Amount', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600)),
+                    Text(
+                      'Total Amount',
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
                     Text(
                       '₹${total.toStringAsFixed(0)}',
                       style: theme.textTheme.headlineSmall?.copyWith(
@@ -798,24 +1037,40 @@ class _NewQuickSaleScreenState extends ConsumerState<NewQuickSaleScreen> {
                 ),
                 const Gap(16),
                 FilledButton(
-                  onPressed: _isProcessing || _cart.isEmpty ? null : () {
-                    if (isModal) Navigator.pop(context);
-                    _processSale();
-                  },
+                  onPressed: _isProcessing || _cart.isEmpty
+                      ? null
+                      : () {
+                          if (isModal) Navigator.pop(context);
+                          _processSale();
+                        },
                   style: FilledButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                   ),
                   child: _isProcessing
-                      ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                      : const Text('Complete Sale', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                      ? const SizedBox(
+                          height: 20,
+                          width: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
+                        )
+                      : const Text(
+                          'Complete Sale',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                 ),
               ],
             ),
-          )
+          ),
         ],
       ),
     );
   }
 }
-

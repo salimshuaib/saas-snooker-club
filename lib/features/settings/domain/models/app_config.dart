@@ -24,11 +24,14 @@ class AppVersionConfig {
       );
     }
     return AppVersionConfig(
-      minimumRequiredVersion: map['minimum_required_version'] as String? ?? '1.0.0',
+      minimumRequiredVersion:
+          map['minimum_required_version'] as String? ?? '1.0.0',
       latestVersion: map['latest_version'] as String? ?? '1.0.0',
       updateUrl: map['update_url'] as String? ?? '',
       forceUpdate: map['force_update'] as bool? ?? false,
-      updateMessage: map['update_message'] as String? ?? 'A new version of S&B Manager is available.',
+      updateMessage:
+          map['update_message'] as String? ??
+          'A new version of S&B Manager is available.',
     );
   }
 

@@ -1,16 +1,9 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:snooker_club/features/games/domain/models/game_models.dart';
 
-enum CreditTransactionType {
-  game,
-  quickSale,
-}
+enum CreditTransactionType { game, quickSale }
 
-enum CreditTransactionStatus {
-  pending,
-  partiallyPaid,
-  paid,
-}
+enum CreditTransactionStatus { pending, partiallyPaid, paid }
 
 class PlayerProfile {
   final String id;
@@ -45,7 +38,8 @@ class PlayerProfile {
       name: name ?? this.name,
       mobileNumber: mobileNumber ?? this.mobileNumber,
       outstandingAmount: outstandingAmount ?? this.outstandingAmount,
-      totalPendingTransactions: totalPendingTransactions ?? this.totalPendingTransactions,
+      totalPendingTransactions:
+          totalPendingTransactions ?? this.totalPendingTransactions,
       lastTransactionDate: lastTransactionDate ?? this.lastTransactionDate,
       lastPaymentDate: lastPaymentDate ?? this.lastPaymentDate,
     );
@@ -58,7 +52,9 @@ class PlayerProfile {
       'outstandingAmount': outstandingAmount,
       'totalPendingTransactions': totalPendingTransactions,
       'lastTransactionDate': Timestamp.fromDate(lastTransactionDate),
-      'lastPaymentDate': lastPaymentDate != null ? Timestamp.fromDate(lastPaymentDate!) : null,
+      'lastPaymentDate': lastPaymentDate != null
+          ? Timestamp.fromDate(lastPaymentDate!)
+          : null,
     };
   }
 
@@ -68,8 +64,11 @@ class PlayerProfile {
       name: map['name'] as String? ?? '',
       mobileNumber: map['mobileNumber'] as String?,
       outstandingAmount: (map['outstandingAmount'] as num?)?.toDouble() ?? 0.0,
-      totalPendingTransactions: (map['totalPendingTransactions'] as num?)?.toInt() ?? 0,
-      lastTransactionDate: (map['lastTransactionDate'] as Timestamp?)?.toDate() ?? DateTime.now(),
+      totalPendingTransactions:
+          (map['totalPendingTransactions'] as num?)?.toInt() ?? 0,
+      lastTransactionDate:
+          (map['lastTransactionDate'] as Timestamp?)?.toDate() ??
+          DateTime.now(),
       lastPaymentDate: (map['lastPaymentDate'] as Timestamp?)?.toDate(),
     );
   }
@@ -86,9 +85,9 @@ class CreditTransaction {
   final CreditTransactionStatus status;
   final DateTime date;
   final PaymentMethod? paymentMethod;
-  
+
   // Minimal info for display without needing to fetch the referenced doc immediately
-  final String title; 
+  final String title;
   final String? subtitle;
 
   const CreditTransaction({
@@ -163,7 +162,10 @@ class CreditTransaction {
       referenceId: map['referenceId'] as String? ?? '',
       amount: (map['amount'] as num?)?.toDouble() ?? 0.0,
       paidAmount: (map['paidAmount'] as num?)?.toDouble() ?? 0.0,
-      remainingAmount: (map['remainingAmount'] as num?)?.toDouble() ?? (map['amount'] as num?)?.toDouble() ?? 0.0,
+      remainingAmount:
+          (map['remainingAmount'] as num?)?.toDouble() ??
+          (map['amount'] as num?)?.toDouble() ??
+          0.0,
       status: CreditTransactionStatus.values.firstWhere(
         (e) => e.name == map['status'],
         orElse: () => CreditTransactionStatus.pending,
@@ -220,4 +222,3 @@ class PaymentHistory {
     );
   }
 }
-

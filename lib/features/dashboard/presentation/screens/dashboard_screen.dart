@@ -30,24 +30,23 @@ final realTimeClockProvider = StreamProvider.autoDispose<DateTime>((ref) {
   return Stream.periodic(const Duration(seconds: 1), (_) => DateTime.now());
 });
 
-
 class DashboardScreen extends ConsumerWidget {
   const DashboardScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
-    
-    // Get actual staff member from state
-    final currentStaff = ref.watch(currentStaffProvider).value;
-    final employeeName = currentStaff?.name ?? 'Admin User';
 
     final clubId = ref.watch(clubIdProvider);
     if (clubId == null) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
-    
+
     final clubAsync = ref.watch(clubProfileProvider);
+    
+    // Get actual staff member from state
+    final currentStaff = ref.watch(currentStaffProvider).value;
+    final employeeName = currentStaff?.name ?? clubAsync.value?.ownerName ?? 'Admin';
 
     return Scaffold(
       appBar: AppBar(
@@ -59,7 +58,9 @@ class DashboardScreen extends ConsumerWidget {
             context.push(RouteNames.more);
           },
         ),
-        title: Text(clubAsync.value?.clubName ?? AppLocalizations.of(context)!.appTitle),
+        title: Text(
+          clubAsync.value?.clubName ?? AppLocalizations.of(context)!.appTitle,
+        ),
         actions: [
           Center(
             child: Padding(
@@ -119,7 +120,8 @@ class DashboardScreen extends ConsumerWidget {
               Consumer(
                 builder: (context, ref, child) {
                   final updateState = ref.watch(updateStateProvider);
-                  if (!updateState.isOptionalUpdateAvailable) return const SizedBox.shrink();
+                  if (!updateState.isOptionalUpdateAvailable)
+                    return const SizedBox.shrink();
 
                   return Container(
                     margin: const EdgeInsets.only(bottom: 24),
@@ -127,11 +129,16 @@ class DashboardScreen extends ConsumerWidget {
                     decoration: BoxDecoration(
                       color: AppColors.primary.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: AppColors.primary.withValues(alpha: 0.3)),
+                      border: Border.all(
+                        color: AppColors.primary.withValues(alpha: 0.3),
+                      ),
                     ),
                     child: Row(
                       children: [
-                        const Icon(Icons.info_outline, color: AppColors.primary),
+                        const Icon(
+                          Icons.info_outline,
+                          color: AppColors.primary,
+                        ),
                         const Gap(12),
                         Expanded(
                           child: Column(
@@ -160,7 +167,10 @@ class DashboardScreen extends ConsumerWidget {
                           onPressed: () async {
                             final url = Uri.parse(updateState.updateUrl);
                             if (await canLaunchUrl(url)) {
-                              await launchUrl(url, mode: LaunchMode.externalApplication);
+                              await launchUrl(
+                                url,
+                                mode: LaunchMode.externalApplication,
+                              );
                             }
                           },
                           child: const Text('Update'),
@@ -200,71 +210,76 @@ class DashboardScreen extends ConsumerWidget {
               const Gap(24),
 
               // Quick Stats
-                Text(
-                  'Overview',
-                  style: theme.textTheme.titleMedium,
-                ),
-                const Gap(12),
-                
-                // --- PHASE 5: NEW FINANCIAL SUMMARY ---
-                const FinancialSummaryCard(),
-                const Gap(12),
+              Text('Overview', style: theme.textTheme.titleMedium),
+              const Gap(12),
 
-                // Table Status Grid
-                Row(
-                  children: [
-                    Expanded(
-                      child: Consumer(
-                        builder: (context, ref, child) {
-                          final runningCount = ref.watch(runningTablesCountProvider);
-                          return InfoCard(
-                            title: 'Running Tables',
-                            value: runningCount.toString(),
-                            icon: Icons.table_restaurant,
-                            iconColor: AppColors.running,
-                            onTap: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => const RunningTablesScreen(),
-                                ),
-                              );
-                            },
-                          );
-                        }
-                      ),
-                    ),
-                    const Gap(12),
-                    Expanded(
-                      child: Consumer(
-                        builder: (context, ref, child) {
-                          final availableCount = ref.watch(availableTablesCountProvider);
-                          return InfoCard(
-                            title: 'Available Tables',
-                            value: availableCount.toString(),
-                            icon: Icons.check_circle_outline,
-                            iconColor: AppColors.available,
-                            onTap: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => const AvailableTablesScreen(),
-                                ),
-                              );
-                            },
-                          );
-                        }
-                      ),
-                    ),
-                  ],
-                ),
-                const Gap(24),
+              // --- PHASE 5: NEW FINANCIAL SUMMARY ---
+              const FinancialSummaryCard(),
+              const Gap(12),
+
+              // Table Status Grid
               Row(
                 children: [
                   Expanded(
                     child: Consumer(
                       builder: (context, ref, child) {
-                        final qsCount = ref.watch(todaysQuickSalesCountProvider);
+                        final runningCount = ref.watch(
+                          runningTablesCountProvider,
+                        );
+                        return InfoCard(
+                          title: 'Running Tables',
+                          value: runningCount.toString(),
+                          icon: Icons.table_restaurant,
+                          iconColor: AppColors.running,
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) =>
+                                    const RunningTablesScreen(),
+                              ),
+                            );
+                          },
+                        );
+                      },
+                    ),
+                  ),
+                  const Gap(12),
+                  Expanded(
+                    child: Consumer(
+                      builder: (context, ref, child) {
+                        final availableCount = ref.watch(
+                          availableTablesCountProvider,
+                        );
+                        return InfoCard(
+                          title: 'Available Tables',
+                          value: availableCount.toString(),
+                          icon: Icons.check_circle_outline,
+                          iconColor: AppColors.available,
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) =>
+                                    const AvailableTablesScreen(),
+                              ),
+                            );
+                          },
+                        );
+                      },
+                    ),
+                  ),
+                ],
+              ),
+              const Gap(24),
+              Row(
+                children: [
+                  Expanded(
+                    child: Consumer(
+                      builder: (context, ref, child) {
+                        final qsCount = ref.watch(
+                          todaysQuickSalesCountProvider,
+                        );
                         return InfoCard(
                           title: 'Quick Sales Today',
                           value: qsCount.toString(),
@@ -272,20 +287,28 @@ class DashboardScreen extends ConsumerWidget {
                           iconColor: AppColors.tertiary,
                           onTap: () => context.push(RouteNames.quickSales),
                         );
-                      }
+                      },
                     ),
                   ),
                   const Gap(12),
                   Expanded(
                     child: Consumer(
                       builder: (context, ref, child) {
-                        final inventoryAsync = ref.watch(inventoryItemsProvider);
+                        final inventoryAsync = ref.watch(
+                          inventoryItemsProvider,
+                        );
                         return InfoCard(
                           title: 'Inventory Alerts',
                           value: inventoryAsync.maybeWhen(
                             data: (items) {
-                              final lowCount = items.where((i) => i.isActive && i.currentStock <= 5).length;
-                              return lowCount == 0 ? 'All good' : '$lowCount items low';
+                              final lowCount = items
+                                  .where(
+                                    (i) => i.isActive && i.currentStock <= 5,
+                                  )
+                                  .length;
+                              return lowCount == 0
+                                  ? 'All good'
+                                  : '$lowCount items low';
                             },
                             orElse: () => '...',
                           ),
@@ -295,12 +318,13 @@ class DashboardScreen extends ConsumerWidget {
                             Navigator.push(
                               context,
                               MaterialPageRoute(
-                                builder: (context) => const InventoryStatusScreen(),
+                                builder: (context) =>
+                                    const InventoryStatusScreen(),
                               ),
                             );
                           },
                         );
-                      }
+                      },
                     ),
                   ),
                 ],
@@ -308,15 +332,12 @@ class DashboardScreen extends ConsumerWidget {
               const Gap(32),
 
               // Navigation Grid
-              Text(
-                'Quick Access',
-                style: theme.textTheme.titleMedium,
-              ),
+              Text('Quick Access', style: theme.textTheme.titleMedium),
               const Gap(16),
-              
+
               // --- NEW BOOKING CARD ---
               _BookingsDashboardCard(),
-              
+
               const Gap(16),
               GridView.count(
                 crossAxisCount: 2,
@@ -344,13 +365,14 @@ class DashboardScreen extends ConsumerWidget {
   }
 }
 
-
 class _BookingsDashboardCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final now = DateTime.now();
-    final activeBookingsAsync = ref.watch(dateBookingsStreamProvider(DateTime(now.year, now.month, now.day))); // Just getting today's bookings for the badge
+    final activeBookingsAsync = ref.watch(
+      dateBookingsStreamProvider(DateTime(now.year, now.month, now.day)),
+    ); // Just getting today's bookings for the badge
 
     return InkWell(
       onTap: () => context.push(RouteNames.bookings),
@@ -367,7 +389,7 @@ class _BookingsDashboardCard extends ConsumerWidget {
               blurRadius: 8,
               offset: const Offset(0, 4),
             ),
-          ]
+          ],
         ),
         child: Row(
           children: [
@@ -384,18 +406,40 @@ class _BookingsDashboardCard extends ConsumerWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Bookings', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
+                  Text(
+                    'Bookings',
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                   const SizedBox(height: 4),
                   activeBookingsAsync.when(
                     data: (bookings) {
-                      final pendingCount = bookings.where((b) => b.status == BookingStatus.pending).length;
+                      final pendingCount = bookings
+                          .where((b) => b.status == BookingStatus.pending)
+                          .length;
                       if (pendingCount > 0) {
-                        return Text('$pendingCount pending requests', style: theme.textTheme.bodySmall?.copyWith(color: AppColors.error, fontWeight: FontWeight.bold));
+                        return Text(
+                          '$pendingCount pending requests',
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: AppColors.error,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        );
                       }
-                      return Text('Manage table reservations', style: theme.textTheme.bodySmall);
+                      return Text(
+                        'Manage table reservations',
+                        style: theme.textTheme.bodySmall,
+                      );
                     },
-                    loading: () => Text('Manage table reservations', style: theme.textTheme.bodySmall),
-                    error: (_, __) => Text('Manage table reservations', style: theme.textTheme.bodySmall),
+                    loading: () => Text(
+                      'Manage table reservations',
+                      style: theme.textTheme.bodySmall,
+                    ),
+                    error: (_, __) => Text(
+                      'Manage table reservations',
+                      style: theme.textTheme.bodySmall,
+                    ),
                   ),
                 ],
               ),
@@ -454,7 +498,9 @@ class _ModuleCard extends StatelessWidget {
                 ),
                 Icon(
                   Icons.arrow_forward,
-                  color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
+                  color: theme.colorScheme.onSurfaceVariant.withValues(
+                    alpha: 0.5,
+                  ),
                   size: 20,
                 ),
               ],
@@ -462,10 +508,7 @@ class _ModuleCard extends StatelessWidget {
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  label,
-                  style: theme.textTheme.titleSmall,
-                ),
+                Text(label, style: theme.textTheme.titleSmall),
                 Text(
                   description,
                   style: theme.textTheme.labelSmall?.copyWith(
@@ -483,10 +526,6 @@ class _ModuleCard extends StatelessWidget {
     );
   }
 }
-
-
-
-
 
 class _RealTimeClockWidget extends ConsumerWidget {
   const _RealTimeClockWidget();

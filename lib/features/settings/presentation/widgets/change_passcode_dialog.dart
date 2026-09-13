@@ -7,7 +7,8 @@ class ChangePasscodeDialog extends ConsumerStatefulWidget {
   const ChangePasscodeDialog({super.key});
 
   @override
-  ConsumerState<ChangePasscodeDialog> createState() => _ChangePasscodeDialogState();
+  ConsumerState<ChangePasscodeDialog> createState() =>
+      _ChangePasscodeDialogState();
 }
 
 class _ChangePasscodeDialogState extends ConsumerState<ChangePasscodeDialog> {
@@ -34,13 +35,16 @@ class _ChangePasscodeDialogState extends ConsumerState<ChangePasscodeDialog> {
     if (!_formKey.currentState!.validate()) return;
 
     final currentSettings = ref.read(appSettingsProvider);
-    if (_currentController.text.trim() != currentSettings.security.adminPasscode) {
+    if (_currentController.text.trim() !=
+        currentSettings.security.adminPasscode) {
       setState(() => _errorMessage = 'Current passcode is incorrect.');
       return;
     }
 
     if (_newController.text.trim() != _confirmController.text.trim()) {
-      setState(() => _errorMessage = 'New passcode and confirmation do not match.');
+      setState(
+        () => _errorMessage = 'New passcode and confirmation do not match.',
+      );
       return;
     }
 
@@ -49,11 +53,15 @@ class _ChangePasscodeDialogState extends ConsumerState<ChangePasscodeDialog> {
       final updatedSecurity = currentSettings.security.copyWith(
         adminPasscode: _newController.text.trim(),
       );
-      await ref.read(appSettingsProvider.notifier).updateSecuritySettings(updatedSecurity);
+      await ref
+          .read(appSettingsProvider.notifier)
+          .updateSecuritySettings(updatedSecurity);
       if (mounted) {
         Navigator.of(context).pop(true);
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Administrator passcode updated successfully.')),
+          const SnackBar(
+            content: Text('Administrator passcode updated successfully.'),
+          ),
         );
       }
     } catch (e) {
@@ -83,17 +91,25 @@ class _ChangePasscodeDialogState extends ConsumerState<ChangePasscodeDialog> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(Icons.security, size: 44, color: theme.colorScheme.primary),
+                  Icon(
+                    Icons.security,
+                    size: 44,
+                    color: theme.colorScheme.primary,
+                  ),
                   const Gap(12),
                   Text(
                     'Change Admin Passcode',
-                    style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
+                    style: theme.textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
                     textAlign: TextAlign.center,
                   ),
                   const Gap(8),
                   Text(
                     'Enter your current passcode and set a new numeric PIN (4-10 digits).',
-                    style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
                     textAlign: TextAlign.center,
                   ),
                   const Gap(20),
@@ -106,11 +122,17 @@ class _ChangePasscodeDialogState extends ConsumerState<ChangePasscodeDialog> {
                       border: const OutlineInputBorder(),
                       prefixIcon: const Icon(Icons.lock_outline),
                       suffixIcon: IconButton(
-                        icon: Icon(_obscureCurrent ? Icons.visibility : Icons.visibility_off),
-                        onPressed: () => setState(() => _obscureCurrent = !_obscureCurrent),
+                        icon: Icon(
+                          _obscureCurrent
+                              ? Icons.visibility
+                              : Icons.visibility_off,
+                        ),
+                        onPressed: () =>
+                            setState(() => _obscureCurrent = !_obscureCurrent),
                       ),
                     ),
-                    validator: (val) => val == null || val.isEmpty ? 'Required' : null,
+                    validator: (val) =>
+                        val == null || val.isEmpty ? 'Required' : null,
                   ),
                   const Gap(16),
                   TextFormField(
@@ -122,14 +144,19 @@ class _ChangePasscodeDialogState extends ConsumerState<ChangePasscodeDialog> {
                       border: const OutlineInputBorder(),
                       prefixIcon: const Icon(Icons.pin),
                       suffixIcon: IconButton(
-                        icon: Icon(_obscureNew ? Icons.visibility : Icons.visibility_off),
-                        onPressed: () => setState(() => _obscureNew = !_obscureNew),
+                        icon: Icon(
+                          _obscureNew ? Icons.visibility : Icons.visibility_off,
+                        ),
+                        onPressed: () =>
+                            setState(() => _obscureNew = !_obscureNew),
                       ),
                     ),
                     validator: (val) {
                       if (val == null || val.isEmpty) return 'Required';
-                      if (val.length < 4 || val.length > 10) return 'Must be 4-10 digits';
-                      if (int.tryParse(val) == null) return 'Must be numeric digits only';
+                      if (val.length < 4 || val.length > 10)
+                        return 'Must be 4-10 digits';
+                      if (int.tryParse(val) == null)
+                        return 'Must be numeric digits only';
                       return null;
                     },
                   ),
@@ -143,11 +170,17 @@ class _ChangePasscodeDialogState extends ConsumerState<ChangePasscodeDialog> {
                       border: const OutlineInputBorder(),
                       prefixIcon: const Icon(Icons.check_circle_outline),
                       suffixIcon: IconButton(
-                        icon: Icon(_obscureConfirm ? Icons.visibility : Icons.visibility_off),
-                        onPressed: () => setState(() => _obscureConfirm = !_obscureConfirm),
+                        icon: Icon(
+                          _obscureConfirm
+                              ? Icons.visibility
+                              : Icons.visibility_off,
+                        ),
+                        onPressed: () =>
+                            setState(() => _obscureConfirm = !_obscureConfirm),
                       ),
                     ),
-                    validator: (val) => val == null || val.isEmpty ? 'Required' : null,
+                    validator: (val) =>
+                        val == null || val.isEmpty ? 'Required' : null,
                   ),
                   if (_errorMessage != null) ...[
                     const Gap(12),
@@ -167,10 +200,15 @@ class _ChangePasscodeDialogState extends ConsumerState<ChangePasscodeDialog> {
                         child: OutlinedButton(
                           style: OutlinedButton.styleFrom(
                             padding: const EdgeInsets.symmetric(vertical: 14),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
                           ),
                           onPressed: () => Navigator.of(context).pop(),
-                          child: const Text('Cancel', style: TextStyle(fontWeight: FontWeight.w600)),
+                          child: const Text(
+                            'Cancel',
+                            style: TextStyle(fontWeight: FontWeight.w600),
+                          ),
                         ),
                       ),
                       const Gap(12),
@@ -180,13 +218,25 @@ class _ChangePasscodeDialogState extends ConsumerState<ChangePasscodeDialog> {
                             backgroundColor: theme.colorScheme.primary,
                             foregroundColor: theme.colorScheme.onPrimary,
                             padding: const EdgeInsets.symmetric(vertical: 14),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
                             elevation: 0,
                           ),
                           onPressed: _isSaving ? null : _onSubmit,
                           child: _isSaving
-                              ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                              : const Text('Update PIN', style: TextStyle(fontWeight: FontWeight.w700)),
+                              ? const SizedBox(
+                                  height: 20,
+                                  width: 20,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: Colors.white,
+                                  ),
+                                )
+                              : const Text(
+                                  'Update PIN',
+                                  style: TextStyle(fontWeight: FontWeight.w700),
+                                ),
                         ),
                       ),
                     ],

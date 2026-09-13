@@ -94,7 +94,10 @@ class InventoryHistoryScreen extends ConsumerWidget {
                             ),
                           ),
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 4,
+                            ),
                             decoration: BoxDecoration(
                               color: AppColors.success.withValues(alpha: 0.1),
                               borderRadius: BorderRadius.circular(8),
@@ -148,7 +151,7 @@ class InventoryHistoryScreen extends ConsumerWidget {
                             style: theme.textTheme.bodySmall,
                           ),
                         ),
-                      ]
+                      ],
                     ],
                   ),
                 ),

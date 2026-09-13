@@ -19,7 +19,7 @@ class SnookerClubApp extends ConsumerWidget {
     final router = ref.watch(appRouterProvider);
     final locale = ref.watch(localeProvider);
     final clubAsync = ref.watch(clubProfileProvider);
-    
+
     final clubName = clubAsync.value?.clubName ?? 'S&B Manager';
     final appTitle = AppConfig.isPreview ? '[PREVIEW] $clubName' : clubName;
 
@@ -37,10 +37,7 @@ class SnookerClubApp extends ConsumerWidget {
         GlobalWidgetsLocalizations.delegate,
         GlobalCupertinoLocalizations.delegate,
       ],
-      supportedLocales: const [
-        Locale('en'),
-        Locale('hi'),
-      ],
+      supportedLocales: const [Locale('en'), Locale('hi')],
       builder: (context, child) {
         if (AppConfig.isPreview) {
           return Banner(

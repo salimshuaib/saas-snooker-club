@@ -19,8 +19,13 @@ class SettingsRepository {
   FirebaseFirestore get _db => _firestoreService.db;
 
   DocumentReference get _settingsDoc {
-    if (clubId == null) throw Exception('clubId cannot be null for SettingsRepository');
-    return _db.collection(FirebaseConstants.clubsCollection).doc(clubId).collection(FirebaseConstants.settingsCollection).doc(_docId);
+    if (clubId == null)
+      throw Exception('clubId cannot be null for SettingsRepository');
+    return _db
+        .collection(FirebaseConstants.clubsCollection)
+        .doc(clubId)
+        .collection(FirebaseConstants.settingsCollection)
+        .doc(_docId);
   }
 
   /// Watch live settings updates from Firestore.
@@ -29,7 +34,9 @@ class SettingsRepository {
         .snapshots()
         .map((snapshot) {
           if (snapshot.exists && snapshot.data() != null) {
-            final settings = AppSettings.fromMap(snapshot.data()! as Map<String, dynamic>);
+            final settings = AppSettings.fromMap(
+              snapshot.data()! as Map<String, dynamic>,
+            );
             _saveToLocalBackup(settings);
             return settings;
           }
@@ -37,7 +44,9 @@ class SettingsRepository {
         })
         .handleError((error) {
           if (error is FirebaseException && error.code == 'permission-denied') {
-            AppLogger.info('Settings stream closed due to logout (permission-denied)');
+            AppLogger.info(
+              'Settings stream closed due to logout (permission-denied)',
+            );
           } else {
             AppLogger.error('Error streaming settings from Firestore: $error');
           }
@@ -47,15 +56,20 @@ class SettingsRepository {
   /// Fetch current settings (from server or cache).
   Future<AppSettings> getSettings({bool forceServer = false}) async {
     try {
-      final snapshot = await _settingsDoc
-          .get(forceServer ? const GetOptions(source: Source.server) : null);
+      final snapshot = await _settingsDoc.get(
+        forceServer ? const GetOptions(source: Source.server) : null,
+      );
       if (snapshot.exists && snapshot.data() != null) {
-        final settings = AppSettings.fromMap(snapshot.data()! as Map<String, dynamic>);
+        final settings = AppSettings.fromMap(
+          snapshot.data()! as Map<String, dynamic>,
+        );
         await _saveToLocalBackup(settings);
         return settings;
       }
     } catch (e) {
-      AppLogger.warning('Could not load settings from Firestore: $e. Falling back to local cache.');
+      AppLogger.warning(
+        'Could not load settings from Firestore: $e. Falling back to local cache.',
+      );
     }
     return _loadFromLocalBackup();
   }
@@ -64,14 +78,18 @@ class SettingsRepository {
     if (AppConfig.guardWrite('SettingsRepository.completeOnboarding')) return;
     if (clubId == null) throw Exception('clubId cannot be null');
     final ref = _db.collection(FirebaseConstants.clubsCollection).doc(clubId);
-    
+
     // Auto-generate slug from clubName during onboarding
     final snapshot = await ref.get();
     String? generatedSlug;
     if (snapshot.exists) {
       final name = snapshot.data()?['clubName'] as String?;
       if (name != null && name.isNotEmpty) {
-        generatedSlug = name.trim().toLowerCase().replaceAll(RegExp(r'[^a-z0-9]'), '-').replaceAll(RegExp(r'-+'), '-');
+        generatedSlug = name
+            .trim()
+            .toLowerCase()
+            .replaceAll(RegExp(r'[^a-z0-9]'), '-')
+            .replaceAll(RegExp(r'-+'), '-');
       }
     }
     generatedSlug ??= 'club-${clubId!.substring(0, 6).toLowerCase()}';
@@ -87,9 +105,7 @@ class SettingsRepository {
 
     // Also update settings/app_config document
     await _settingsDoc.set({
-      'business': {
-        'slug': generatedSlug,
-      }
+      'business': {'slug': generatedSlug},
     }, SetOptions(merge: true));
   }
 
@@ -98,8 +114,7 @@ class SettingsRepository {
     if (AppConfig.guardWrite('SettingsRepository.saveSettings')) return;
     final toSave = settings.copyWith(lastSyncTime: DateTime.now());
     try {
-      await _settingsDoc
-          .set(toSave.toMap(), SetOptions(merge: true));
+      await _settingsDoc.set(toSave.toMap(), SetOptions(merge: true));
       AppLogger.info('Settings synced to Firestore successfully.');
       await _saveToLocalBackup(toSave);
     } catch (e) {
@@ -150,5 +165,6 @@ class SettingsRepository {
     }
     return const AppSettings();
   }
+
   Future<void> migrateTablesPricing() async {}
 }

@@ -29,9 +29,11 @@ class FinancialSummaryCard extends ConsumerWidget {
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: InkWell(
         borderRadius: BorderRadius.circular(16),
-        onTap: isInteractive ? () {
-          context.push('/financial-review');
-        } : null,
+        onTap: isInteractive
+            ? () {
+                context.push('/financial-review');
+              }
+            : null,
         child: Padding(
           padding: const EdgeInsets.all(16.0),
           child: asyncSummary.when(
@@ -45,34 +47,91 @@ class FinancialSummaryCard extends ConsumerWidget {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text("Financial Overview", style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
+                        Text(
+                          "Financial Overview",
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                         const Icon(Icons.chevron_right, color: Colors.grey),
                       ],
                     )
                   else
-                    Text("Financial Overview", style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
-                    
+                    Text(
+                      "Financial Overview",
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+
                   const Divider(height: 24),
-                  
+
                   // Total Billed (Business Volume)
-                  _buildRow("Total Billed", summary.totalBilled, currency, theme, isBold: true, color: AppColors.primary),
+                  _buildRow(
+                    "Total Billed",
+                    summary.totalBilled,
+                    currency,
+                    theme,
+                    isBold: true,
+                    color: AppColors.primary,
+                  ),
                   const Gap(8),
 
                   // Collections
-                  Text("Collections", style: theme.textTheme.labelMedium?.copyWith(color: Colors.grey)),
+                  Text(
+                    "Collections",
+                    style: theme.textTheme.labelMedium?.copyWith(
+                      color: Colors.grey,
+                    ),
+                  ),
                   const Gap(4),
-                  _buildRow("Cash Collected", summary.cashCollected, currency, theme, color: AppColors.success),
-                  _buildRow("UPI Collected", summary.upiCollected, currency, theme, color: AppColors.success),
-                  _buildRow("Credit Collected", summary.creditCollected, currency, theme, color: AppColors.success),
-                  
+                  _buildRow(
+                    "Cash Collected",
+                    summary.cashCollected,
+                    currency,
+                    theme,
+                    color: AppColors.success,
+                  ),
+                  _buildRow(
+                    "UPI Collected",
+                    summary.upiCollected,
+                    currency,
+                    theme,
+                    color: AppColors.success,
+                  ),
+                  _buildRow(
+                    "Credit Collected",
+                    summary.creditCollected,
+                    currency,
+                    theme,
+                    color: AppColors.success,
+                  ),
+
                   const Divider(height: 24),
 
                   // Credit
-                  Text("Credit Activity", style: theme.textTheme.labelMedium?.copyWith(color: Colors.grey)),
+                  Text(
+                    "Credit Activity",
+                    style: theme.textTheme.labelMedium?.copyWith(
+                      color: Colors.grey,
+                    ),
+                  ),
                   const Gap(4),
-                  _buildRow("Credit Created", summary.creditCreated, currency, theme, color: AppColors.warning),
+                  _buildRow(
+                    "Credit Created",
+                    summary.creditCreated,
+                    currency,
+                    theme,
+                    color: AppColors.warning,
+                  ),
                   if (!forSelectedDate)
-                    _buildRow("Outstanding Credit", summary.outstandingCredit, currency, theme, color: AppColors.error),
+                    _buildRow(
+                      "Outstanding Credit",
+                      summary.outstandingCredit,
+                      currency,
+                      theme,
+                      color: AppColors.error,
+                    ),
                 ],
               );
             },
@@ -82,19 +141,31 @@ class FinancialSummaryCard extends ConsumerWidget {
     );
   }
 
-  Widget _buildRow(String label, double amount, Currency currency, ThemeData theme, {bool isBold = false, Color? color}) {
+  Widget _buildRow(
+    String label,
+    double amount,
+    Currency currency,
+    ThemeData theme, {
+    bool isBold = false,
+    Color? color,
+  }) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4.0),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label, style: theme.textTheme.bodyMedium?.copyWith(fontWeight: isBold ? FontWeight.bold : FontWeight.normal)),
           Text(
-            CurrencyHelper.formatWhole(amount, currency), 
+            label,
+            style: theme.textTheme.bodyMedium?.copyWith(
+              fontWeight: isBold ? FontWeight.bold : FontWeight.normal,
+            ),
+          ),
+          Text(
+            CurrencyHelper.formatWhole(amount, currency),
             style: theme.textTheme.bodyMedium?.copyWith(
               fontWeight: isBold ? FontWeight.bold : FontWeight.w600,
               color: color,
-            )
+            ),
           ),
         ],
       ),

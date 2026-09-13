@@ -41,8 +41,7 @@ class ErrorStateWidget extends StatelessWidget {
               style: theme.textTheme.bodyLarge,
               textAlign: TextAlign.center,
             ),
-            if (onRetry != null) ...
-            [
+            if (onRetry != null) ...[
               const Gap(24),
               OutlinedButton.icon(
                 onPressed: onRetry,

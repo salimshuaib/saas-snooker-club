@@ -21,27 +21,30 @@ import 'package:snooker_club/features/quick_sales/providers/quick_sales_provider
 class AnalyticsTimeFilterNotifier extends Notifier<AnalyticsTimeFilter> {
   @override
   AnalyticsTimeFilter build() => AnalyticsTimeFilter.today;
-  
+
   void setFilter(AnalyticsTimeFilter filter) => state = filter;
 
   void shiftDateRange(int offset) {
     final currentRange = ref.read(analyticsTimeRangeProvider);
     final diff = currentRange.end.difference(currentRange.start).inDays;
     final actualDays = diff == 0 ? 1 : diff + 1;
-    
-    final newStart = currentRange.start.add(Duration(days: actualDays * offset));
-    final newEnd = currentRange.end.add(Duration(days: actualDays * offset));
-    
-    ref.read(analyticsCustomDateRangeProvider.notifier).setCustomRange(
-      DateTimeRange(start: newStart, end: newEnd),
+
+    final newStart = currentRange.start.add(
+      Duration(days: actualDays * offset),
     );
+    final newEnd = currentRange.end.add(Duration(days: actualDays * offset));
+
+    ref
+        .read(analyticsCustomDateRangeProvider.notifier)
+        .setCustomRange(DateTimeRange(start: newStart, end: newEnd));
     state = AnalyticsTimeFilter.custom;
   }
 }
 
-final analyticsTimeFilterProvider = NotifierProvider<AnalyticsTimeFilterNotifier, AnalyticsTimeFilter>(
-  () => AnalyticsTimeFilterNotifier(),
-);
+final analyticsTimeFilterProvider =
+    NotifierProvider<AnalyticsTimeFilterNotifier, AnalyticsTimeFilter>(
+      () => AnalyticsTimeFilterNotifier(),
+    );
 
 class AnalyticsCustomDateRangeNotifier extends Notifier<DateTimeRange?> {
   @override
@@ -49,13 +52,18 @@ class AnalyticsCustomDateRangeNotifier extends Notifier<DateTimeRange?> {
   void setCustomRange(DateTimeRange? range) => state = range;
 }
 
-final analyticsCustomDateRangeProvider = NotifierProvider<AnalyticsCustomDateRangeNotifier, DateTimeRange?>(
-  () => AnalyticsCustomDateRangeNotifier(),
-);
+final analyticsCustomDateRangeProvider =
+    NotifierProvider<AnalyticsCustomDateRangeNotifier, DateTimeRange?>(
+      () => AnalyticsCustomDateRangeNotifier(),
+    );
 
 // â”€â”€â”€ Time Range Calculator â”€â”€â”€
 
-AnalyticsTimeRange _calculateTimeRange(AnalyticsTimeFilter filter, DateTimeRange? custom, bool isPrevious) {
+AnalyticsTimeRange _calculateTimeRange(
+  AnalyticsTimeFilter filter,
+  DateTimeRange? custom,
+  bool isPrevious,
+) {
   final now = DateTime.now();
   DateTime start;
   DateTime end;
@@ -129,11 +137,25 @@ AnalyticsTimeRange _calculateTimeRange(AnalyticsTimeFilter filter, DateTimeRange
       break;
     case AnalyticsTimeFilter.custom:
       if (custom != null) {
-        start = DateTime(custom.start.year, custom.start.month, custom.start.day);
-        end = DateTime(custom.end.year, custom.end.month, custom.end.day, 23, 59, 59, 999);
+        start = DateTime(
+          custom.start.year,
+          custom.start.month,
+          custom.start.day,
+        );
+        end = DateTime(
+          custom.end.year,
+          custom.end.month,
+          custom.end.day,
+          23,
+          59,
+          59,
+          999,
+        );
         if (isPrevious) {
           final diff = end.difference(start);
-          start = start.subtract(diff).subtract(const Duration(milliseconds: 1));
+          start = start
+              .subtract(diff)
+              .subtract(const Duration(milliseconds: 1));
           end = end.subtract(diff).subtract(const Duration(milliseconds: 1));
         }
       } else {
@@ -170,27 +192,35 @@ final analyticsGamesStreamProvider = StreamProvider<List<GameSession>>((ref) {
   return repo.watchGamesByDateRange(tr.start, tr.end);
 });
 
-final analyticsQuickSalesStreamProvider = StreamProvider<List<QuickSale>>((ref) {
+final analyticsQuickSalesStreamProvider = StreamProvider<List<QuickSale>>((
+  ref,
+) {
   final tr = ref.watch(analyticsTimeRangeProvider);
   final repo = ref.watch(quickSalesRepositoryProvider);
   if (repo.clubId == null) return const Stream.empty();
   return repo.watchQuickSalesByDateRange(tr.start, tr.end);
 });
 
-final analyticsPaymentsStreamProvider = StreamProvider<List<PaymentHistory>>((ref) {
+final analyticsPaymentsStreamProvider = StreamProvider<List<PaymentHistory>>((
+  ref,
+) {
   final tr = ref.watch(analyticsTimeRangeProvider);
   final clubId = ref.watch(clubIdProvider);
   final db = ref.watch(firestoreServiceProvider).db;
-  
+
   if (clubId == null) return const Stream.empty();
-  
+
   return db
       .collectionGroup('payments')
       .where('clubId', isEqualTo: clubId)
       .where('date', isGreaterThanOrEqualTo: Timestamp.fromDate(tr.start))
       .where('date', isLessThanOrEqualTo: Timestamp.fromDate(tr.end))
       .snapshots()
-      .map((snap) => snap.docs.map((d) => PaymentHistory.fromMap(d.id, d.data())).toList());
+      .map(
+        (snap) => snap.docs
+            .map((d) => PaymentHistory.fromMap(d.id, d.data()))
+            .toList(),
+      );
 });
 
 // â”€â”€â”€ Previous Streams â”€â”€â”€
@@ -209,25 +239,36 @@ final previousQuickSalesStreamProvider = StreamProvider<List<QuickSale>>((ref) {
   return repo.watchQuickSalesByDateRange(tr.start, tr.end);
 });
 
-final previousPaymentsStreamProvider = StreamProvider<List<PaymentHistory>>((ref) {
+final previousPaymentsStreamProvider = StreamProvider<List<PaymentHistory>>((
+  ref,
+) {
   final tr = ref.watch(analyticsPreviousTimeRangeProvider);
   final clubId = ref.watch(clubIdProvider);
   final db = ref.watch(firestoreServiceProvider).db;
-  
+
   if (clubId == null) return const Stream.empty();
-  
+
   return db
       .collectionGroup('payments')
       .where('clubId', isEqualTo: clubId)
       .where('date', isGreaterThanOrEqualTo: Timestamp.fromDate(tr.start))
       .where('date', isLessThanOrEqualTo: Timestamp.fromDate(tr.end))
       .snapshots()
-      .map((snap) => snap.docs.map((d) => PaymentHistory.fromMap(d.id, d.data())).toList());
+      .map(
+        (snap) => snap.docs
+            .map((d) => PaymentHistory.fromMap(d.id, d.data()))
+            .toList(),
+      );
 });
 
 // â”€â”€â”€ Common Logic (Single Source of Truth) â”€â”€â”€
 
-RevenueOverviewData _computeRevenue(List<GameSession> games, List<QuickSale> quickSales, List<PaymentHistory> payments, double outstanding) {
+RevenueOverviewData _computeRevenue(
+  List<GameSession> games,
+  List<QuickSale> quickSales,
+  List<PaymentHistory> payments,
+  double outstanding,
+) {
   double totalBilled = 0;
   double totalGameBilled = 0;
   double totalQuickSaleBilled = 0;
@@ -237,13 +278,14 @@ RevenueOverviewData _computeRevenue(List<GameSession> games, List<QuickSale> qui
   double creditCollected = 0;
 
   for (final g in games) {
-    if (g.status != TableStatus.available || g.paymentStatus == 'pending') continue;
-    
+    if (g.status != TableStatus.available || g.paymentStatus == 'pending')
+      continue;
+
     final actualPaid = g.finalAmount ?? g.grandTotal ?? 0.0;
-    
+
     totalBilled += actualPaid;
     totalGameBilled += actualPaid;
-    
+
     final ppm = g.playerPaymentSplits;
     if (ppm != null && ppm.isNotEmpty) {
       for (final kv in ppm.entries) {
@@ -254,20 +296,26 @@ RevenueOverviewData _computeRevenue(List<GameSession> games, List<QuickSale> qui
       }
     } else {
       final method = g.paymentMethod ?? PaymentMethod.cash;
-      if (method == PaymentMethod.cash) cashCollected += actualPaid;
-      else if (method == PaymentMethod.upi) upiCollected += actualPaid;
-      else if (method == PaymentMethod.credit) creditCreated += actualPaid;
+      if (method == PaymentMethod.cash)
+        cashCollected += actualPaid;
+      else if (method == PaymentMethod.upi)
+        upiCollected += actualPaid;
+      else if (method == PaymentMethod.credit)
+        creditCreated += actualPaid;
     }
   }
 
   for (final q in quickSales) {
     totalBilled += q.totalAmount;
     totalQuickSaleBilled += q.totalAmount;
-    
+
     final method = q.paymentMethod;
-    if (method == PaymentMethod.cash) cashCollected += q.totalAmount;
-    else if (method == PaymentMethod.upi) upiCollected += q.totalAmount;
-    else if (method == PaymentMethod.credit) creditCreated += q.totalAmount;
+    if (method == PaymentMethod.cash)
+      cashCollected += q.totalAmount;
+    else if (method == PaymentMethod.upi)
+      upiCollected += q.totalAmount;
+    else if (method == PaymentMethod.credit)
+      creditCreated += q.totalAmount;
   }
 
   for (final p in payments) {
@@ -290,16 +338,16 @@ String _getTrendLabel(DateTime date, AnalyticsTimeFilter filter) {
   switch (filter) {
     case AnalyticsTimeFilter.today:
     case AnalyticsTimeFilter.yesterday:
-      return DateFormat('ha').format(date); 
+      return DateFormat('ha').format(date);
     case AnalyticsTimeFilter.last7Days:
     case AnalyticsTimeFilter.currentWeek:
     case AnalyticsTimeFilter.lastWeek:
-      return DateFormat('EEE').format(date); 
+      return DateFormat('EEE').format(date);
     case AnalyticsTimeFilter.currentMonth:
     case AnalyticsTimeFilter.lastMonth:
-      return DateFormat('d MMM').format(date); 
+      return DateFormat('d MMM').format(date);
     case AnalyticsTimeFilter.currentYear:
-      return DateFormat('MMM').format(date); 
+      return DateFormat('MMM').format(date);
     case AnalyticsTimeFilter.custom:
       return DateFormat('d MMM').format(date);
   }
@@ -310,20 +358,38 @@ String _getTrendLabel(DateTime date, AnalyticsTimeFilter filter) {
 CompleteAnalyticsData getCompleteAnalyticsData(dynamic ref) {
   final AnalyticsTimeRange timeRange = ref.watch(analyticsTimeRangeProvider);
   final double outstanding = ref.watch(totalOutstandingCreditProvider);
-  
-  final List<GameSession> games = ref.watch(analyticsGamesStreamProvider).value ?? <GameSession>[];
-  final List<QuickSale> quickSales = ref.watch(analyticsQuickSalesStreamProvider).value ?? <QuickSale>[];
-  final List<PaymentHistory> payments = ref.watch(analyticsPaymentsStreamProvider).value ?? <PaymentHistory>[];
-  
-  final List<GameSession> prevGames = ref.watch(previousGamesStreamProvider).value ?? <GameSession>[];
-  final List<QuickSale> prevQuickSales = ref.watch(previousQuickSalesStreamProvider).value ?? <QuickSale>[];
-  final List<PaymentHistory> prevPayments = ref.watch(previousPaymentsStreamProvider).value ?? <PaymentHistory>[];
-  
-  final List<InventoryItem> inventoryList = ref.watch(inventoryItemsProvider).value ?? <InventoryItem>[];
-  final List<PlayerProfile> allCustomers = ref.watch(allCustomersProvider).value ?? <PlayerProfile>[];
 
-  final revenueOverview = _computeRevenue(games, quickSales, payments, outstanding);
-  final prevOverview = _computeRevenue(prevGames, prevQuickSales, prevPayments, outstanding);
+  final List<GameSession> games =
+      ref.watch(analyticsGamesStreamProvider).value ?? <GameSession>[];
+  final List<QuickSale> quickSales =
+      ref.watch(analyticsQuickSalesStreamProvider).value ?? <QuickSale>[];
+  final List<PaymentHistory> payments =
+      ref.watch(analyticsPaymentsStreamProvider).value ?? <PaymentHistory>[];
+
+  final List<GameSession> prevGames =
+      ref.watch(previousGamesStreamProvider).value ?? <GameSession>[];
+  final List<QuickSale> prevQuickSales =
+      ref.watch(previousQuickSalesStreamProvider).value ?? <QuickSale>[];
+  final List<PaymentHistory> prevPayments =
+      ref.watch(previousPaymentsStreamProvider).value ?? <PaymentHistory>[];
+
+  final List<InventoryItem> inventoryList =
+      ref.watch(inventoryItemsProvider).value ?? <InventoryItem>[];
+  final List<PlayerProfile> allCustomers =
+      ref.watch(allCustomersProvider).value ?? <PlayerProfile>[];
+
+  final revenueOverview = _computeRevenue(
+    games,
+    quickSales,
+    payments,
+    outstanding,
+  );
+  final prevOverview = _computeRevenue(
+    prevGames,
+    prevQuickSales,
+    prevPayments,
+    outstanding,
+  );
 
   // Constants for calculations
   final daysInRange = timeRange.end.difference(timeRange.start).inDays;
@@ -333,7 +399,7 @@ CompleteAnalyticsData getCompleteAnalyticsData(dynamic ref) {
 
   // Build product purchase price map for COGS
   final Map<String, double> productCostMap = {
-    for (var p in inventoryList) p.id: p.purchasePrice
+    for (var p in inventoryList) p.id: p.purchasePrice,
   };
 
   // Maps and Accumulators
@@ -344,72 +410,85 @@ CompleteAnalyticsData getCompleteAnalyticsData(dynamic ref) {
   int singlePayerCount = 0;
   double perMinBilled = 0;
   double perFrameBilled = 0;
-  
+
   final Map<String, TablePerformanceItem> tablePerfMap = {};
   final Map<String, double> trendMap = {};
   final Map<String, double> creditTrendMap = {};
-  
+
   final Map<int, int> hourGameCounts = {};
   final Map<int, double> hourRevenueMap = {};
   final Map<int, double> dayRevenueMap = {};
-  
+
   final Set<String> uniqueCustomers = {};
   int totalDurationMinutesAllGames = 0;
-  
+
   double totalCogs = 0;
 
   for (final g in games) {
-    if (g.status != TableStatus.available || g.paymentStatus == 'pending') continue;
-    
+    if (g.status != TableStatus.available || g.paymentStatus == 'pending')
+      continue;
+
     // Revenue & Category
     final double gTotal = g.finalAmount ?? g.grandTotal ?? 0.0;
-    
-    final cat = gameCatMap.putIfAbsent(g.tableType.displayName, () => GameCategoryData(categoryName: g.tableType.displayName, totalBilled: 0, transactionCount: 0, averageTransactionValue: 0));
+
+    final cat = gameCatMap.putIfAbsent(
+      g.tableType.displayName,
+      () => GameCategoryData(
+        categoryName: g.tableType.displayName,
+        totalBilled: 0,
+        transactionCount: 0,
+        averageTransactionValue: 0,
+      ),
+    );
     gameCatMap[g.tableType.displayName] = GameCategoryData(
       categoryName: g.tableType.displayName,
       totalBilled: cat.totalBilled + gTotal,
       transactionCount: cat.transactionCount + 1,
-      averageTransactionValue: (cat.totalBilled + gTotal) / (cat.transactionCount + 1),
+      averageTransactionValue:
+          (cat.totalBilled + gTotal) / (cat.transactionCount + 1),
     );
-    
+
     // Duration & COGS
     final int durMins = g.activeSeconds ~/ 60;
     totalDurationMinutesAllGames += durMins;
-    
+
     for (final order in g.orders) {
       final cost = productCostMap[order.productId] ?? 0.0;
       totalCogs += cost * order.quantity;
     }
-    
+
     // Table Performance
-    final tbl = tablePerfMap.putIfAbsent(g.tableId, () => TablePerformanceItem(
-      tableId: g.tableId,
-      tableName: g.tableName,
-      tableType: g.tableType.displayName,
-      sessionsCount: 0,
-      totalBilled: 0,
-      averageSessionValue: 0,
-      totalOrdersRevenue: 0,
-      totalDurationMinutes: 0,
-      avgDurationMinutes: 0,
-      utilizationPercent: 0,
-      hourlyUsage: {},
-      dailyUsage: {},
-      revenuePerHour: 0,
-      overtimeCount: 0,
-    ));
-    
+    final tbl = tablePerfMap.putIfAbsent(
+      g.tableId,
+      () => TablePerformanceItem(
+        tableId: g.tableId,
+        tableName: g.tableName,
+        tableType: g.tableType.displayName,
+        sessionsCount: 0,
+        totalBilled: 0,
+        averageSessionValue: 0,
+        totalOrdersRevenue: 0,
+        totalDurationMinutes: 0,
+        avgDurationMinutes: 0,
+        utilizationPercent: 0,
+        hourlyUsage: {},
+        dailyUsage: {},
+        revenuePerHour: 0,
+        overtimeCount: 0,
+      ),
+    );
+
     final tHourly = Map<int, int>.from(tbl.hourlyUsage);
     final h = (g.endTime ?? g.startTime).hour;
     tHourly[h] = (tHourly[h] ?? 0) + 1;
-    
+
     final tDaily = Map<int, int>.from(tbl.dailyUsage);
     final d = (g.endTime ?? g.startTime).weekday;
     tDaily[d] = (tDaily[d] ?? 0) + 1;
-    
+
     final int newDuration = tbl.totalDurationMinutes + durMins;
     final double newBilled = tbl.totalBilled + gTotal;
-    
+
     tablePerfMap[g.tableId] = TablePerformanceItem(
       tableId: g.tableId,
       tableName: g.tableName,
@@ -426,30 +505,32 @@ CompleteAnalyticsData getCompleteAnalyticsData(dynamic ref) {
       revenuePerHour: newDuration > 0 ? (newBilled / (newDuration / 60)) : 0.0,
       overtimeCount: tbl.overtimeCount + ((g.overtimeCharge ?? 0) > 0 ? 1 : 0),
     );
-    
+
     // Global Trends & Insights
     final dateObj = g.endTime ?? g.startTime;
     final label = _getTrendLabel(dateObj, timeRange.filter);
     trendMap[label] = (trendMap[label] ?? 0) + gTotal;
-    
+
     hourGameCounts[h] = (hourGameCounts[h] ?? 0) + 1;
     hourRevenueMap[h] = (hourRevenueMap[h] ?? 0) + gTotal;
     dayRevenueMap[d] = (dayRevenueMap[d] ?? 0) + gTotal;
-    
+
     for (var p in g.allPlayers) {
       uniqueCustomers.add(p.trim().toLowerCase());
     }
-    
-    if (g.selectedPayers != null && g.selectedPayers!.length > 1) { 
-      splitBilled += gTotal; 
-      splitCount++; 
-    } else { 
-      singlePayerBilled += gTotal; 
-      singlePayerCount++; 
+
+    if (g.selectedPayers != null && g.selectedPayers!.length > 1) {
+      splitBilled += gTotal;
+      splitCount++;
+    } else {
+      singlePayerBilled += gTotal;
+      singlePayerCount++;
     }
-    
-    if (g.billingType == BillingType.perFrame) perFrameBilled += gTotal;
-    else perMinBilled += gTotal;
+
+    if (g.billingType == BillingType.perFrame)
+      perFrameBilled += gTotal;
+    else
+      perMinBilled += gTotal;
   }
 
   // Quick Sales Products & COGS
@@ -459,35 +540,54 @@ CompleteAnalyticsData getCompleteAnalyticsData(dynamic ref) {
   for (final q in quickSales) {
     final label = _getTrendLabel(q.date, timeRange.filter);
     trendMap[label] = (trendMap[label] ?? 0) + q.totalAmount;
-    
+
     final h = q.date.hour;
     final d = q.date.weekday;
     hourRevenueMap[h] = (hourRevenueMap[h] ?? 0) + q.totalAmount;
     dayRevenueMap[d] = (dayRevenueMap[d] ?? 0) + q.totalAmount;
-    
+
     if (q.customerName != null && q.customerName!.isNotEmpty) {
       uniqueCustomers.add(q.customerName!.trim().toLowerCase());
     }
-    
+
     for (final item in q.items) {
       final cost = productCostMap[item.productId] ?? 0.0;
       totalCogs += cost * item.quantity;
-      
-      final p = productMap.putIfAbsent(item.productId, () => BestSellingProductItem(productId: item.productId, productName: item.productName, unitsSold: 0, salesAmount: 0));
+
+      final p = productMap.putIfAbsent(
+        item.productId,
+        () => BestSellingProductItem(
+          productId: item.productId,
+          productName: item.productName,
+          unitsSold: 0,
+          salesAmount: 0,
+        ),
+      );
       productMap[item.productId] = BestSellingProductItem(
         productId: p.productId,
         productName: p.productName,
         unitsSold: p.unitsSold + item.quantity,
         salesAmount: p.salesAmount + (item.quantity * item.pricePerUnit),
       );
-      
-      final c = qsCatMap.putIfAbsent(item.category, () => QuickSaleCategoryData(categoryName: item.category, totalSales: 0, unitsSold: 0, transactionCount: 0, averageSaleValue: 0));
+
+      final c = qsCatMap.putIfAbsent(
+        item.category,
+        () => QuickSaleCategoryData(
+          categoryName: item.category,
+          totalSales: 0,
+          unitsSold: 0,
+          transactionCount: 0,
+          averageSaleValue: 0,
+        ),
+      );
       qsCatMap[item.category] = QuickSaleCategoryData(
         categoryName: item.category,
         totalSales: c.totalSales + (item.quantity * item.pricePerUnit),
         unitsSold: c.unitsSold + item.quantity,
         transactionCount: c.transactionCount + 1,
-        averageSaleValue: (c.totalSales + (item.quantity * item.pricePerUnit)) / (c.transactionCount + 1),
+        averageSaleValue:
+            (c.totalSales + (item.quantity * item.pricePerUnit)) /
+            (c.transactionCount + 1),
       );
     }
   }
@@ -498,35 +598,51 @@ CompleteAnalyticsData getCompleteAnalyticsData(dynamic ref) {
   }
 
   // Formatting series
-  final trendSeries = trendMap.entries.map((e) => TimeSeriesPoint(label: e.key, value: e.value)).toList();
-  final creditTrendSeries = creditTrendMap.entries.map((e) => TimeSeriesPoint(label: e.key, value: e.value)).toList();
-  
+  final trendSeries = trendMap.entries
+      .map((e) => TimeSeriesPoint(label: e.key, value: e.value))
+      .toList();
+  final creditTrendSeries = creditTrendMap.entries
+      .map((e) => TimeSeriesPoint(label: e.key, value: e.value))
+      .toList();
+
   final peakHours = hourGameCounts.entries.map((e) {
     final dt = DateTime(2024, 1, 1, e.key);
     final label = DateFormat('h a').format(dt);
-    return TimeSeriesPoint(label: label, value: e.value.toDouble(), count: e.value);
+    return TimeSeriesPoint(
+      label: label,
+      value: e.value.toDouble(),
+      count: e.value,
+    );
   }).toList()..sort((a, b) => b.value.compareTo(a.value));
-  
-  final prodList = productMap.values.toList()..sort((a,b) => b.salesAmount.compareTo(a.salesAmount));
+
+  final prodList = productMap.values.toList()
+    ..sort((a, b) => b.salesAmount.compareTo(a.salesAmount));
 
   // Determine top/bottom tables and peak hours for insights
-  final tableList = tablePerfMap.values.toList()..sort((a,b) => b.totalBilled.compareTo(a.totalBilled));
-  
+  final tableList = tablePerfMap.values.toList()
+    ..sort((a, b) => b.totalBilled.compareTo(a.totalBilled));
+
   String busiestHour = 'N/A';
   if (hourRevenueMap.isNotEmpty) {
-    final bestH = hourRevenueMap.entries.reduce((a, b) => a.value > b.value ? a : b).key;
+    final bestH = hourRevenueMap.entries
+        .reduce((a, b) => a.value > b.value ? a : b)
+        .key;
     busiestHour = DateFormat('h a').format(DateTime(2024, 1, 1, bestH));
   }
-  
+
   String slowestHour = 'N/A';
   if (hourRevenueMap.isNotEmpty) {
-    final worstH = hourRevenueMap.entries.reduce((a, b) => a.value < b.value ? a : b).key;
+    final worstH = hourRevenueMap.entries
+        .reduce((a, b) => a.value < b.value ? a : b)
+        .key;
     slowestHour = DateFormat('h a').format(DateTime(2024, 1, 1, worstH));
   }
-  
+
   String busiestDay = 'N/A';
   if (dayRevenueMap.isNotEmpty) {
-    final bestD = dayRevenueMap.entries.reduce((a, b) => a.value > b.value ? a : b).key;
+    final bestD = dayRevenueMap.entries
+        .reduce((a, b) => a.value > b.value ? a : b)
+        .key;
     const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
     busiestDay = days[bestD - 1];
   }
@@ -541,7 +657,7 @@ CompleteAnalyticsData getCompleteAnalyticsData(dynamic ref) {
       prevUniqueCustomers.add(q.customerName!.trim().toLowerCase());
     }
   }
-  
+
   int repeatCust = 0;
   for (final c in uniqueCustomers) {
     if (prevUniqueCustomers.contains(c)) repeatCust++;
@@ -549,22 +665,65 @@ CompleteAnalyticsData getCompleteAnalyticsData(dynamic ref) {
   int newCust = uniqueCustomers.length - repeatCust;
 
   // Credit Pending Customers Count
-  int pendingCustCount = allCustomers.where((c) => c.outstandingAmount > 0).length;
+  int pendingCustCount = allCustomers
+      .where((c) => c.outstandingAmount > 0)
+      .length;
 
   // Inventory stats
   int lowStock = inventoryList.where((i) => i.isLowStock).length;
   int outOfStock = inventoryList.where((i) => i.isOutOfStock).length;
-  double totalInvValue = inventoryList.fold(0.0, (sum, i) => sum + (i.currentStock * i.purchasePrice));
+  double totalInvValue = inventoryList.fold(
+    0.0,
+    (sum, i) => sum + (i.currentStock * i.purchasePrice),
+  );
 
   final paymentShare = [
-    if (revenueOverview.cashCollected > 0) CategoryShare(categoryName: 'Cash', amount: revenueOverview.cashCollected, percentage: (revenueOverview.cashCollected/revenueOverview.totalBilled)*100, color: AppColors.success),
-    if (revenueOverview.upiCollected > 0) CategoryShare(categoryName: 'UPI', amount: revenueOverview.upiCollected, percentage: (revenueOverview.upiCollected/revenueOverview.totalBilled)*100, color: AppColors.info),
-    if (revenueOverview.creditCreated > 0) CategoryShare(categoryName: 'Credit', amount: revenueOverview.creditCreated, percentage: (revenueOverview.creditCreated/revenueOverview.totalBilled)*100, color: AppColors.warning),
+    if (revenueOverview.cashCollected > 0)
+      CategoryShare(
+        categoryName: 'Cash',
+        amount: revenueOverview.cashCollected,
+        percentage:
+            (revenueOverview.cashCollected / revenueOverview.totalBilled) * 100,
+        color: AppColors.success,
+      ),
+    if (revenueOverview.upiCollected > 0)
+      CategoryShare(
+        categoryName: 'UPI',
+        amount: revenueOverview.upiCollected,
+        percentage:
+            (revenueOverview.upiCollected / revenueOverview.totalBilled) * 100,
+        color: AppColors.info,
+      ),
+    if (revenueOverview.creditCreated > 0)
+      CategoryShare(
+        categoryName: 'Credit',
+        amount: revenueOverview.creditCreated,
+        percentage:
+            (revenueOverview.creditCreated / revenueOverview.totalBilled) * 100,
+        color: AppColors.warning,
+      ),
   ];
-  
+
   final sourceShare = [
-    if (revenueOverview.totalGameBilled > 0) CategoryShare(categoryName: 'Games', amount: revenueOverview.totalGameBilled, percentage: (revenueOverview.totalGameBilled/revenueOverview.totalBilled)*100, color: AppColors.primary),
-    if (revenueOverview.totalQuickSaleBilled > 0) CategoryShare(categoryName: 'Quick Sales', amount: revenueOverview.totalQuickSaleBilled, percentage: (revenueOverview.totalQuickSaleBilled/revenueOverview.totalBilled)*100, color: AppColors.tertiary),
+    if (revenueOverview.totalGameBilled > 0)
+      CategoryShare(
+        categoryName: 'Games',
+        amount: revenueOverview.totalGameBilled,
+        percentage:
+            (revenueOverview.totalGameBilled / revenueOverview.totalBilled) *
+            100,
+        color: AppColors.primary,
+      ),
+    if (revenueOverview.totalQuickSaleBilled > 0)
+      CategoryShare(
+        categoryName: 'Quick Sales',
+        amount: revenueOverview.totalQuickSaleBilled,
+        percentage:
+            (revenueOverview.totalQuickSaleBilled /
+                revenueOverview.totalBilled) *
+            100,
+        color: AppColors.tertiary,
+      ),
   ];
 
   return CompleteAnalyticsData(
@@ -592,7 +751,9 @@ CompleteAnalyticsData getCompleteAnalyticsData(dynamic ref) {
       currentOutstanding: revenueOverview.outstandingCredit,
       numberOfCreditTransactions: payments.length,
       pendingCustomersCount: pendingCustCount,
-      averageCreditAmount: payments.isNotEmpty ? (revenueOverview.creditCollected / payments.length) : 0,
+      averageCreditAmount: payments.isNotEmpty
+          ? (revenueOverview.creditCollected / payments.length)
+          : 0,
     ),
     creditCollectionTrend: creditTrendSeries,
     peakBusinessHours: peakHours,
@@ -604,14 +765,26 @@ CompleteAnalyticsData getCompleteAnalyticsData(dynamic ref) {
       totalUniqueCustomers: uniqueCustomers.length,
       newCustomersThisPeriod: newCust,
       repeatCustomersThisPeriod: repeatCust,
-      averageCustomerSpend: uniqueCustomers.isNotEmpty ? (revenueOverview.totalBilled / uniqueCustomers.length) : 0.0,
-      averageSessionDuration: games.isNotEmpty ? (totalDurationMinutesAllGames / games.length) : 0.0,
-      tableUtilizationRate: tableList.isNotEmpty ? (totalDurationMinutesAllGames / (totalOperatingMinutes * tableList.length)) * 100 : 0.0,
+      averageCustomerSpend: uniqueCustomers.isNotEmpty
+          ? (revenueOverview.totalBilled / uniqueCustomers.length)
+          : 0.0,
+      averageSessionDuration: games.isNotEmpty
+          ? (totalDurationMinutesAllGames / games.length)
+          : 0.0,
+      tableUtilizationRate: tableList.isNotEmpty
+          ? (totalDurationMinutesAllGames /
+                    (totalOperatingMinutes * tableList.length)) *
+                100
+          : 0.0,
       busiestHour: busiestHour,
       slowestHour: slowestHour,
       busiestDay: busiestDay,
-      bestPerformingTable: tableList.isNotEmpty ? tableList.first.tableName : 'N/A',
-      worstPerformingTable: tableList.isNotEmpty ? tableList.last.tableName : 'N/A',
+      bestPerformingTable: tableList.isNotEmpty
+          ? tableList.first.tableName
+          : 'N/A',
+      worstPerformingTable: tableList.isNotEmpty
+          ? tableList.last.tableName
+          : 'N/A',
     ),
     inventoryAnalytics: InventoryAnalyticsData(
       totalProducts: inventoryList.length,
@@ -623,4 +796,3 @@ CompleteAnalyticsData getCompleteAnalyticsData(dynamic ref) {
     ),
   );
 }
-

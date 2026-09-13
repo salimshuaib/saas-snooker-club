@@ -8,7 +8,6 @@ import 'package:snooker_club/features/games/domain/models/game_models.dart';
 import 'package:snooker_club/features/games/providers/games_providers.dart';
 import 'package:snooker_club/features/games/presentation/widgets/game_activity_card.dart';
 
-
 class GameActivityScreen extends ConsumerWidget {
   const GameActivityScreen({super.key});
 
@@ -28,19 +27,35 @@ class GameActivityScreen extends ConsumerWidget {
           icon: const Icon(Icons.menu),
           onPressed: () => context.push(RouteNames.more),
         ),
-        title: Text(clubName, style: TextStyle(color: theme.colorScheme.onSurface, fontWeight: FontWeight.bold)),
+        title: Text(
+          clubName,
+          style: TextStyle(
+            color: theme.colorScheme.onSurface,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
 
         actions: [
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16.0),
             child: Row(
               children: [
-                Text('Admin', style: TextStyle(color: theme.colorScheme.primary, fontWeight: FontWeight.bold)),
+                Text(
+                  'Admin',
+                  style: TextStyle(
+                    color: theme.colorScheme.primary,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
                 const SizedBox(width: 8),
                 CircleAvatar(
                   radius: 14,
                   backgroundColor: theme.colorScheme.primary,
-                  child: Icon(Icons.person, size: 16, color: theme.colorScheme.surface),
+                  child: Icon(
+                    Icons.person,
+                    size: 16,
+                    color: theme.colorScheme.surface,
+                  ),
                 ),
               ],
             ),
@@ -51,19 +66,47 @@ class GameActivityScreen extends ConsumerWidget {
         builder: (context) {
           final tables = tablesAsync;
           if (tables.isEmpty) {
-            return Center(child: Text('No tables configured.', style: TextStyle(color: theme.colorScheme.onSurface)));
+            return Center(
+              child: Text(
+                'No tables configured.',
+                style: TextStyle(color: theme.colorScheme.onSurface),
+              ),
+            );
           }
 
-          final snookerTables = tables.where((t) => t.type == TableType.snooker).toList();
-          final poolTables = tables.where((t) => t.type == TableType.indianPool || t.type == TableType.americanPool).toList();
-          final consoleTables = tables.where((t) => t.type == TableType.ps5 || t.type == TableType.ps4 || t.type == TableType.pc || t.type == TableType.arcade).toList();
-          
+          final snookerTables = tables
+              .where((t) => t.type == TableType.snooker)
+              .toList();
+          final poolTables = tables
+              .where(
+                (t) =>
+                    t.type == TableType.indianPool ||
+                    t.type == TableType.americanPool,
+              )
+              .toList();
+          final consoleTables = tables
+              .where(
+                (t) =>
+                    t.type == TableType.ps5 ||
+                    t.type == TableType.ps4 ||
+                    t.type == TableType.pc ||
+                    t.type == TableType.arcade,
+              )
+              .toList();
+
           final existingTypes = <String>[];
           if (snookerTables.isNotEmpty) existingTypes.add('Snooker');
           if (poolTables.isNotEmpty) existingTypes.add('Pool');
           if (consoleTables.isNotEmpty) existingTypes.add('Console & PC');
-          
-          final otherTables = tables.where((t) => !snookerTables.contains(t) && !poolTables.contains(t) && !consoleTables.contains(t)).toList();
+
+          final otherTables = tables
+              .where(
+                (t) =>
+                    !snookerTables.contains(t) &&
+                    !poolTables.contains(t) &&
+                    !consoleTables.contains(t),
+              )
+              .toList();
           if (otherTables.isNotEmpty) existingTypes.add('Other');
 
           return DefaultTabController(
@@ -82,24 +125,33 @@ class GameActivityScreen extends ConsumerWidget {
                   child: TabBarView(
                     children: existingTypes.map((type) {
                       List<TableModel> tabTables = [];
-                      if (type == 'Snooker') tabTables = snookerTables;
-                      else if (type == 'Pool') tabTables = poolTables;
-                      else if (type == 'Console & PC') tabTables = consoleTables;
-                      else if (type == 'Other') tabTables = otherTables;
+                      if (type == 'Snooker')
+                        tabTables = snookerTables;
+                      else if (type == 'Pool')
+                        tabTables = poolTables;
+                      else if (type == 'Console & PC')
+                        tabTables = consoleTables;
+                      else if (type == 'Other')
+                        tabTables = otherTables;
 
                       final grouped = <TableType, List<TableModel>>{};
                       for (final t in tabTables) {
                         grouped.putIfAbsent(t.type, () => []).add(t);
                       }
-                      
-                      final sortedKeys = grouped.keys.toList()..sort((a, b) => a.index.compareTo(b.index));
+
+                      final sortedKeys = grouped.keys.toList()
+                        ..sort((a, b) => a.index.compareTo(b.index));
 
                       return ListView(
                         padding: const EdgeInsets.all(16).copyWith(bottom: 100),
                         children: [
                           for (int i = 0; i < sortedKeys.length; i++) ...[
                             Padding(
-                              padding: EdgeInsets.only(left: 4, bottom: 12, top: i > 0 ? 8 : 0),
+                              padding: EdgeInsets.only(
+                                left: 4,
+                                bottom: 12,
+                                top: i > 0 ? 8 : 0,
+                              ),
                               child: Text(
                                 sortedKeys[i].displayName,
                                 style: theme.textTheme.titleMedium?.copyWith(
@@ -108,8 +160,10 @@ class GameActivityScreen extends ConsumerWidget {
                                 ),
                               ),
                             ),
-                            ...grouped[sortedKeys[i]]!.map((t) => GameActivityCard(table: t)),
-                          ]
+                            ...grouped[sortedKeys[i]]!.map(
+                              (t) => GameActivityCard(table: t),
+                            ),
+                          ],
                         ],
                       );
                     }).toList(),
@@ -123,4 +177,3 @@ class GameActivityScreen extends ConsumerWidget {
     );
   }
 }
-

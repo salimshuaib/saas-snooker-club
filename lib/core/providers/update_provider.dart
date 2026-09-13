@@ -45,7 +45,9 @@ final packageInfoProvider = FutureProvider<PackageInfo>((ref) async {
 /// Streams the AppVersionConfig from Firestore.
 final appVersionConfigProvider = StreamProvider<AppVersionConfig>((ref) {
   final firestore = ref.watch(firestoreServiceProvider).db;
-  return firestore.collection('settings').doc('app_config').snapshots().map((snapshot) {
+  return firestore.collection('settings').doc('app_config').snapshots().map((
+    snapshot,
+  ) {
     if (!snapshot.exists || snapshot.data() == null) {
       return AppVersionConfig(
         minimumRequiredVersion: '0.0.0',
@@ -69,21 +71,35 @@ final updateStateProvider = Provider<UpdateState>((ref) {
   final configAsync = ref.watch(appVersionConfigProvider);
 
   // If either is still loading or has an error, we do not force an update yet.
-  if (packageInfoAsync.isLoading || configAsync.isLoading || packageInfoAsync.hasError || configAsync.hasError) {
-    logToFirestore('Initial state: pkgLoad=${packageInfoAsync.isLoading}, cfgLoad=${configAsync.isLoading}, pkgErr=${packageInfoAsync.hasError}, cfgErr=${configAsync.hasError}');
+  if (packageInfoAsync.isLoading ||
+      configAsync.isLoading ||
+      packageInfoAsync.hasError ||
+      configAsync.hasError) {
+    logToFirestore(
+      'Initial state: pkgLoad=${packageInfoAsync.isLoading}, cfgLoad=${configAsync.isLoading}, pkgErr=${packageInfoAsync.hasError}, cfgErr=${configAsync.hasError}',
+    );
     return UpdateState.initial();
   }
 
   final currentVersion = packageInfoAsync.value!.version;
   final config = configAsync.value!;
 
-  final isBelowMinimum = VersionParser.isLower(currentVersion, config.minimumRequiredVersion);
-  final isBelowLatest = VersionParser.isLower(currentVersion, config.latestVersion);
-  
-  // If force_update is manually toggled true globally in Firestore, block everyone unless they are on the very latest version.
-  final isForceUpdateRequired = isBelowMinimum || (config.forceUpdate && isBelowLatest);
+  final isBelowMinimum = VersionParser.isLower(
+    currentVersion,
+    config.minimumRequiredVersion,
+  );
+  final isBelowLatest = VersionParser.isLower(
+    currentVersion,
+    config.latestVersion,
+  );
 
-  logToFirestore('Evaluated state: cur=$currentVersion, min=${config.minimumRequiredVersion}, latest=${config.latestVersion}, forceUpdate=${config.forceUpdate} -> req=$isForceUpdateRequired');
+  // If force_update is manually toggled true globally in Firestore, block everyone unless they are on the very latest version.
+  final isForceUpdateRequired =
+      isBelowMinimum || (config.forceUpdate && isBelowLatest);
+
+  logToFirestore(
+    'Evaluated state: cur=$currentVersion, min=${config.minimumRequiredVersion}, latest=${config.latestVersion}, forceUpdate=${config.forceUpdate} -> req=$isForceUpdateRequired',
+  );
 
   return UpdateState(
     isForceUpdateRequired: isForceUpdateRequired,

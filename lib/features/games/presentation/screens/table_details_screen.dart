@@ -81,10 +81,8 @@ class _TableDetailsScreenState extends ConsumerState<TableDetailsScreen> {
     final passcodeVerified = await showDialog<bool>(
       context: context,
       barrierDismissible: false,
-      builder: (_) => const AdminPasscodeDialog(
-        actionLabel: 'Delete',
-        isDestructive: true,
-      ),
+      builder: (_) =>
+          const AdminPasscodeDialog(actionLabel: 'Delete', isDestructive: true),
     );
 
     if (passcodeVerified != true || !mounted) return;
@@ -419,14 +417,22 @@ class _NoActiveGameCard extends ConsumerWidget {
     );
   }
 
-  Future<void> _showGameSetup(BuildContext context, WidgetRef ref, String employeeId) async {
-    final result = await showDialog<GameSession>(context: context, builder: (_) => GameSetupDialog(table: table, employeeId: employeeId),
+  Future<void> _showGameSetup(
+    BuildContext context,
+    WidgetRef ref,
+    String employeeId,
+  ) async {
+    final result = await showDialog<GameSession>(
+      context: context,
+      builder: (_) => GameSetupDialog(table: table, employeeId: employeeId),
     );
-    
-    if (result != null && result.status == TableStatus.billing && context.mounted) {
-      await Navigator.of(context).push(
-        MaterialPageRoute(builder: (_) => BillingScreen(session: result)),
-      );
+
+    if (result != null &&
+        result.status == TableStatus.billing &&
+        context.mounted) {
+      await Navigator.of(
+        context,
+      ).push(MaterialPageRoute(builder: (_) => BillingScreen(session: result)));
     }
   }
 }

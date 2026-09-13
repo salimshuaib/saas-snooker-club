@@ -1,4 +1,5 @@
-﻿import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:snooker_club/core/providers/club_scope_provider.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:snooker_club/features/team/providers/team_providers.dart';
 import 'package:snooker_club/core/config/app_environment.dart';
@@ -18,19 +19,42 @@ class QuickSalesRepository {
 
   StaffMember? get currentStaff => _ref?.read(currentStaffProvider).value;
 
+  String get currentUserName {
+    final staff = currentStaff;
+    if (staff != null) return staff.name;
+    try {
+      final club = _ref?.read(clubProfileProvider).value;
+      if (club != null) return club.ownerName;
+    } catch (_) {}
+    return 'Admin';
+  }
+
+  String get currentUserId {
+    final staff = currentStaff;
+    if (staff != null) return staff.id;
+    try {
+      final club = _ref?.read(clubProfileProvider).value;
+      if (club != null) return club.ownerUid;
+    } catch (_) {}
+    return 'Unknown';
+  }
+
   DocumentReference get _clubRef {
-    if (clubId == null) throw Exception('clubId cannot be null for QuickSalesRepository');
+    if (clubId == null)
+      throw Exception('clubId cannot be null for QuickSalesRepository');
     return _firestore.collection(FirebaseConstants.clubsCollection).doc(clubId);
   }
 
-  CollectionReference get _quickSalesRef => _clubRef.collection(FirebaseConstants.salesCollection);
-      
-  CollectionReference get _inventoryRef => _clubRef.collection(FirebaseConstants.inventoryCollection);
+  CollectionReference get _quickSalesRef =>
+      _clubRef.collection(FirebaseConstants.salesCollection);
+
+  CollectionReference get _inventoryRef =>
+      _clubRef.collection(FirebaseConstants.inventoryCollection);
 
   QuickSale _enrichWithStaff(QuickSale sale, bool isCreate) {
     final staff = currentStaff;
     if (staff == null) return sale;
-    
+
     if (isCreate) {
       return sale.copyWith(
         createdByUserId: staff.id,
@@ -53,42 +77,61 @@ class QuickSalesRepository {
         .where('date', isLessThan: Timestamp.fromDate(endOfDay))
         .orderBy('date', descending: true)
         .snapshots()
-        .map((snapshot) => snapshot.docs.map((doc) {
-              return QuickSale.fromMap(
-                  doc.id, doc.data() as Map<String, dynamic>);
-            }).toList());
+        .map(
+          (snapshot) => snapshot.docs.map((doc) {
+            return QuickSale.fromMap(
+              doc.id,
+              doc.data() as Map<String, dynamic>,
+            );
+          }).toList(),
+        );
   }
 
   /// Real-time stream of all quick sales for analytics aggregations.
   Stream<List<QuickSale>> watchAllQuickSales() {
-    return _quickSalesRef
-        .snapshots()
-        .map((snapshot) => snapshot.docs.map((doc) {
-              return QuickSale.fromMap(
-                  doc.id, doc.data() as Map<String, dynamic>);
-            }).toList());
+    return _quickSalesRef.snapshots().map(
+      (snapshot) => snapshot.docs.map((doc) {
+        return QuickSale.fromMap(doc.id, doc.data() as Map<String, dynamic>);
+      }).toList(),
+    );
   }
 
   /// Real-time stream of quick sales filtered by date range to minimize Firebase reads.
-  Stream<List<QuickSale>> watchQuickSalesByDateRange(DateTime start, DateTime end) {
+  Stream<List<QuickSale>> watchQuickSalesByDateRange(
+    DateTime start,
+    DateTime end,
+  ) {
     return _quickSalesRef
         .where('date', isGreaterThanOrEqualTo: Timestamp.fromDate(start))
         .where('date', isLessThanOrEqualTo: Timestamp.fromDate(end))
         .orderBy('date', descending: true)
         .snapshots()
-        .map((snapshot) => snapshot.docs.map((doc) {
-              return QuickSale.fromMap(doc.id, doc.data() as Map<String, dynamic>);
-            }).toList());
+        .map(
+          (snapshot) => snapshot.docs.map((doc) {
+            return QuickSale.fromMap(
+              doc.id,
+              doc.data() as Map<String, dynamic>,
+            );
+          }).toList(),
+        );
   }
 
   /// Paginated fetch for large quick sales collections.
-  Future<List<QuickSale>> getQuickSalesPaginated({DocumentSnapshot? lastDoc, int limit = 50}) async {
+  Future<List<QuickSale>> getQuickSalesPaginated({
+    DocumentSnapshot? lastDoc,
+    int limit = 50,
+  }) async {
     Query query = _quickSalesRef.orderBy('date', descending: true).limit(limit);
     if (lastDoc != null) {
       query = query.startAfterDocument(lastDoc);
     }
     final snapshot = await query.get();
-    return snapshot.docs.map((doc) => QuickSale.fromMap(doc.id, doc.data() as Map<String, dynamic>)).toList();
+    return snapshot.docs
+        .map(
+          (doc) =>
+              QuickSale.fromMap(doc.id, doc.data() as Map<String, dynamic>),
+        )
+        .toList();
   }
 
   /// Fetch a single quick sale by its ID.
@@ -109,14 +152,17 @@ class QuickSalesRepository {
         final snapshot = await transaction.get(docRef);
 
         if (!snapshot.exists) {
-          throw Exception('Product ${item.productName} not found in inventory.');
+          throw Exception(
+            'Product ${item.productName} not found in inventory.',
+          );
         }
 
         final data = snapshot.data() as Map<String, dynamic>?;
         final currentStock = data?['currentStock'] as int? ?? 0;
         if (currentStock < item.quantity) {
           throw Exception(
-              'Insufficient stock for ${item.productName}. Available: $currentStock, Requested: ${item.quantity}');
+            'Insufficient stock for ${item.productName}. Available: $currentStock, Requested: ${item.quantity}',
+          );
         }
       }
 
@@ -131,14 +177,22 @@ class QuickSalesRepository {
       }
 
       // 3. Save Quick Sale
-      final saleRef = sale.id.isNotEmpty ? _quickSalesRef.doc(sale.id) : _quickSalesRef.doc();
+      final saleRef = sale.id.isNotEmpty
+          ? _quickSalesRef.doc(sale.id)
+          : _quickSalesRef.doc();
       final saleData = sale.toMap();
-      
+
       transaction.set(saleRef, saleData);
 
       // 4. Handle Transaction for Player Profile
-      if (sale.customerName != null && sale.customerName!.isNotEmpty && sale.paymentMethod == PaymentMethod.credit) {
-        final creditRepo = CreditRepository(_firestore, ref: _ref, clubId: clubId);
+      if (sale.customerName != null &&
+          sale.customerName!.isNotEmpty &&
+          sale.paymentMethod == PaymentMethod.credit) {
+        final creditRepo = CreditRepository(
+          _firestore,
+          ref: _ref,
+          clubId: clubId,
+        );
         await creditRepo.appendCreditToTransaction(
           transaction: transaction,
           customerName: sale.customerName!,
@@ -181,18 +235,18 @@ class QuickSalesRepository {
         // Delete sale document
         final saleRef = _quickSalesRef.doc(sale.id);
         transaction.delete(saleRef);
-          
-          // Audit Log for Deletion
-          final auditRef = _clubRef.collection('audit_logs').doc();
-          transaction.set(auditRef, {
-            'id': auditRef.id,
-            'action': 'Quick Sale Deleted',
-            'recordId': sale.id,
-            'module': 'QuickSales',
-            'userId': currentStaff?.id ?? 'Unknown',
-            'userName': currentStaff?.name ?? 'Admin',
-            'timestamp': FieldValue.serverTimestamp(),
-          });
+
+        // Audit Log for Deletion
+        final auditRef = _clubRef.collection('audit_logs').doc();
+        transaction.set(auditRef, {
+          'id': auditRef.id,
+          'action': 'Quick Sale Deleted',
+          'recordId': sale.id,
+          'module': 'QuickSales',
+          'userId': currentUserId,
+          'userName': currentUserName,
+          'timestamp': FieldValue.serverTimestamp(),
+        });
       }
     });
   }
@@ -202,7 +256,10 @@ class QuickSalesRepository {
     required String newCustomerName,
     required String employeeName,
   }) async {
-    if (AppConfig.guardWrite('QuickSalesRepository.updateQuickSaleCustomerName')) return;
+    if (AppConfig.guardWrite(
+      'QuickSalesRepository.updateQuickSaleCustomerName',
+    ))
+      return;
     final oldName = sale.customerName ?? '';
     if (oldName == newCustomerName) return;
 
@@ -215,8 +272,14 @@ class QuickSalesRepository {
       newValue: newCustomerName.isEmpty ? 'None / Walk-in' : newCustomerName,
     );
 
-    if (sale.paymentMethod == PaymentMethod.credit && oldName.isNotEmpty && newCustomerName.isNotEmpty) {
-      final creditRepo = CreditRepository(_firestore, ref: _ref, clubId: clubId);
+    if (sale.paymentMethod == PaymentMethod.credit &&
+        oldName.isNotEmpty &&
+        newCustomerName.isNotEmpty) {
+      final creditRepo = CreditRepository(
+        _firestore,
+        ref: _ref,
+        clubId: clubId,
+      );
       await creditRepo.transferCreditTransaction(
         referenceId: sale.id,
         oldCustomerName: oldName,
@@ -242,11 +305,15 @@ class QuickSalesRepository {
     String? newCustomerName,
     required String employeeName,
   }) async {
-    if (AppConfig.guardWrite('QuickSalesRepository.updateQuickSalePaymentMethod')) return;
+    if (AppConfig.guardWrite(
+      'QuickSalesRepository.updateQuickSalePaymentMethod',
+    ))
+      return;
     final creditRepo = CreditRepository(_firestore, ref: _ref, clubId: clubId);
     final oldMethod = sale.paymentMethod;
-    
-    if (oldMethod == newPaymentMethod && sale.customerName == newCustomerName) return;
+
+    if (oldMethod == newPaymentMethod && sale.customerName == newCustomerName)
+      return;
 
     final audit = AuditLog(
       id: '${sale.id}_pay',
@@ -256,19 +323,23 @@ class QuickSalesRepository {
       previousValue: oldMethod.displayName,
       newValue: newPaymentMethod.displayName,
     );
-    
+
     final batch = _firestore.batch();
     final finalCustomerName = newCustomerName ?? sale.customerName ?? 'Guest';
 
-    if (sale.customerName != null && sale.customerName!.isNotEmpty && oldMethod == PaymentMethod.credit) {
+    if (sale.customerName != null &&
+        sale.customerName!.isNotEmpty &&
+        oldMethod == PaymentMethod.credit) {
       await creditRepo.removeCreditFromBatch(
         batch: batch,
         referenceId: sale.id,
         customerName: sale.customerName!,
       );
     }
-    
-    if (finalCustomerName.isNotEmpty && finalCustomerName != 'Guest' && newPaymentMethod == PaymentMethod.credit) {
+
+    if (finalCustomerName.isNotEmpty &&
+        finalCustomerName != 'Guest' &&
+        newPaymentMethod == PaymentMethod.credit) {
       await creditRepo.appendCreditToBatch(
         batch: batch,
         customerName: finalCustomerName,
@@ -281,14 +352,17 @@ class QuickSalesRepository {
     }
 
     final updatedAuditLogs = [...sale.auditLogs, audit];
-    
+
     final updateMap = <String, dynamic>{
       'paymentMethod': newPaymentMethod.name,
-      'customerName': newPaymentMethod == PaymentMethod.credit ? newCustomerName : sale.customerName,
+      'customerName': newPaymentMethod == PaymentMethod.credit
+          ? newCustomerName
+          : sale.customerName,
       'auditLogs': updatedAuditLogs.map((a) => a.toMap()).toList(),
     };
-    
-    if (newPaymentMethod == PaymentMethod.cash || newPaymentMethod == PaymentMethod.upi) {
+
+    if (newPaymentMethod == PaymentMethod.cash ||
+        newPaymentMethod == PaymentMethod.upi) {
       updateMap['paymentStatus'] = 'Paid';
       updateMap['paidAmount'] = sale.totalAmount;
       updateMap['remainingAmount'] = 0.0;
@@ -302,4 +376,3 @@ class QuickSalesRepository {
     await batch.commit();
   }
 }
-

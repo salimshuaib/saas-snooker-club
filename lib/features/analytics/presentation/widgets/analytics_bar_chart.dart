@@ -25,11 +25,21 @@ class AnalyticsBarChart extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(title, style: AppTypography.textTheme.titleMedium!.copyWith(fontWeight: FontWeight.w700)),
+        Text(
+          title,
+          style: AppTypography.textTheme.titleMedium!.copyWith(
+            fontWeight: FontWeight.w700,
+          ),
+        ),
         const SizedBox(height: 16),
         Container(
           height: height,
-          padding: const EdgeInsets.only(top: 16, right: 16, bottom: 8, left: 8),
+          padding: const EdgeInsets.only(
+            top: 16,
+            right: 16,
+            bottom: 8,
+            left: 8,
+          ),
           decoration: BoxDecoration(
             color: Theme.of(context).colorScheme.surface,
             borderRadius: BorderRadius.circular(16),
@@ -55,16 +65,24 @@ class AnalyticsBarChart extends StatelessWidget {
                     showTitles: true,
                     reservedSize: 40,
                     getTitlesWidget: (v, m) {
-                      if (v == 0 || v == _getMaxValue()) return const SizedBox();
+                      if (v == 0 || v == _getMaxValue())
+                        return const SizedBox();
                       return Text(
                         _formatNumber(v),
-                        style: const TextStyle(fontSize: 10, color: Colors.grey),
+                        style: const TextStyle(
+                          fontSize: 10,
+                          color: Colors.grey,
+                        ),
                       );
                     },
                   ),
                 ),
-                rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                rightTitles: const AxisTitles(
+                  sideTitles: SideTitles(showTitles: false),
+                ),
+                topTitles: const AxisTitles(
+                  sideTitles: SideTitles(showTitles: false),
+                ),
                 bottomTitles: AxisTitles(
                   sideTitles: SideTitles(
                     showTitles: true,
@@ -79,7 +97,10 @@ class AnalyticsBarChart extends StatelessWidget {
                         }
                         return Padding(
                           padding: const EdgeInsets.only(top: 8.0),
-                          child: Text(series[index].label, style: const TextStyle(fontSize: 10)),
+                          child: Text(
+                            series[index].label,
+                            style: const TextStyle(fontSize: 10),
+                          ),
                         );
                       }
                       return const SizedBox();
@@ -93,11 +114,17 @@ class AnalyticsBarChart extends StatelessWidget {
                   getTooltipItem: (group, groupIndex, rod, rodIndex) {
                     return BarTooltipItem(
                       '${series[group.x.toInt()].label}\n',
-                      const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                      const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                      ),
                       children: [
                         TextSpan(
                           text: rod.toY.toStringAsFixed(0),
-                          style: TextStyle(color: barColor, fontWeight: FontWeight.bold),
+                          style: TextStyle(
+                            color: barColor,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ],
                     );
@@ -112,8 +139,10 @@ class AnalyticsBarChart extends StatelessWidget {
                       toY: e.value.value,
                       color: barColor,
                       width: 16,
-                      borderRadius: const BorderRadius.vertical(top: Radius.circular(4)),
-                    )
+                      borderRadius: const BorderRadius.vertical(
+                        top: Radius.circular(4),
+                      ),
+                    ),
                   ],
                 );
               }).toList(),

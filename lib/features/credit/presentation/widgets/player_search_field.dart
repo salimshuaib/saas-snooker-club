@@ -41,7 +41,9 @@ class _PlayerSearchFieldState extends ConsumerState<PlayerSearchField> {
         final query = textEditingValue.text.toLowerCase();
         return allProfiles.where((PlayerProfile profile) {
           final matchesName = profile.name.toLowerCase().contains(query);
-          final matchesPhone = profile.mobileNumber != null && profile.mobileNumber!.contains(query);
+          final matchesPhone =
+              profile.mobileNumber != null &&
+              profile.mobileNumber!.contains(query);
           return matchesName || matchesPhone;
         });
       },
@@ -49,12 +51,12 @@ class _PlayerSearchFieldState extends ConsumerState<PlayerSearchField> {
       fieldViewBuilder: (context, controller, focusNode, onFieldSubmitted) {
         String lastText = controller.text;
         controller.addListener(() {
-           if (lastText != controller.text) {
-             lastText = controller.text;
-             widget.onSelected(PlayerSelection(name: controller.text));
-           }
+          if (lastText != controller.text) {
+            lastText = controller.text;
+            widget.onSelected(PlayerSelection(name: controller.text));
+          }
         });
-        
+
         return TextField(
           controller: controller,
           focusNode: focusNode,
@@ -93,7 +95,9 @@ class _PlayerSearchFieldState extends ConsumerState<PlayerSearchField> {
                         : const Text('📱 Number not available'),
                     onTap: () {
                       onSelected(option);
-                      widget.onSelected(PlayerSelection(id: option.id, name: option.name));
+                      widget.onSelected(
+                        PlayerSelection(id: option.id, name: option.name),
+                      );
                     },
                   );
                 },
@@ -103,7 +107,9 @@ class _PlayerSearchFieldState extends ConsumerState<PlayerSearchField> {
         );
       },
       onSelected: (PlayerProfile selection) {
-        widget.onSelected(PlayerSelection(id: selection.id, name: selection.name));
+        widget.onSelected(
+          PlayerSelection(id: selection.id, name: selection.name),
+        );
       },
     );
   }

@@ -15,8 +15,10 @@ class StartGameSheet extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final tables = ref.watch(resolvedTablesProvider);
-    final availableTables = tables.where((t) => t.status == TableStatus.available).toList();
-    
+    final availableTables = tables
+        .where((t) => t.status == TableStatus.available)
+        .toList();
+
     // Group tables dynamically
     final groupedTables = <TableType, List<TableModel>>{};
     for (final table in availableTables) {
@@ -48,12 +50,14 @@ class StartGameSheet extends ConsumerWidget {
                 children: [
                   Text(
                     'Select Table',
-                    style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+                    style: theme.textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                   IconButton(
                     icon: const Icon(Icons.close),
                     onPressed: () => Navigator.pop(context),
-                  )
+                  ),
                 ],
               ),
             ),
@@ -67,7 +71,7 @@ class StartGameSheet extends ConsumerWidget {
               ],
             ),
             const Divider(height: 1),
-            
+
             Expanded(
               child: availableTables.isEmpty
                   ? const Center(child: Text("No available tables right now."))
@@ -76,12 +80,30 @@ class StartGameSheet extends ConsumerWidget {
                         // Tables Tab
                         ListView(
                           padding: const EdgeInsets.all(20),
-                          children: _buildTabGroups([TableType.snooker, TableType.indianPool, TableType.americanPool], groupedTables, context, currentStaff?.id ?? '', theme),
+                          children: _buildTabGroups(
+                            [
+                              TableType.snooker,
+                              TableType.indianPool,
+                              TableType.americanPool,
+                            ],
+                            groupedTables,
+                            context,
+                            currentStaff?.id ?? '',
+                            theme,
+                          ),
                         ),
                         // Other Games Tab
                         ListView(
                           padding: const EdgeInsets.all(20),
-                          children: _buildTabGroups(TableType.values.where((t) => t.isOtherGame).toList(), groupedTables, context, currentStaff?.id ?? '', theme),
+                          children: _buildTabGroups(
+                            TableType.values
+                                .where((t) => t.isOtherGame)
+                                .toList(),
+                            groupedTables,
+                            context,
+                            currentStaff?.id ?? '',
+                            theme,
+                          ),
                         ),
                       ],
                     ),
@@ -92,33 +114,73 @@ class StartGameSheet extends ConsumerWidget {
     );
   }
 
-  List<Widget> _buildTabGroups(List<TableType> types, Map<TableType, List<TableModel>> groupedTables, BuildContext context, String employeeId, ThemeData theme) {
+  List<Widget> _buildTabGroups(
+    List<TableType> types,
+    Map<TableType, List<TableModel>> groupedTables,
+    BuildContext context,
+    String employeeId,
+    ThemeData theme,
+  ) {
     return types.map((type) {
       final tablesOfType = groupedTables[type] ?? [];
       if (tablesOfType.isEmpty) return const SizedBox.shrink();
-      
+
       String title;
       switch (type) {
-        case TableType.snooker: title = 'Snooker Tables'; break;
-        case TableType.indianPool: title = 'Indian Pool Tables'; break;
-        case TableType.americanPool: title = 'American Pool Tables'; break;
-        case TableType.ps5: title = 'PS5 Consoles'; break;
-        case TableType.pc: title = 'Gaming PCs'; break;
-        case TableType.carrom: title = 'Carrom Boards'; break;
-        case TableType.foosball: title = 'Foosball Tables'; break;
-        case TableType.chess: title = 'Chess Boards'; break;
-        case TableType.ps4: title = 'PS4 Consoles'; break;
-        case TableType.tableTennis: title = 'Table Tennis'; break;
-        case TableType.steeringWheel: title = 'Steering Wheel'; break;
-        case TableType.arcade: title = 'Arcade Machines'; break;
-        case TableType.simulator: title = 'Simulators'; break;
-        case TableType.iceHockey: title = 'Ice Hockey'; break;
+        case TableType.snooker:
+          title = 'Snooker Tables';
+          break;
+        case TableType.indianPool:
+          title = 'Indian Pool Tables';
+          break;
+        case TableType.americanPool:
+          title = 'American Pool Tables';
+          break;
+        case TableType.ps5:
+          title = 'PS5 Consoles';
+          break;
+        case TableType.pc:
+          title = 'Gaming PCs';
+          break;
+        case TableType.carrom:
+          title = 'Carrom Boards';
+          break;
+        case TableType.foosball:
+          title = 'Foosball Tables';
+          break;
+        case TableType.chess:
+          title = 'Chess Boards';
+          break;
+        case TableType.ps4:
+          title = 'PS4 Consoles';
+          break;
+        case TableType.tableTennis:
+          title = 'Table Tennis';
+          break;
+        case TableType.steeringWheel:
+          title = 'Steering Wheel';
+          break;
+        case TableType.arcade:
+          title = 'Arcade Machines';
+          break;
+        case TableType.simulator:
+          title = 'Simulators';
+          break;
+        case TableType.iceHockey:
+          title = 'Ice Hockey';
+          break;
       }
       return _buildTableGroup(title, tablesOfType, context, employeeId, theme);
     }).toList();
   }
 
-  Widget _buildTableGroup(String title, List<TableModel> tables, BuildContext context, String employeeId, ThemeData theme) {
+  Widget _buildTableGroup(
+    String title,
+    List<TableModel> tables,
+    BuildContext context,
+    String employeeId,
+    ThemeData theme,
+  ) {
     if (tables.isEmpty) return const SizedBox.shrink();
 
     return Padding(
@@ -134,13 +196,20 @@ class StartGameSheet extends ConsumerWidget {
             ),
           ),
           const SizedBox(height: 12),
-          ...tables.map((table) => _buildTableItem(table, context, employeeId, theme)),
+          ...tables.map(
+            (table) => _buildTableItem(table, context, employeeId, theme),
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildTableItem(TableModel table, BuildContext context, String employeeId, ThemeData theme) {
+  Widget _buildTableItem(
+    TableModel table,
+    BuildContext context,
+    String employeeId,
+    ThemeData theme,
+  ) {
     return Card(
       elevation: 0,
       margin: const EdgeInsets.only(bottom: 8),
@@ -157,20 +226,25 @@ class StartGameSheet extends ConsumerWidget {
           ),
           child: const Icon(Icons.check_circle, color: AppColors.success),
         ),
-        title: Text(table.name, style: const TextStyle(fontWeight: FontWeight.bold)),
+        title: Text(
+          table.name,
+          style: const TextStyle(fontWeight: FontWeight.bold),
+        ),
         subtitle: Text(AppLocalizations.of(context)!.available),
         trailing: const Icon(Icons.chevron_right),
         onTap: () async {
           // Close this sheet, open the setup sheet
           final navigator = Navigator.of(context);
           navigator.pop();
-          final result = await showDialog<GameSession>(context: context, builder: (_) => GameSetupDialog(
-              table: table,
-              employeeId: employeeId,
-            ),
+          final result = await showDialog<GameSession>(
+            context: context,
+            builder: (_) =>
+                GameSetupDialog(table: table, employeeId: employeeId),
           );
           if (result != null && result.status == TableStatus.billing) {
-            navigator.push(MaterialPageRoute(builder: (_) => BillingScreen(session: result)));
+            navigator.push(
+              MaterialPageRoute(builder: (_) => BillingScreen(session: result)),
+            );
           }
         },
       ),

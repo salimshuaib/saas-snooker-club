@@ -24,14 +24,26 @@ class AppSpacing {
   static const EdgeInsets paddingAllXxl = EdgeInsets.all(xxl);
 
   // ─── Horizontal Padding ───
-  static const EdgeInsets paddingHorizontalLg = EdgeInsets.symmetric(horizontal: lg);
-  static const EdgeInsets paddingHorizontalXl = EdgeInsets.symmetric(horizontal: xl);
-  static const EdgeInsets paddingHorizontalXxl = EdgeInsets.symmetric(horizontal: xxl);
+  static const EdgeInsets paddingHorizontalLg = EdgeInsets.symmetric(
+    horizontal: lg,
+  );
+  static const EdgeInsets paddingHorizontalXl = EdgeInsets.symmetric(
+    horizontal: xl,
+  );
+  static const EdgeInsets paddingHorizontalXxl = EdgeInsets.symmetric(
+    horizontal: xxl,
+  );
 
   // ─── Vertical Padding ───
-  static const EdgeInsets paddingVerticalSm = EdgeInsets.symmetric(vertical: sm);
-  static const EdgeInsets paddingVerticalMd = EdgeInsets.symmetric(vertical: md);
-  static const EdgeInsets paddingVerticalLg = EdgeInsets.symmetric(vertical: lg);
+  static const EdgeInsets paddingVerticalSm = EdgeInsets.symmetric(
+    vertical: sm,
+  );
+  static const EdgeInsets paddingVerticalMd = EdgeInsets.symmetric(
+    vertical: md,
+  );
+  static const EdgeInsets paddingVerticalLg = EdgeInsets.symmetric(
+    vertical: lg,
+  );
 
   // ─── Screen Padding ───
   static const EdgeInsets screenPadding = EdgeInsets.symmetric(

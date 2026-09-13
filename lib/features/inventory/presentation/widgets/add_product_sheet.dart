@@ -32,12 +32,16 @@ class _AddProductSheetState extends ConsumerState<AddProductSheet> {
     super.initState();
     _nameController = TextEditingController(text: widget.initialItem?.name);
     _sellingPriceController = TextEditingController(
-        text: widget.initialItem?.sellingPrice.toStringAsFixed(0) ?? '');
+      text: widget.initialItem?.sellingPrice.toStringAsFixed(0) ?? '',
+    );
     _purchasePriceController = TextEditingController(
-        text: widget.initialItem?.purchasePrice.toStringAsFixed(0) ?? '');
+      text: widget.initialItem?.purchasePrice.toStringAsFixed(0) ?? '',
+    );
     _initialStockController = TextEditingController(
-        text: widget.initialItem?.currentStock.toString() ??
-            InventoryItem.defaultInitialQuantity.toString());
+      text:
+          widget.initialItem?.currentStock.toString() ??
+          InventoryItem.defaultInitialQuantity.toString(),
+    );
     _category = widget.initialItem?.category ?? 'Drinks';
   }
 
@@ -63,8 +67,8 @@ class _AddProductSheetState extends ConsumerState<AddProductSheet> {
         category: _category,
         sellingPrice: double.tryParse(_sellingPriceController.text) ?? 0,
         purchasePrice: double.tryParse(_purchasePriceController.text) ?? 0,
-        currentStock: widget.initialItem != null 
-            ? widget.initialItem!.currentStock 
+        currentStock: widget.initialItem != null
+            ? widget.initialItem!.currentStock
             : (int.tryParse(_initialStockController.text) ?? 0),
         totalPurchased: widget.initialItem?.totalPurchased ?? 0,
         totalSold: widget.initialItem?.totalSold ?? 0,
@@ -77,15 +81,18 @@ class _AddProductSheetState extends ConsumerState<AddProductSheet> {
         // Validation: no duplicate names in category (for Add only)
         final existingAsync = ref.read(inventoryItemsProvider);
         if (existingAsync.hasValue) {
-          final isDuplicate = existingAsync.value!.any((e) =>
-              e.category == _category &&
-              e.name.toLowerCase() == item.name.toLowerCase());
+          final isDuplicate = existingAsync.value!.any(
+            (e) =>
+                e.category == _category &&
+                e.name.toLowerCase() == item.name.toLowerCase(),
+          );
           if (isDuplicate) {
             if (mounted) {
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(
-                    content: Text('Product already exists in this category'),
-                    backgroundColor: AppColors.error),
+                  content: Text('Product already exists in this category'),
+                  backgroundColor: AppColors.error,
+                ),
               );
             }
             setState(() => _isProcessing = false);
@@ -103,7 +110,10 @@ class _AddProductSheetState extends ConsumerState<AddProductSheet> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e'), backgroundColor: AppColors.error),
+          SnackBar(
+            content: Text('Error: $e'),
+            backgroundColor: AppColors.error,
+          ),
         );
       }
     } finally {
@@ -152,7 +162,9 @@ class _AddProductSheetState extends ConsumerState<AddProductSheet> {
               AppDropdown(
                 label: 'Category',
                 value: _category,
-                items: _categories.map((c) => DropdownMenuItem(value: c, child: Text(c))).toList(),
+                items: _categories
+                    .map((c) => DropdownMenuItem(value: c, child: Text(c)))
+                    .toList(),
                 onChanged: (val) {
                   if (val != null) setState(() => _category = val);
                 },

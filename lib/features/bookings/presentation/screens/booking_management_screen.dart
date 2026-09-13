@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:snooker_club/core/theme/app_colors.dart';
@@ -12,11 +12,17 @@ class BookingManagementScreen extends ConsumerStatefulWidget {
   const BookingManagementScreen({super.key});
 
   @override
-  ConsumerState<BookingManagementScreen> createState() => _BookingManagementScreenState();
+  ConsumerState<BookingManagementScreen> createState() =>
+      _BookingManagementScreenState();
 }
 
-class _BookingManagementScreenState extends ConsumerState<BookingManagementScreen> {
-  DateTime _selectedDate = DateTime(DateTime.now().year, DateTime.now().month, DateTime.now().day);
+class _BookingManagementScreenState
+    extends ConsumerState<BookingManagementScreen> {
+  DateTime _selectedDate = DateTime(
+    DateTime.now().year,
+    DateTime.now().month,
+    DateTime.now().day,
+  );
 
   @override
   Widget build(BuildContext context) {
@@ -29,27 +35,30 @@ class _BookingManagementScreenState extends ConsumerState<BookingManagementScree
         appBar: AppBar(
           title: const Text('Bookings'),
           actions: [
-          IconButton(
-            icon: const Icon(Icons.link),
-            tooltip: 'Copy Booking Link',
-            onPressed: () {
-              final slug = ref.read(clubProfileProvider).value?.slug;
-              final clubId = ref.read(clubIdProvider);
-              final linkIdentifier = (slug != null && slug.isNotEmpty) ? slug : clubId;
-              
-              if (linkIdentifier == null) return;
-              
-              final link = 'https://saas-snooker-club.web.app/?club=${linkIdentifier}';
-              Clipboard.setData(ClipboardData(text: link));
-              
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text('Copied: $link'),
-                  behavior: SnackBarBehavior.floating,
-                ),
-              );
-            },
-          ),
+            IconButton(
+              icon: const Icon(Icons.link),
+              tooltip: 'Copy Booking Link',
+              onPressed: () {
+                final slug = ref.read(clubProfileProvider).value?.slug;
+                final clubId = ref.read(clubIdProvider);
+                final linkIdentifier = (slug != null && slug.isNotEmpty)
+                    ? slug
+                    : clubId;
+
+                if (linkIdentifier == null) return;
+
+                final link =
+                    'https://saas-snooker-club.web.app/?club=${linkIdentifier}';
+                Clipboard.setData(ClipboardData(text: link));
+
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Copied: $link'),
+                    behavior: SnackBarBehavior.floating,
+                  ),
+                );
+              },
+            ),
             IconButton(
               icon: const Icon(Icons.calendar_today),
               onPressed: () async {
@@ -60,7 +69,13 @@ class _BookingManagementScreenState extends ConsumerState<BookingManagementScree
                   lastDate: DateTime.now().add(const Duration(days: 365)),
                 );
                 if (date != null) {
-                  setState(() => _selectedDate = DateTime(date.year, date.month, date.day));
+                  setState(
+                    () => _selectedDate = DateTime(
+                      date.year,
+                      date.month,
+                      date.day,
+                    ),
+                  );
                 }
               },
             ),
@@ -75,9 +90,19 @@ class _BookingManagementScreenState extends ConsumerState<BookingManagementScree
         ),
         body: bookingsAsync.when(
           data: (allBookings) {
-            final upcoming = allBookings.where((b) => b.status == BookingStatus.pending || b.status == BookingStatus.confirmed).toList();
-            final completed = allBookings.where((b) => b.status == BookingStatus.completed).toList();
-            final cancelled = allBookings.where((b) => b.status == BookingStatus.cancelled).toList();
+            final upcoming = allBookings
+                .where(
+                  (b) =>
+                      b.status == BookingStatus.pending ||
+                      b.status == BookingStatus.confirmed,
+                )
+                .toList();
+            final completed = allBookings
+                .where((b) => b.status == BookingStatus.completed)
+                .toList();
+            final cancelled = allBookings
+                .where((b) => b.status == BookingStatus.cancelled)
+                .toList();
 
             return TabBarView(
               children: [
@@ -96,7 +121,9 @@ class _BookingManagementScreenState extends ConsumerState<BookingManagementScree
 
   Widget _buildList(List<BookingModel> bookings, String emptyMessage) {
     if (bookings.isEmpty) {
-      return Center(child: Text(emptyMessage, style: const TextStyle(color: Colors.grey)));
+      return Center(
+        child: Text(emptyMessage, style: const TextStyle(color: Colors.grey)),
+      );
     }
     return ListView.builder(
       padding: const EdgeInsets.all(16),
@@ -117,13 +144,17 @@ class _BookingCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
-    
+
     Color getStatusColor() {
       switch (booking.status) {
-        case BookingStatus.pending: return AppColors.error;
-        case BookingStatus.confirmed: return AppColors.running;
-        case BookingStatus.cancelled: return AppColors.completed;
-        case BookingStatus.completed: return AppColors.success;
+        case BookingStatus.pending:
+          return AppColors.error;
+        case BookingStatus.confirmed:
+          return AppColors.running;
+        case BookingStatus.cancelled:
+          return AppColors.completed;
+        case BookingStatus.completed:
+          return AppColors.success;
       }
     }
 
@@ -143,10 +174,15 @@ class _BookingCard extends ConsumerWidget {
               children: [
                 Text(
                   booking.customerName,
-                  style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
                   decoration: BoxDecoration(
                     color: getStatusColor().withOpacity(0.1),
                     borderRadius: BorderRadius.circular(8),
@@ -154,7 +190,10 @@ class _BookingCard extends ConsumerWidget {
                   ),
                   child: Text(
                     booking.status.displayName,
-                    style: theme.textTheme.labelSmall?.copyWith(color: getStatusColor(), fontWeight: FontWeight.bold),
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      color: getStatusColor(),
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ),
               ],
@@ -172,7 +211,10 @@ class _BookingCard extends ConsumerWidget {
               children: [
                 const Icon(Icons.table_restaurant, size: 16),
                 const SizedBox(width: 8),
-                Text(booking.tableName, style: const TextStyle(fontWeight: FontWeight.w500)),
+                Text(
+                  booking.tableName,
+                  style: const TextStyle(fontWeight: FontWeight.w500),
+                ),
               ],
             ),
             const SizedBox(height: 8),
@@ -195,7 +237,12 @@ class _BookingCard extends ConsumerWidget {
                   color: theme.colorScheme.surfaceVariant.withOpacity(0.5),
                   borderRadius: BorderRadius.circular(6),
                 ),
-                child: Text('Note: ${booking.notes}', style: theme.textTheme.bodySmall?.copyWith(fontStyle: FontStyle.italic)),
+                child: Text(
+                  'Note: ${booking.notes}',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    fontStyle: FontStyle.italic,
+                  ),
+                ),
               ),
             ],
             if (booking.status == BookingStatus.pending) ...[
@@ -205,14 +252,24 @@ class _BookingCard extends ConsumerWidget {
                 children: [
                   TextButton(
                     onPressed: () {
-                      ref.read(bookingsRepositoryProvider).updateBookingStatus(booking.id, BookingStatus.cancelled);
+                      ref
+                          .read(bookingsRepositoryProvider)
+                          .updateBookingStatus(
+                            booking.id,
+                            BookingStatus.cancelled,
+                          );
                     },
                     child: const Text('Decline'),
                   ),
                   const SizedBox(width: 8),
                   FilledButton(
                     onPressed: () {
-                      ref.read(bookingsRepositoryProvider).updateBookingStatus(booking.id, BookingStatus.confirmed);
+                      ref
+                          .read(bookingsRepositoryProvider)
+                          .updateBookingStatus(
+                            booking.id,
+                            BookingStatus.confirmed,
+                          );
                     },
                     child: const Text('Confirm Booking'),
                   ),
@@ -225,20 +282,30 @@ class _BookingCard extends ConsumerWidget {
                 children: [
                   TextButton(
                     onPressed: () {
-                      ref.read(bookingsRepositoryProvider).updateBookingStatus(booking.id, BookingStatus.cancelled);
+                      ref
+                          .read(bookingsRepositoryProvider)
+                          .updateBookingStatus(
+                            booking.id,
+                            BookingStatus.cancelled,
+                          );
                     },
                     child: const Text('Cancel'),
                   ),
                   const SizedBox(width: 8),
                   FilledButton.tonal(
                     onPressed: () {
-                      ref.read(bookingsRepositoryProvider).updateBookingStatus(booking.id, BookingStatus.completed);
+                      ref
+                          .read(bookingsRepositoryProvider)
+                          .updateBookingStatus(
+                            booking.id,
+                            BookingStatus.completed,
+                          );
                     },
                     child: const Text('Mark Completed'),
                   ),
                 ],
               ),
-            ]
+            ],
           ],
         ),
       ),

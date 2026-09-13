@@ -1,4 +1,4 @@
-﻿import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:snooker_club/features/authentication/providers/auth_providers.dart';
 import 'package:snooker_club/features/team/data/team_repository.dart';
 import 'package:snooker_club/features/team/domain/models/staff_member.dart';
@@ -23,9 +23,9 @@ final currentStaffProvider = StreamProvider<StaffMember?>((ref) async* {
     yield null;
     return;
   }
-  
+
   final repo = ref.watch(teamRepositoryProvider);
-  
+
   if (repo.clubId == null) {
     yield null;
     return;
@@ -111,16 +111,16 @@ class StaffPermissions {
           canManageTeam: false,
           canManageSettings: false,
           canDeleteRecords: false, // Cannot permanently delete
-          canClearCredit: true,    // Can manage/clear credits
-          canViewReports: true,    // Can view reports
+          canClearCredit: true, // Can manage/clear credits
+          canViewReports: true, // Can view reports
         );
       case StaffRole.staff:
         return const StaffPermissions(
           canManageTeam: false,
           canManageSettings: false,
           canDeleteRecords: false,
-          canClearCredit: false,   // Cannot clear credits, only create
-          canViewReports: false,   // Cannot view full business reports
+          canClearCredit: false, // Cannot clear credits, only create
+          canViewReports: false, // Cannot view full business reports
         );
     }
   }
@@ -131,4 +131,3 @@ final currentStaffPermissionsProvider = Provider<StaffPermissions>((ref) {
   final currentStaff = ref.watch(currentStaffProvider).value;
   return StaffPermissions.fromRole(currentStaff?.role);
 });
-

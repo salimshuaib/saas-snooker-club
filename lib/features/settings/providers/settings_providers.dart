@@ -32,9 +32,14 @@ class FirebaseSyncStatusNotifier extends Notifier<FirebaseSyncStatus> {
   }
 }
 
-final firebaseSyncStatusProvider = NotifierProvider<FirebaseSyncStatusNotifier, FirebaseSyncStatus>(FirebaseSyncStatusNotifier.new);
+final firebaseSyncStatusProvider =
+    NotifierProvider<FirebaseSyncStatusNotifier, FirebaseSyncStatus>(
+      FirebaseSyncStatusNotifier.new,
+    );
 
-final appSettingsProvider = NotifierProvider<AppSettingsNotifier, AppSettings>(AppSettingsNotifier.new);
+final appSettingsProvider = NotifierProvider<AppSettingsNotifier, AppSettings>(
+  AppSettingsNotifier.new,
+);
 
 class AppSettingsNotifier extends Notifier<AppSettings> {
   StreamSubscription<AppSettings>? _subscription;
@@ -42,9 +47,9 @@ class AppSettingsNotifier extends Notifier<AppSettings> {
   @override
   AppSettings build() {
     final repo = ref.watch(settingsRepositoryProvider);
-    
+
     _subscription?.cancel();
-    
+
     if (repo.clubId == null) {
       return const AppSettings();
     }
@@ -55,12 +60,16 @@ class AppSettingsNotifier extends Notifier<AppSettings> {
         Future.microtask(() {
           state = newSettings;
           _updateStaticConfigs(newSettings);
-          ref.read(firebaseSyncStatusProvider.notifier).setStatus(FirebaseSyncStatus.connected);
+          ref
+              .read(firebaseSyncStatusProvider.notifier)
+              .setStatus(FirebaseSyncStatus.connected);
         });
       },
       onError: (_) {
         Future.microtask(() {
-          ref.read(firebaseSyncStatusProvider.notifier).setStatus(FirebaseSyncStatus.offline);
+          ref
+              .read(firebaseSyncStatusProvider.notifier)
+              .setStatus(FirebaseSyncStatus.offline);
         });
       },
     );
@@ -75,8 +84,10 @@ class AppSettingsNotifier extends Notifier<AppSettings> {
   void _updateStaticConfigs(AppSettings settings) {
     TablePricingConfig.updateFromSettings(settings);
     InventoryItem.lowStockThreshold = settings.inventory.lowStockThreshold;
-    InventoryItem.defaultInitialQuantity = settings.inventory.defaultInitialQuantity;
-    InventoryItem.enableLowStockAlerts = settings.inventory.enableLowStockAlerts;
+    InventoryItem.defaultInitialQuantity =
+        settings.inventory.defaultInitialQuantity;
+    InventoryItem.enableLowStockAlerts =
+        settings.inventory.enableLowStockAlerts;
   }
 
   Future<void> updateBusinessSettings(BusinessSettings business) async {
@@ -99,32 +110,46 @@ class AppSettingsNotifier extends Notifier<AppSettings> {
     await _save(state.copyWith(security: security));
   }
 
-  Future<void> updateNotificationSettings(NotificationSettings notifications) async {
+  Future<void> updateNotificationSettings(
+    NotificationSettings notifications,
+  ) async {
     await _save(state.copyWith(notifications: notifications));
   }
 
   Future<void> _save(AppSettings newSettings) async {
     state = newSettings;
     _updateStaticConfigs(newSettings);
-    ref.read(firebaseSyncStatusProvider.notifier).setStatus(FirebaseSyncStatus.synchronizing);
+    ref
+        .read(firebaseSyncStatusProvider.notifier)
+        .setStatus(FirebaseSyncStatus.synchronizing);
     try {
       await ref.read(settingsRepositoryProvider).saveSettings(newSettings);
-      ref.read(firebaseSyncStatusProvider.notifier).setStatus(FirebaseSyncStatus.connected);
+      ref
+          .read(firebaseSyncStatusProvider.notifier)
+          .setStatus(FirebaseSyncStatus.connected);
     } catch (e) {
-      ref.read(firebaseSyncStatusProvider.notifier).setStatus(FirebaseSyncStatus.offline);
+      ref
+          .read(firebaseSyncStatusProvider.notifier)
+          .setStatus(FirebaseSyncStatus.offline);
       rethrow;
     }
   }
 
   Future<void> forceManualSync() async {
-    ref.read(firebaseSyncStatusProvider.notifier).setStatus(FirebaseSyncStatus.synchronizing);
+    ref
+        .read(firebaseSyncStatusProvider.notifier)
+        .setStatus(FirebaseSyncStatus.synchronizing);
     try {
       final updated = await ref.read(settingsRepositoryProvider).forceSync();
       state = updated;
       _updateStaticConfigs(updated);
-      ref.read(firebaseSyncStatusProvider.notifier).setStatus(FirebaseSyncStatus.connected);
+      ref
+          .read(firebaseSyncStatusProvider.notifier)
+          .setStatus(FirebaseSyncStatus.connected);
     } catch (e) {
-      ref.read(firebaseSyncStatusProvider.notifier).setStatus(FirebaseSyncStatus.offline);
+      ref
+          .read(firebaseSyncStatusProvider.notifier)
+          .setStatus(FirebaseSyncStatus.offline);
       rethrow;
     }
   }
@@ -137,13 +162,21 @@ class AppSettingsNotifier extends Notifier<AppSettings> {
 final clubFeatureProvider = Provider.family<bool, String>((ref, featureKey) {
   final settings = ref.watch(appSettingsProvider);
   switch (featureKey) {
-    case 'raceEnabled': return settings.features.raceEnabled;
-    case 'rummyEnabled': return settings.features.rummyEnabled;
-    case 'inventoryEnabled': return settings.features.inventoryEnabled;
-    case 'quickSalesEnabled': return settings.features.quickSalesEnabled;
-    case 'creditEnabled': return settings.features.creditEnabled;
-    case 'perMinuteEnabled': return settings.features.perMinuteEnabled;
-    case 'perFrameEnabled': return settings.features.perFrameEnabled;
-    default: return true;
+    case 'raceEnabled':
+      return settings.features.raceEnabled;
+    case 'rummyEnabled':
+      return settings.features.rummyEnabled;
+    case 'inventoryEnabled':
+      return settings.features.inventoryEnabled;
+    case 'quickSalesEnabled':
+      return settings.features.quickSalesEnabled;
+    case 'creditEnabled':
+      return settings.features.creditEnabled;
+    case 'perMinuteEnabled':
+      return settings.features.perMinuteEnabled;
+    case 'perFrameEnabled':
+      return settings.features.perFrameEnabled;
+    default:
+      return true;
   }
 });

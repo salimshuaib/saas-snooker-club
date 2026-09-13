@@ -1,4 +1,4 @@
-﻿import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gap/gap.dart';
@@ -26,10 +26,18 @@ class _BusinessEditSheetState extends ConsumerState<BusinessEditSheet> {
   @override
   void initState() {
     super.initState();
-    _nameController = TextEditingController(text: widget.initialSettings.clubName);
-    _phoneController = TextEditingController(text: widget.initialSettings.contactNumber);
-    _addressController = TextEditingController(text: widget.initialSettings.address);
-    _slugController = TextEditingController(text: widget.initialSettings.slug ?? '');
+    _nameController = TextEditingController(
+      text: widget.initialSettings.clubName,
+    );
+    _phoneController = TextEditingController(
+      text: widget.initialSettings.contactNumber,
+    );
+    _addressController = TextEditingController(
+      text: widget.initialSettings.address,
+    );
+    _slugController = TextEditingController(
+      text: widget.initialSettings.slug ?? '',
+    );
   }
 
   @override
@@ -45,30 +53,37 @@ class _BusinessEditSheetState extends ConsumerState<BusinessEditSheet> {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _isSaving = true);
     try {
-      final slugValue = _slugController.text.trim().toLowerCase().replaceAll(RegExp(r'[^a-z0-9\-]'), '');
-      
+      final slugValue = _slugController.text.trim().toLowerCase().replaceAll(
+        RegExp(r'[^a-z0-9\-]'),
+        '',
+      );
+
       final updated = widget.initialSettings.copyWith(
         clubName: _nameController.text.trim(),
         contactNumber: _phoneController.text.trim(),
         address: _addressController.text.trim(),
         slug: slugValue.isEmpty ? null : slugValue,
       );
-      
-      await ref.read(appSettingsProvider.notifier).updateBusinessSettings(updated);
-      
+
+      await ref
+          .read(appSettingsProvider.notifier)
+          .updateBusinessSettings(updated);
+
       // Update root club document with slug and clubName so the website can find it
       final clubId = ref.read(clubIdProvider);
       if (clubId != null) {
-         await FirebaseFirestore.instance.collection('clubs').doc(clubId).set({
-           'slug': slugValue.isEmpty ? null : slugValue,
-           'clubName': _nameController.text.trim(),
-         }, SetOptions(merge: true));
+        await FirebaseFirestore.instance.collection('clubs').doc(clubId).set({
+          'slug': slugValue.isEmpty ? null : slugValue,
+          'clubName': _nameController.text.trim(),
+        }, SetOptions(merge: true));
       }
 
       if (mounted) {
         Navigator.of(context).pop();
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Business information saved successfully.')),
+          const SnackBar(
+            content: Text('Business information saved successfully.'),
+          ),
         );
       }
     } catch (e) {
@@ -108,7 +123,9 @@ class _BusinessEditSheetState extends ConsumerState<BusinessEditSheet> {
                 children: [
                   Text(
                     'Edit Business Information',
-                    style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
+                    style: theme.textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
                   IconButton(
                     icon: const Icon(Icons.close),
@@ -124,7 +141,9 @@ class _BusinessEditSheetState extends ConsumerState<BusinessEditSheet> {
                   border: OutlineInputBorder(),
                   prefixIcon: Icon(Icons.business),
                 ),
-                validator: (val) => val == null || val.trim().isEmpty ? 'Club Name is required' : null,
+                validator: (val) => val == null || val.trim().isEmpty
+                    ? 'Club Name is required'
+                    : null,
               ),
               const Gap(16),
               TextFormField(
@@ -165,16 +184,27 @@ class _BusinessEditSheetState extends ConsumerState<BusinessEditSheet> {
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     backgroundColor: theme.colorScheme.primary,
                     foregroundColor: theme.colorScheme.onPrimary,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                   ),
                   onPressed: _isSaving ? null : _onSave,
                   child: _isSaving
                       ? const SizedBox(
                           height: 20,
                           width: 20,
-                          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
                         )
-                      : const Text('Save Changes', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
+                      : const Text(
+                          'Save Changes',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w700,
+                            fontSize: 16,
+                          ),
+                        ),
                 ),
               ),
             ],

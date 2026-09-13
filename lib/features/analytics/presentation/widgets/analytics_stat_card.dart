@@ -28,10 +28,9 @@ class AnalyticsStatCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    
-    final displayValue = isCurrency 
-      ? CurrencyHelper.formatWhole(value, currency)
-      : value.toStringAsFixed(0);
+    final displayValue = isCurrency
+        ? CurrencyHelper.formatWhole(value, currency)
+        : value.toStringAsFixed(0);
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
@@ -50,37 +49,37 @@ class AnalyticsStatCard extends StatelessWidget {
               const SizedBox(width: 6),
               Expanded(
                 child: Text(
-                  title, 
+                  title,
                   style: AppTypography.textTheme.bodySmall!.copyWith(
                     fontWeight: FontWeight.w600,
-                  ), 
-                  maxLines: 1, 
-                  overflow: TextOverflow.ellipsis
-                )
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
               ),
             ],
           ),
           const SizedBox(height: 10),
           Text(
-            displayValue, 
+            displayValue,
             style: AppTypography.textTheme.titleMedium!.copyWith(
-              fontWeight: FontWeight.bold, 
+              fontWeight: FontWeight.bold,
               color: color,
-            )
+            ),
           ),
           if (percentageChange != null) ...[
             const SizedBox(height: 4),
             Text(
-              percentageChange == 0 
-                ? 'No change' 
-                : '${percentageChange! > 0 ? '+' : ''}${percentageChange!.toStringAsFixed(1)}% vs prev',
+              percentageChange == 0
+                  ? 'No change'
+                  : '${percentageChange! > 0 ? '+' : ''}${percentageChange!.toStringAsFixed(1)}% vs prev',
               style: AppTypography.textTheme.bodySmall!.copyWith(
-                color: percentageChange! > 0 
-                  ? AppColors.success 
-                  : (percentageChange! < 0 ? AppColors.error : Colors.grey)
+                color: percentageChange! > 0
+                    ? AppColors.success
+                    : (percentageChange! < 0 ? AppColors.error : Colors.grey),
               ),
             ),
-          ]
+          ],
         ],
       ),
     );

@@ -46,8 +46,7 @@ class EmptyStateWidget extends StatelessWidget {
               style: theme.textTheme.titleMedium,
               textAlign: TextAlign.center,
             ),
-            if (subtitle != null) ...
-            [
+            if (subtitle != null) ...[
               const Gap(8),
               Text(
                 subtitle!,
@@ -57,13 +56,9 @@ class EmptyStateWidget extends StatelessWidget {
                 textAlign: TextAlign.center,
               ),
             ],
-            if (actionLabel != null && onAction != null) ...
-            [
+            if (actionLabel != null && onAction != null) ...[
               const Gap(24),
-              FilledButton(
-                onPressed: onAction,
-                child: Text(actionLabel!),
-              ),
+              FilledButton(onPressed: onAction, child: Text(actionLabel!)),
             ],
           ],
         ),

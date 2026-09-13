@@ -8,7 +8,11 @@ import 'package:snooker_club/core/providers/club_scope_provider.dart';
 
 final inventoryRepositoryProvider = Provider<InventoryRepository>((ref) {
   final clubId = ref.watch(clubIdProvider);
-  return InventoryRepository(ref.watch(firestoreServiceProvider).db, clubId: clubId);
+  return InventoryRepository(
+    ref.watch(firestoreServiceProvider).db,
+    ref: ref,
+    clubId: clubId,
+  );
 });
 
 final inventoryItemsProvider = StreamProvider<List<InventoryItem>>((ref) {
@@ -18,12 +22,15 @@ final inventoryItemsProvider = StreamProvider<List<InventoryItem>>((ref) {
 });
 
 // A provider for selected date in stock history
-final stockHistoryDateProvider = NotifierProvider<StockHistoryDateNotifier, DateTime>(StockHistoryDateNotifier.new);
+final stockHistoryDateProvider =
+    NotifierProvider<StockHistoryDateNotifier, DateTime>(
+      StockHistoryDateNotifier.new,
+    );
 
 class StockHistoryDateNotifier extends Notifier<DateTime> {
   @override
   DateTime build() => DateTime.now();
-  
+
   void setDate(DateTime date) => state = date;
 }
 
@@ -36,14 +43,17 @@ final stockHistoryProvider = StreamProvider<List<StockHistory>>((ref) {
 
 final inventoryStatsProvider = Provider<Map<String, dynamic>>((ref) {
   final itemsAsync = ref.watch(inventoryItemsProvider);
-  
+
   return itemsAsync.when(
     data: (items) {
       int totalProducts = items.length;
       int lowStockCount = items.where((i) => i.isLowStock).length;
       int outOfStockCount = items.where((i) => i.isOutOfStock).length;
       int totalStockItems = items.fold(0, (sum, i) => sum + i.currentStock);
-      double inventoryValue = items.fold(0.0, (sum, i) => sum + (i.currentStock * i.purchasePrice));
+      double inventoryValue = items.fold(
+        0.0,
+        (sum, i) => sum + (i.currentStock * i.purchasePrice),
+      );
 
       return {
         'totalProducts': totalProducts,
@@ -77,5 +87,3 @@ final inventorySeederProvider = Provider((ref) {
     await repo.seedInitialInventory(InitialInventory.items);
   };
 });
-
-

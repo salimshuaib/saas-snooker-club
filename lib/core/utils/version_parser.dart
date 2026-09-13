@@ -13,7 +13,9 @@ class VersionParser {
     final parts2 = coreV2.split('.').map((e) => int.tryParse(e) ?? 0).toList();
 
     // Pad lists with zeros so they are the same length
-    final maxLength = parts1.length > parts2.length ? parts1.length : parts2.length;
+    final maxLength = parts1.length > parts2.length
+        ? parts1.length
+        : parts2.length;
     while (parts1.length < maxLength) {
       parts1.add(0);
     }
@@ -27,8 +29,8 @@ class VersionParser {
       if (p1 < p2) return -1;
       if (p1 > p2) return 1;
     }
-    
-    // If core versions are equal, we could compare build numbers, 
+
+    // If core versions are equal, we could compare build numbers,
     // but typically core versions are sufficient for major updates.
     return 0;
   }

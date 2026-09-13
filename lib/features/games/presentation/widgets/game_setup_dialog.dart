@@ -21,7 +21,7 @@ class GameSetupDialog extends ConsumerStatefulWidget {
     super.key,
     required this.table,
     required this.employeeId,
-    });
+  });
 
   @override
   ConsumerState<GameSetupDialog> createState() => _GameSetupDialogState();
@@ -30,10 +30,12 @@ class GameSetupDialog extends ConsumerStatefulWidget {
 class _GameSetupDialogState extends ConsumerState<GameSetupDialog> {
   late TableType _tableType;
   BillingType _billingType = BillingType.perMinute;
-    bool _isCustomPrice = false;
+  bool _isCustomPrice = false;
   int? _coinQuantity = 1;
   final TextEditingController _customPriceController = TextEditingController();
-  final List<PlayerSelection?> _playerSelections = [PlayerSelection(name: 'Default 1')];
+  final List<PlayerSelection?> _playerSelections = [
+    PlayerSelection(name: 'Default 1'),
+  ];
   int _nextDefaultNumber = 2;
   bool _isLoading = false;
 
@@ -47,11 +49,17 @@ class _GameSetupDialogState extends ConsumerState<GameSetupDialog> {
   void initState() {
     super.initState();
     _tableType = widget.table.type;
-    final validBilling = TablePricingConfig.supportedBillingTypes(widget.table, GameType.standard);
-    if (widget.table.type == TableType.snooker && validBilling.contains(BillingType.perMinute)) {
+    final validBilling = TablePricingConfig.supportedBillingTypes(
+      widget.table,
+      GameType.standard,
+    );
+    if (widget.table.type == TableType.snooker &&
+        validBilling.contains(BillingType.perMinute)) {
       _billingType = BillingType.perMinute;
     } else {
-      _billingType = validBilling.isNotEmpty ? validBilling.first : BillingType.perMinute;
+      _billingType = validBilling.isNotEmpty
+          ? validBilling.first
+          : BillingType.perMinute;
     }
   }
 
@@ -69,155 +77,188 @@ class _GameSetupDialogState extends ConsumerState<GameSetupDialog> {
           maxHeight: MediaQuery.of(context).size.height * 0.9,
         ),
         child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 24, 20, 16),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        widget.table.name,
-                        style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        'Setup',
-                        style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant),
-                      ),
-                    ],
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 24, 20, 16),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          widget.table.name,
+                          style: theme.textTheme.titleLarge?.copyWith(
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'Setup',
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            color: theme.colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-                
+
                   IconButton(
                     icon: Icon(Icons.close, color: theme.colorScheme.onSurface),
                     onPressed: () => Navigator.pop(context),
                     padding: EdgeInsets.zero,
                     constraints: const BoxConstraints(),
                   ),
-              ],
-            ),
-          ),
-          Divider(color: theme.dividerColor.withOpacity(0.1), height: 1),
-          Flexible(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildBillingTypeSelector(theme),
-                  const SizedBox(height: 24),
-                  _buildTeamSection('Players', _playerSelections, 10, theme),
-                  const SizedBox(height: 24),
-                  if (_tableType == TableType.arcade) ...[
-                     Text('Coins', style: theme.textTheme.labelMedium),
-                     const SizedBox(height: 8),
-                     Container(
-                       height: 52,
-                       padding: const EdgeInsets.symmetric(horizontal: 16),
-                       decoration: BoxDecoration(
-                         color: theme.colorScheme.surfaceBright,
-                         borderRadius: BorderRadius.circular(12),
-                         border: Border.all(color: theme.dividerColor.withOpacity(0.1)),
-                       ),
-                       child: Row(
-                         children: [
-                           Expanded(
-                             child: Text('Number of Coins:', style: theme.textTheme.bodyLarge),
-                           ),
-                           IconButton(
-                             onPressed: () => setState(() {
-                               if (_coinQuantity! > 1) _coinQuantity = _coinQuantity! - 1;
-                             }),
-                             icon: const Icon(Icons.remove_circle_outline),
-                             color: theme.colorScheme.primary,
-                           ),
-                           Text(
-                             '$_coinQuantity',
-                             style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
-                           ),
-                           IconButton(
-                             onPressed: () => setState(() => _coinQuantity = _coinQuantity! + 1),
-                             icon: const Icon(Icons.add_circle_outline),
-                             color: theme.colorScheme.primary,
-                           ),
-                         ],
-                       ),
-                     ),
-                     const SizedBox(height: 24),
-                  ] else if (widget.table.allowCustomPrice) _buildCustomPriceToggle(theme),
                 ],
               ),
             ),
-          ),
-          Divider(color: theme.dividerColor.withOpacity(0.1), height: 1),
-          Padding(
-            padding: const EdgeInsets.all(20),
-            child: SizedBox(
-              width: double.infinity,
-              height: 56,
-              child: FilledButton(
-                onPressed: _isLoading ? null : _startGame,
-                style: FilledButton.styleFrom(
-                  backgroundColor: theme.colorScheme.primary,
-                  foregroundColor: theme.colorScheme.onPrimary,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                ),
-                child: _isLoading
-                    ? const SizedBox(
-                        height: 24,
-                        width: 24,
-                        child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                      )
-                    : Text(
-                        _tableType == TableType.arcade ? 'Purchase Tokens' : 'Start Game',
-                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            Divider(color: theme.dividerColor.withOpacity(0.1), height: 1),
+            Flexible(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildBillingTypeSelector(theme),
+                    const SizedBox(height: 24),
+                    _buildTeamSection('Players', _playerSelections, 10, theme),
+                    const SizedBox(height: 24),
+                    if (_tableType == TableType.arcade) ...[
+                      Text('Coins', style: theme.textTheme.labelMedium),
+                      const SizedBox(height: 8),
+                      Container(
+                        height: 52,
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        decoration: BoxDecoration(
+                          color: theme.colorScheme.surfaceBright,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: theme.dividerColor.withOpacity(0.1),
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                'Number of Coins:',
+                                style: theme.textTheme.bodyLarge,
+                              ),
+                            ),
+                            IconButton(
+                              onPressed: () => setState(() {
+                                if (_coinQuantity! > 1)
+                                  _coinQuantity = _coinQuantity! - 1;
+                              }),
+                              icon: const Icon(Icons.remove_circle_outline),
+                              color: theme.colorScheme.primary,
+                            ),
+                            Text(
+                              '$_coinQuantity',
+                              style: theme.textTheme.titleMedium?.copyWith(
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            IconButton(
+                              onPressed: () => setState(
+                                () => _coinQuantity = _coinQuantity! + 1,
+                              ),
+                              icon: const Icon(Icons.add_circle_outline),
+                              color: theme.colorScheme.primary,
+                            ),
+                          ],
+                        ),
                       ),
+                      const SizedBox(height: 24),
+                    ] else if (widget.table.allowCustomPrice)
+                      _buildCustomPriceToggle(theme),
+                  ],
+                ),
               ),
             ),
-          ),
-        ],
+            Divider(color: theme.dividerColor.withOpacity(0.1), height: 1),
+            Padding(
+              padding: const EdgeInsets.all(20),
+              child: SizedBox(
+                width: double.infinity,
+                height: 56,
+                child: FilledButton(
+                  onPressed: _isLoading ? null : _startGame,
+                  style: FilledButton.styleFrom(
+                    backgroundColor: theme.colorScheme.primary,
+                    foregroundColor: theme.colorScheme.onPrimary,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                  ),
+                  child: _isLoading
+                      ? const SizedBox(
+                          height: 24,
+                          width: 24,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
+                        )
+                      : Text(
+                          _tableType == TableType.arcade
+                              ? 'Purchase Tokens'
+                              : 'Start Game',
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
-    ),
     );
   }
 
   Widget _buildBillingTypeSelector(ThemeData theme) {
-    final types = TablePricingConfig.supportedBillingTypes(widget.table, GameType.standard);
+    final types = TablePricingConfig.supportedBillingTypes(
+      widget.table,
+      GameType.standard,
+    );
     if (types.isEmpty) return const SizedBox.shrink();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          'Billing Mode',
-          style: theme.textTheme.labelMedium,
-        ),
+        Text('Billing Mode', style: theme.textTheme.labelMedium),
         const SizedBox(height: 8),
         DropdownButtonFormField<BillingType>(
           value: _billingType,
-          items: types.map((t) => DropdownMenuItem(
-            value: t,
-            child: Text(t.displayName),
-          )).toList(),
+          items: types
+              .map(
+                (t) => DropdownMenuItem(value: t, child: Text(t.displayName)),
+              )
+              .toList(),
           onChanged: (val) {
             if (val != null) setState(() => _billingType = val);
           },
           decoration: InputDecoration(
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: theme.dividerColor.withOpacity(0.1)),
+              borderSide: BorderSide(
+                color: theme.dividerColor.withOpacity(0.1),
+              ),
             ),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: theme.dividerColor.withOpacity(0.1)),
+              borderSide: BorderSide(
+                color: theme.dividerColor.withOpacity(0.1),
+              ),
             ),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 14,
+            ),
             filled: true,
             fillColor: theme.colorScheme.surfaceBright,
           ),
@@ -235,7 +276,12 @@ class _GameSetupDialogState extends ConsumerState<GameSetupDialog> {
     }
   }
 
-  Widget _buildTeamSection(String title, List<PlayerSelection?> selections, int maxPlayers, ThemeData theme) {
+  Widget _buildTeamSection(
+    String title,
+    List<PlayerSelection?> selections,
+    int maxPlayers,
+    ThemeData theme,
+  ) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -279,7 +325,10 @@ class _GameSetupDialogState extends ConsumerState<GameSetupDialog> {
                 if (selections.length > 1) ...[
                   const SizedBox(width: 8),
                   IconButton(
-                    icon: Icon(Icons.remove_circle_outline, color: theme.colorScheme.error),
+                    icon: Icon(
+                      Icons.remove_circle_outline,
+                      color: theme.colorScheme.error,
+                    ),
                     onPressed: () => setState(() => selections.removeAt(i)),
                   ),
                 ],
@@ -311,8 +360,18 @@ class _GameSetupDialogState extends ConsumerState<GameSetupDialog> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Custom Base Price', style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.bold)),
-                    Text('Override standard pricing', style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
+                    Text(
+                      'Custom Base Price',
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    Text(
+                      'Override standard pricing',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -328,8 +387,12 @@ class _GameSetupDialogState extends ConsumerState<GameSetupDialog> {
             AppTextField(
               controller: _customPriceController,
               label: 'Base Price',
-              keyboardType: const TextInputType.numberWithOptions(decimal: true),
-              inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d*'))],
+              keyboardType: const TextInputType.numberWithOptions(
+                decimal: true,
+              ),
+              inputFormatters: [
+                FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d*')),
+              ],
               prefixIcon: const Icon(Icons.attach_money, size: 20),
             ),
             const SizedBox(height: 8),
@@ -340,23 +403,38 @@ class _GameSetupDialogState extends ConsumerState<GameSetupDialog> {
   }
 
   Future<void> _startGame() async {
-    if (_isCustomPrice && !_tableType.isOtherGame && _customPriceController.text.isEmpty) {
+    if (_isCustomPrice &&
+        !_tableType.isOtherGame &&
+        _customPriceController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please enter a valid custom price')),
       );
       return;
     }
 
-    final duplicateError = GameValidationUtils.validateDuplicatePlayersWithinGame(_playerSelections, []);
+    final duplicateError =
+        GameValidationUtils.validateDuplicatePlayersWithinGame(
+          _playerSelections,
+          [],
+        );
     if (duplicateError != null) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(duplicateError)));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(duplicateError)));
       return;
     }
 
-    final activeElsewhereError = await GameValidationUtils.checkPlayerActiveElsewhere(_playerSelections, ref, widget.table.id);
+    final activeElsewhereError =
+        await GameValidationUtils.checkPlayerActiveElsewhere(
+          _playerSelections,
+          ref,
+          widget.table.id,
+        );
     if (activeElsewhereError != null) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(activeElsewhereError)));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(activeElsewhereError)));
       return;
     }
 
@@ -371,10 +449,13 @@ class _GameSetupDialogState extends ConsumerState<GameSetupDialog> {
 
       if (combinedSelections.isEmpty) {
         if (mounted) {
-           ScaffoldMessenger.of(context).showSnackBar(
-             const SnackBar(content: Text('At least one player must be selected.'), backgroundColor: AppColors.error),
-           );
-           setState(() => _isLoading = false);
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('At least one player must be selected.'),
+              backgroundColor: AppColors.error,
+            ),
+          );
+          setState(() => _isLoading = false);
         }
         return;
       }
@@ -391,19 +472,26 @@ class _GameSetupDialogState extends ConsumerState<GameSetupDialog> {
         } else {
           // If name starts with "default", treat completely uniquely
           if (p.name.trim().toLowerCase().startsWith('default')) {
-              final newId = FirebaseFirestore.instance.collection('credits').doc().id;
-              resolvedIdentities[p.name] = newId;
-              finalPlayerIds.add(newId);
-              continue; // Do NOT create a PlayerProfile
+            final newId = FirebaseFirestore.instance
+                .collection('credits')
+                .doc()
+                .id;
+            resolvedIdentities[p.name] = newId;
+            finalPlayerIds.add(newId);
+            continue; // Do NOT create a PlayerProfile
           }
 
-          final existingMatch = allProfiles.where((e) => e.name.toLowerCase() == p.name.trim().toLowerCase()).firstOrNull;
+          final existingMatch = allProfiles
+              .where((e) => e.name.toLowerCase() == p.name.trim().toLowerCase())
+              .firstOrNull;
           if (existingMatch != null) {
             final bool? useExisting = await showDialog<bool>(
               context: context,
               builder: (ctx) => AlertDialog(
                 title: const Text('Duplicate Player Found'),
-                content: Text('An existing player named "" was found. Do you want to use the existing player profile or create a separate new one?'),
+                content: Text(
+                  'An existing player named "" was found. Do you want to use the existing player profile or create a separate new one?',
+                ),
                 actions: [
                   TextButton(
                     onPressed: () => Navigator.pop(ctx, false),
@@ -416,54 +504,74 @@ class _GameSetupDialogState extends ConsumerState<GameSetupDialog> {
                 ],
               ),
             );
-            
+
             if (useExisting == null) {
               setState(() => _isLoading = false);
               return;
             }
-            
+
             if (useExisting) {
               resolvedIdentities[p.name] = existingMatch.id;
               finalPlayerIds.add(existingMatch.id);
             } else {
-              final newId = FirebaseFirestore.instance.collection('credits').doc().id;
+              final newId = FirebaseFirestore.instance
+                  .collection('credits')
+                  .doc()
+                  .id;
               resolvedIdentities[p.name] = newId;
               finalPlayerIds.add(newId);
-              
-              newProfilesToCreate.add(PlayerProfile(
+
+              newProfilesToCreate.add(
+                PlayerProfile(
+                  id: newId,
+                  name: p.name.trim(),
+                  outstandingAmount: 0.0,
+                  totalPendingTransactions: 0,
+                  lastTransactionDate: DateTime.now(),
+                ),
+              );
+            }
+          } else {
+            final newId = FirebaseFirestore.instance
+                .collection('credits')
+                .doc()
+                .id;
+            resolvedIdentities[p.name] = newId;
+            finalPlayerIds.add(newId);
+
+            newProfilesToCreate.add(
+              PlayerProfile(
                 id: newId,
                 name: p.name.trim(),
                 outstandingAmount: 0.0,
                 totalPendingTransactions: 0,
                 lastTransactionDate: DateTime.now(),
-              ));
-            }
-          } else {
-            final newId = FirebaseFirestore.instance.collection('credits').doc().id;
-            resolvedIdentities[p.name] = newId;
-            finalPlayerIds.add(newId);
-            
-            newProfilesToCreate.add(PlayerProfile(
-              id: newId,
-              name: p.name.trim(),
-              outstandingAmount: 0.0,
-              totalPendingTransactions: 0,
-              lastTransactionDate: DateTime.now(),
-            ));
+              ),
+            );
           }
         }
       }
 
       final now = DateTime.now();
       final dateStr = '\-\-';
-      
+
       final appSettings = ref.read(appSettingsProvider);
-      
-      final double? resolvedPrice = (_isCustomPrice && !_tableType.isOtherGame) 
-        ? double.tryParse(_customPriceController.text)
-        : TablePricingConfig.getPrice(widget.table, GameType.standard, _billingType, appSettings.pricing);
-        
-      final double? resolvedExtraCharge = TablePricingConfig.getExtraCharge(widget.table, GameType.standard, _billingType, appSettings.pricing);
+
+      final double? resolvedPrice = (_isCustomPrice && !_tableType.isOtherGame)
+          ? double.tryParse(_customPriceController.text)
+          : TablePricingConfig.getPrice(
+              widget.table,
+              GameType.standard,
+              _billingType,
+              appSettings.pricing,
+            );
+
+      final double? resolvedExtraCharge = TablePricingConfig.getExtraCharge(
+        widget.table,
+        GameType.standard,
+        _billingType,
+        appSettings.pricing,
+      );
 
       GameSession gameSession = GameSession(
         date: dateStr,
@@ -474,8 +582,8 @@ class _GameSetupDialogState extends ConsumerState<GameSetupDialog> {
         startTime: DateTime.now(),
         status: TableStatus.running,
         mode: GameMode.solo,
-      matchType: MatchType.friendly,
-      billingType: _billingType,
+        matchType: MatchType.friendly,
+        billingType: _billingType,
         totalFrames: 1,
         framesPlayed: 0,
         teamA: combinedSelections.map((p) => p.name).toList(),
@@ -506,7 +614,7 @@ class _GameSetupDialogState extends ConsumerState<GameSetupDialog> {
 
       if (mounted) {
         Navigator.pop(context, gameSession);
-           didPop = true;
+        didPop = true;
       }
 
       Future.delayed(const Duration(milliseconds: 400), () async {
@@ -524,7 +632,10 @@ class _GameSetupDialogState extends ConsumerState<GameSetupDialog> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error starting game: '), backgroundColor: AppColors.error),
+          SnackBar(
+            content: Text('Error starting game: '),
+            backgroundColor: AppColors.error,
+          ),
         );
       }
     } finally {

@@ -22,11 +22,13 @@ class LocalStorageService {
 
   // ─── Currency ───
   String? getCurrencyCode() => _prefs.getString(_currencyKey);
-  Future<void> setCurrencyCode(String code) => _prefs.setString(_currencyKey, code);
+  Future<void> setCurrencyCode(String code) =>
+      _prefs.setString(_currencyKey, code);
 
   // ─── Auth Session ───
   bool getIsLoggedIn() => _prefs.getBool(_isLoggedInKey) ?? false;
-  Future<void> setIsLoggedIn(bool value) => _prefs.setBool(_isLoggedInKey, value);
+  Future<void> setIsLoggedIn(bool value) =>
+      _prefs.setBool(_isLoggedInKey, value);
 
   // ─── Clear All ───
   Future<void> clear() => _prefs.clear();

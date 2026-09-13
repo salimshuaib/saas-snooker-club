@@ -16,10 +16,7 @@ import 'package:snooker_club/features/games/domain/config/pricing_config.dart';
 class RepeatGameSheet extends ConsumerStatefulWidget {
   final GameSession originalSession;
 
-  const RepeatGameSheet({
-    super.key,
-    required this.originalSession,
-  });
+  const RepeatGameSheet({super.key, required this.originalSession});
 
   @override
   ConsumerState<RepeatGameSheet> createState() => _RepeatGameSheetState();
@@ -27,11 +24,11 @@ class RepeatGameSheet extends ConsumerStatefulWidget {
 
 class _RepeatGameSheetState extends ConsumerState<RepeatGameSheet> {
   int _step = 0; // 0: Who, 1: Change Players, 2: Table & Game, 3: Review
-  
+
   bool _samePlayers = true;
 
   TableModel? _selectedTable;
-  
+
   // Standard configs
   BillingType _billingType = BillingType.perMinute;
 
@@ -51,17 +48,19 @@ class _RepeatGameSheetState extends ConsumerState<RepeatGameSheet> {
     // Load initial players
     if (widget.originalSession.playerIdentities != null) {
       for (final pName in widget.originalSession.players) {
-        _playerSelections.add(PlayerSelection(
-          id: widget.originalSession.playerIdentities![pName], 
-          name: pName,
-        ));
+        _playerSelections.add(
+          PlayerSelection(
+            id: widget.originalSession.playerIdentities![pName],
+            name: pName,
+          ),
+        );
       }
     } else {
       for (final pName in widget.originalSession.players) {
         _playerSelections.add(PlayerSelection(name: pName));
       }
     }
-    
+
     if (_playerSelections.isEmpty) _playerSelections.add(null);
   }
 
@@ -71,78 +70,118 @@ class _RepeatGameSheetState extends ConsumerState<RepeatGameSheet> {
     final tables = ref.watch(resolvedTablesProvider);
 
     if (_selectedTable == null) {
-      final orig = tables.where((t) => t.id == widget.originalSession.tableId && t.status == TableStatus.available).firstOrNull;
+      final orig = tables
+          .where(
+            (t) =>
+                t.id == widget.originalSession.tableId &&
+                t.status == TableStatus.available,
+          )
+          .firstOrNull;
       if (orig != null) {
         _selectedTable = orig;
       } else {
-        _selectedTable = tables.where((t) => t.status == TableStatus.available).firstOrNull;
+        _selectedTable = tables
+            .where((t) => t.status == TableStatus.available)
+            .firstOrNull;
       }
     }
 
     return Material(
       color: Colors.transparent,
       child: Container(
-        constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.9),
-        padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+        constraints: BoxConstraints(
+          maxHeight: MediaQuery.of(context).size.height * 0.9,
+        ),
+        padding: EdgeInsets.only(
+          bottom: MediaQuery.of(context).viewInsets.bottom,
+        ),
         decoration: BoxDecoration(
           color: theme.colorScheme.surface,
           borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
         ),
         child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          // Handle
-          Container(
-            width: 40, height: 4, margin: const EdgeInsets.only(top: 12),
-            decoration: BoxDecoration(
-              color: theme.colorScheme.onSurfaceVariant.withOpacity(0.4),
-              borderRadius: BorderRadius.circular(2),
-            ),
-          ),
-          
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text('Repeat This Game', style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold)),
-                IconButton(icon: const Icon(Icons.close), onPressed: () => Navigator.pop(context)),
-              ],
-            ),
-          ),
-          const Divider(height: 1),
-
-          Expanded(
-            child: ListView(
-              padding: const EdgeInsets.all(20),
-              children: [
-                if (_step == 0) ..._buildStep0(theme),
-                if (_step == 1) ..._buildStep1(theme),
-                if (_step == 2) ..._buildStep2(theme, tables),
-                if (_step == 3) ..._buildStep3(theme),
-              ],
-            ),
-          ),
-          
-          Padding(
-            padding: const EdgeInsets.all(20),
-            child: SizedBox(
-              width: double.infinity, height: 54,
-              child: ElevatedButton(
-                onPressed: _isLoading ? null : _handleNext,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primary, foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), elevation: 0,
-                ),
-                child: _isLoading 
-                    ? const SizedBox(height: 24, width: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                    : Text(_step == 3 ? 'Start Game' : 'Continue', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Handle
+            Container(
+              width: 40,
+              height: 4,
+              margin: const EdgeInsets.only(top: 12),
+              decoration: BoxDecoration(
+                color: theme.colorScheme.onSurfaceVariant.withOpacity(0.4),
+                borderRadius: BorderRadius.circular(2),
               ),
             ),
-          ),
-        ],
+
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Repeat This Game',
+                    style: theme.textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close),
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                ],
+              ),
+            ),
+            const Divider(height: 1),
+
+            Expanded(
+              child: ListView(
+                padding: const EdgeInsets.all(20),
+                children: [
+                  if (_step == 0) ..._buildStep0(theme),
+                  if (_step == 1) ..._buildStep1(theme),
+                  if (_step == 2) ..._buildStep2(theme, tables),
+                  if (_step == 3) ..._buildStep3(theme),
+                ],
+              ),
+            ),
+
+            Padding(
+              padding: const EdgeInsets.all(20),
+              child: SizedBox(
+                width: double.infinity,
+                height: 54,
+                child: ElevatedButton(
+                  onPressed: _isLoading ? null : _handleNext,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    elevation: 0,
+                  ),
+                  child: _isLoading
+                      ? const SizedBox(
+                          height: 24,
+                          width: 24,
+                          child: CircularProgressIndicator(
+                            color: Colors.white,
+                            strokeWidth: 2,
+                          ),
+                        )
+                      : Text(
+                          _step == 3 ? 'Start Game' : 'Continue',
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
-    ),
     );
   }
 
@@ -153,7 +192,12 @@ class _RepeatGameSheetState extends ConsumerState<RepeatGameSheet> {
       setState(() => _step = 2);
     } else if (_step == 2) {
       if (_selectedTable == null) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please select an available table'), backgroundColor: AppColors.error));
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Please select an available table'),
+            backgroundColor: AppColors.error,
+          ),
+        );
         return;
       }
       setState(() => _step = 3);
@@ -167,29 +211,44 @@ class _RepeatGameSheetState extends ConsumerState<RepeatGameSheet> {
       Text('Who will play?', style: theme.textTheme.titleMedium),
       const Gap(16),
       _buildOptionCard(
-        title: 'Same Players', subtitle: 'Keep the exact same players and teams.', icon: Icons.group,
+        title: 'Same Players',
+        subtitle: 'Keep the exact same players and teams.',
+        icon: Icons.group,
         isSelected: _samePlayers,
         onTap: () => setState(() => _samePlayers = true),
       ),
       const Gap(12),
       _buildOptionCard(
-        title: 'Change Players', subtitle: 'Add or remove players, or change teams.', icon: Icons.group_add,
+        title: 'Change Players',
+        subtitle: 'Add or remove players, or change teams.',
+        icon: Icons.group_add,
         isSelected: !_samePlayers,
         onTap: () => setState(() => _samePlayers = false),
       ),
     ];
   }
 
-  Widget _buildOptionCard({required String title, required String subtitle, required IconData icon, required bool isSelected, required VoidCallback onTap}) {
+  Widget _buildOptionCard({
+    required String title,
+    required String subtitle,
+    required IconData icon,
+    required bool isSelected,
+    required VoidCallback onTap,
+  }) {
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(12),
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          border: Border.all(color: isSelected ? AppColors.primary : Colors.grey.shade300, width: isSelected ? 2 : 1),
+          border: Border.all(
+            color: isSelected ? AppColors.primary : Colors.grey.shade300,
+            width: isSelected ? 2 : 1,
+          ),
           borderRadius: BorderRadius.circular(12),
-          color: isSelected ? AppColors.primary.withOpacity(0.05) : Colors.transparent,
+          color: isSelected
+              ? AppColors.primary.withOpacity(0.05)
+              : Colors.transparent,
         ),
         child: Row(
           children: [
@@ -199,8 +258,17 @@ class _RepeatGameSheetState extends ConsumerState<RepeatGameSheet> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(title, style: TextStyle(fontWeight: FontWeight.bold, color: isSelected ? AppColors.primary : Colors.black87)),
-                  Text(subtitle, style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                  Text(
+                    title,
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: isSelected ? AppColors.primary : Colors.black87,
+                    ),
+                  ),
+                  Text(
+                    subtitle,
+                    style: const TextStyle(fontSize: 12, color: Colors.grey),
+                  ),
                 ],
               ),
             ),
@@ -218,7 +286,12 @@ class _RepeatGameSheetState extends ConsumerState<RepeatGameSheet> {
     ];
   }
 
-  Widget _buildPlayerSection(String title, List<PlayerSelection?> list, int max, ThemeData theme) {
+  Widget _buildPlayerSection(
+    String title,
+    List<PlayerSelection?> list,
+    int max,
+    ThemeData theme,
+  ) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -240,7 +313,10 @@ class _RepeatGameSheetState extends ConsumerState<RepeatGameSheet> {
                 ),
                 if (list.length > 1)
                   IconButton(
-                    icon: const Icon(Icons.remove_circle_outline, color: Colors.red),
+                    icon: const Icon(
+                      Icons.remove_circle_outline,
+                      color: Colors.red,
+                    ),
                     onPressed: () => setState(() => list.removeAt(i)),
                   ),
               ],
@@ -258,10 +334,13 @@ class _RepeatGameSheetState extends ConsumerState<RepeatGameSheet> {
 
   List<Widget> _buildStep2(ThemeData theme, List<TableModel> tables) {
     // Determine available billing types for the selected table
-    final availableBilling = _selectedTable != null 
-        ? TablePricingConfig.supportedBillingTypes(_selectedTable!, GameType.standard)
+    final availableBilling = _selectedTable != null
+        ? TablePricingConfig.supportedBillingTypes(
+            _selectedTable!,
+            GameType.standard,
+          )
         : <BillingType>[BillingType.perMinute];
-    
+
     if (!availableBilling.contains(_billingType)) {
       _billingType = availableBilling.first;
     }
@@ -270,32 +349,54 @@ class _RepeatGameSheetState extends ConsumerState<RepeatGameSheet> {
       Text('Table', style: theme.textTheme.labelMedium),
       const Gap(8),
       Wrap(
-        spacing: 8, runSpacing: 8,
-        children: tables.where((t) => t.status == TableStatus.available || t.id == _selectedTable?.id).map((t) {
-          final isSelected = _selectedTable?.id == t.id;
-          final isUnavailable = t.status != TableStatus.available && !isSelected;
-          return ChoiceChip(
-            label: Text(t.name),
-            selected: isSelected,
-            onSelected: isUnavailable ? null : (selected) {
-              if (selected) setState(() => _selectedTable = t);
-            },
-            selectedColor: AppColors.primary,
-            labelStyle: TextStyle(color: isSelected ? Colors.white : (isUnavailable ? Colors.grey : Colors.black)),
-          );
-        }).toList(),
+        spacing: 8,
+        runSpacing: 8,
+        children: tables
+            .where(
+              (t) =>
+                  t.status == TableStatus.available ||
+                  t.id == _selectedTable?.id,
+            )
+            .map((t) {
+              final isSelected = _selectedTable?.id == t.id;
+              final isUnavailable =
+                  t.status != TableStatus.available && !isSelected;
+              return ChoiceChip(
+                label: Text(t.name),
+                selected: isSelected,
+                onSelected: isUnavailable
+                    ? null
+                    : (selected) {
+                        if (selected) setState(() => _selectedTable = t);
+                      },
+                selectedColor: AppColors.primary,
+                labelStyle: TextStyle(
+                  color: isSelected
+                      ? Colors.white
+                      : (isUnavailable ? Colors.grey : Colors.black),
+                ),
+              );
+            })
+            .toList(),
       ),
-      if (tables.isEmpty || tables.where((t) => t.status == TableStatus.available).isEmpty)
+      if (tables.isEmpty ||
+          tables.where((t) => t.status == TableStatus.available).isEmpty)
         Padding(
           padding: const EdgeInsets.only(top: 8),
-          child: Text('No tables currently available.', style: TextStyle(color: Colors.red.shade400)),
+          child: Text(
+            'No tables currently available.',
+            style: TextStyle(color: Colors.red.shade400),
+          ),
         ),
-        
+
       const Gap(24),
       Text('Billing Type', style: theme.textTheme.labelMedium),
       const Gap(8),
       if (_selectedTable == null)
-        const Text('Select a table first', style: TextStyle(color: Colors.grey, fontStyle: FontStyle.italic))
+        const Text(
+          'Select a table first',
+          style: TextStyle(color: Colors.grey, fontStyle: FontStyle.italic),
+        )
       else
         Wrap(
           spacing: 8,
@@ -308,7 +409,9 @@ class _RepeatGameSheetState extends ConsumerState<RepeatGameSheet> {
                 if (selected) setState(() => _billingType = bt);
               },
               selectedColor: AppColors.primary,
-              labelStyle: TextStyle(color: isSelected ? Colors.white : Colors.black),
+              labelStyle: TextStyle(
+                color: isSelected ? Colors.white : Colors.black,
+              ),
             );
           }).toList(),
         ),
@@ -321,7 +424,9 @@ class _RepeatGameSheetState extends ConsumerState<RepeatGameSheet> {
           children: [
             IconButton(
               icon: const Icon(Icons.remove_circle_outline),
-              onPressed: _totalFrames > 1 ? () => setState(() => _totalFrames--) : null,
+              onPressed: _totalFrames > 1
+                  ? () => setState(() => _totalFrames--)
+                  : null,
             ),
             Text('$_totalFrames', style: theme.textTheme.titleMedium),
             IconButton(
@@ -347,10 +452,12 @@ class _RepeatGameSheetState extends ConsumerState<RepeatGameSheet> {
       const Gap(8),
       ..._playerSelections
           .where((p) => p != null && p.name.trim().isNotEmpty)
-          .map((p) => Padding(
-                padding: const EdgeInsets.only(bottom: 4),
-                child: Text('• ${p!.name}'),
-              )),
+          .map(
+            (p) => Padding(
+              padding: const EdgeInsets.only(bottom: 4),
+              child: Text('• ${p!.name}'),
+            ),
+          ),
     ];
   }
 
@@ -371,32 +478,47 @@ class _RepeatGameSheetState extends ConsumerState<RepeatGameSheet> {
     // 1. Frame validation
     if (_billingType == BillingType.perFrame) {
       if (_totalFrames <= 0) {
-        if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Frame count must be a valid number greater than 0.')));
+        if (mounted)
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text(
+                'Frame count must be a valid number greater than 0.',
+              ),
+            ),
+          );
         return;
       }
     }
 
     // 2. Duplicate Players Check
-    final duplicateError = GameValidationUtils.validateDuplicatePlayersWithinGame(
-      _playerSelections, 
-      []
-    );
-    
+    final duplicateError =
+        GameValidationUtils.validateDuplicatePlayersWithinGame(
+          _playerSelections,
+          [],
+        );
+
     if (duplicateError != null) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(duplicateError)));
+      if (mounted)
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(duplicateError)));
       return;
     }
 
     // 3. Active Elsewhere Check
     if (_selectedTable != null) {
-      final activeElsewhereError = await GameValidationUtils.checkPlayerActiveElsewhere(
-        _playerSelections, 
-        ref, 
-        _selectedTable!.id
-      );
+      final activeElsewhereError =
+          await GameValidationUtils.checkPlayerActiveElsewhere(
+            _playerSelections,
+            ref,
+            _selectedTable!.id,
+          );
 
       if (activeElsewhereError != null) {
-        if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(activeElsewhereError)));
+        if (mounted)
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text(activeElsewhereError)));
         return;
       }
     }
@@ -404,17 +526,32 @@ class _RepeatGameSheetState extends ConsumerState<RepeatGameSheet> {
     setState(() => _isLoading = true);
 
     try {
-      final combinedSelections = _playerSelections.where((p) => p != null && p.name.trim().isNotEmpty).map((p) => p!).toList();
+      final combinedSelections = _playerSelections
+          .where((p) => p != null && p.name.trim().isNotEmpty)
+          .map((p) => p!)
+          .toList();
       final actualBillingType = _billingType;
-      
+
       if (combinedSelections.isEmpty) {
-        if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('At least one player is required.'), backgroundColor: AppColors.error));
+        if (mounted)
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('At least one player is required.'),
+              backgroundColor: AppColors.error,
+            ),
+          );
         setState(() => _isLoading = false);
         return;
       }
 
       if (_selectedTable == null) {
-        if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('No table selected.'), backgroundColor: AppColors.error));
+        if (mounted)
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('No table selected.'),
+              backgroundColor: AppColors.error,
+            ),
+          );
         setState(() => _isLoading = false);
         return;
       }
@@ -429,26 +566,37 @@ class _RepeatGameSheetState extends ConsumerState<RepeatGameSheet> {
           resolvedIdentities[p.name] = p.id!;
           finalPlayerIds.add(p.id!);
         } else {
-          final existingMatch = allProfiles.where((e) => e.name.toLowerCase() == p.name.trim().toLowerCase()).firstOrNull;
+          final existingMatch = allProfiles
+              .where((e) => e.name.toLowerCase() == p.name.trim().toLowerCase())
+              .firstOrNull;
           if (existingMatch != null) {
             resolvedIdentities[p.name] = existingMatch.id;
             finalPlayerIds.add(existingMatch.id);
           } else {
-            final newId = FirebaseFirestore.instance.collection('credits').doc().id;
+            final newId = FirebaseFirestore.instance
+                .collection('credits')
+                .doc()
+                .id;
             resolvedIdentities[p.name] = newId;
             finalPlayerIds.add(newId);
-            
-            newProfilesToCreate.add(PlayerProfile(
-              id: newId, name: p.name.trim(), outstandingAmount: 0.0,
-              totalPendingTransactions: 0, lastTransactionDate: DateTime.now(),
-            ));
+
+            newProfilesToCreate.add(
+              PlayerProfile(
+                id: newId,
+                name: p.name.trim(),
+                outstandingAmount: 0.0,
+                totalPendingTransactions: 0,
+                lastTransactionDate: DateTime.now(),
+              ),
+            );
           }
         }
       }
 
       final now = DateTime.now();
-      final dateStr = '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
-      
+      final dateStr =
+          '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
+
       final currentStaff = ref.read(currentStaffProvider).value;
       final staffName = currentStaff?.name ?? 'Admin';
       final staffId = currentStaff?.id ?? 'admin';
@@ -471,9 +619,11 @@ class _RepeatGameSheetState extends ConsumerState<RepeatGameSheet> {
         startTime: now,
         status: TableStatus.running,
         mode: GameMode.solo,
-      matchType: MatchType.friendly,
-      billingType: actualBillingType,
-        totalFrames: (actualBillingType == BillingType.perFrame) ? _totalFrames : 1,
+        matchType: MatchType.friendly,
+        billingType: actualBillingType,
+        totalFrames: (actualBillingType == BillingType.perFrame)
+            ? _totalFrames
+            : 1,
         framesPlayed: 0,
         teamA: combinedSelections.map((p) => p.name).toList(),
         teamB: const [],
@@ -502,9 +652,14 @@ class _RepeatGameSheetState extends ConsumerState<RepeatGameSheet> {
           debugPrint('Error in background repeat game: $e');
         }
       });
-
     } catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e'), backgroundColor: AppColors.error));
+      if (mounted)
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: $e'),
+            backgroundColor: AppColors.error,
+          ),
+        );
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }

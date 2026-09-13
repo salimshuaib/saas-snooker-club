@@ -84,7 +84,8 @@ class ReportsScreen extends ConsumerWidget {
                             subtitle: 'Professional printable report',
                             icon: Icons.picture_as_pdf_rounded,
                             color: Colors.redAccent,
-                            onTap: () => ExportService.exportToPdf(context, ref),
+                            onTap: () =>
+                                ExportService.exportToPdf(context, ref),
                           ),
                         ),
                         const Gap(AppSpacing.md),
@@ -94,7 +95,8 @@ class ReportsScreen extends ConsumerWidget {
                             subtitle: 'Detailed multi-sheet data',
                             icon: Icons.table_chart_rounded,
                             color: Colors.green,
-                            onTap: () => ExportService.exportToExcel(context, ref),
+                            onTap: () =>
+                                ExportService.exportToExcel(context, ref),
                           ),
                         ),
                       ],
@@ -113,7 +115,8 @@ class ReportsScreen extends ConsumerWidget {
                       subtitle: 'List of all players with outstanding credit',
                       icon: Icons.money_off_csred_rounded,
                       color: Colors.orange,
-                      onTap: () => ExportService.exportDueCreditToPdf(context, ref),
+                      onTap: () =>
+                          ExportService.exportDueCreditToPdf(context, ref),
                     ),
                   ],
                 ),
@@ -159,10 +162,7 @@ class _PreviewCard extends StatelessWidget {
           Expanded(
             child: Text(
               title,
-              style: const TextStyle(
-                color: Colors.white70,
-                fontSize: 16,
-              ),
+              style: const TextStyle(color: Colors.white70, fontSize: 16),
             ),
           ),
           Text(
@@ -224,10 +224,7 @@ class _ExportButton extends StatelessWidget {
             const Gap(4),
             Text(
               subtitle,
-              style: const TextStyle(
-                color: Colors.white54,
-                fontSize: 12,
-              ),
+              style: const TextStyle(color: Colors.white54, fontSize: 12),
             ),
           ],
         ),
@@ -235,4 +232,3 @@ class _ExportButton extends StatelessWidget {
     );
   }
 }
-

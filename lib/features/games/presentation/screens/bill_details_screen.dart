@@ -24,7 +24,6 @@ class BillDetailsScreen extends ConsumerStatefulWidget {
 class _BillDetailsScreenState extends ConsumerState<BillDetailsScreen> {
   GameSession get session => widget.session;
 
-
   String _formatDuration(int seconds) {
     final h = (seconds ~/ 3600).toString().padLeft(2, '0');
     final m = ((seconds % 3600) ~/ 60).toString().padLeft(2, '0');
@@ -46,8 +45,9 @@ class _BillDetailsScreenState extends ConsumerState<BillDetailsScreen> {
   @override
   Widget build(BuildContext context) {
     final clubId = ref.watch(clubIdProvider);
-    if (clubId == null) return const Scaffold(body: Center(child: CircularProgressIndicator()));
-    
+    if (clubId == null)
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+
     return StreamBuilder<DocumentSnapshot>(
       stream: FirebaseFirestore.instance
           .collection(FirebaseConstants.clubsCollection)
@@ -110,356 +110,505 @@ class _BillDetailsScreenState extends ConsumerState<BillDetailsScreen> {
             ],
           ),
           body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // ── General Information ──
-            Text('General Information', style: theme.textTheme.titleMedium),
-            const Gap(8),
-            _SectionCard(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _InfoRow(label: 'Table Name', value: session.tableName),
-                _InfoRow(label: 'Table Type', value: session.tableType.displayName),
-                _InfoRow(label: 'Game Type', value: session.billingType.displayName),
-                _InfoRow(label: 'Match Type', value: 'Standard'),
-                _InfoRow(label: 'Billing Type', value: session.billingType.displayName),
-                _InfoRow(label: 'Game Date', value: session.date),
-                _InfoRow(label: 'Start Time', value: dtFmt.format(session.startTime)),
-                if (session.endTime != null)
-                  _InfoRow(label: 'End Time', value: dtFmt.format(session.endTime!)),
-                _InfoRow(label: 'Total Duration', value: _formatDuration(session.activeSeconds)),
-                if (session.billingType == BillingType.perFrame)
-                  _InfoRow(
-                      label: 'Frames Played',
-                      value: '${session.framesPlayed > 0 ? session.framesPlayed : session.totalFrames}'),
-              ],
-            ),
-            const Gap(24),
-
-            // ── Players ──
-            Text('Players', style: theme.textTheme.titleMedium),
-            const Gap(8),
-            _SectionCard(
-              children: [
-                if (false) ...[
-                  _InfoRow(label: 'Team A', value: session.players.join(', ')),
-                  _InfoRow(label: 'Team B', value: const <String>[].join(', ')),
-                ] else
-                  _InfoRow(label: 'Players', value: session.players.join(', ')),
-              ],
-            ),
-            const Gap(24),
-
-            // ── Match Results & Round History ──
-            if (session.rounds.isNotEmpty) ...[
-              Text('Round History', style: theme.textTheme.titleMedium),
-              const Gap(8),
-              _SectionCard(
-                children: session.rounds.map((r) => Padding(
-                  padding: const EdgeInsets.only(bottom: 8.0),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Expanded(
-                        child: Text(
-                          r.winner == 'Friendly'
-                              ? 'Frame ${r.roundNumber} · ${(r.durationSeconds ?? 0) ~/ 60} mins${(r.overtimeMinutes ?? 0) > 0 ? " (+${r.overtimeMinutes}m OT)" : ""}'
-                              : 'Round ${r.roundNumber} · Winner: ${r.winner == 'Team A' ? session.players.join(' & ') : r.winner == 'Team B' ? const <String>[].join(' & ') : (r.winner ?? "N/A")}${r.loser != null ? " · Loser: ${r.loser == 'Team A' ? session.players.join(' & ') : r.loser == 'Team B' ? const <String>[].join(' & ') : r.loser}" : ""}${(r.overtimeMinutes ?? 0) > 0 ? " (+${r.overtimeMinutes}m OT)" : ""}',
-                          style: theme.textTheme.bodyMedium,
-                        ),
-                      ),
-                      Text('₹${(r.roundCost + (r.overtimeCharge ?? 0.0)).toStringAsFixed(2)}', style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600)),
-                    ],
-                  ),
-                )).toList(),
-              ),
-              const Gap(24),
-            ] else ...[
-              Text('Match Results', style: theme.textTheme.titleMedium),
-              const Gap(8),
-              _SectionCard(
-                children: [
-                  if (false) ...[
-                    _InfoRow(label: 'Winner', value: session.winnerDisplayName ?? 'N/A'),
-                    _InfoRow(
-                      label: 'Loser',
-                      value: _getLoser(session),
-                    ),
-                    _InfoRow(
-                      label: 'Paid By',
-                      value: _getLoser(session), // Loser pays
-                    ),
-                  ] else ...[
-                    // Friendly match
-                    _InfoRow(label: 'Paid By', value: 'Shared / Multiple'),
-                  ],
-                ],
-              ),
-              const Gap(24),
-            ],
-
-            // ── Ordered Items ──
-            if (session.orders.isNotEmpty) ...[
-              Text('Ordered Items', style: theme.textTheme.titleMedium),
-              const Gap(8),
-              _SectionCard(
-                children: playerOrders.entries.map((entry) {
-                  return Padding(
-                    padding: const EdgeInsets.only(bottom: 12.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          entry.key,
-                          style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700),
-                        ),
-                        const Gap(4),
-                        ...entry.value.map((o) => Padding(
-                              padding: const EdgeInsets.symmetric(vertical: 2.0),
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Text(
-                                    '${o.quantity}x ${o.productName}',
-                                    style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant),
-                                  ),
-                                  Text(
-                                    '₹${o.total.toStringAsFixed(0)}',
-                                    style: theme.textTheme.bodyMedium,
-                                  ),
-                                ],
-                              ),
-                            )),
-                      ],
-                    ),
-                  );
-                }).toList(),
-              ),
-              const Gap(24),
-            ],
-
-            // ── Billing Summary ──
-            Text('Billing Summary', style: theme.textTheme.titleMedium),
-            const Gap(8),
-            _SectionCard(
-              children: [
-                if (session.billingType == BillingType.perFrame) ...[
-                  _InfoRow(
-                    label: 'Frame Charges',
-                    value: '₹${(session.baseGameCharge ?? session.gameCharge ?? 0).toStringAsFixed(2)}',
-                  ),
-                  if (session.baseGameCharge != null)
-                    const _InfoRow(
-                      label: 'Grace Period',
-                      value: '20 Mins / Frame',
-                    ),
-                ] else ...[
-                  _InfoRow(
-                    label: 'Package Charge',
-                    value: '₹${(session.baseGameCharge ?? session.gameCharge ?? 0).toStringAsFixed(2)}',
-                  ),
-                ],
-                if ((session.overtimeMinutes ?? 0) > 0) ...[
-                  _InfoRow(
-                    label: 'Overtime (${session.overtimeMinutes} mins)',
-                    value: '₹${(session.overtimeCharge ?? 0).toStringAsFixed(2)}',
-                  ),
-                ],
-                if (session.overtimeMinutes != null && session.overtimeMinutes! > 0) ...[
-                  const Divider(height: 16),
-                  _InfoRow(
-                    label: 'Total Game Charge',
-                    value: '₹${(session.gameCharge ?? 0).toStringAsFixed(2)}',
-                  ),
-                ],
-                if ((session.ordersTotal ?? 0) > 0)
-                  _InfoRow(
-                    label: 'Orders Total',
-                    value: '₹${session.ordersTotal!.toStringAsFixed(2)}',
-                  ),
-                const Divider(height: 16),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                // ── General Information ──
+                Text('General Information', style: theme.textTheme.titleMedium),
+                const Gap(8),
+                _SectionCard(
                   children: [
-                    Text(
-                      'Grand Total',
-                      style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+                    _InfoRow(label: 'Table Name', value: session.tableName),
+                    _InfoRow(
+                      label: 'Table Type',
+                      value: session.tableType.displayName,
                     ),
-                    Text(
-                      '₹${(session.grandTotal ?? 0).toStringAsFixed(2)}',
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w700,
+                    _InfoRow(
+                      label: 'Game Type',
+                      value: session.billingType.displayName,
+                    ),
+                    _InfoRow(label: 'Match Type', value: 'Standard'),
+                    _InfoRow(
+                      label: 'Billing Type',
+                      value: session.billingType.displayName,
+                    ),
+                    _InfoRow(label: 'Game Date', value: session.date),
+                    _InfoRow(
+                      label: 'Start Time',
+                      value: dtFmt.format(session.startTime),
+                    ),
+                    if (session.endTime != null)
+                      _InfoRow(
+                        label: 'End Time',
+                        value: dtFmt.format(session.endTime!),
                       ),
+                    _InfoRow(
+                      label: 'Total Duration',
+                      value: _formatDuration(session.activeSeconds),
                     ),
+                    if (session.billingType == BillingType.perFrame)
+                      _InfoRow(
+                        label: 'Frames Played',
+                        value:
+                            '${session.framesPlayed > 0 ? session.framesPlayed : session.totalFrames}',
+                      ),
                   ],
                 ),
-                if (session.finalAmount != null) ...[
-                  const Gap(8),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        'Final Billed',
-                        style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
-                      ),
-                      Text(
-                        '₹${session.finalAmount!.toStringAsFixed(2)}',
-                        style: theme.textTheme.titleLarge?.copyWith(
-                          color: AppColors.primary,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ],
-            ),
-            const Gap(24),
+                const Gap(24),
 
-            // ── Payment Information ──
-            Text('Payment Information', style: theme.textTheme.titleMedium),
-            const Gap(8),
-            if (session.playerPaymentSplits != null && session.playerPaymentSplits!.isNotEmpty) ...[
-              _SectionCard(
-                children: session.playerPaymentSplits!.entries.map((entry) {
-                  final player = entry.key;
-                  final splits = entry.value;
-                  return Padding(
-                    padding: const EdgeInsets.only(bottom: 12.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(player, style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700)),
-                        const Gap(4),
-                        ...splits.entries.map((splitEntry) {
-                          final method = splitEntry.key;
-                          final amount = splitEntry.value;
-                          return Padding(
-                            padding: const EdgeInsets.only(bottom: 4.0),
+                // ── Players ──
+                Text('Players', style: theme.textTheme.titleMedium),
+                const Gap(8),
+                _SectionCard(
+                  children: [
+                    if (false) ...[
+                      _InfoRow(
+                        label: 'Team A',
+                        value: session.players.join(', '),
+                      ),
+                      _InfoRow(
+                        label: 'Team B',
+                        value: const <String>[].join(', '),
+                      ),
+                    ] else
+                      _InfoRow(
+                        label: 'Players',
+                        value: session.players.join(', '),
+                      ),
+                  ],
+                ),
+                const Gap(24),
+
+                // ── Match Results & Round History ──
+                if (session.rounds.isNotEmpty) ...[
+                  Text('Round History', style: theme.textTheme.titleMedium),
+                  const Gap(8),
+                  _SectionCard(
+                    children: session.rounds
+                        .map(
+                          (r) => Padding(
+                            padding: const EdgeInsets.only(bottom: 8.0),
                             child: Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                Row(
-                                  children: [
-                                    Icon(_paymentIcon(method), size: 14, color: theme.colorScheme.onSurfaceVariant),
-                                    const Gap(4),
-                                    Text(method.displayName, style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
-                                    if (method == PaymentMethod.credit) ...[
-                                      const Gap(6),
-                                      Text('(${session.paymentStatus ?? 'Outstanding'})', 
-                                        style: theme.textTheme.labelSmall?.copyWith(
-                                          color: session.paymentStatus == 'Paid' ? AppColors.success 
-                                            : (session.paymentStatus == 'Partially Paid' ? AppColors.warning : AppColors.creditStatus),
-                                          fontWeight: FontWeight.w600,
-                                        ),
-                                      ),
-                                    ],
-                                  ],
+                                Expanded(
+                                  child: Text(
+                                    r.winner == 'Friendly'
+                                        ? 'Frame ${r.roundNumber} · ${(r.durationSeconds ?? 0) ~/ 60} mins${(r.overtimeMinutes ?? 0) > 0 ? " (+${r.overtimeMinutes}m OT)" : ""}'
+                                        : 'Round ${r.roundNumber} · Winner: ${r.winner == 'Team A'
+                                              ? session.players.join(' & ')
+                                              : r.winner == 'Team B'
+                                              ? const <String>[].join(' & ')
+                                              : (r.winner ?? "N/A")}${r.loser != null ? " · Loser: ${r.loser == 'Team A'
+                                                    ? session.players.join(' & ')
+                                                    : r.loser == 'Team B'
+                                                    ? const <String>[].join(' & ')
+                                                    : r.loser}" : ""}${(r.overtimeMinutes ?? 0) > 0 ? " (+${r.overtimeMinutes}m OT)" : ""}',
+                                    style: theme.textTheme.bodyMedium,
+                                  ),
                                 ),
                                 Text(
-                                  '₹${amount.toStringAsFixed(amount.truncateToDouble() == amount ? 0 : 2)}',
-                                  style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600, color: AppColors.primary),
+                                  '₹${(r.roundCost + (r.overtimeCharge ?? 0.0)).toStringAsFixed(2)}',
+                                  style: theme.textTheme.bodyMedium?.copyWith(
+                                    fontWeight: FontWeight.w600,
+                                  ),
                                 ),
                               ],
                             ),
-                          );
-                        }),
-                      ],
-                    ),
-                  );
-                }).toList(),
-              ),
-            ] else ...[
-              _SectionCard(
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        'Payment Method',
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          color: theme.colorScheme.onSurfaceVariant,
-                        ),
-                      ),
-                      if (session.paymentMethod != null)
-                        Row(
-                          children: [
-                            Icon(_paymentIcon(session.paymentMethod!), size: 16, color: theme.colorScheme.onSurface),
-                            const Gap(4),
-                            Text(
-                              session.paymentMethod!.displayName,
-                              style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
-                            ),
-                          ],
+                          ),
                         )
-                      else
-                        const Text('N/A'),
+                        .toList(),
+                  ),
+                  const Gap(24),
+                ] else ...[
+                  Text('Match Results', style: theme.textTheme.titleMedium),
+                  const Gap(8),
+                  _SectionCard(
+                    children: [
+                      if (false) ...[
+                        _InfoRow(
+                          label: 'Winner',
+                          value: session.winnerDisplayName ?? 'N/A',
+                        ),
+                        _InfoRow(label: 'Loser', value: _getLoser(session)),
+                        _InfoRow(
+                          label: 'Paid By',
+                          value: _getLoser(session), // Loser pays
+                        ),
+                      ] else ...[
+                        // Friendly match
+                        _InfoRow(label: 'Paid By', value: 'Shared / Multiple'),
+                      ],
                     ],
                   ),
-                  const Gap(12),
-                  _InfoRow(
-                    label: 'Payment Status',
-                    value: session.paymentStatus ?? (session.paymentMethod == PaymentMethod.credit ? 'Outstanding' : 'Paid'),
-                    valueColor: session.paymentStatus == 'Paid' ? AppColors.success 
-                        : (session.paymentStatus == 'Partially Paid' ? AppColors.warning 
-                        : (session.paymentMethod == PaymentMethod.credit ? AppColors.creditStatus : AppColors.success)),
-                  ),
-                  if (session.paymentMethod == PaymentMethod.credit && session.paymentStatus != 'Paid') ...[
-                    _InfoRow(
-                      label: 'Paid Amount',
-                      value: '₹${(session.paidAmount ?? 0.0).toStringAsFixed(2)}',
-                      valueColor: AppColors.success,
-                    ),
-                    _InfoRow(
-                      label: 'Remaining',
-                      value: '₹${(session.remainingAmount ?? (session.finalAmount ?? session.grandTotal ?? 0.0)).toStringAsFixed(2)}',
-                      valueColor: AppColors.creditStatus,
-                    ),
-                  ],
-                  if (session.endTime != null)
-                    _InfoRow(label: 'Payment Date', value: dtFmt.format(session.endTime!)),
+                  const Gap(24),
                 ],
-              ),
-            ],
-            const Gap(24),
-            if (session.auditLogs.isNotEmpty) ...[
-              Text('Audit History', style: theme.textTheme.titleMedium),
-              const Gap(8),
-              _SectionCard(
-                children: session.auditLogs.map((log) => Padding(
-                  padding: const EdgeInsets.only(bottom: 12.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+
+                // ── Ordered Items ──
+                if (session.orders.isNotEmpty) ...[
+                  Text('Ordered Items', style: theme.textTheme.titleMedium),
+                  const Gap(8),
+                  _SectionCard(
+                    children: playerOrders.entries.map((entry) {
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 12.0),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              entry.key,
+                              style: theme.textTheme.titleSmall?.copyWith(
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                            const Gap(4),
+                            ...entry.value.map(
+                              (o) => Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 2.0,
+                                ),
+                                child: Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Text(
+                                      '${o.quantity}x ${o.productName}',
+                                      style: theme.textTheme.bodyMedium
+                                          ?.copyWith(
+                                            color: theme
+                                                .colorScheme
+                                                .onSurfaceVariant,
+                                          ),
+                                    ),
+                                    Text(
+                                      '₹${o.total.toStringAsFixed(0)}',
+                                      style: theme.textTheme.bodyMedium,
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                  const Gap(24),
+                ],
+
+                // ── Billing Summary ──
+                Text('Billing Summary', style: theme.textTheme.titleMedium),
+                const Gap(8),
+                _SectionCard(
+                  children: [
+                    if (session.billingType == BillingType.perFrame) ...[
+                      _InfoRow(
+                        label: 'Frame Charges',
+                        value:
+                            '₹${(session.baseGameCharge ?? session.gameCharge ?? 0).toStringAsFixed(2)}',
+                      ),
+                      if (session.baseGameCharge != null)
+                        const _InfoRow(
+                          label: 'Grace Period',
+                          value: '20 Mins / Frame',
+                        ),
+                    ] else ...[
+                      _InfoRow(
+                        label: 'Package Charge',
+                        value:
+                            '₹${(session.baseGameCharge ?? session.gameCharge ?? 0).toStringAsFixed(2)}',
+                      ),
+                    ],
+                    if ((session.overtimeMinutes ?? 0) > 0) ...[
+                      _InfoRow(
+                        label: 'Overtime (${session.overtimeMinutes} mins)',
+                        value:
+                            '₹${(session.overtimeCharge ?? 0).toStringAsFixed(2)}',
+                      ),
+                    ],
+                    if (session.overtimeMinutes != null &&
+                        session.overtimeMinutes! > 0) ...[
+                      const Divider(height: 16),
+                      _InfoRow(
+                        label: 'Total Game Charge',
+                        value:
+                            '₹${(session.gameCharge ?? 0).toStringAsFixed(2)}',
+                      ),
+                    ],
+                    if ((session.ordersTotal ?? 0) > 0)
+                      _InfoRow(
+                        label: 'Orders Total',
+                        value: '₹${session.ordersTotal!.toStringAsFixed(2)}',
+                      ),
+                    const Divider(height: 16),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'Grand Total',
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        Text(
+                          '₹${(session.grandTotal ?? 0).toStringAsFixed(2)}',
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ],
+                    ),
+                    if (session.finalAmount != null) ...[
+                      const Gap(8),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            'Final Billed',
+                            style: theme.textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                          Text(
+                            '₹${session.finalAmount!.toStringAsFixed(2)}',
+                            style: theme.textTheme.titleLarge?.copyWith(
+                              color: AppColors.primary,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ],
+                ),
+                const Gap(24),
+
+                // ── Payment Information ──
+                Text('Payment Information', style: theme.textTheme.titleMedium),
+                const Gap(8),
+                if (session.playerPaymentSplits != null &&
+                    session.playerPaymentSplits!.isNotEmpty) ...[
+                  _SectionCard(
+                    children: session.playerPaymentSplits!.entries.map((entry) {
+                      final player = entry.key;
+                      final splits = entry.value;
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 12.0),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              player,
+                              style: theme.textTheme.titleSmall?.copyWith(
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                            const Gap(4),
+                            ...splits.entries.map((splitEntry) {
+                              final method = splitEntry.key;
+                              final amount = splitEntry.value;
+                              return Padding(
+                                padding: const EdgeInsets.only(bottom: 4.0),
+                                child: Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Row(
+                                      children: [
+                                        Icon(
+                                          _paymentIcon(method),
+                                          size: 14,
+                                          color: theme
+                                              .colorScheme
+                                              .onSurfaceVariant,
+                                        ),
+                                        const Gap(4),
+                                        Text(
+                                          method.displayName,
+                                          style: theme.textTheme.bodySmall
+                                              ?.copyWith(
+                                                color: theme
+                                                    .colorScheme
+                                                    .onSurfaceVariant,
+                                              ),
+                                        ),
+                                        if (method == PaymentMethod.credit) ...[
+                                          const Gap(6),
+                                          Text(
+                                            '(${session.paymentStatus ?? 'Outstanding'})',
+                                            style: theme.textTheme.labelSmall
+                                                ?.copyWith(
+                                                  color:
+                                                      session.paymentStatus ==
+                                                          'Paid'
+                                                      ? AppColors.success
+                                                      : (session.paymentStatus ==
+                                                                'Partially Paid'
+                                                            ? AppColors.warning
+                                                            : AppColors
+                                                                  .creditStatus),
+                                                  fontWeight: FontWeight.w600,
+                                                ),
+                                          ),
+                                        ],
+                                      ],
+                                    ),
+                                    Text(
+                                      '₹${amount.toStringAsFixed(amount.truncateToDouble() == amount ? 0 : 2)}',
+                                      style: theme.textTheme.titleSmall
+                                          ?.copyWith(
+                                            fontWeight: FontWeight.w600,
+                                            color: AppColors.primary,
+                                          ),
+                                    ),
+                                  ],
+                                ),
+                              );
+                            }),
+                          ],
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                ] else ...[
+                  _SectionCard(
                     children: [
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Text(log.field, style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.bold)),
-                          Text(dtFmt.format(log.timestamp), style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
+                          Text(
+                            'Payment Method',
+                            style: theme.textTheme.bodyMedium?.copyWith(
+                              color: theme.colorScheme.onSurfaceVariant,
+                            ),
+                          ),
+                          if (session.paymentMethod != null)
+                            Row(
+                              children: [
+                                Icon(
+                                  _paymentIcon(session.paymentMethod!),
+                                  size: 16,
+                                  color: theme.colorScheme.onSurface,
+                                ),
+                                const Gap(4),
+                                Text(
+                                  session.paymentMethod!.displayName,
+                                  style: theme.textTheme.bodyMedium?.copyWith(
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
+                            )
+                          else
+                            const Text('N/A'),
                         ],
                       ),
-                      const Gap(4),
-                      Text('Changed from "${log.previousValue}" to "${log.newValue}" by ${log.editedBy}',
-                        style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
+                      const Gap(12),
+                      _InfoRow(
+                        label: 'Payment Status',
+                        value:
+                            session.paymentStatus ??
+                            (session.paymentMethod == PaymentMethod.credit
+                                ? 'Outstanding'
+                                : 'Paid'),
+                        valueColor: session.paymentStatus == 'Paid'
+                            ? AppColors.success
+                            : (session.paymentStatus == 'Partially Paid'
+                                  ? AppColors.warning
+                                  : (session.paymentMethod ==
+                                            PaymentMethod.credit
+                                        ? AppColors.creditStatus
+                                        : AppColors.success)),
+                      ),
+                      if (session.paymentMethod == PaymentMethod.credit &&
+                          session.paymentStatus != 'Paid') ...[
+                        _InfoRow(
+                          label: 'Paid Amount',
+                          value:
+                              '₹${(session.paidAmount ?? 0.0).toStringAsFixed(2)}',
+                          valueColor: AppColors.success,
+                        ),
+                        _InfoRow(
+                          label: 'Remaining',
+                          value:
+                              '₹${(session.remainingAmount ?? (session.finalAmount ?? session.grandTotal ?? 0.0)).toStringAsFixed(2)}',
+                          valueColor: AppColors.creditStatus,
+                        ),
+                      ],
+                      if (session.endTime != null)
+                        _InfoRow(
+                          label: 'Payment Date',
+                          value: dtFmt.format(session.endTime!),
+                        ),
                     ],
                   ),
-                )).toList(),
-              ),
-            ],
-            const Gap(32),
-          ],
-        ),
-      ),
+                ],
+                const Gap(24),
+                if (session.auditLogs.isNotEmpty) ...[
+                  Text('Audit History', style: theme.textTheme.titleMedium),
+                  const Gap(8),
+                  _SectionCard(
+                    children: session.auditLogs
+                        .map(
+                          (log) => Padding(
+                            padding: const EdgeInsets.only(bottom: 12.0),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Text(
+                                      log.field,
+                                      style: theme.textTheme.bodyMedium
+                                          ?.copyWith(
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                    ),
+                                    Text(
+                                      dtFmt.format(log.timestamp),
+                                      style: theme.textTheme.labelSmall
+                                          ?.copyWith(
+                                            color: theme
+                                                .colorScheme
+                                                .onSurfaceVariant,
+                                          ),
+                                    ),
+                                  ],
+                                ),
+                                const Gap(4),
+                                Text(
+                                  'Changed from "${log.previousValue}" to "${log.newValue}" by ${log.editedBy}',
+                                  style: theme.textTheme.bodySmall?.copyWith(
+                                    color: theme.colorScheme.onSurfaceVariant,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        )
+                        .toList(),
+                  ),
+                ],
+                const Gap(32),
+              ],
+            ),
+          ),
+        );
+      },
     );
-    });
   }
 
   String _getLoser(GameSession session) {
     return session.loserDisplayName ?? 'N/A';
   }
 
-  Future<void> _showEditNamesModal(BuildContext context, GameSession session) async {
+  Future<void> _showEditNamesModal(
+    BuildContext context,
+    GameSession session,
+  ) async {
     final verified = await AdminPasscodeDialog.verify(
       context,
       ref,
@@ -468,7 +617,9 @@ class _BillDetailsScreenState extends ConsumerState<BillDetailsScreen> {
     );
     if (verified != true || !context.mounted) return;
 
-    final playerControllers = session.players.map((name) => TextEditingController(text: name)).toList();
+    final playerControllers = session.players
+        .map((name) => TextEditingController(text: name))
+        .toList();
     final payerController = TextEditingController(text: session.paidBy ?? '');
 
     final result = await showDialog<bool>(
@@ -484,27 +635,35 @@ class _BillDetailsScreenState extends ConsumerState<BillDetailsScreen> {
               for (int i = 0; i < playerControllers.length; i++) ...[
                 if (i > 0) const Gap(8),
                 AppTextField(
-                  label: playerControllers.length > 1 ? 'Player ${i + 1}' : 'Player Name',
+                  label: playerControllers.length > 1
+                      ? 'Player ${i + 1}'
+                      : 'Player Name',
                   controller: playerControllers[i],
                 ),
               ],
               if (session.paidBy != null) ...[
                 const Gap(16),
-                const Text('Payer Name (Credit / Bill)', style: TextStyle(fontWeight: FontWeight.bold)),
-                const Gap(8),
-                AppTextField(
-                  label: 'Paid By',
-                  controller: payerController,
+                const Text(
+                  'Payer Name (Credit / Bill)',
+                  style: TextStyle(fontWeight: FontWeight.bold),
                 ),
+                const Gap(8),
+                AppTextField(label: 'Paid By', controller: payerController),
               ],
             ],
           ),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: Text(AppLocalizations.of(context)!.cancel)),
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: Text(AppLocalizations.of(context)!.cancel),
+          ),
           ElevatedButton(
             onPressed: () => Navigator.of(ctx).pop(true),
-            style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary, foregroundColor: Colors.white),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primary,
+              foregroundColor: Colors.white,
+            ),
             child: const Text('Save Changes'),
           ),
         ],
@@ -513,24 +672,34 @@ class _BillDetailsScreenState extends ConsumerState<BillDetailsScreen> {
 
     if (result == true && context.mounted) {
       final newPlayers = playerControllers.map((c) => c.text.trim()).toList();
-      final newPaidBy = session.paidBy != null ? payerController.text.trim() : null;
+      final newPaidBy = session.paidBy != null
+          ? payerController.text.trim()
+          : null;
 
       try {
-        await ref.read(gamesRepositoryProvider).updateGameNames(
-          session: session,
-          newPlayers: newPlayers,
-          newPaidBy: newPaidBy,
-          employeeName: 'Admin',
-        );
+        await ref
+            .read(gamesRepositoryProvider)
+            .updateGameNames(
+              session: session,
+              newPlayers: newPlayers,
+              newPaidBy: newPaidBy,
+              employeeName: 'Admin',
+            );
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Player names updated and synced.'), backgroundColor: AppColors.success),
+            const SnackBar(
+              content: Text('Player names updated and synced.'),
+              backgroundColor: AppColors.success,
+            ),
           );
         }
       } catch (e) {
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Error: $e'), backgroundColor: AppColors.error),
+            SnackBar(
+              content: Text('Error: $e'),
+              backgroundColor: AppColors.error,
+            ),
           );
         }
       }
@@ -542,7 +711,10 @@ class _BillDetailsScreenState extends ConsumerState<BillDetailsScreen> {
     payerController.dispose();
   }
 
-  Future<void> _showEditPaymentModal(BuildContext context, GameSession session) async {
+  Future<void> _showEditPaymentModal(
+    BuildContext context,
+    GameSession session,
+  ) async {
     final verified = await AdminPasscodeDialog.verify(
       context,
       ref,
@@ -551,16 +723,25 @@ class _BillDetailsScreenState extends ConsumerState<BillDetailsScreen> {
     );
     if (verified != true || !context.mounted) return;
 
-    final isSplit = session.playerPaymentSplits != null && session.playerPaymentSplits!.isNotEmpty;
+    final isSplit =
+        session.playerPaymentSplits != null &&
+        session.playerPaymentSplits!.isNotEmpty;
 
     if (isSplit) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Editing individual player payment methods is currently unsupported for split payments.')),
+        const SnackBar(
+          content: Text(
+            'Editing individual player payment methods is currently unsupported for split payments.',
+          ),
+        ),
       );
       return;
     } else {
-      final hasDefaultPlayer = session.players.any((p) => p.toLowerCase().startsWith('default'));
-      PaymentMethod selectedMethod = session.paymentMethod ?? PaymentMethod.cash;
+      final hasDefaultPlayer = session.players.any(
+        (p) => p.toLowerCase().startsWith('default'),
+      );
+      PaymentMethod selectedMethod =
+          session.paymentMethod ?? PaymentMethod.cash;
       if (selectedMethod == PaymentMethod.credit && hasDefaultPlayer) {
         selectedMethod = PaymentMethod.cash;
       }
@@ -570,7 +751,9 @@ class _BillDetailsScreenState extends ConsumerState<BillDetailsScreen> {
         context: context,
         builder: (ctx) => StatefulBuilder(
           builder: (ctx, setState) => AlertDialog(
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
             title: const Text('Edit Payment Method'),
             content: Column(
               mainAxisSize: MainAxisSize.min,
@@ -578,10 +761,24 @@ class _BillDetailsScreenState extends ConsumerState<BillDetailsScreen> {
               children: [
                 DropdownButtonFormField<PaymentMethod>(
                   value: selectedMethod,
-                  decoration: const InputDecoration(labelText: 'Payment Method', border: OutlineInputBorder()),
+                  decoration: const InputDecoration(
+                    labelText: 'Payment Method',
+                    border: OutlineInputBorder(),
+                  ),
                   items: PaymentMethod.values
-                      .where((m) => !(m == PaymentMethod.credit && session.players.any((p) => p.toLowerCase().startsWith('default'))))
-                      .map((m) => DropdownMenuItem(value: m, child: Text(m.displayName)))
+                      .where(
+                        (m) =>
+                            !(m == PaymentMethod.credit &&
+                                session.players.any(
+                                  (p) => p.toLowerCase().startsWith('default'),
+                                )),
+                      )
+                      .map(
+                        (m) => DropdownMenuItem(
+                          value: m,
+                          child: Text(m.displayName),
+                        ),
+                      )
                       .toList(),
                   onChanged: (val) {
                     if (val != null) setState(() => selectedMethod = val);
@@ -597,10 +794,16 @@ class _BillDetailsScreenState extends ConsumerState<BillDetailsScreen> {
               ],
             ),
             actions: [
-              TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: Text(AppLocalizations.of(context)!.cancel)),
+              TextButton(
+                onPressed: () => Navigator.of(ctx).pop(false),
+                child: Text(AppLocalizations.of(context)!.cancel),
+              ),
               ElevatedButton(
                 onPressed: () => Navigator.of(ctx).pop(true),
-                style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary, foregroundColor: Colors.white),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  foregroundColor: Colors.white,
+                ),
                 child: const Text('Save Changes'),
               ),
             ],
@@ -610,21 +813,33 @@ class _BillDetailsScreenState extends ConsumerState<BillDetailsScreen> {
 
       if (result == true && context.mounted) {
         try {
-          await ref.read(gamesRepositoryProvider).updateGamePaymentMethods(
-            session: session,
-            newPaymentMethod: selectedMethod,
-            newPaidBy: selectedMethod == PaymentMethod.credit ? payerController.text.trim() : null,
-            employeeName: 'Admin',
-          );
+          await ref
+              .read(gamesRepositoryProvider)
+              .updateGamePaymentMethods(
+                session: session,
+                newPaymentMethod: selectedMethod,
+                newPaidBy: selectedMethod == PaymentMethod.credit
+                    ? payerController.text.trim()
+                    : null,
+                employeeName: 'Admin',
+              );
           if (context.mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Payment method updated & credit accounts adjusted.'), backgroundColor: AppColors.success),
+              const SnackBar(
+                content: Text(
+                  'Payment method updated & credit accounts adjusted.',
+                ),
+                backgroundColor: AppColors.success,
+              ),
             );
           }
         } catch (e) {
           if (context.mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('Error: $e'), backgroundColor: AppColors.error),
+              SnackBar(
+                content: Text('Error: $e'),
+                backgroundColor: AppColors.error,
+              ),
             );
           }
         }
@@ -633,7 +848,6 @@ class _BillDetailsScreenState extends ConsumerState<BillDetailsScreen> {
     }
   }
 }
-
 
 class _SectionCard extends StatelessWidget {
   final List<Widget> children;

@@ -23,9 +23,7 @@ class AppSecondaryButton extends StatelessWidget {
       onPressed: isLoading ? null : onPressed,
       style: FilledButton.styleFrom(
         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         minimumSize: isExpanded ? const Size(double.infinity, 52) : null,
       ),
       child: isLoading
@@ -38,7 +36,10 @@ class AppSecondaryButton extends StatelessWidget {
               mainAxisSize: isExpanded ? MainAxisSize.max : MainAxisSize.min,
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                if (icon != null) ...[Icon(icon, size: 20), const SizedBox(width: 8)],
+                if (icon != null) ...[
+                  Icon(icon, size: 20),
+                  const SizedBox(width: 8),
+                ],
                 Text(label),
               ],
             ),

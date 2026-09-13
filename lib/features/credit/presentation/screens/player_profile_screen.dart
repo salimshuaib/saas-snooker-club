@@ -15,16 +15,27 @@ import 'package:snooker_club/features/quick_sales/presentation/screens/quick_sal
 import 'package:snooker_club/features/credit/domain/models/credit_models.dart';
 import 'package:snooker_club/features/credit/providers/credit_providers.dart';
 
-final playerGamesProvider = FutureProvider.autoDispose.family<List<GameSession>, PlayerProfile>((ref, player) async {
-  final repo = ref.watch(gamesRepositoryProvider);
-  return repo.getGamesForPlayer(player.id, player.name);
-});
+final playerGamesProvider = FutureProvider.autoDispose
+    .family<List<GameSession>, PlayerProfile>((ref, player) async {
+      final repo = ref.watch(gamesRepositoryProvider);
+      return repo.getGamesForPlayer(player.id, player.name);
+    });
 
-final playerQuickSalesProvider = StreamProvider.autoDispose.family<List<QuickSale>, PlayerProfile>((ref, player) {
-  return ref.watch(quickSalesRepositoryProvider)
-      .watchAllQuickSales()
-      .map((sales) => sales.where((s) => s.customerId == player.id || s.customerName == player.name).toList());
-});
+final playerQuickSalesProvider = StreamProvider.autoDispose
+    .family<List<QuickSale>, PlayerProfile>((ref, player) {
+      return ref
+          .watch(quickSalesRepositoryProvider)
+          .watchAllQuickSales()
+          .map(
+            (sales) => sales
+                .where(
+                  (s) =>
+                      s.customerId == player.id ||
+                      s.customerName == player.name,
+                )
+                .toList(),
+          );
+    });
 
 class PlayerProfileScreen extends ConsumerStatefulWidget {
   final PlayerProfile customer;
@@ -32,7 +43,8 @@ class PlayerProfileScreen extends ConsumerStatefulWidget {
   const PlayerProfileScreen({super.key, required this.customer});
 
   @override
-  ConsumerState<PlayerProfileScreen> createState() => _PlayerProfileScreenState();
+  ConsumerState<PlayerProfileScreen> createState() =>
+      _PlayerProfileScreenState();
 }
 
 class _PlayerProfileScreenState extends ConsumerState<PlayerProfileScreen> {
@@ -42,15 +54,17 @@ class _PlayerProfileScreenState extends ConsumerState<PlayerProfileScreen> {
     final customersAsync = ref.watch(allCustomersProvider);
     final currentCustomer = customersAsync.maybeWhen(
       data: (list) => list.firstWhere(
-        (c) => c.id == widget.customer.id, 
+        (c) => c.id == widget.customer.id,
         orElse: () => widget.customer,
       ),
       orElse: () => widget.customer,
     );
 
     final gamesAsync = ref.watch(playerGamesProvider(currentCustomer));
-    final quickSalesAsync = ref.watch(playerQuickSalesProvider(currentCustomer));
-        final currency = ref.watch(currencyProvider);
+    final quickSalesAsync = ref.watch(
+      playerQuickSalesProvider(currentCustomer),
+    );
+    final currency = ref.watch(currencyProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -90,9 +104,19 @@ class _PlayerProfileScreenState extends ConsumerState<PlayerProfileScreen> {
                   Expanded(
                     child: TabBarView(
                       children: [
-                        _TransactionsTab(customerId: currentCustomer.id, currency: currency),
-                        _GamesTab(gamesAsync: gamesAsync, currency: currency, customer: currentCustomer),
-                        _QuickSalesTab(quickSalesAsync: quickSalesAsync, currency: currency),
+                        _TransactionsTab(
+                          customerId: currentCustomer.id,
+                          currency: currency,
+                        ),
+                        _GamesTab(
+                          gamesAsync: gamesAsync,
+                          currency: currency,
+                          customer: currentCustomer,
+                        ),
+                        _QuickSalesTab(
+                          quickSalesAsync: quickSalesAsync,
+                          currency: currency,
+                        ),
                       ],
                     ),
                   ),
@@ -104,18 +128,30 @@ class _PlayerProfileScreenState extends ConsumerState<PlayerProfileScreen> {
       ),
       floatingActionButton: currentCustomer.outstandingAmount > 0
           ? FloatingActionButton.extended(
-              onPressed: () => _showPaymentBottomSheet(context, currentCustomer),
+              onPressed: () =>
+                  _showPaymentBottomSheet(context, currentCustomer),
               backgroundColor: AppColors.success,
               icon: const Icon(Icons.payments, color: Colors.white),
-              label: const Text('Receive Payment', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+              label: const Text(
+                'Receive Payment',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
             )
           : null,
     );
   }
 
-  Future<void> _editCustomerName(BuildContext context, PlayerProfile customer) async {
+  Future<void> _editCustomerName(
+    BuildContext context,
+    PlayerProfile customer,
+  ) async {
     final nameController = TextEditingController(text: customer.name);
-    final mobileController = TextEditingController(text: customer.mobileNumber ?? '');
+    final mobileController = TextEditingController(
+      text: customer.mobileNumber ?? '',
+    );
 
     final result = await showDialog<bool>(
       context: context,
@@ -155,8 +191,13 @@ class _PlayerProfileScreenState extends ConsumerState<PlayerProfileScreen> {
       final newMobile = mobileController.text.trim();
       if (newName.isNotEmpty) {
         try {
-          final updatedProfile = customer.copyWith(name: newName, mobileNumber: newMobile.isEmpty ? null : newMobile);
-          await ref.read(creditRepositoryProvider).savePlayerProfile(updatedProfile);
+          final updatedProfile = customer.copyWith(
+            name: newName,
+            mobileNumber: newMobile.isEmpty ? null : newMobile,
+          );
+          await ref
+              .read(creditRepositoryProvider)
+              .savePlayerProfile(updatedProfile);
         } catch (e) {
           if (context.mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
@@ -170,12 +211,14 @@ class _PlayerProfileScreenState extends ConsumerState<PlayerProfileScreen> {
 
   void _showPaymentBottomSheet(BuildContext context, PlayerProfile customer) {
     showModalBottomSheet(
-useRootNavigator: true,
-context: context,
+      useRootNavigator: true,
+      context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (context) => Padding(
-        padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+        padding: EdgeInsets.only(
+          bottom: MediaQuery.of(context).viewInsets.bottom,
+        ),
         child: Container(
           decoration: BoxDecoration(
             color: Theme.of(context).colorScheme.surface,
@@ -204,21 +247,23 @@ class _ProfileHeaderCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
-    
+
     int totalGames = 0;
     int snookerGames = 0;
     int poolGames = 0;
-    
+
     gamesAsync.whenData((games) {
       totalGames = games.length;
       for (final g in games) {
-        if (g.tableType == TableType.snooker) snookerGames++;
-        else poolGames++;
+        if (g.tableType == TableType.snooker)
+          snookerGames++;
+        else
+          poolGames++;
       }
     });
 
     final transactionsAsync = ref.watch(allTransactionsProvider(customer.id));
-    
+
     double totalMoneyPaid = 0;
     transactionsAsync.whenData((txs) {
       for (final tx in txs) {
@@ -260,16 +305,23 @@ class _ProfileHeaderCard extends ConsumerWidget {
                   children: [
                     Text(
                       customer.name,
-                      style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+                      style: theme.textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
-                    if (customer.mobileNumber != null && customer.mobileNumber!.isNotEmpty)
+                    if (customer.mobileNumber != null &&
+                        customer.mobileNumber!.isNotEmpty)
                       Text(
                         '📱 ${customer.mobileNumber}',
-                        style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
                       ),
                     Text(
                       'ID: ${customer.id.substring(0, 8).toUpperCase()}',
-                      style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
                     ),
                   ],
                 ),
@@ -286,8 +338,8 @@ class _ProfileHeaderCard extends ConsumerWidget {
                   Text(
                     CurrencyHelper.format(customer.outstandingAmount, currency),
                     style: theme.textTheme.titleLarge?.copyWith(
-                      color: customer.outstandingAmount > 0 
-                          ? AppColors.error 
+                      color: customer.outstandingAmount > 0
+                          ? AppColors.error
                           : AppColors.success,
                       fontWeight: FontWeight.bold,
                     ),
@@ -303,7 +355,10 @@ class _ProfileHeaderCard extends ConsumerWidget {
               _StatItem(label: 'Total Games', value: totalGames.toString()),
               _StatItem(label: 'Snooker', value: snookerGames.toString()),
               _StatItem(label: 'Pool', value: poolGames.toString()),
-              _StatItem(label: 'Total Paid', value: CurrencyHelper.format(totalMoneyPaid, currency)),
+              _StatItem(
+                label: 'Total Paid',
+                value: CurrencyHelper.format(totalMoneyPaid, currency),
+              ),
             ],
           ),
         ],
@@ -322,8 +377,18 @@ class _StatItem extends StatelessWidget {
     final theme = Theme.of(context);
     return Column(
       children: [
-        Text(value, style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
-        Text(label, style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
+        Text(
+          value,
+          style: theme.textTheme.titleMedium?.copyWith(
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        Text(
+          label,
+          style: theme.textTheme.bodySmall?.copyWith(
+            color: theme.colorScheme.onSurfaceVariant,
+          ),
+        ),
       ],
     );
   }
@@ -333,7 +398,11 @@ class _GamesTab extends StatelessWidget {
   final AsyncValue<List<GameSession>> gamesAsync;
   final dynamic currency;
   final PlayerProfile customer;
-  const _GamesTab({required this.gamesAsync, required this.currency, required this.customer});
+  const _GamesTab({
+    required this.gamesAsync,
+    required this.currency,
+    required this.customer,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -349,14 +418,18 @@ class _GamesTab extends StatelessWidget {
           itemCount: games.length,
           itemBuilder: (context, index) {
             final game = games[index];
-            
-            final bool didAnotherPlayerPay = game.paidBy != null && 
-                game.paidBy!.trim().toLowerCase() != customer.name.trim().toLowerCase();
-                
+
+            final bool didAnotherPlayerPay =
+                game.paidBy != null &&
+                game.paidBy!.trim().toLowerCase() !=
+                    customer.name.trim().toLowerCase();
+
             return Card(
               margin: const EdgeInsets.only(bottom: 8),
               child: ListTile(
-                title: Text('${game.tableName} (${game.tableType.displayName})'),
+                title: Text(
+                  '${game.tableName} (${game.tableType.displayName})',
+                ),
                 subtitle: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -379,9 +452,14 @@ class _GamesTab extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
                     Text(
-                      CurrencyHelper.format(game.finalAmount ?? game.grandTotal ?? 0, currency),
+                      CurrencyHelper.format(
+                        game.finalAmount ?? game.grandTotal ?? 0,
+                        currency,
+                      ),
                       style: TextStyle(
-                        decoration: didAnotherPlayerPay ? TextDecoration.lineThrough : null,
+                        decoration: didAnotherPlayerPay
+                            ? TextDecoration.lineThrough
+                            : null,
                         color: didAnotherPlayerPay ? Colors.grey : null,
                         fontWeight: FontWeight.bold,
                         fontSize: 14,
@@ -434,7 +512,9 @@ class _QuickSalesTab extends StatelessWidget {
               child: ListTile(
                 title: Text('Items: ${sale.items.length}'),
                 subtitle: Text(DateFormat('MMM d, y h:mm a').format(sale.date)),
-                trailing: Text(CurrencyHelper.format(sale.totalAmount, currency)),
+                trailing: Text(
+                  CurrencyHelper.format(sale.totalAmount, currency),
+                ),
                 onTap: () {
                   Navigator.of(context).push(
                     MaterialPageRoute(
@@ -459,7 +539,7 @@ class _TransactionsTab extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final transactionsAsync = ref.watch(allTransactionsProvider(customerId));
-    
+
     return transactionsAsync.when(
       loading: () => const Center(child: CircularProgressIndicator()),
       error: (e, st) => Center(child: Text('Error loading transactions: $e')),
@@ -472,18 +552,22 @@ class _TransactionsTab extends ConsumerWidget {
           itemCount: transactions.length,
           itemBuilder: (context, index) {
             final tx = transactions[index];
-            final isCreditGiven = tx.status == CreditTransactionStatus.pending || tx.status == CreditTransactionStatus.partiallyPaid;
-            
-            final icon = isCreditGiven ? Icons.arrow_upward : Icons.arrow_downward;
+            final isCreditGiven =
+                tx.status == CreditTransactionStatus.pending ||
+                tx.status == CreditTransactionStatus.partiallyPaid;
+
+            final icon = isCreditGiven
+                ? Icons.arrow_upward
+                : Icons.arrow_downward;
             final color = isCreditGiven ? AppColors.error : AppColors.success;
-            
+
             String mainTitle = '';
             if (isCreditGiven) {
               mainTitle = 'Credit Given';
             } else {
               mainTitle = 'Payment Received';
             }
-            
+
             String subTitle = tx.title;
             if (tx.paymentMethod != null) {
               subTitle += ' • ${tx.paymentMethod!.displayName}';
@@ -491,7 +575,8 @@ class _TransactionsTab extends ConsumerWidget {
             if (tx.subtitle != null) {
               subTitle += '\n${tx.subtitle}';
             }
-            subTitle += '\n${DateFormat('MMM d, yyyy - h:mm a').format(tx.date)}';
+            subTitle +=
+                '\n${DateFormat('MMM d, yyyy - h:mm a').format(tx.date)}';
 
             return Card(
               margin: const EdgeInsets.only(bottom: 8),
@@ -505,7 +590,10 @@ class _TransactionsTab extends ConsumerWidget {
                   ),
                   child: Icon(icon, color: color),
                 ),
-                title: Text(mainTitle, style: const TextStyle(fontWeight: FontWeight.bold)),
+                title: Text(
+                  mainTitle,
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                ),
                 subtitle: Text(subTitle),
                 trailing: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -513,7 +601,11 @@ class _TransactionsTab extends ConsumerWidget {
                   children: [
                     Text(
                       CurrencyHelper.format(tx.amount, currency),
-                      style: TextStyle(color: color, fontWeight: FontWeight.bold, fontSize: 16),
+                      style: TextStyle(
+                        color: color,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
                     ),
                     if (isCreditGiven)
                       const Text(
@@ -523,7 +615,10 @@ class _TransactionsTab extends ConsumerWidget {
                     else
                       const Text(
                         'Paid',
-                        style: TextStyle(color: AppColors.success, fontSize: 12),
+                        style: TextStyle(
+                          color: AppColors.success,
+                          fontSize: 12,
+                        ),
                       ),
                   ],
                 ),
@@ -575,7 +670,9 @@ class _PaymentSheetState extends ConsumerState<_PaymentSheet> {
       return;
     }
 
-    final roundedOutstanding = double.parse(widget.customer.outstandingAmount.toStringAsFixed(2));
+    final roundedOutstanding = double.parse(
+      widget.customer.outstandingAmount.toStringAsFixed(2),
+    );
     final roundedAmount = double.parse(amount.toStringAsFixed(2));
 
     if (roundedAmount > roundedOutstanding) {
@@ -586,7 +683,9 @@ class _PaymentSheetState extends ConsumerState<_PaymentSheet> {
     // Security check omitted for now
     setState(() => _isLoading = true);
     try {
-      await ref.read(creditControllerProvider.notifier).processPayment(
+      await ref
+          .read(creditControllerProvider.notifier)
+          .processPayment(
             customer: widget.customer,
             paymentAmount: amount,
             paymentMethod: _paymentMethod,
@@ -613,7 +712,7 @@ class _PaymentSheetState extends ConsumerState<_PaymentSheet> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final currency = ref.watch(currencyProvider);
-    
+
     return Padding(
       padding: const EdgeInsets.all(24),
       child: Column(
@@ -623,8 +722,16 @@ class _PaymentSheetState extends ConsumerState<_PaymentSheet> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('Receive Payment', style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold)),
-              IconButton(icon: const Icon(Icons.close), onPressed: () => Navigator.pop(context)),
+              Text(
+                'Receive Payment',
+                style: theme.textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              IconButton(
+                icon: const Icon(Icons.close),
+                onPressed: () => Navigator.pop(context),
+              ),
             ],
           ),
           const Gap(24),
@@ -638,9 +745,15 @@ class _PaymentSheetState extends ConsumerState<_PaymentSheet> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text('Current Outstanding', style: TextStyle(fontWeight: FontWeight.w500)),
+                const Text(
+                  'Current Outstanding',
+                  style: TextStyle(fontWeight: FontWeight.w500),
+                ),
                 Text(
-                  CurrencyHelper.format(widget.customer.outstandingAmount, currency),
+                  CurrencyHelper.format(
+                    widget.customer.outstandingAmount,
+                    currency,
+                  ),
                   style: const TextStyle(
                     color: AppColors.error,
                     fontWeight: FontWeight.bold,
@@ -666,11 +779,20 @@ class _PaymentSheetState extends ConsumerState<_PaymentSheet> {
           const Gap(8),
           SegmentedButton<PaymentMethod>(
             segments: const [
-              ButtonSegment(value: PaymentMethod.cash, label: Text('Cash'), icon: Icon(Icons.money)),
-              ButtonSegment(value: PaymentMethod.upi, label: Text('UPI'), icon: Icon(Icons.qr_code)),
+              ButtonSegment(
+                value: PaymentMethod.cash,
+                label: Text('Cash'),
+                icon: Icon(Icons.money),
+              ),
+              ButtonSegment(
+                value: PaymentMethod.upi,
+                label: Text('UPI'),
+                icon: Icon(Icons.qr_code),
+              ),
             ],
             selected: {_paymentMethod},
-            onSelectionChanged: (set) => setState(() => _paymentMethod = set.first),
+            onSelectionChanged: (set) =>
+                setState(() => _paymentMethod = set.first),
           ),
           const Gap(32),
           FilledButton(
@@ -680,8 +802,18 @@ class _PaymentSheetState extends ConsumerState<_PaymentSheet> {
               backgroundColor: AppColors.success,
             ),
             child: _isLoading
-                ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                : const Text('Confirm Payment', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                ? const SizedBox(
+                    height: 20,
+                    width: 20,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: Colors.white,
+                    ),
+                  )
+                : const Text(
+                    'Confirm Payment',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
           ),
         ],
       ),

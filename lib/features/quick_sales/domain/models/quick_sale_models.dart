@@ -2,7 +2,6 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:snooker_club/core/models/audit_log.dart';
 import 'package:snooker_club/features/games/domain/models/game_models.dart';
 
-
 class QuickSale {
   final String? createdByUserId;
   final String? createdByName;
@@ -41,7 +40,7 @@ class QuickSale {
   });
 
   QuickSale copyWith({
-        String? createdByUserId,
+    String? createdByUserId,
     String? createdByName,
     String? updatedByUserId,
     String? updatedByName,
@@ -59,7 +58,7 @@ class QuickSale {
     List<AuditLog>? auditLogs,
   }) {
     return QuickSale(
-            createdByUserId: createdByUserId ?? this.createdByUserId,
+      createdByUserId: createdByUserId ?? this.createdByUserId,
       createdByName: createdByName ?? this.createdByName,
       updatedByUserId: updatedByUserId ?? this.updatedByUserId,
       updatedByName: updatedByName ?? this.updatedByName,
@@ -100,14 +99,15 @@ class QuickSale {
 
   factory QuickSale.fromMap(String id, Map<String, dynamic> map) {
     return QuickSale(
-            createdByUserId: map['createdByUserId'] as String?,
+      createdByUserId: map['createdByUserId'] as String?,
       createdByName: map['createdByName'] as String?,
       updatedByUserId: map['updatedByUserId'] as String?,
       updatedByName: map['updatedByName'] as String?,
       id: id,
       customerName: map['customerName'] as String?,
       customerId: map['customerId'] as String?,
-      items: (map['items'] as List<dynamic>?)
+      items:
+          (map['items'] as List<dynamic>?)
               ?.map((item) => GameOrder.fromMap(item as Map<String, dynamic>))
               .toList() ??
           [],
@@ -121,12 +121,11 @@ class QuickSale {
       remainingAmount: (map['remainingAmount'] as num?)?.toDouble(),
       employeeName: map['employeeName'] as String? ?? 'Admin',
       date: (map['date'] as Timestamp?)?.toDate() ?? DateTime.now(),
-      auditLogs: (map['auditLogs'] as List<dynamic>?)
+      auditLogs:
+          (map['auditLogs'] as List<dynamic>?)
               ?.map((a) => AuditLog.fromMap(a as Map<String, dynamic>))
               .toList() ??
           [],
     );
   }
 }
-
-

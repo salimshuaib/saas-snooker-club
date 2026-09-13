@@ -18,7 +18,12 @@ class RunningTablesScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final tables = ref.watch(resolvedTablesProvider);
-    final runningTables = tables.where((t) => t.status == TableStatus.running || t.status == TableStatus.paused).toList();
+    final runningTables = tables
+        .where(
+          (t) =>
+              t.status == TableStatus.running || t.status == TableStatus.paused,
+        )
+        .toList();
 
     return Scaffold(
       appBar: AppBar(
@@ -60,7 +65,11 @@ class _RunningTableTile extends ConsumerWidget {
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
           side: BorderSide(
-            color: (table.status == TableStatus.running ? AppColors.running : AppColors.paused).withValues(alpha: 0.5),
+            color:
+                (table.status == TableStatus.running
+                        ? AppColors.running
+                        : AppColors.paused)
+                    .withValues(alpha: 0.5),
             width: 1.5,
           ),
         ),
@@ -88,10 +97,17 @@ class _RunningTableTile extends ConsumerWidget {
                 if (game == null) {
                   return Text(
                     'Table marked ${table.status.displayName} but no active game found.',
-                    style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.error),
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: theme.colorScheme.error,
+                    ),
                   );
                 }
-                return ActiveGameCard(table: table, game: game, isToday: true, showTableName: true);
+                return ActiveGameCard(
+                  table: table,
+                  game: game,
+                  isToday: true,
+                  showTableName: true,
+                );
               },
             ),
           ),

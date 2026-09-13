@@ -48,18 +48,22 @@ class AuthRepository {
   Future<User> signInWithGoogle() async {
     try {
       AppLogger.info('Attempting Google Sign-In');
-      
+
       if (kIsWeb) {
         // On web, use Firebase's native popup which avoids needing a meta tag client ID
         final authProvider = GoogleAuthProvider();
-        final UserCredential userCredential = await _auth.signInWithPopup(authProvider);
-        AppLogger.info('Google Sign-In successful for: ${userCredential.user?.email}');
+        final UserCredential userCredential = await _auth.signInWithPopup(
+          authProvider,
+        );
+        AppLogger.info(
+          'Google Sign-In successful for: ${userCredential.user?.email}',
+        );
         return userCredential.user!;
       } else {
         // Mobile uses the google_sign_in package
         final GoogleSignIn googleSignIn = GoogleSignIn();
         final GoogleSignInAccount? googleUser = await googleSignIn.signIn();
-        
+
         if (googleUser == null) {
           AppLogger.warning('Google Sign-In aborted by user');
           throw const AuthException(
@@ -68,23 +72,31 @@ class AuthRepository {
           );
         }
 
-        final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
+        final GoogleSignInAuthentication googleAuth =
+            await googleUser.authentication;
         final OAuthCredential credential = GoogleAuthProvider.credential(
           accessToken: googleAuth.accessToken,
           idToken: googleAuth.idToken,
         );
 
-        final UserCredential userCredential = await _auth.signInWithCredential(credential);
-        AppLogger.info('Google Sign-In successful for: ${userCredential.user?.email}');
+        final UserCredential userCredential = await _auth.signInWithCredential(
+          credential,
+        );
+        AppLogger.info(
+          'Google Sign-In successful for: ${userCredential.user?.email}',
+        );
         return userCredential.user!;
       }
     } on FirebaseAuthException catch (e) {
-      AppLogger.warning('FirebaseAuthException during Google Sign-In: ${e.code}');
+      AppLogger.warning(
+        'FirebaseAuthException during Google Sign-In: ${e.code}',
+      );
       throw _mapFirebaseError(e);
     } catch (e) {
       AppLogger.error('Unexpected Google Sign-In error: $e');
       throw const AuthException(
-        message: 'An unexpected error occurred during Google Sign-In. Please try again.',
+        message:
+            'An unexpected error occurred during Google Sign-In. Please try again.',
         code: 'unknown',
       );
     }
@@ -135,7 +147,8 @@ class AuthRepository {
         );
       case 'too-many-requests':
         return const AuthException(
-          message: 'Too many failed attempts. Please wait a few minutes and try again.',
+          message:
+              'Too many failed attempts. Please wait a few minutes and try again.',
           code: 'too-many-requests',
         );
       case 'network-request-failed':
@@ -145,7 +158,8 @@ class AuthRepository {
         );
       case 'operation-not-allowed':
         return const AuthException(
-          message: 'Email/password sign-in is not enabled. Contact the administrator.',
+          message:
+              'Email/password sign-in is not enabled. Contact the administrator.',
           code: 'operation-not-allowed',
         );
       default:

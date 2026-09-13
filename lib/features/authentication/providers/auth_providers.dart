@@ -52,8 +52,5 @@ Stream<User?> _seededAuthStream(User seed, Stream<User?> authStream) async* {
 /// Convenience provider: true if user is currently signed in.
 final isAuthenticatedProvider = Provider<bool>((ref) {
   final authState = ref.watch(authStateProvider);
-  return authState.maybeWhen(
-    data: (user) => user != null,
-    orElse: () => false,
-  );
+  return authState.maybeWhen(data: (user) => user != null, orElse: () => false);
 });

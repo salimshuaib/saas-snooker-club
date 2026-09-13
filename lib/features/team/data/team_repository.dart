@@ -10,16 +10,23 @@ class TeamRepository {
   final FirebaseFirestore _db;
   final String? clubId;
 
-  TeamRepository({FirebaseFirestore? db, this.clubId}) : _db = db ?? FirebaseFirestore.instance;
+  TeamRepository({FirebaseFirestore? db, this.clubId})
+    : _db = db ?? FirebaseFirestore.instance;
 
   CollectionReference<Map<String, dynamic>> get _teamRef {
-    if (clubId == null) throw Exception('clubId cannot be null for TeamRepository');
-    return _db.collection(FirebaseConstants.clubsCollection).doc(clubId).collection('team_members');
+    if (clubId == null)
+      throw Exception('clubId cannot be null for TeamRepository');
+    return _db
+        .collection(FirebaseConstants.clubsCollection)
+        .doc(clubId)
+        .collection('team_members');
   }
 
   Stream<List<StaffMember>> watchTeamMembers() {
     return _teamRef.snapshots().map((snapshot) {
-      return snapshot.docs.map((doc) => StaffMember.fromMap(doc.data(), doc.id)).toList();
+      return snapshot.docs
+          .map((doc) => StaffMember.fromMap(doc.data(), doc.id))
+          .toList();
     });
   }
 
@@ -41,11 +48,17 @@ class TeamRepository {
   }
 
   Future<void> disableStaffMember(String uid) async {
-    await _teamRef.doc(uid).update({'isActive': false, 'updatedAt': FieldValue.serverTimestamp()});
+    await _teamRef.doc(uid).update({
+      'isActive': false,
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
   }
-  
+
   Future<void> enableStaffMember(String uid) async {
-    await _teamRef.doc(uid).update({'isActive': true, 'updatedAt': FieldValue.serverTimestamp()});
+    await _teamRef.doc(uid).update({
+      'isActive': true,
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
   }
 
   Future<void> addStaffMember({
@@ -61,16 +74,16 @@ class TeamRepository {
         name: 'temp_auth_${DateTime.now().millisecondsSinceEpoch}',
         options: Firebase.app().options,
       );
-      
+
       final tempAuth = FirebaseAuth.instanceFor(app: tempApp);
-      
+
       final userCredential = await tempAuth.createUserWithEmailAndPassword(
         email: email.trim(),
         password: password,
       );
-      
+
       final uid = userCredential.user!.uid;
-      
+
       final now = DateTime.now();
       final newMember = StaffMember(
         id: uid,
@@ -84,19 +97,31 @@ class TeamRepository {
 
       final batch = _db.batch();
       batch.set(_teamRef.doc(uid), newMember.toMap());
-      batch.set(_db.collection(FirebaseConstants.userClubsCollection).doc(uid), {
-        'clubId': clubId,
-        'role': role.name,
-      });
+      batch.set(
+        _db.collection(FirebaseConstants.userClubsCollection).doc(uid),
+        {'clubId': clubId, 'role': role.name},
+      );
       await batch.commit();
-      
+
       await tempApp.delete();
     } on FirebaseAuthException catch (e) {
-      if (tempApp != null) { try { await tempApp.delete(); } catch (_) {} }
-      throw AuthException(message: e.message ?? 'Failed to create staff account');
+      if (tempApp != null) {
+        try {
+          await tempApp.delete();
+        } catch (_) {}
+      }
+      throw AuthException(
+        message: e.message ?? 'Failed to create staff account',
+      );
     } catch (e) {
-      if (tempApp != null) { try { await tempApp.delete(); } catch (_) {} }
-      throw UnknownException(message: 'An unexpected error occurred while creating the account.');
+      if (tempApp != null) {
+        try {
+          await tempApp.delete();
+        } catch (_) {}
+      }
+      throw UnknownException(
+        message: 'An unexpected error occurred while creating the account.',
+      );
     }
   }
 }

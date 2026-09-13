@@ -37,10 +37,9 @@ class FirestoreService {
   /// Returns true if Firestore is reachable.
   Future<bool> testConnection() async {
     try {
-      await _db
-          .collection('_connection_test')
-          .doc('ping')
-          .set({'timestamp': FieldValue.serverTimestamp()});
+      await _db.collection('_connection_test').doc('ping').set({
+        'timestamp': FieldValue.serverTimestamp(),
+      });
       AppLogger.info('Firestore connection test: SUCCESS');
       return true;
     } catch (e) {

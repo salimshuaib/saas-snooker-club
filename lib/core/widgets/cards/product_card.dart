@@ -56,10 +56,7 @@ class ProductCard extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    name,
-                    style: theme.textTheme.titleSmall,
-                  ),
+                  Text(name, style: theme.textTheme.titleSmall),
                   const Gap(2),
                   Text(
                     category,

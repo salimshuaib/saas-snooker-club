@@ -17,7 +17,6 @@ import 'package:snooker_club/core/widgets/shared/date_navigation_header.dart';
 import 'package:snooker_club/core/theme/app_shadows.dart';
 import 'package:snooker_club/core/providers/app_providers.dart';
 
-
 class TransactionHistoryScreen extends ConsumerWidget {
   const TransactionHistoryScreen({super.key});
 
@@ -26,8 +25,13 @@ class TransactionHistoryScreen extends ConsumerWidget {
     final theme = Theme.of(context);
     final selectedDate = ref.watch(revenueDetailsDateProvider);
     final now = DateTime.now();
-    final isToday = selectedDate.year == now.year && selectedDate.month == now.month && selectedDate.day == now.day;
-    final dateLabel = isToday ? "Today" : DateFormat('MMM d, yyyy').format(selectedDate);
+    final isToday =
+        selectedDate.year == now.year &&
+        selectedDate.month == now.month &&
+        selectedDate.day == now.day;
+    final dateLabel = isToday
+        ? "Today"
+        : DateFormat('MMM d, yyyy').format(selectedDate);
 
     final gamesListAsync = ref.watch(selectedDateCompletedPaidGamesProvider);
     final quickSalesListAsync = ref.watch(selectedDateQuickSalesStreamProvider);
@@ -53,16 +57,17 @@ class TransactionHistoryScreen extends ConsumerWidget {
             child: CustomScrollView(
               physics: const BouncingScrollPhysics(),
               slivers: [
-                
-                
-
                 // ─── Game Transactions Header ───
                 SliverToBoxAdapter(
                   child: Padding(
                     padding: const EdgeInsets.fromLTRB(20, 12, 20, 8),
                     child: Row(
                       children: [
-                        Icon(Icons.table_restaurant, size: 18, color: theme.colorScheme.primary),
+                        Icon(
+                          Icons.table_restaurant,
+                          size: 18,
+                          color: theme.colorScheme.primary,
+                        ),
                         const Gap(8),
                         Text(
                           'Game Transactions ($dateLabel)',
@@ -79,12 +84,18 @@ class TransactionHistoryScreen extends ConsumerWidget {
                 gamesListAsync.when(
                   loading: () => SliverToBoxAdapter(
                     child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 20,
+                        vertical: 12,
+                      ),
                       child: Column(
-                        children: List.generate(2, (_) => const Padding(
-                          padding: EdgeInsets.only(bottom: 12),
-                          child: SkeletonLoader(height: 72, borderRadius: 12),
-                        )),
+                        children: List.generate(
+                          2,
+                          (_) => const Padding(
+                            padding: EdgeInsets.only(bottom: 12),
+                            child: SkeletonLoader(height: 72, borderRadius: 12),
+                          ),
+                        ),
                       ),
                     ),
                   ),
@@ -97,17 +108,19 @@ class TransactionHistoryScreen extends ConsumerWidget {
                   data: (games) {
                     if (games.isEmpty) {
                       return SliverToBoxAdapter(
-                        child: _buildEmptySection(theme, isToday ? 'No completed game transactions today.' : 'No completed game transactions on $dateLabel.'),
+                        child: _buildEmptySection(
+                          theme,
+                          isToday
+                              ? 'No completed game transactions today.'
+                              : 'No completed game transactions on $dateLabel.',
+                        ),
                       );
                     }
                     return SliverList(
-                      delegate: SliverChildBuilderDelegate(
-                        (context, index) {
-                          final session = games[index];
-                          return _GameTransactionTile(session: session);
-                        },
-                        childCount: games.length,
-                      ),
+                      delegate: SliverChildBuilderDelegate((context, index) {
+                        final session = games[index];
+                        return _GameTransactionTile(session: session);
+                      }, childCount: games.length),
                     );
                   },
                 ),
@@ -120,7 +133,11 @@ class TransactionHistoryScreen extends ConsumerWidget {
                     padding: const EdgeInsets.fromLTRB(20, 24, 20, 8),
                     child: Row(
                       children: [
-                        Icon(Icons.point_of_sale, size: 18, color: theme.colorScheme.tertiary),
+                        Icon(
+                          Icons.point_of_sale,
+                          size: 18,
+                          color: theme.colorScheme.tertiary,
+                        ),
                         const Gap(8),
                         Text(
                           'Quick Sale Transactions ($dateLabel)',
@@ -137,12 +154,18 @@ class TransactionHistoryScreen extends ConsumerWidget {
                 quickSalesListAsync.when(
                   loading: () => SliverToBoxAdapter(
                     child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 20,
+                        vertical: 12,
+                      ),
                       child: Column(
-                        children: List.generate(2, (_) => const Padding(
-                          padding: EdgeInsets.only(bottom: 12),
-                          child: SkeletonLoader(height: 72, borderRadius: 12),
-                        )),
+                        children: List.generate(
+                          2,
+                          (_) => const Padding(
+                            padding: EdgeInsets.only(bottom: 12),
+                            child: SkeletonLoader(height: 72, borderRadius: 12),
+                          ),
+                        ),
                       ),
                     ),
                   ),
@@ -156,17 +179,19 @@ class TransactionHistoryScreen extends ConsumerWidget {
                     final sales = allSales.toList();
                     if (sales.isEmpty) {
                       return SliverToBoxAdapter(
-                        child: _buildEmptySection(theme, isToday ? 'No paid quick sale transactions today.' : 'No paid quick sale transactions on $dateLabel.'),
+                        child: _buildEmptySection(
+                          theme,
+                          isToday
+                              ? 'No paid quick sale transactions today.'
+                              : 'No paid quick sale transactions on $dateLabel.',
+                        ),
                       );
                     }
                     return SliverList(
-                      delegate: SliverChildBuilderDelegate(
-                        (context, index) {
-                          final sale = sales[index];
-                          return _QuickSaleTransactionTile(sale: sale);
-                        },
-                        childCount: sales.length,
-                      ),
+                      delegate: SliverChildBuilderDelegate((context, index) {
+                        final sale = sales[index];
+                        return _QuickSaleTransactionTile(sale: sale);
+                      }, childCount: sales.length),
                     );
                   },
                 ),
@@ -187,7 +212,9 @@ class TransactionHistoryScreen extends ConsumerWidget {
       decoration: BoxDecoration(
         color: theme.colorScheme.surface,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: theme.colorScheme.outlineVariant.withValues(alpha: 0.5)),
+        border: Border.all(
+          color: theme.colorScheme.outlineVariant.withValues(alpha: 0.5),
+        ),
       ),
       child: Center(
         child: Text(
@@ -232,7 +259,9 @@ class _SummarySubitem extends StatelessWidget {
             children: [
               Text(
                 label,
-                style: theme.textTheme.labelSmall?.copyWith(color: Colors.white70),
+                style: theme.textTheme.labelSmall?.copyWith(
+                  color: Colors.white70,
+                ),
                 overflow: TextOverflow.ellipsis,
               ),
               const Gap(2),
@@ -261,7 +290,9 @@ class _GameTransactionTile extends StatelessWidget {
     final theme = Theme.of(context);
     final endTime = session.endTime ?? DateTime.now();
     final timeStr = DateFormat('hh:mm a').format(endTime);
-    final players = session.allPlayers.isEmpty ? 'No Player Added' : session.allPlayers.join(', ');
+    final players = session.allPlayers.isEmpty
+        ? 'No Player Added'
+        : session.allPlayers.join(', ');
     final amount = session.finalAmount ?? session.grandTotal ?? 0.0;
 
     return Padding(
@@ -270,14 +301,16 @@ class _GameTransactionTile extends StatelessWidget {
         color: theme.colorScheme.surface,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
-          side: BorderSide(color: theme.colorScheme.outlineVariant.withValues(alpha: 0.6)),
+          side: BorderSide(
+            color: theme.colorScheme.outlineVariant.withValues(alpha: 0.6),
+          ),
         ),
         clipBehavior: Clip.antiAlias,
         child: InkWell(
           onLongPress: () {
             showModalBottomSheet(
-useRootNavigator: true,
-context: context,
+              useRootNavigator: true,
+              context: context,
               isScrollControlled: true,
               backgroundColor: Colors.transparent,
               builder: (context) => RepeatGameSheet(originalSession: session),
@@ -301,7 +334,11 @@ context: context,
                     color: AppColors.primary.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: const Icon(Icons.table_restaurant, color: AppColors.primary, size: 24),
+                  child: const Icon(
+                    Icons.table_restaurant,
+                    color: AppColors.primary,
+                    size: 24,
+                  ),
                 ),
                 const Gap(14),
                 Expanded(
@@ -313,7 +350,9 @@ context: context,
                         children: [
                           Text(
                             session.tableName,
-                            style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+                            style: theme.textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.w700,
+                            ),
                           ),
                           Text(
                             '₹${amount.toStringAsFixed(2)}',
@@ -327,7 +366,9 @@ context: context,
                       const Gap(4),
                       Text(
                         '${session.tableType.displayName} • ${session.billingType.displayName}',
-                        style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
                       ),
                       const Gap(4),
                       Row(
@@ -346,14 +387,19 @@ context: context,
                           ),
                           const Gap(8),
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 2,
+                            ),
                             decoration: BoxDecoration(
                               color: theme.colorScheme.surfaceVariant,
                               borderRadius: BorderRadius.circular(6),
                             ),
                             child: Text(
                               '${session.paymentMethod?.displayName ?? "Paid"} • $timeStr',
-                              style: theme.textTheme.labelSmall?.copyWith(fontWeight: FontWeight.w600),
+                              style: theme.textTheme.labelSmall?.copyWith(
+                                fontWeight: FontWeight.w600,
+                              ),
                             ),
                           ),
                         ],
@@ -362,7 +408,10 @@ context: context,
                   ),
                 ),
                 const Gap(8),
-                Icon(Icons.chevron_right, color: theme.colorScheme.onSurfaceVariant),
+                Icon(
+                  Icons.chevron_right,
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
               ],
             ),
           ),
@@ -381,8 +430,12 @@ class _QuickSaleTransactionTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final timeStr = DateFormat('hh:mm a').format(sale.date);
-    final customer = sale.customerName?.isNotEmpty == true ? sale.customerName! : 'Walk-in Customer';
-    final itemsStr = sale.items.map((i) => '${i.quantity}x ${i.productName}').join(', ');
+    final customer = sale.customerName?.isNotEmpty == true
+        ? sale.customerName!
+        : 'Walk-in Customer';
+    final itemsStr = sale.items
+        .map((i) => '${i.quantity}x ${i.productName}')
+        .join(', ');
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
@@ -390,7 +443,9 @@ class _QuickSaleTransactionTile extends StatelessWidget {
         color: theme.colorScheme.surface,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
-          side: BorderSide(color: theme.colorScheme.outlineVariant.withValues(alpha: 0.6)),
+          side: BorderSide(
+            color: theme.colorScheme.outlineVariant.withValues(alpha: 0.6),
+          ),
         ),
         clipBehavior: Clip.antiAlias,
         child: InkWell(
@@ -412,7 +467,11 @@ class _QuickSaleTransactionTile extends StatelessWidget {
                     color: AppColors.secondary.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: const Icon(Icons.point_of_sale, color: AppColors.secondary, size: 24),
+                  child: const Icon(
+                    Icons.point_of_sale,
+                    color: AppColors.secondary,
+                    size: 24,
+                  ),
                 ),
                 const Gap(14),
                 Expanded(
@@ -425,7 +484,9 @@ class _QuickSaleTransactionTile extends StatelessWidget {
                           Expanded(
                             child: Text(
                               customer,
-                              style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+                              style: theme.textTheme.titleMedium?.copyWith(
+                                fontWeight: FontWeight.w700,
+                              ),
                               overflow: TextOverflow.ellipsis,
                             ),
                           ),
@@ -442,7 +503,9 @@ class _QuickSaleTransactionTile extends StatelessWidget {
                       const Gap(4),
                       Text(
                         itemsStr,
-                        style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
@@ -451,14 +514,19 @@ class _QuickSaleTransactionTile extends StatelessWidget {
                         mainAxisAlignment: MainAxisAlignment.end,
                         children: [
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 2,
+                            ),
                             decoration: BoxDecoration(
                               color: theme.colorScheme.surfaceVariant,
                               borderRadius: BorderRadius.circular(6),
                             ),
                             child: Text(
                               '${sale.paymentMethod.displayName} • $timeStr',
-                              style: theme.textTheme.labelSmall?.copyWith(fontWeight: FontWeight.w600),
+                              style: theme.textTheme.labelSmall?.copyWith(
+                                fontWeight: FontWeight.w600,
+                              ),
                             ),
                           ),
                         ],
@@ -467,7 +535,10 @@ class _QuickSaleTransactionTile extends StatelessWidget {
                   ),
                 ),
                 const Gap(8),
-                Icon(Icons.chevron_right, color: theme.colorScheme.onSurfaceVariant),
+                Icon(
+                  Icons.chevron_right,
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
               ],
             ),
           ),

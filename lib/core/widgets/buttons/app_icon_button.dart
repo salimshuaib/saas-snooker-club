@@ -29,7 +29,9 @@ class AppIconButton extends StatelessWidget {
         icon: Icon(icon, size: size * 0.5),
         tooltip: tooltip,
         style: IconButton.styleFrom(
-          backgroundColor: backgroundColor ?? Theme.of(context).colorScheme.surfaceContainerHighest,
+          backgroundColor:
+              backgroundColor ??
+              Theme.of(context).colorScheme.surfaceContainerHighest,
           foregroundColor: iconColor ?? Theme.of(context).colorScheme.onSurface,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(10),

@@ -18,7 +18,8 @@ class PlayerSplitPaymentSheet extends StatefulWidget {
   }) : super(key: key);
 
   @override
-  State<PlayerSplitPaymentSheet> createState() => _PlayerSplitPaymentSheetState();
+  State<PlayerSplitPaymentSheet> createState() =>
+      _PlayerSplitPaymentSheetState();
 }
 
 class _PlayerSplitPaymentSheetState extends State<PlayerSplitPaymentSheet> {
@@ -30,7 +31,9 @@ class _PlayerSplitPaymentSheetState extends State<PlayerSplitPaymentSheet> {
     super.initState();
     for (final method in PaymentMethod.values) {
       final amount = widget.initialSplits[method] ?? 0.0;
-      final controller = TextEditingController(text: amount > 0 ? amount.toStringAsFixed(2) : '');
+      final controller = TextEditingController(
+        text: amount > 0 ? amount.toStringAsFixed(2) : '',
+      );
       controller.addListener(_recalculateSum);
       _controllers[method] = controller;
     }
@@ -94,7 +97,9 @@ class _PlayerSplitPaymentSheetState extends State<PlayerSplitPaymentSheet> {
             children: [
               Text(
                 'Split Payment: ${widget.playerName}',
-                style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                style: theme.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
               ),
               IconButton(
                 icon: const Icon(Icons.close),
@@ -116,54 +121,78 @@ class _PlayerSplitPaymentSheetState extends State<PlayerSplitPaymentSheet> {
                 Text('Total Liability:', style: theme.textTheme.bodyMedium),
                 Text(
                   '₹${widget.totalLiability.toStringAsFixed(2)}',
-                  style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold, color: AppColors.primary),
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.primary,
+                  ),
                 ),
               ],
             ),
           ),
           const Gap(16),
-          ...PaymentMethod.values.where((m) => !(m == PaymentMethod.credit && widget.playerName.toLowerCase().startsWith('default'))).map((method) {
-            return Padding(
-              padding: const EdgeInsets.only(bottom: 12),
-              child: Row(
-                children: [
-                  Expanded(
-                    flex: 2,
-                    child: Text(
-                      method.displayName,
-                      style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
-                    ),
-                  ),
-                  Expanded(
-                    flex: 3,
-                    child: TextField(
-                      controller: _controllers[method],
-                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                      decoration: InputDecoration(
-                        prefixText: '₹ ',
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+          ...PaymentMethod.values
+              .where(
+                (m) =>
+                    !(m == PaymentMethod.credit &&
+                        widget.playerName.toLowerCase().startsWith('default')),
+              )
+              .map((method) {
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        flex: 2,
+                        child: Text(
+                          method.displayName,
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
                       ),
-                    ),
+                      Expanded(
+                        flex: 3,
+                        child: TextField(
+                          controller: _controllers[method],
+                          keyboardType: const TextInputType.numberWithOptions(
+                            decimal: true,
+                          ),
+                          decoration: InputDecoration(
+                            prefixText: '₹ ',
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 12,
+                            ),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
-                ],
-              ),
-            );
-          }).toList(),
+                );
+              })
+              .toList(),
           const Gap(8),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('Allocated: ₹${_currentSum.toStringAsFixed(2)}', style: theme.textTheme.bodyMedium),
+              Text(
+                'Allocated: ₹${_currentSum.toStringAsFixed(2)}',
+                style: theme.textTheme.bodyMedium,
+              ),
               Text(
                 diff.abs() < 0.01
                     ? 'Perfectly Split'
                     : diff > 0
-                        ? 'Remaining: ₹${diff.toStringAsFixed(2)}'
-                        : 'Overpaid: ₹${diff.abs().toStringAsFixed(2)}',
+                    ? 'Remaining: ₹${diff.toStringAsFixed(2)}'
+                    : 'Overpaid: ₹${diff.abs().toStringAsFixed(2)}',
                 style: theme.textTheme.bodyMedium?.copyWith(
                   fontWeight: FontWeight.bold,
-                  color: diff.abs() < 0.01 ? AppColors.success : AppColors.error,
+                  color: diff.abs() < 0.01
+                      ? AppColors.success
+                      : AppColors.error,
                 ),
               ),
             ],

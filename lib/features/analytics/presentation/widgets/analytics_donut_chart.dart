@@ -19,7 +19,12 @@ class AnalyticsDonutChart extends StatelessWidget {
 
     return Column(
       children: [
-        Text(title, style: AppTypography.textTheme.titleSmall!.copyWith(fontWeight: FontWeight.bold)),
+        Text(
+          title,
+          style: AppTypography.textTheme.titleSmall!.copyWith(
+            fontWeight: FontWeight.bold,
+          ),
+        ),
         const SizedBox(height: 16),
         SizedBox(
           height: 160,
@@ -27,13 +32,21 @@ class AnalyticsDonutChart extends StatelessWidget {
             PieChartData(
               sectionsSpace: 2,
               centerSpaceRadius: 40,
-              sections: shares.map((s) => PieChartSectionData(
-                color: s.color,
-                value: s.amount,
-                title: '${s.percentage.toStringAsFixed(0)}%',
-                radius: 40,
-                titleStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.white),
-              )).toList(),
+              sections: shares
+                  .map(
+                    (s) => PieChartSectionData(
+                      color: s.color,
+                      value: s.amount,
+                      title: '${s.percentage.toStringAsFixed(0)}%',
+                      radius: 40,
+                      titleStyle: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
+                  )
+                  .toList(),
             ),
           ),
         ),
@@ -55,10 +68,7 @@ class AnalyticsDonutChart extends StatelessWidget {
         Container(
           width: 12,
           height: 12,
-          decoration: BoxDecoration(
-            color: share.color,
-            shape: BoxShape.circle,
-          ),
+          decoration: BoxDecoration(color: share.color, shape: BoxShape.circle),
         ),
         const SizedBox(width: 4),
         Text(

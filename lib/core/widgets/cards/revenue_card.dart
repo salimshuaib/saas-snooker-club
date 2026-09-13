@@ -30,9 +30,7 @@ class RevenueCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: theme.colorScheme.surface,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: theme.colorScheme.outlineVariant,
-        ),
+        border: Border.all(color: theme.colorScheme.outlineVariant),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -55,9 +53,7 @@ class RevenueCard extends StatelessWidget {
                     vertical: 4,
                   ),
                   decoration: BoxDecoration(
-                    color: (isTrendPositive == true
-                            ? Colors.green
-                            : Colors.red)
+                    color: (isTrendPositive == true ? Colors.green : Colors.red)
                         .withValues(alpha: 0.12),
                     borderRadius: BorderRadius.circular(8),
                   ),

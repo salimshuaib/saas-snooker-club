@@ -8,7 +8,8 @@ class DeleteDialog {
   static Future<bool?> show(
     BuildContext context, {
     String title = 'Delete',
-    String message = 'Are you sure you want to delete this? This action cannot be undone.',
+    String message =
+        'Are you sure you want to delete this? This action cannot be undone.',
   }) {
     return ConfirmationDialog.show(
       context,

@@ -20,19 +20,19 @@ final userClubProvider = StreamProvider<UserClub?>((ref) {
       .doc(user.uid)
       .snapshots()
       .map((doc) {
-    if (!doc.exists || doc.data() == null) return null;
-    final data = doc.data()!;
-    return UserClub(
-      clubId: data['clubId'] as String,
-      role: data['role'] as String? ?? 'staff',
-    );
-  });
+        if (!doc.exists || doc.data() == null) return null;
+        final data = doc.data()!;
+        return UserClub(
+          clubId: data['clubId'] as String,
+          role: data['role'] as String? ?? 'staff',
+        );
+      });
 });
 
 final clubIdProvider = Provider<String?>((ref) {
   final user = ref.watch(authStateProvider).value;
   if (user == null) return null;
-  
+
   final userClub = ref.watch(userClubProvider).value;
   return userClub?.clubId;
 });
@@ -46,9 +46,9 @@ final clubProfileProvider = StreamProvider<Club?>((ref) {
       .doc(clubId)
       .snapshots()
       .map((doc) {
-    if (!doc.exists || doc.data() == null) return null;
-    return Club.fromMap(doc.data()!, doc.id);
-  });
+        if (!doc.exists || doc.data() == null) return null;
+        return Club.fromMap(doc.data()!, doc.id);
+      });
 });
 
 final isClubActiveProvider = Provider<bool>((ref) {
@@ -92,8 +92,7 @@ final platformConfigProvider = StreamProvider<PlatformConfig>((ref) {
       .doc('config')
       .snapshots()
       .map((doc) {
-    if (!doc.exists || doc.data() == null) return const PlatformConfig();
-    return PlatformConfig.fromMap(doc.data()!);
-  });
+        if (!doc.exists || doc.data() == null) return const PlatformConfig();
+        return PlatformConfig.fromMap(doc.data()!);
+      });
 });
-

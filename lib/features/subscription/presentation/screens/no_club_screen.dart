@@ -44,11 +44,9 @@ class NoClubScreen extends ConsumerWidget {
                 textAlign: TextAlign.center,
               ),
               const Gap(48),
-              if (platformConfig?.supportPhone != null || platformConfig?.supportEmail != null) ...[
-                const Text(
-                  'Contact Support:',
-                  textAlign: TextAlign.center,
-                ),
+              if (platformConfig?.supportPhone != null ||
+                  platformConfig?.supportEmail != null) ...[
+                const Text('Contact Support:', textAlign: TextAlign.center),
                 const Gap(16),
                 if (platformConfig?.supportPhone != null)
                   Text('📞 ${platformConfig!.supportPhone}'),
@@ -63,9 +61,7 @@ class NoClubScreen extends ConsumerWidget {
                 },
                 icon: const Icon(Icons.logout),
                 label: const Text('Sign Out'),
-                style: TextButton.styleFrom(
-                  foregroundColor: Colors.redAccent,
-                ),
+                style: TextButton.styleFrom(foregroundColor: Colors.redAccent),
               ),
             ],
           ),

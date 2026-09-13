@@ -29,14 +29,14 @@ void main() async {
   ]);
 
   // Initialize Firebase
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   AppLogger.info('Firebase initialized successfully');
 
   // Debug: log persisted auth state
   final persistedUser = FirebaseAuth.instance.currentUser;
-  AppLogger.info('Persisted user at startup: ${persistedUser?.email ?? "NONE (not logged in)"}');
+  AppLogger.info(
+    'Persisted user at startup: ${persistedUser?.email ?? "NONE (not logged in)"}',
+  );
 
   // Initialize Crashlytics
   if (!kIsWeb) {
@@ -53,8 +53,6 @@ void main() async {
   // Enable Firestore offline persistence
   final firestoreService = FirestoreService();
   await firestoreService.initialize();
-
-
 
   // Initialize local storage
   final localStorageService = LocalStorageService();

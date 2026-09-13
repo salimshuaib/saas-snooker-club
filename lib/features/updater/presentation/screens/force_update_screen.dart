@@ -57,7 +57,11 @@ class ForceUpdateScreen extends ConsumerWidget {
                   } else {
                     if (context.mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Could not launch update URL. Please check your connection.')),
+                        const SnackBar(
+                          content: Text(
+                            'Could not launch update URL. Please check your connection.',
+                          ),
+                        ),
                       );
                     }
                   }

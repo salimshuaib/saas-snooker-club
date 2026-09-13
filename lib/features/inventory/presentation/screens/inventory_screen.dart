@@ -53,11 +53,20 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
       ),
       body: itemsAsync.when(
         data: (items) {
-          final categories = {'All', 'Drinks', 'Cigarettes', ...items.map((e) => e.category)};
-          
+          final categories = {
+            'All',
+            'Drinks',
+            'Cigarettes',
+            ...items.map((e) => e.category),
+          };
+
           final filteredItems = items.where((item) {
-            final matchesSearch = item.name.toLowerCase().contains(_searchQuery.toLowerCase());
-            final matchesCategory = _selectedCategory == 'All' || item.category == _selectedCategory;
+            final matchesSearch = item.name.toLowerCase().contains(
+              _searchQuery.toLowerCase(),
+            );
+            final matchesCategory =
+                _selectedCategory == 'All' ||
+                item.category == _selectedCategory;
             return matchesSearch && matchesCategory;
           }).toList();
 
@@ -81,9 +90,12 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
                       Expanded(
                         child: InventoryStatsCard(
                           title: 'Low/Out',
-                          value: '${stats['lowStockCount']}/${stats['outOfStockCount']}',
+                          value:
+                              '${stats['lowStockCount']}/${stats['outOfStockCount']}',
                           icon: Icons.warning,
-                          color: stats['outOfStockCount'] > 0 ? AppColors.error : AppColors.warning,
+                          color: stats['outOfStockCount'] > 0
+                              ? AppColors.error
+                              : AppColors.warning,
                         ),
                       ),
                       const Gap(12),
@@ -107,7 +119,9 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
                   child: AppTextField(
                     hint: 'Search products...',
                     prefixIcon: const Icon(Icons.search),
-                    onChanged: (val) => _debouncer.run(() => setState(() => _searchQuery = val)),
+                    onChanged: (val) => _debouncer.run(
+                      () => setState(() => _searchQuery = val),
+                    ),
                   ),
                 ),
               ),
@@ -124,17 +138,26 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
                         child: FilterChip(
                           label: Text(cat),
                           selected: isSelected,
-                          onSelected: (val) => setState(() => _selectedCategory = cat),
+                          onSelected: (val) =>
+                              setState(() => _selectedCategory = cat),
                           backgroundColor: theme.colorScheme.surface,
-                          selectedColor: AppColors.primary.withValues(alpha: 0.15),
+                          selectedColor: AppColors.primary.withValues(
+                            alpha: 0.15,
+                          ),
                           labelStyle: TextStyle(
-                            color: isSelected ? AppColors.primary : theme.colorScheme.onSurface,
-                            fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+                            color: isSelected
+                                ? AppColors.primary
+                                : theme.colorScheme.onSurface,
+                            fontWeight: isSelected
+                                ? FontWeight.w600
+                                : FontWeight.w400,
                           ),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(20),
                             side: BorderSide(
-                              color: isSelected ? AppColors.primary : theme.colorScheme.outlineVariant,
+                              color: isSelected
+                                  ? AppColors.primary
+                                  : theme.colorScheme.outlineVariant,
                             ),
                           ),
                         ),
@@ -161,15 +184,12 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
                 SliverPadding(
                   padding: const EdgeInsets.fromLTRB(20, 0, 20, 100),
                   sliver: SliverList(
-                    delegate: SliverChildBuilderDelegate(
-                      (context, index) {
-                        return Padding(
-                          padding: const EdgeInsets.only(bottom: 12),
-                          child: InventoryProductCard(item: filteredItems[index]),
-                        );
-                      },
-                      childCount: filteredItems.length,
-                    ),
+                    delegate: SliverChildBuilderDelegate((context, index) {
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 12),
+                        child: InventoryProductCard(item: filteredItems[index]),
+                      );
+                    }, childCount: filteredItems.length),
                   ),
                 ),
             ],
@@ -181,8 +201,8 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () {
           showModalBottomSheet(
-useRootNavigator: true,
-context: context,
+            useRootNavigator: true,
+            context: context,
             isScrollControlled: true,
             builder: (_) => const AddProductSheet(),
           );

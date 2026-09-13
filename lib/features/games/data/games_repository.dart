@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:snooker_club/core/providers/club_scope_provider.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:snooker_club/features/team/providers/team_providers.dart';
 import 'package:snooker_club/core/config/app_environment.dart';
@@ -23,6 +24,26 @@ class GamesRepository {
       _ref = ref;
 
   StaffMember? get currentStaff => _ref?.read(currentStaffProvider).value;
+
+  String get currentUserName {
+    final staff = currentStaff;
+    if (staff != null) return staff.name;
+    try {
+      final club = _ref?.read(clubProfileProvider).value;
+      if (club != null) return club.ownerName;
+    } catch (_) {}
+    return 'Admin';
+  }
+
+  String get currentUserId {
+    final staff = currentStaff;
+    if (staff != null) return staff.id;
+    try {
+      final club = _ref?.read(clubProfileProvider).value;
+      if (club != null) return club.ownerUid;
+    } catch (_) {}
+    return 'Unknown';
+  }
 
   DocumentReference get _clubRef {
     if (clubId == null)
@@ -410,8 +431,8 @@ class GamesRepository {
       'collection': FirebaseConstants.gamesCollection,
       'timestamp': FieldValue.serverTimestamp(),
       'details': 'Active game cancelled. ${orders.length} orders restocked.',
-      'staffId': currentStaff?.id,
-      'staffName': currentStaff?.name,
+      'staffId': currentUserId == 'Unknown' ? null : currentUserId,
+      'staffName': currentUserName,
     });
 
     await batch.commit();
@@ -603,8 +624,8 @@ class GamesRepository {
         'action': 'Game Deleted',
         'recordId': session.id,
         'module': 'Games',
-        'userId': currentStaff?.id ?? 'Unknown',
-        'userName': currentStaff?.name ?? 'Admin',
+        'userId': currentUserId,
+        'userName': currentUserName,
         'timestamp': FieldValue.serverTimestamp(),
       });
 

@@ -19,7 +19,7 @@ class OnboardingScreen extends ConsumerStatefulWidget {
 class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   bool _agreedToTerms = false;
   bool _isLoading = false;
-  
+
   final Map<TableType, int> _counts = {
     for (var type in TableType.values) type: 0,
   };
@@ -57,7 +57,9 @@ By checking "I Agree" and proceeding, you acknowledge that you have read, unders
   Future<void> _submit() async {
     if (!_agreedToTerms) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('You must agree to the User Agreement to proceed.')),
+        const SnackBar(
+          content: Text('You must agree to the User Agreement to proceed.'),
+        ),
       );
       return;
     }
@@ -65,7 +67,9 @@ By checking "I Agree" and proceeding, you acknowledge that you have read, unders
     final totalCount = _counts.values.fold(0, (sum, count) => sum + count);
     if (totalCount == 0) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please add at least one table or game to continue.')),
+        const SnackBar(
+          content: Text('Please add at least one table or game to continue.'),
+        ),
       );
       return;
     }
@@ -78,7 +82,7 @@ By checking "I Agree" and proceeding, you acknowledge that you have read, unders
       for (final entry in _counts.entries) {
         final type = entry.key;
         final count = entry.value;
-        
+
         for (int i = 1; i <= count; i++) {
           final table = TableModel(
             id: '',
@@ -98,9 +102,9 @@ By checking "I Agree" and proceeding, you acknowledge that you have read, unders
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error: $e')));
       }
     } finally {
       if (mounted) {
@@ -126,7 +130,9 @@ By checking "I Agree" and proceeding, you acknowledge that you have read, unders
             children: [
               Text(
                 'Step 1: User Agreement',
-                style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+                style: theme.textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
               ),
               const Gap(16),
               Container(
@@ -146,9 +152,13 @@ By checking "I Agree" and proceeding, you acknowledge that you have read, unders
               ),
               const Gap(8),
               CheckboxListTile(
-                title: const Text('I have read and agree to the User Agreement', style: TextStyle(fontWeight: FontWeight.bold)),
+                title: const Text(
+                  'I have read and agree to the User Agreement',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
                 value: _agreedToTerms,
-                onChanged: (val) => setState(() => _agreedToTerms = val ?? false),
+                onChanged: (val) =>
+                    setState(() => _agreedToTerms = val ?? false),
                 controlAffinity: ListTileControlAffinity.leading,
                 contentPadding: EdgeInsets.zero,
                 activeColor: AppColors.primary,
@@ -156,12 +166,16 @@ By checking "I Agree" and proceeding, you acknowledge that you have read, unders
               const Gap(32),
               Text(
                 'Step 2: Table Setup',
-                style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+                style: theme.textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
               ),
               const Gap(8),
               Text(
                 'Add your tables so you can start tracking time immediately.',
-                style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
               ),
               const Gap(16),
               DefaultTabController(
@@ -183,8 +197,16 @@ By checking "I Agree" and proceeding, you acknowledge that you have read, unders
                       height: 450,
                       child: TabBarView(
                         children: [
-                          _buildTabContent([TableType.snooker, TableType.indianPool, TableType.americanPool]),
-                          _buildTabContent(TableType.values.where((t) => t.isOtherGame).toList()),
+                          _buildTabContent([
+                            TableType.snooker,
+                            TableType.indianPool,
+                            TableType.americanPool,
+                          ]),
+                          _buildTabContent(
+                            TableType.values
+                                .where((t) => t.isOtherGame)
+                                .toList(),
+                          ),
                         ],
                       ),
                     ),
@@ -203,9 +225,18 @@ By checking "I Agree" and proceeding, you acknowledge that you have read, unders
                     ? const SizedBox(
                         height: 24,
                         width: 24,
-                        child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                        child: CircularProgressIndicator(
+                          color: Colors.white,
+                          strokeWidth: 2,
+                        ),
                       )
-                    : const Text('Complete Setup & Go to Dashboard', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                    : const Text(
+                        'Complete Setup & Go to Dashboard',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
               ),
               const Gap(24),
             ],
@@ -229,7 +260,7 @@ By checking "I Agree" and proceeding, you acknowledge that you have read, unders
   Widget _buildTableConfigurator(TableType type) {
     final theme = Theme.of(context);
     final count = _counts[type] ?? 0;
-    
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -242,7 +273,9 @@ By checking "I Agree" and proceeding, you acknowledge that you have read, unders
         children: [
           Text(
             type.displayName,
-            style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+            style: theme.textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.bold,
+            ),
           ),
           Row(
             children: [
@@ -257,7 +290,9 @@ By checking "I Agree" and proceeding, you acknowledge that you have read, unders
               ),
               Text(
                 '$count',
-                style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+                style: theme.textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
               ),
               IconButton(
                 onPressed: () {

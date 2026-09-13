@@ -1,11 +1,9 @@
-
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:snooker_club/features/games/domain/models/game_models.dart';
 import 'package:snooker_club/features/games/providers/games_providers.dart';
 import 'package:snooker_club/features/credit/presentation/widgets/player_search_field.dart';
 
 class GameValidationUtils {
-  
   /// Normalizes a player name by trimming spaces, removing double spaces, and lowercasing for comparison.
   static String normalizePlayerName(String name) {
     return name.trim().replaceAll(RegExp(r'\s+'), ' ').toLowerCase();
@@ -19,10 +17,11 @@ class GameValidationUtils {
     }
     return null;
   }
-  
+
   /// Validates that the frame count is a valid number greater than 0.
   static String? validateFramesCount(String? val) {
-    if (val == null || val.trim().isEmpty) return 'Please enter a valid number of frames.';
+    if (val == null || val.trim().isEmpty)
+      return 'Please enter a valid number of frames.';
     final count = int.tryParse(val.trim());
     if (count == null || count <= 0) {
       return 'Frame count must be a number greater than 0.';
@@ -31,14 +30,19 @@ class GameValidationUtils {
   }
 
   /// Checks if any player is duplicated within the current setup
-  static String? validateDuplicatePlayersWithinGame(List<PlayerSelection?> teamA, List<PlayerSelection?> teamB) {
-    final allPlayers = [...teamA, ...teamB].where((p) => p != null && p.name.trim().isNotEmpty).cast<PlayerSelection>();
+  static String? validateDuplicatePlayersWithinGame(
+    List<PlayerSelection?> teamA,
+    List<PlayerSelection?> teamB,
+  ) {
+    final allPlayers = [...teamA, ...teamB]
+        .where((p) => p != null && p.name.trim().isNotEmpty)
+        .cast<PlayerSelection>();
     final seenIds = <String>{};
     final seenNames = <String>{};
 
     for (final p in allPlayers) {
       if (p.name.trim().toLowerCase().startsWith('default')) continue;
-      
+
       if (p.id != null) {
         if (seenIds.contains(p.id)) {
           return '${p.name} is added multiple times. A player can only participate once per game.';
@@ -58,18 +62,22 @@ class GameValidationUtils {
   /// Checks if any player is currently active in ANY OTHER table.
   /// Returns a user-friendly error message if a player is already active.
   static Future<String?> checkPlayerActiveElsewhere(
-      List<PlayerSelection?> players, 
-      WidgetRef ref, 
-      String currentTableId) async {
-    
-    final allPlayers = players.where((p) => p != null && p.name.trim().isNotEmpty).cast<PlayerSelection>();
+    List<PlayerSelection?> players,
+    WidgetRef ref,
+    String currentTableId,
+  ) async {
+    final allPlayers = players
+        .where((p) => p != null && p.name.trim().isNotEmpty)
+        .cast<PlayerSelection>();
     if (allPlayers.isEmpty) return null;
 
     final tables = ref.read(resolvedTablesProvider);
-    final activeTables = tables.where((t) => 
-        t.status != TableStatus.available && 
-        t.id != currentTableId && 
-        t.activeGameId != null);
+    final activeTables = tables.where(
+      (t) =>
+          t.status != TableStatus.available &&
+          t.id != currentTableId &&
+          t.activeGameId != null,
+    );
 
     final gamesRepo = ref.read(gamesRepositoryProvider);
 
@@ -78,7 +86,8 @@ class GameValidationUtils {
       if (game == null) continue;
 
       final activeIds = game.playerIds;
-      final activeNames = game.playerIdentities?.keys.map(normalizePlayerName).toList() ?? [];
+      final activeNames =
+          game.playerIdentities?.keys.map(normalizePlayerName).toList() ?? [];
 
       for (final p in allPlayers) {
         if (p.name.trim().toLowerCase().startsWith('default')) continue;
@@ -89,13 +98,12 @@ class GameValidationUtils {
           }
         } else {
           if (activeNames.contains(normalizePlayerName(p.name))) {
-             return '⚠️ ${p.name} is currently playing ${game.billingType.displayName} on ${table.name}. They cannot start a new game until that one is finished.';
+            return '⚠️ ${p.name} is currently playing ${game.billingType.displayName} on ${table.name}. They cannot start a new game until that one is finished.';
           }
         }
       }
     }
-    
+
     return null;
   }
 }
-

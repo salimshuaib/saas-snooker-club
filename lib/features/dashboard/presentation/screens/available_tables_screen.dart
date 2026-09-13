@@ -13,10 +13,16 @@ class AvailableTablesScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final tables = ref.watch(resolvedTablesProvider);
-    final availableTables = tables.where((t) => t.status == TableStatus.available).toList();
-    
-    final billiardsTables = availableTables.where((t) => !t.type.isOtherGame).toList();
-    final otherGamesTables = availableTables.where((t) => t.type.isOtherGame).toList();
+    final availableTables = tables
+        .where((t) => t.status == TableStatus.available)
+        .toList();
+
+    final billiardsTables = availableTables
+        .where((t) => !t.type.isOtherGame)
+        .toList();
+    final otherGamesTables = availableTables
+        .where((t) => t.type.isOtherGame)
+        .toList();
 
     return DefaultTabController(
       length: 2,
@@ -35,10 +41,7 @@ class AvailableTablesScreen extends ConsumerWidget {
           ),
         ),
         body: TabBarView(
-          children: [
-            _buildList(billiardsTables),
-            _buildList(otherGamesTables),
-          ],
+          children: [_buildList(billiardsTables), _buildList(otherGamesTables)],
         ),
       ),
     );
@@ -49,7 +52,8 @@ class AvailableTablesScreen extends ConsumerWidget {
       return const EmptyStateWidget(
         icon: Icons.table_restaurant,
         title: 'No Available Tables',
-        subtitle: 'All tables in this category are currently engaged or not created.',
+        subtitle:
+            'All tables in this category are currently engaged or not created.',
       );
     }
     return ListView.builder(
@@ -105,7 +109,11 @@ class _AvailableTableTile extends StatelessWidget {
                     color: AppColors.available.withValues(alpha: 0.12),
                     borderRadius: BorderRadius.circular(14),
                   ),
-                  child: const Icon(Icons.table_restaurant, color: AppColors.available, size: 26),
+                  child: const Icon(
+                    Icons.table_restaurant,
+                    color: AppColors.available,
+                    size: 26,
+                  ),
                 ),
                 const Gap(16),
                 Expanded(
@@ -114,7 +122,9 @@ class _AvailableTableTile extends StatelessWidget {
                     children: [
                       Text(
                         table.name,
-                        style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w800,
+                        ),
                       ),
                       const Gap(4),
                       Text(
@@ -129,7 +139,10 @@ class _AvailableTableTile extends StatelessWidget {
                 ),
                 const Gap(12),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 6,
+                  ),
                   decoration: BoxDecoration(
                     color: AppColors.available.withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(20),
@@ -158,7 +171,10 @@ class _AvailableTableTile extends StatelessWidget {
                   ),
                 ),
                 const Gap(8),
-                Icon(Icons.chevron_right, color: theme.colorScheme.onSurfaceVariant),
+                Icon(
+                  Icons.chevron_right,
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
               ],
             ),
           ),

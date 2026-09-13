@@ -26,9 +26,7 @@ void main() async {
   ]);
 
   // Initialize Firebase (needed for reads and plugin compatibility)
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   AppLogger.info('Firebase initialized (PREVIEW mode - writes blocked)');
 
   // Enable Firestore offline persistence

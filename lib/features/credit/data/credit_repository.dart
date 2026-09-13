@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:snooker_club/core/providers/club_scope_provider.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:snooker_club/features/team/providers/team_providers.dart';
 import 'package:snooker_club/features/team/domain/models/staff_member.dart';
@@ -19,12 +20,34 @@ class CreditRepository {
 
   StaffMember? get currentStaff => _ref?.read(currentStaffProvider).value;
 
+  String get currentUserName {
+    final staff = currentStaff;
+    if (staff != null) return staff.name;
+    try {
+      final club = _ref?.read(clubProfileProvider).value;
+      if (club != null) return club.ownerName;
+    } catch (_) {}
+    return 'Admin';
+  }
+
+  String get currentUserId {
+    final staff = currentStaff;
+    if (staff != null) return staff.id;
+    try {
+      final club = _ref?.read(clubProfileProvider).value;
+      if (club != null) return club.ownerUid;
+    } catch (_) {}
+    return 'Unknown';
+  }
+
   DocumentReference get _clubRef {
-    if (clubId == null) throw Exception('clubId cannot be null for CreditRepository');
+    if (clubId == null)
+      throw Exception('clubId cannot be null for CreditRepository');
     return _firestore.collection(FirebaseConstants.clubsCollection).doc(clubId);
   }
 
-  CollectionReference get _creditsRef => _clubRef.collection(FirebaseConstants.creditsCollection);
+  CollectionReference get _creditsRef =>
+      _clubRef.collection(FirebaseConstants.creditsCollection);
 
   CollectionReference _transactionsRef(String customerId) =>
       _creditsRef.doc(customerId).collection('transactions');
@@ -36,92 +59,143 @@ class CreditRepository {
     return _creditsRef
         .orderBy('lastTransactionDate', descending: true)
         .snapshots()
-        .map((snapshot) => snapshot.docs
-            .map((doc) => PlayerProfile.fromMap(doc.id, doc.data() as Map<String, dynamic>))
-            .toList());
+        .map(
+          (snapshot) => snapshot.docs
+              .map(
+                (doc) => PlayerProfile.fromMap(
+                  doc.id,
+                  doc.data() as Map<String, dynamic>,
+                ),
+              )
+              .toList(),
+        );
   }
 
   Stream<List<CreditTransaction>> watchPendingTransactions(String customerId) {
     return _transactionsRef(customerId)
         .orderBy('date', descending: true)
         .snapshots()
-        .map((snapshot) => snapshot.docs
-            .map((doc) => CreditTransaction.fromMap(doc.id, doc.data() as Map<String, dynamic>))
-            .where((tx) => tx.status != CreditTransactionStatus.paid)
-            .toList());
+        .map(
+          (snapshot) => snapshot.docs
+              .map(
+                (doc) => CreditTransaction.fromMap(
+                  doc.id,
+                  doc.data() as Map<String, dynamic>,
+                ),
+              )
+              .where((tx) => tx.status != CreditTransactionStatus.paid)
+              .toList(),
+        );
   }
 
   Stream<List<CreditTransaction>> watchAllTransactions(String customerId) {
     return _transactionsRef(customerId)
         .orderBy('date', descending: true)
         .snapshots()
-        .map((snapshot) => snapshot.docs
-            .map((doc) => CreditTransaction.fromMap(doc.id, doc.data() as Map<String, dynamic>))
-            .toList());
+        .map(
+          (snapshot) => snapshot.docs
+              .map(
+                (doc) => CreditTransaction.fromMap(
+                  doc.id,
+                  doc.data() as Map<String, dynamic>,
+                ),
+              )
+              .toList(),
+        );
   }
 
-  Stream<List<CreditTransaction>> watchAllTransactionsGlobal(DateTime? selectedDate) {
-    Query query = _firestore.collectionGroup('transactions').where('clubId', isEqualTo: clubId);
+  Stream<List<CreditTransaction>> watchAllTransactionsGlobal(
+    DateTime? selectedDate,
+  ) {
+    Query query = _firestore
+        .collectionGroup('transactions')
+        .where('clubId', isEqualTo: clubId);
     if (selectedDate != null) {
-      final start = DateTime(selectedDate.year, selectedDate.month, selectedDate.day);
+      final start = DateTime(
+        selectedDate.year,
+        selectedDate.month,
+        selectedDate.day,
+      );
       final end = start.add(const Duration(days: 1));
       query = query
           .where('date', isGreaterThanOrEqualTo: Timestamp.fromDate(start))
           .where('date', isLessThan: Timestamp.fromDate(end));
     }
     query = query.orderBy('date', descending: true);
-    return query.snapshots().map((snapshot) => snapshot.docs
-        .map((doc) => CreditTransaction.fromMap(doc.id, doc.data() as Map<String, dynamic>))
-        .toList());
+    return query.snapshots().map(
+      (snapshot) => snapshot.docs
+          .map(
+            (doc) => CreditTransaction.fromMap(
+              doc.id,
+              doc.data() as Map<String, dynamic>,
+            ),
+          )
+          .toList(),
+    );
   }
 
   Stream<List<PaymentHistory>> watchPaymentHistory(String customerId) {
     return _paymentsRef(customerId)
         .orderBy('date', descending: true)
         .snapshots()
-        .map((snapshot) => snapshot.docs
-            .map((doc) => PaymentHistory.fromMap(doc.id, doc.data() as Map<String, dynamic>))
-            .toList());
+        .map(
+          (snapshot) => snapshot.docs
+              .map(
+                (doc) => PaymentHistory.fromMap(
+                  doc.id,
+                  doc.data() as Map<String, dynamic>,
+                ),
+              )
+              .toList(),
+        );
   }
 
-    
   Future<void> deletePlayerProfile(String customerId) async {
     if (AppConfig.guardWrite('CreditRepository.deletePlayerProfile')) return;
     final batch = _firestore.batch();
-    
+
     final transSnap = await _transactionsRef(customerId).get();
     for (final doc in transSnap.docs) {
       batch.delete(doc.reference);
     }
-    
+
     final paymentsSnap = await _paymentsRef(customerId).get();
     for (final doc in paymentsSnap.docs) {
       batch.delete(doc.reference);
     }
-    
+
     batch.delete(_creditsRef.doc(customerId));
     await batch.commit();
   }
 
   Future<void> savePlayerProfile(PlayerProfile profile) async {
     if (AppConfig.guardWrite('CreditRepository.savePlayerProfile')) return;
-    await _creditsRef.doc(profile.id).set(profile.toMap(), SetOptions(merge: true));
+    await _creditsRef
+        .doc(profile.id)
+        .set(profile.toMap(), SetOptions(merge: true));
   }
 
   Future<PlayerProfile?> getCustomerByName(String name) async {
-    final query = await _creditsRef.where('name', isEqualTo: name).limit(1).get();
+    final query = await _creditsRef
+        .where('name', isEqualTo: name)
+        .limit(1)
+        .get();
     if (query.docs.isEmpty) return null;
-    return PlayerProfile.fromMap(query.docs.first.id, query.docs.first.data() as Map<String, dynamic>);
+    return PlayerProfile.fromMap(
+      query.docs.first.id,
+      query.docs.first.data() as Map<String, dynamic>,
+    );
   }
+
   Stream<List<PaymentHistory>> watchAllPaymentsByDate(String dateStr) {
     // Parse dateStr (yyyy-mm-dd)
     final parts = dateStr.split('-');
     if (parts.length != 3) return const Stream.empty();
-    
+
     final year = int.tryParse(parts[0]) ?? 2024;
     final month = int.tryParse(parts[1]) ?? 1;
     final day = int.tryParse(parts[2]) ?? 1;
-    
+
     final startOfDay = DateTime(year, month, day);
     final endOfDay = startOfDay.add(const Duration(days: 1));
 
@@ -132,12 +206,11 @@ class CreditRepository {
         .where('date', isLessThan: Timestamp.fromDate(endOfDay))
         .snapshots()
         .map((snapshot) {
-      return snapshot.docs
-          .map((doc) => PaymentHistory.fromMap(doc.id, doc.data()))
-          .toList();
-    });
+          return snapshot.docs
+              .map((doc) => PaymentHistory.fromMap(doc.id, doc.data()))
+              .toList();
+        });
   }
-
 
   /// Appends credit logic within an existing batch
   Future<void> appendCreditToBatch({
@@ -153,36 +226,41 @@ class CreditRepository {
     PaymentMethod? paymentMethod,
   }) async {
     if (AppConfig.guardWrite('CreditRepository.appendCreditToBatch')) return;
-    
+
     PlayerProfile? existingCustomer;
     if (customerId != null) {
       final doc = await _creditsRef.doc(customerId).get();
       if (doc.exists) {
-        existingCustomer = PlayerProfile.fromMap(doc.id, doc.data() as Map<String, dynamic>);
+        existingCustomer = PlayerProfile.fromMap(
+          doc.id,
+          doc.data() as Map<String, dynamic>,
+        );
       }
     }
-    
+
     if (existingCustomer == null) {
       existingCustomer = await getCustomerByName(customerName);
     }
 
     // Duplicate Credit Protection (Phase 3)
     if (!isTransfer && existingCustomer != null) {
-      final existingTx = await _transactionsRef(existingCustomer.id)
-          .where('referenceId', isEqualTo: referenceId)
-          .limit(1)
-          .get();
+      final existingTx = await _transactionsRef(
+        existingCustomer.id,
+      ).where('referenceId', isEqualTo: referenceId).limit(1).get();
       if (existingTx.docs.isNotEmpty) {
-        throw Exception('A credit transaction for this source already exists for this customer.');
+        throw Exception(
+          'A credit transaction for this source already exists for this customer.',
+        );
       }
     }
-    
-    final customerRef = existingCustomer != null 
-        ? _creditsRef.doc(existingCustomer.id) 
+
+    final customerRef = existingCustomer != null
+        ? _creditsRef.doc(existingCustomer.id)
         : _creditsRef.doc();
-        
-    final isCredit = paymentMethod == null || paymentMethod == PaymentMethod.credit;
-    
+
+    final isCredit =
+        paymentMethod == null || paymentMethod == PaymentMethod.credit;
+
     if (existingCustomer != null) {
       batch.update(customerRef, {
         if (isCredit) 'outstandingAmount': FieldValue.increment(amount),
@@ -209,16 +287,21 @@ class CreditRepository {
       amount: amount,
       paidAmount: isCredit ? 0.0 : amount,
       remainingAmount: isCredit ? amount : 0.0,
-      status: isCredit ? CreditTransactionStatus.pending : CreditTransactionStatus.paid,
+      status: isCredit
+          ? CreditTransactionStatus.pending
+          : CreditTransactionStatus.paid,
       date: DateTime.now(),
       title: title,
-      subtitle: subtitle != null ? subtitle + (isCredit ? '' : ' - Paid via ${paymentMethod!.displayName}') : (isCredit ? null : 'Paid via ${paymentMethod!.displayName}'),
+      subtitle: subtitle != null
+          ? subtitle +
+                (isCredit ? '' : ' - Paid via ${paymentMethod!.displayName}')
+          : (isCredit ? null : 'Paid via ${paymentMethod!.displayName}'),
     );
     final data = transaction.toMap();
     data['clubId'] = clubId;
     batch.set(transRef, data);
   }
-  
+
   /// Appends credit logic within an existing transaction
   Future<void> appendCreditToTransaction({
     required Transaction transaction,
@@ -230,15 +313,20 @@ class CreditRepository {
     String? subtitle,
     PaymentMethod? paymentMethod,
   }) async {
-    if (AppConfig.guardWrite('CreditRepository.appendCreditToTransaction')) return;
-    final query = await _creditsRef.where('name', isEqualTo: customerName).limit(1).get();
+    if (AppConfig.guardWrite('CreditRepository.appendCreditToTransaction'))
+      return;
+    final query = await _creditsRef
+        .where('name', isEqualTo: customerName)
+        .limit(1)
+        .get();
     final existingCustomerDoc = query.docs.isEmpty ? null : query.docs.first;
 
-    final customerRef = existingCustomerDoc != null 
-        ? _creditsRef.doc(existingCustomerDoc.id) 
+    final customerRef = existingCustomerDoc != null
+        ? _creditsRef.doc(existingCustomerDoc.id)
         : _creditsRef.doc();
 
-    final isCredit = paymentMethod == null || paymentMethod == PaymentMethod.credit;
+    final isCredit =
+        paymentMethod == null || paymentMethod == PaymentMethod.credit;
 
     if (existingCustomerDoc != null) {
       transaction.update(customerRef, {
@@ -266,11 +354,12 @@ class CreditRepository {
       amount: amount,
       paidAmount: isCredit ? 0.0 : amount,
       remainingAmount: isCredit ? amount : 0.0,
-      status: isCredit ? CreditTransactionStatus.pending : CreditTransactionStatus.paid,
+      status: isCredit
+          ? CreditTransactionStatus.pending
+          : CreditTransactionStatus.paid,
       date: DateTime.now(),
       title: title,
       subtitle: subtitle,
-      
     );
     final data = creditTrans.toMap();
     data['clubId'] = clubId;
@@ -285,19 +374,23 @@ class CreditRepository {
     required bool isFullPayment,
   }) async {
     if (AppConfig.guardWrite('CreditRepository.processPayment')) return;
-    employeeName = currentStaff?.name ?? employeeName;
+    employeeName = currentUserName;
     await _firestore.runTransaction((tx) async {
       if (paymentAmount <= 0) {
         throw Exception("Payment amount must be greater than zero.");
       }
       final customerRef = _creditsRef.doc(customer.id);
       final customerDoc = await tx.get(customerRef);
-      
+
       if (!customerDoc.exists) throw Exception("Customer not found.");
-      final currentOutstanding = (customerDoc.data() as Map<String, dynamic>)['outstandingAmount'] as num;
-      final roundedOutstanding = double.parse(currentOutstanding.toStringAsFixed(2));
+      final currentOutstanding =
+          (customerDoc.data() as Map<String, dynamic>)['outstandingAmount']
+              as num;
+      final roundedOutstanding = double.parse(
+        currentOutstanding.toStringAsFixed(2),
+      );
       final roundedPayment = double.parse(paymentAmount.toStringAsFixed(2));
-      
+
       if (roundedPayment > roundedOutstanding) {
         throw Exception("Payment amount exceeds outstanding balance.");
       }
@@ -317,16 +410,15 @@ class CreditRepository {
         amountPaid: paymentAmount,
         remainingBalance: newOutstanding.toDouble(),
         paymentMethod: paymentMethod,
-        
+
         employeeName: employeeName,
         date: DateTime.now(),
       );
       final data = history.toMap();
       data['clubId'] = clubId;
       tx.set(paymentRef, data);
-
     });
-    
+
     // Always trigger recalculation to properly sync game bills and transaction status
     await recalculateCustomerAccount(customer.id);
   }
@@ -347,11 +439,15 @@ class CreditRepository {
       final sourceData = sourceDoc.data() as Map<String, dynamic>;
       final targetData = targetDoc.data() as Map<String, dynamic>;
 
-      final sourceOutstanding = (sourceData['outstandingAmount'] as num?)?.toDouble() ?? 0.0;
-      final targetOutstanding = (targetData['outstandingAmount'] as num?)?.toDouble() ?? 0.0;
-      
-      final sourcePendingCount = (sourceData['totalPendingTransactions'] as num?)?.toInt() ?? 0;
-      final targetPendingCount = (targetData['totalPendingTransactions'] as num?)?.toInt() ?? 0;
+      final sourceOutstanding =
+          (sourceData['outstandingAmount'] as num?)?.toDouble() ?? 0.0;
+      final targetOutstanding =
+          (targetData['outstandingAmount'] as num?)?.toDouble() ?? 0.0;
+
+      final sourcePendingCount =
+          (sourceData['totalPendingTransactions'] as num?)?.toInt() ?? 0;
+      final targetPendingCount =
+          (targetData['totalPendingTransactions'] as num?)?.toInt() ?? 0;
 
       // Update target customer
       tx.update(targetRef, {
@@ -388,7 +484,8 @@ class CreditRepository {
   /// Executes a two-phase process: validates that no associated transaction has been settled,
   /// then deletes pending records and recalculates customer outstanding balances.
   Future<void> cascadeDeleteGameCredits(List<GameSession> sessions) async {
-    if (AppConfig.guardWrite('CreditRepository.cascadeDeleteGameCredits')) return;
+    if (AppConfig.guardWrite('CreditRepository.cascadeDeleteGameCredits'))
+      return;
     final List<DocumentSnapshot> transactionsToDelete = [];
     final Set<String> affectedCustomerIds = {};
 
@@ -410,9 +507,9 @@ class CreditRepository {
       for (final name in customerNames) {
         final customer = await getCustomerByName(name);
         if (customer != null) {
-          final transSnap = await _transactionsRef(customer.id)
-              .where('referenceId', isEqualTo: session.id)
-              .get();
+          final transSnap = await _transactionsRef(
+            customer.id,
+          ).where('referenceId', isEqualTo: session.id).get();
           matchingDocs.addAll(transSnap.docs);
         }
       }
@@ -431,9 +528,10 @@ class CreditRepository {
         final data = doc.data() as Map<String, dynamic>?;
         if (data != null) {
           final statusStr = data['status'] as String? ?? '';
-          
+
           bool wasCredit = false;
-          if (session.playerPaymentSplits != null && session.playerPaymentSplits!.isNotEmpty) {
+          if (session.playerPaymentSplits != null &&
+              session.playerPaymentSplits!.isNotEmpty) {
             final subtitle = data['subtitle'] as String? ?? '';
             if (subtitle.contains('- Paid via')) {
               wasCredit = false;
@@ -445,10 +543,13 @@ class CreditRepository {
           }
 
           if (wasCredit && statusStr == CreditTransactionStatus.paid.name) {
-            throw Exception('This game has already been settled through a credit payment. Deleting it will create accounting inconsistencies.');
+            throw Exception(
+              'This game has already been settled through a credit payment. Deleting it will create accounting inconsistencies.',
+            );
           }
           transactionsToDelete.add(doc);
-          final cid = data['customerId'] as String? ?? doc.reference.parent.parent?.id;
+          final cid =
+              data['customerId'] as String? ?? doc.reference.parent.parent?.id;
           if (cid != null && cid.isNotEmpty) {
             affectedCustomerIds.add(cid);
           }
@@ -468,8 +569,11 @@ class CreditRepository {
 
   /// Completely recalculates a customer's account balance and transaction statuses.
   Future<void> recalculateCustomerAccount(String customerId) async {
-    if (AppConfig.guardWrite('CreditRepository.recalculateCustomerAccount')) return;
-    final transSnap = await _transactionsRef(customerId).orderBy('date', descending: true).get();
+    if (AppConfig.guardWrite('CreditRepository.recalculateCustomerAccount'))
+      return;
+    final transSnap = await _transactionsRef(
+      customerId,
+    ).orderBy('date', descending: true).get();
     final paymentsSnap = await _paymentsRef(customerId).get();
     final List<Future<void>> uiUpdates = [];
 
@@ -497,13 +601,20 @@ class CreditRepository {
     totalCharges = double.parse(totalCharges.toStringAsFixed(2));
     totalPayments = double.parse(totalPayments.toStringAsFixed(2));
 
-    final double outstanding = math.max(0.0, double.parse((totalCharges - totalPayments).toStringAsFixed(2)));
+    final double outstanding = math.max(
+      0.0,
+      double.parse((totalCharges - totalPayments).toStringAsFixed(2)),
+    );
     double remainingToCover = outstanding;
     int pendingCount = 0;
 
     final batch = _firestore.batch();
-    final gamesCollection = _clubRef.collection(FirebaseConstants.gamesCollection);
-    final salesCollection = _clubRef.collection(FirebaseConstants.salesCollection);
+    final gamesCollection = _clubRef.collection(
+      FirebaseConstants.gamesCollection,
+    );
+    final salesCollection = _clubRef.collection(
+      FirebaseConstants.salesCollection,
+    );
 
     for (final doc in transSnap.docs) {
       final data = doc.data() as Map<String, dynamic>?;
@@ -512,7 +623,7 @@ class CreditRepository {
         final originalAmount = double.parse(rawAmount.toStringAsFixed(2));
         final typeStr = data['type'] as String? ?? '';
         final refId = data['referenceId'] as String? ?? '';
-        
+
         double txRemaining;
         double txPaid;
         String newStatus;
@@ -542,24 +653,35 @@ class CreditRepository {
         });
 
         if (refId.isNotEmpty) {
-          String displayStatus = newStatus == CreditTransactionStatus.pending.name 
-              ? 'Outstanding' 
-              : newStatus == CreditTransactionStatus.partiallyPaid.name 
-                  ? 'Partially Paid' 
-                  : 'Paid';
-                  
+          String displayStatus =
+              newStatus == CreditTransactionStatus.pending.name
+              ? 'Outstanding'
+              : newStatus == CreditTransactionStatus.partiallyPaid.name
+              ? 'Partially Paid'
+              : 'Paid';
+
           if (typeStr == CreditTransactionType.game.name) {
-            uiUpdates.add(gamesCollection.doc(refId).update({
-              'paymentStatus': displayStatus,
-              'paidAmount': txPaid,
-              'remainingAmount': txRemaining,
-            }).catchError((_) {}));
+            uiUpdates.add(
+              gamesCollection
+                  .doc(refId)
+                  .update({
+                    'paymentStatus': displayStatus,
+                    'paidAmount': txPaid,
+                    'remainingAmount': txRemaining,
+                  })
+                  .catchError((_) {}),
+            );
           } else if (typeStr == CreditTransactionType.quickSale.name) {
-            uiUpdates.add(salesCollection.doc(refId).update({
-              'paymentStatus': displayStatus,
-              'paidAmount': txPaid,
-              'remainingAmount': txRemaining,
-            }).catchError((_) {}));
+            uiUpdates.add(
+              salesCollection
+                  .doc(refId)
+                  .update({
+                    'paymentStatus': displayStatus,
+                    'paidAmount': txPaid,
+                    'remainingAmount': txRemaining,
+                  })
+                  .catchError((_) {}),
+            );
           }
         }
       }
@@ -575,18 +697,20 @@ class CreditRepository {
 
   /// Cascade deletes credit transactions for deleted quick sales.
   Future<void> cascadeDeleteQuickSaleCredits(List<QuickSale> sales) async {
-    if (AppConfig.guardWrite('CreditRepository.cascadeDeleteQuickSaleCredits')) return;
+    if (AppConfig.guardWrite('CreditRepository.cascadeDeleteQuickSaleCredits'))
+      return;
     final List<DocumentSnapshot> transactionsToDelete = [];
     final Set<String> affectedCustomerIds = {};
 
     for (final sale in sales) {
-      if (sale.paymentMethod == PaymentMethod.credit && sale.customerName != null) {
+      if (sale.paymentMethod == PaymentMethod.credit &&
+          sale.customerName != null) {
         List<DocumentSnapshot> matchingDocs = [];
         final customer = await getCustomerByName(sale.customerName!);
         if (customer != null) {
-          final transSnap = await _transactionsRef(customer.id)
-              .where('referenceId', isEqualTo: sale.id)
-              .get();
+          final transSnap = await _transactionsRef(
+            customer.id,
+          ).where('referenceId', isEqualTo: sale.id).get();
           matchingDocs.addAll(transSnap.docs);
         }
 
@@ -604,10 +728,14 @@ class CreditRepository {
           if (data != null) {
             final statusStr = data['status'] as String? ?? '';
             if (statusStr == CreditTransactionStatus.paid.name) {
-              throw Exception('This quick sale has already been settled through a credit payment. Deleting it will create accounting inconsistencies.');
+              throw Exception(
+                'This quick sale has already been settled through a credit payment. Deleting it will create accounting inconsistencies.',
+              );
             }
             transactionsToDelete.add(doc);
-            final cid = data['customerId'] as String? ?? doc.reference.parent.parent?.id;
+            final cid =
+                data['customerId'] as String? ??
+                doc.reference.parent.parent?.id;
             if (cid != null && cid.isNotEmpty) {
               affectedCustomerIds.add(cid);
             }
@@ -625,12 +753,17 @@ class CreditRepository {
     }
   }
 
-  Future<void> deleteCreditTransactions(List<CreditTransaction> transactions) async {
-    if (AppConfig.guardWrite('CreditRepository.deleteCreditTransactions')) return;
+  Future<void> deleteCreditTransactions(
+    List<CreditTransaction> transactions,
+  ) async {
+    if (AppConfig.guardWrite('CreditRepository.deleteCreditTransactions'))
+      return;
     final Set<String> affectedCustomerIds = {};
     for (final tx in transactions) {
       if (tx.status == CreditTransactionStatus.paid) {
-        throw Exception('Cannot delete transaction "${tx.title}" as it has already been settled through a payment.');
+        throw Exception(
+          'Cannot delete transaction "${tx.title}" as it has already been settled through a payment.',
+        );
       }
       await _transactionsRef(tx.customerId).doc(tx.id).delete();
       affectedCustomerIds.add(tx.customerId);
@@ -659,8 +792,9 @@ class CreditRepository {
     required String newName,
     required String employeeName,
   }) async {
-    if (AppConfig.guardWrite('CreditRepository.renameCustomerAndPropagate')) return;
-    employeeName = currentStaff?.name ?? employeeName;
+    if (AppConfig.guardWrite('CreditRepository.renameCustomerAndPropagate'))
+      return;
+    employeeName = currentUserName;
     if (oldName == newName) return;
     final targetExisting = await getCustomerByName(newName);
     if (targetExisting != null && targetExisting.id != customerId) {
@@ -672,8 +806,12 @@ class CreditRepository {
     await _creditsRef.doc(customerId).update({'name': newName});
 
     final transSnap = await _transactionsRef(customerId).get();
-    final gamesCollection = _clubRef.collection(FirebaseConstants.gamesCollection);
-    final salesCollection = _clubRef.collection(FirebaseConstants.salesCollection);
+    final gamesCollection = _clubRef.collection(
+      FirebaseConstants.gamesCollection,
+    );
+    final salesCollection = _clubRef.collection(
+      FirebaseConstants.salesCollection,
+    );
 
     for (final doc in transSnap.docs) {
       final data = doc.data() as Map<String, dynamic>?;
@@ -744,7 +882,10 @@ class CreditRepository {
               if (newPaidBy != null) 'paidBy': newPaidBy,
               if (newWinner != null) 'winnerId': newWinner,
               if (newPaymentSplits != null)
-                'playerPaymentSplits': newPaymentSplits.map((k, v) => MapEntry(k, v.map((km, vm) => MapEntry(km.name, vm)))),
+                'playerPaymentSplits': newPaymentSplits.map(
+                  (k, v) =>
+                      MapEntry(k, v.map((km, vm) => MapEntry(km.name, vm))),
+                ),
               if (newLiabilities != null) 'playerLiabilities': newLiabilities,
               'auditLogs': updatedAuditLogs.map((a) => a.toMap()).toList(),
             });
@@ -785,17 +926,21 @@ class CreditRepository {
     required String title,
     String? subtitle,
   }) async {
-    if (AppConfig.guardWrite('CreditRepository.transferCreditTransaction')) return;
-    if (oldCustomerName.isEmpty || newCustomerName.isEmpty || oldCustomerName == newCustomerName) return;
+    if (AppConfig.guardWrite('CreditRepository.transferCreditTransaction'))
+      return;
+    if (oldCustomerName.isEmpty ||
+        newCustomerName.isEmpty ||
+        oldCustomerName == newCustomerName)
+      return;
 
     final batch = _firestore.batch();
-    
+
     await removeCreditFromBatch(
       batch: batch,
       referenceId: referenceId,
       customerName: oldCustomerName,
     );
-    
+
     await appendCreditToBatch(
       batch: batch,
       customerName: newCustomerName,
@@ -805,9 +950,8 @@ class CreditRepository {
       title: title,
       subtitle: subtitle,
       isTransfer: true,
-      
     );
-    
+
     await batch.commit();
   }
 
@@ -822,20 +966,23 @@ class CreditRepository {
   }) async {
     if (AppConfig.guardWrite('CreditRepository.addCreditRecord')) return;
     if (customerName.isEmpty || amount <= 0) return;
-    
+
     final existingCustomer = await getCustomerByName(customerName);
 
     // Duplicate Credit Protection (Phase 3)
     if (existingCustomer != null) {
-      final existingTx = await _transactionsRef(existingCustomer.id)
-          .where('referenceId', isEqualTo: referenceId)
-          .limit(1)
-          .get();
+      final existingTx = await _transactionsRef(
+        existingCustomer.id,
+      ).where('referenceId', isEqualTo: referenceId).limit(1).get();
       if (existingTx.docs.isNotEmpty) {
-        throw Exception('A credit transaction for this source already exists for this customer.');
+        throw Exception(
+          'A credit transaction for this source already exists for this customer.',
+        );
       }
     }
-    final customerRef = existingCustomer != null ? _creditsRef.doc(existingCustomer.id) : _creditsRef.doc();
+    final customerRef = existingCustomer != null
+        ? _creditsRef.doc(existingCustomer.id)
+        : _creditsRef.doc();
 
     if (existingCustomer == null) {
       final newCustomer = PlayerProfile(
@@ -876,22 +1023,28 @@ class CreditRepository {
     if (AppConfig.guardWrite('CreditRepository.removeCreditFromBatch')) return;
     final customer = await getCustomerByName(customerName);
     if (customer == null) return;
-    
-    final transSnap = await _transactionsRef(customer.id).where('referenceId', isEqualTo: referenceId).get();
+
+    final transSnap = await _transactionsRef(
+      customer.id,
+    ).where('referenceId', isEqualTo: referenceId).get();
     for (final doc in transSnap.docs) {
       final data = doc.data() as Map<String, dynamic>;
-      final isCredit = data['paymentMethod'] == null || data['paymentMethod'] == 'credit';
-      
+      final isCredit =
+          data['paymentMethod'] == null || data['paymentMethod'] == 'credit';
+
       if (isCredit) {
         final statusStr = data['status'] as String? ?? '';
-        if (statusStr == CreditTransactionStatus.paid.name || statusStr == CreditTransactionStatus.partiallyPaid.name) {
-          throw Exception('Cannot convert or remove credit for this transaction as it has already received a payment.');
+        if (statusStr == CreditTransactionStatus.paid.name ||
+            statusStr == CreditTransactionStatus.partiallyPaid.name) {
+          throw Exception(
+            'Cannot convert or remove credit for this transaction as it has already received a payment.',
+          );
         }
       }
-      
+
       final originalAmount = (data['amount'] as num?)?.toDouble() ?? 0.0;
       batch.delete(doc.reference);
-      
+
       if (isCredit) {
         batch.update(_creditsRef.doc(customer.id), {
           'outstandingAmount': FieldValue.increment(-originalAmount),
@@ -901,7 +1054,10 @@ class CreditRepository {
     }
   }
 
-  Future<void> removeCreditRecord({required String referenceId, String? customerName}) async {
+  Future<void> removeCreditRecord({
+    required String referenceId,
+    String? customerName,
+  }) async {
     if (AppConfig.guardWrite('CreditRepository.removeCreditRecord')) return;
     final Set<String> affectedCustomerIds = {};
     List<DocumentSnapshot> matchingDocs = [];
@@ -909,13 +1065,19 @@ class CreditRepository {
     if (customerName != null && customerName.isNotEmpty) {
       final customer = await getCustomerByName(customerName);
       if (customer != null) {
-        final transSnap = await _transactionsRef(customer.id).where('referenceId', isEqualTo: referenceId).get();
+        final transSnap = await _transactionsRef(
+          customer.id,
+        ).where('referenceId', isEqualTo: referenceId).get();
         matchingDocs.addAll(transSnap.docs);
       }
     }
 
     if (matchingDocs.isEmpty) {
-      final cgSnap = await _firestore.collectionGroup('transactions').where('clubId', isEqualTo: clubId).where('referenceId', isEqualTo: referenceId).get();
+      final cgSnap = await _firestore
+          .collectionGroup('transactions')
+          .where('clubId', isEqualTo: clubId)
+          .where('referenceId', isEqualTo: referenceId)
+          .get();
       matchingDocs.addAll(cgSnap.docs);
     }
 
@@ -924,9 +1086,12 @@ class CreditRepository {
       if (data != null) {
         final statusStr = data['status'] as String? ?? '';
         if (statusStr == CreditTransactionStatus.paid.name) {
-          throw Exception('Cannot remove credit for this transaction as it has already been settled via payment.');
+          throw Exception(
+            'Cannot remove credit for this transaction as it has already been settled via payment.',
+          );
         }
-        final cid = data['customerId'] as String? ?? doc.reference.parent.parent?.id;
+        final cid =
+            data['customerId'] as String? ?? doc.reference.parent.parent?.id;
         if (cid != null) affectedCustomerIds.add(cid);
       }
       await doc.reference.delete();
@@ -937,8 +1102,3 @@ class CreditRepository {
     }
   }
 }
-
-
-
-
-

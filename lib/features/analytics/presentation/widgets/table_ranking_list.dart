@@ -12,7 +12,11 @@ class TableRankingList extends StatelessWidget {
   final List<TablePerformanceItem> tables;
   final Currency currency;
 
-  const TableRankingList({super.key, required this.tables, required this.currency});
+  const TableRankingList({
+    super.key,
+    required this.tables,
+    required this.currency,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -22,7 +26,12 @@ class TableRankingList extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Table Rankings', style: AppTypography.textTheme.titleMedium!.copyWith(fontWeight: FontWeight.w700)),
+        Text(
+          'Table Rankings',
+          style: AppTypography.textTheme.titleMedium!.copyWith(
+            fontWeight: FontWeight.w700,
+          ),
+        ),
         const SizedBox(height: 16),
         Container(
           padding: const EdgeInsets.all(16),
@@ -35,18 +44,31 @@ class TableRankingList extends StatelessWidget {
             children: tables.asMap().entries.map((e) {
               final index = e.key;
               final table = e.value;
-              final String medal = index == 0 ? '🥇' : (index == 1 ? '🥈' : (index == 2 ? '🥉' : ''));
-              final double fraction = maxRevenue > 0 ? table.totalBilled / maxRevenue : 0;
-              
+              final String medal = index == 0
+                  ? '🥇'
+                  : (index == 1 ? '🥈' : (index == 2 ? '🥉' : ''));
+              final double fraction = maxRevenue > 0
+                  ? table.totalBilled / maxRevenue
+                  : 0;
+
               return Padding(
                 padding: const EdgeInsets.symmetric(vertical: 8.0),
                 child: Row(
                   children: [
-                    SizedBox(width: 24, child: Text(medal.isNotEmpty ? medal : '#${index + 1}', style: const TextStyle(fontWeight: FontWeight.bold))),
+                    SizedBox(
+                      width: 24,
+                      child: Text(
+                        medal.isNotEmpty ? medal : '#${index + 1}',
+                        style: const TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                    ),
                     const SizedBox(width: 8),
                     Expanded(
                       flex: 2,
-                      child: Text(table.tableName, style: const TextStyle(fontWeight: FontWeight.w500)),
+                      child: Text(
+                        table.tableName,
+                        style: const TextStyle(fontWeight: FontWeight.w500),
+                      ),
                     ),
                     Expanded(
                       flex: 3,

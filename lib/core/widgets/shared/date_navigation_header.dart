@@ -40,13 +40,15 @@ class DateNavigationHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
         color: theme.colorScheme.surface,
         boxShadow: AppShadows.small,
-        border: Border(bottom: BorderSide(color: theme.colorScheme.outlineVariant)),
+        border: Border(
+          bottom: BorderSide(color: theme.colorScheme.outlineVariant),
+        ),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -65,10 +67,12 @@ class DateNavigationHeader extends StatelessWidget {
                   const Icon(Icons.event, size: 18, color: AppColors.primary),
                   const Gap(8),
                   Text(
-                    _isToday 
-                        ? "Today, ${DateFormat('MMM d, yyyy').format(selectedDate)}" 
+                    _isToday
+                        ? "Today, ${DateFormat('MMM d, yyyy').format(selectedDate)}"
                         : DateFormat('EEEE, MMM d, yyyy').format(selectedDate),
-                    style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
                 ],
               ),

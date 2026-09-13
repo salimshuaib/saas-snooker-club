@@ -46,10 +46,15 @@ class _OrdersSheetState extends ConsumerState<OrdersSheet> {
       ),
       child: inventoryAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (err, stack) => Center(child: Text('Error loading products: $err')),
+        error: (err, stack) =>
+            Center(child: Text('Error loading products: $err')),
         data: (items) {
           final activeProducts = items.where((i) => i.isActive).toList();
-          final categories = {'Drinks', 'Cigarettes', ...activeProducts.map((e) => e.category)}.toList();
+          final categories = {
+            'Drinks',
+            'Cigarettes',
+            ...activeProducts.map((e) => e.category),
+          }.toList();
 
           return DefaultTabController(
             length: categories.length,
@@ -74,7 +79,13 @@ class _OrdersSheetState extends ConsumerState<OrdersSheet> {
                       Text('Add Orders', style: theme.textTheme.titleLarge),
                       TextButton(
                         onPressed: () => Navigator.of(context).pop(_orders),
-                        child: const Text('Done', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                        child: const Text(
+                          'Done',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                          ),
+                        ),
                       ),
                     ],
                   ),
@@ -93,11 +104,13 @@ class _OrdersSheetState extends ConsumerState<OrdersSheet> {
                           isSelected: _selectedPlayer == null,
                           onTap: () => setState(() => _selectedPlayer = null),
                         ),
-                        ...widget.players.map((p) => _PlayerChip(
-                              label: p,
-                              isSelected: _selectedPlayer == p,
-                              onTap: () => setState(() => _selectedPlayer = p),
-                            )),
+                        ...widget.players.map(
+                          (p) => _PlayerChip(
+                            label: p,
+                            isSelected: _selectedPlayer == p,
+                            onTap: () => setState(() => _selectedPlayer = p),
+                          ),
+                        ),
                       ],
                     ),
                   ),
@@ -105,17 +118,19 @@ class _OrdersSheetState extends ConsumerState<OrdersSheet> {
                 ],
 
                 // Tab Bar
-                TabBar(
-                  tabs: categories.map((c) => Tab(text: c)).toList(),
-                ),
+                TabBar(tabs: categories.map((c) => Tab(text: c)).toList()),
 
                 // Product List
                 Expanded(
                   child: TabBarView(
                     children: categories.map((category) {
-                      final products = activeProducts.where((p) => p.category == category).toList();
+                      final products = activeProducts
+                          .where((p) => p.category == category)
+                          .toList();
                       if (products.isEmpty) {
-                        return const Center(child: Text('No active items in this category'));
+                        return const Center(
+                          child: Text('No active items in this category'),
+                        );
                       }
                       return ListView.builder(
                         padding: const EdgeInsets.symmetric(vertical: 8),
@@ -143,50 +158,61 @@ class _OrdersSheetState extends ConsumerState<OrdersSheet> {
                     decoration: BoxDecoration(
                       color: theme.colorScheme.surfaceContainerHighest,
                       border: Border(
-                        top: BorderSide(color: theme.colorScheme.outlineVariant),
+                        top: BorderSide(
+                          color: theme.colorScheme.outlineVariant,
+                        ),
                       ),
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('Current Orders',
-                            style: theme.textTheme.labelLarge?.copyWith(
-                                fontWeight: FontWeight.w700)),
+                        Text(
+                          'Current Orders',
+                          style: theme.textTheme.labelLarge?.copyWith(
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
                         const Gap(8),
-                        ...(_orders.map((o) => Padding(
-                              padding: const EdgeInsets.only(bottom: 4),
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Expanded(
-                                    child: Text(
-                                      '${o.quantity}x ${o.productName}${o.playerName != null ? ' (${o.playerName})' : ''}',
-                                      style: theme.textTheme.bodySmall,
-                                    ),
+                        ...(_orders.map(
+                          (o) => Padding(
+                            padding: const EdgeInsets.only(bottom: 4),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    '${o.quantity}x ${o.productName}${o.playerName != null ? ' (${o.playerName})' : ''}',
+                                    style: theme.textTheme.bodySmall,
                                   ),
-                                  Text(
-                                    '₹${o.total.toStringAsFixed(0)}',
-                                    style: theme.textTheme.bodySmall?.copyWith(
-                                        fontWeight: FontWeight.w600),
+                                ),
+                                Text(
+                                  '₹${o.total.toStringAsFixed(0)}',
+                                  style: theme.textTheme.bodySmall?.copyWith(
+                                    fontWeight: FontWeight.w600,
                                   ),
-                                  IconButton(
-                                    icon: const Icon(Icons.close, size: 16),
-                                    onPressed: () {
-                                      setState(() => _orders.remove(o));
-                                    },
-                                    padding: EdgeInsets.zero,
-                                    constraints: const BoxConstraints(),
-                                  ),
-                                ],
-                              ),
-                            ))),
+                                ),
+                                IconButton(
+                                  icon: const Icon(Icons.close, size: 16),
+                                  onPressed: () {
+                                    setState(() => _orders.remove(o));
+                                  },
+                                  padding: EdgeInsets.zero,
+                                  constraints: const BoxConstraints(),
+                                ),
+                              ],
+                            ),
+                          ),
+                        )),
                         const Gap(4),
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Text('Total',
-                                style: theme.textTheme.labelLarge?.copyWith(
-                                    fontWeight: FontWeight.w700)),
+                            Text(
+                              'Total',
+                              style: theme.textTheme.labelLarge?.copyWith(
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
                             Text(
                               '₹${_orders.fold<double>(0, (s, o) => s + o.total).toStringAsFixed(0)}',
                               style: theme.textTheme.labelLarge?.copyWith(
@@ -263,27 +289,36 @@ class _ProductTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     // Find existing order for this product + player
-    final existing = orders.where(
-      (o) => o.productId == product.id && o.playerName == playerName,
-    ).toList();
+    final existing = orders
+        .where((o) => o.productId == product.id && o.playerName == playerName)
+        .toList();
     final currentQty = existing.isEmpty ? 0 : existing.first.quantity;
 
     return ListTile(
-      title: Text(product.name, style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600)),
+      title: Text(
+        product.name,
+        style: theme.textTheme.bodyMedium?.copyWith(
+          fontWeight: FontWeight.w600,
+        ),
+      ),
       subtitle: Row(
         children: [
-          Text('₹${product.sellingPrice.toStringAsFixed(0)}',
-              style: theme.textTheme.labelSmall?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant,
-                  fontWeight: FontWeight.w700)),
+          Text(
+            '₹${product.sellingPrice.toStringAsFixed(0)}',
+            style: theme.textTheme.labelSmall?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
           const Gap(8),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
             decoration: BoxDecoration(
-              color: (product.currentStock > 5
-                      ? AppColors.available
-                      : AppColors.warning)
-                  .withValues(alpha: 0.15),
+              color:
+                  (product.currentStock > 5
+                          ? AppColors.available
+                          : AppColors.warning)
+                      .withValues(alpha: 0.15),
               borderRadius: BorderRadius.circular(6),
             ),
             child: Text(
@@ -303,12 +338,17 @@ class _ProductTile extends StatelessWidget {
           ? FilledButton.tonal(
               onPressed: () => _addItem(context, 1),
               style: FilledButton.styleFrom(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 6,
+                ),
                 minimumSize: Size.zero,
                 tapTargetSize: MaterialTapTargetSize.shrinkWrap,
               ),
-              child: const Text('Add', style: TextStyle(fontWeight: FontWeight.bold)),
+              child: const Text(
+                'Add',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
             )
           : Row(
               mainAxisSize: MainAxisSize.min,
@@ -324,7 +364,9 @@ class _ProductTile extends StatelessWidget {
                   alignment: Alignment.center,
                   child: Text(
                     '$currentQty',
-                    style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
+                    style: theme.textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ),
                 IconButton(
@@ -346,7 +388,9 @@ class _ProductTile extends StatelessWidget {
       if (totalOrdered + delta > product.currentStock) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Not enough stock available (Current stock: ${product.currentStock})'),
+            content: Text(
+              'Not enough stock available (Current stock: ${product.currentStock})',
+            ),
             backgroundColor: AppColors.error,
           ),
         );
@@ -368,17 +412,18 @@ class _ProductTile extends StatelessWidget {
         updated[existingIndex] = existing.copyWith(quantity: newQty);
       }
     } else if (delta > 0) {
-      updated.add(GameOrder(
-        id: '${product.id}_${playerName ?? 'all'}_${DateTime.now().millisecondsSinceEpoch}',
-        productId: product.id,
-        productName: product.name,
-        category: product.category,
-        playerName: playerName,
-        quantity: 1,
-        pricePerUnit: product.sellingPrice,
-      ));
+      updated.add(
+        GameOrder(
+          id: '${product.id}_${playerName ?? 'all'}_${DateTime.now().millisecondsSinceEpoch}',
+          productId: product.id,
+          productName: product.name,
+          category: product.category,
+          playerName: playerName,
+          quantity: 1,
+          pricePerUnit: product.sellingPrice,
+        ),
+      );
     }
     onChanged(updated);
   }
 }
-

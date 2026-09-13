@@ -69,24 +69,19 @@ final resolvedTablesProvider = Provider<List<TableModel>>((ref) {
 // Active Game â€” per table
 // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-final activeGameProvider = StreamProvider.autoDispose.family<GameSession?, String>((
-  ref,
-  tableId,
-) {
-  final repo = ref.watch(gamesRepositoryProvider);
-  if (repo.clubId == null) return const Stream.empty();
-  return repo.watchActiveGame(tableId);
-});
+final activeGameProvider = StreamProvider.autoDispose
+    .family<GameSession?, String>((ref, tableId) {
+      final repo = ref.watch(gamesRepositoryProvider);
+      if (repo.clubId == null) return const Stream.empty();
+      return repo.watchActiveGame(tableId);
+    });
 
 // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // Games History â€” per table and date
 // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-final tableGamesProvider =
-    StreamProvider.autoDispose.family<List<GameSession>, ({String tableId, String date})>((
-      ref,
-      args,
-    ) {
+final tableGamesProvider = StreamProvider.autoDispose
+    .family<List<GameSession>, ({String tableId, String date})>((ref, args) {
       final repo = ref.watch(gamesRepositoryProvider);
       if (repo.clubId == null) return const Stream.empty();
       return repo.watchGamesByTableAndDate(args.tableId, args.date);
@@ -109,7 +104,7 @@ class GameSessionController extends Notifier<AsyncValue<void>> {
       state = const AsyncValue.data(null);
     } catch (e, st) {
       state = AsyncValue.error(e, st);
-        rethrow;
+      rethrow;
     }
   }
 
@@ -121,7 +116,7 @@ class GameSessionController extends Notifier<AsyncValue<void>> {
       await _repo.updatePlayerPoints(gameId, playerPoints);
     } catch (e, st) {
       state = AsyncValue.error(e, st);
-        rethrow;
+      rethrow;
     }
   }
 
@@ -130,7 +125,7 @@ class GameSessionController extends Notifier<AsyncValue<void>> {
       await _repo.pauseGame(gameId, tableId, DateTime.now());
     } catch (e, st) {
       state = AsyncValue.error(e, st);
-        rethrow;
+      rethrow;
     }
   }
 
@@ -139,16 +134,20 @@ class GameSessionController extends Notifier<AsyncValue<void>> {
       await _repo.resumeGame(gameId, tableId, DateTime.now());
     } catch (e, st) {
       state = AsyncValue.error(e, st);
-        rethrow;
+      rethrow;
     }
   }
 
-  Future<void> cancelGame(String gameId, String tableId, List<GameOrder> orders) async {
+  Future<void> cancelGame(
+    String gameId,
+    String tableId,
+    List<GameOrder> orders,
+  ) async {
     try {
       await _repo.cancelGame(gameId, tableId, orders);
     } catch (e, st) {
       state = AsyncValue.error(e, st);
-        rethrow;
+      rethrow;
     }
   }
 
@@ -157,7 +156,7 @@ class GameSessionController extends Notifier<AsyncValue<void>> {
       await _repo.updateOrders(gameId, orders);
     } catch (e, st) {
       state = AsyncValue.error(e, st);
-        rethrow;
+      rethrow;
     }
   }
 
@@ -171,7 +170,7 @@ class GameSessionController extends Notifier<AsyncValue<void>> {
       await _repo.updateGameRounds(gameId, rounds, totalFrames, framesPlayed);
     } catch (e, st) {
       state = AsyncValue.error(e, st);
-        rethrow;
+      rethrow;
     }
   }
 
@@ -180,7 +179,7 @@ class GameSessionController extends Notifier<AsyncValue<void>> {
       await _repo.markBilling(gameId, tableId);
     } catch (e, st) {
       state = AsyncValue.error(e, st);
-        rethrow;
+      rethrow;
     }
   }
 
@@ -191,7 +190,7 @@ class GameSessionController extends Notifier<AsyncValue<void>> {
       state = const AsyncValue.data(null);
     } catch (e, st) {
       state = AsyncValue.error(e, st);
-        rethrow;
+      rethrow;
     }
   }
 
@@ -232,7 +231,12 @@ final gameTimerProvider = StreamProvider.autoDispose.family<int, String>((
 
 // Helper: generate a new unique game ID
 String generateGameId(String clubId) {
-  return FirebaseFirestore.instance.collection(FirebaseConstants.clubsCollection).doc(clubId).collection('games').doc().id;
+  return FirebaseFirestore.instance
+      .collection(FirebaseConstants.clubsCollection)
+      .doc(clubId)
+      .collection('games')
+      .doc()
+      .id;
 }
 
 // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -246,9 +250,7 @@ final todaysGamesRevenueStreamProvider = StreamProvider<double>((ref) {
       '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
   final repo = ref.watch(gamesRepositoryProvider);
   if (repo.clubId == null) return const Stream.empty();
-  return repo.watchAllGamesByDate(dateStr).map((
-    games,
-  ) {
+  return repo.watchAllGamesByDate(dateStr).map((games) {
     return games
         .where((g) => g.status == TableStatus.available)
         .fold(0.0, (sum, g) => sum + (g.finalAmount ?? g.grandTotal ?? 0.0));
@@ -261,9 +263,7 @@ final selectedDateGamesRevenueStreamProvider = StreamProvider<double>((ref) {
       '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
   final repo = ref.watch(gamesRepositoryProvider);
   if (repo.clubId == null) return const Stream.empty();
-  return repo.watchAllGamesByDate(dateStr).map((
-    games,
-  ) {
+  return repo.watchAllGamesByDate(dateStr).map((games) {
     return games
         .where((g) => g.status == TableStatus.available)
         .fold(0.0, (sum, g) => sum + (g.finalAmount ?? g.grandTotal ?? 0.0));
@@ -278,9 +278,7 @@ final todaysCompletedPaidGamesProvider = StreamProvider<List<GameSession>>((
       '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
   final repo = ref.watch(gamesRepositoryProvider);
   if (repo.clubId == null) return const Stream.empty();
-  return repo.watchAllGamesByDate(dateStr).map((
-    games,
-  ) {
+  return repo.watchAllGamesByDate(dateStr).map((games) {
     return games.where((g) => g.status == TableStatus.available).toList();
   });
 });
@@ -293,9 +291,7 @@ final selectedDateCompletedPaidGamesProvider = StreamProvider<List<GameSession>>
       '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
   final repo = ref.watch(gamesRepositoryProvider);
   if (repo.clubId == null) return const Stream.empty();
-  return repo.watchAllGamesByDate(dateStr).map((
-    games,
-  ) {
+  return repo.watchAllGamesByDate(dateStr).map((games) {
     return games.where((g) => g.status == TableStatus.available).toList();
   });
 });
@@ -332,9 +328,7 @@ final pendingCreditsProvider = StreamProvider<double>((ref) {
       '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
   final repo = ref.watch(gamesRepositoryProvider);
   if (repo.clubId == null) return const Stream.empty();
-  return repo.watchAllGamesByDate(dateStr).map((
-    games,
-  ) {
+  return repo.watchAllGamesByDate(dateStr).map((games) {
     return games
         .where(
           (g) =>
@@ -345,9 +339,6 @@ final pendingCreditsProvider = StreamProvider<double>((ref) {
   });
 });
 
-
 final resolvedOtherGamesProvider = Provider<List<OtherGameResource>>((ref) {
   return [];
 });
-
-

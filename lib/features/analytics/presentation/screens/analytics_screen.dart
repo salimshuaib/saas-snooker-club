@@ -36,7 +36,10 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen> {
           bottom: const TabBar(
             labelPadding: EdgeInsets.symmetric(horizontal: 4),
             labelStyle: TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
-            unselectedLabelStyle: TextStyle(fontSize: 11, fontWeight: FontWeight.w500),
+            unselectedLabelStyle: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w500,
+            ),
             tabs: [
               Tab(text: 'Overview', icon: Icon(Icons.dashboard)),
               Tab(text: 'Tables', icon: Icon(Icons.table_restaurant)),
@@ -70,17 +73,34 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen> {
     return ListView(
       padding: const EdgeInsets.all(AppSpacing.lg),
       children: [
-        _buildFinancialOverview(data.revenueOverview, data.periodComparison, currency),
+        _buildFinancialOverview(
+          data.revenueOverview,
+          data.periodComparison,
+          currency,
+        ),
         const SizedBox(height: AppSpacing.xl),
-        AnalyticsBarChart(series: data.revenueTrendSeries, title: 'Revenue Trend (Billed)'),
+        AnalyticsBarChart(
+          series: data.revenueTrendSeries,
+          title: 'Revenue Trend (Billed)',
+        ),
         const SizedBox(height: AppSpacing.xl),
         BusinessInsightsCard(data: data.businessInsights, currency: currency),
         const SizedBox(height: AppSpacing.xl),
         Row(
           children: [
-            Expanded(child: AnalyticsDonutChart(title: 'Payment Distribution', shares: data.paymentMethodsShare)),
+            Expanded(
+              child: AnalyticsDonutChart(
+                title: 'Payment Distribution',
+                shares: data.paymentMethodsShare,
+              ),
+            ),
             const SizedBox(width: AppSpacing.md),
-            Expanded(child: AnalyticsDonutChart(title: 'Revenue Sources', shares: data.revenueSourceShare)),
+            Expanded(
+              child: AnalyticsDonutChart(
+                title: 'Revenue Sources',
+                shares: data.revenueSourceShare,
+              ),
+            ),
           ],
         ),
         const SizedBox(height: AppSpacing.xxl),
@@ -88,11 +108,20 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen> {
     );
   }
 
-  Widget _buildFinancialOverview(RevenueOverviewData data, PeriodComparisonData? comparison, Currency currency) {
+  Widget _buildFinancialOverview(
+    RevenueOverviewData data,
+    PeriodComparisonData? comparison,
+    Currency currency,
+  ) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Financial Overview', style: AppTypography.textTheme.titleMedium!.copyWith(fontWeight: FontWeight.w700)),
+        Text(
+          'Financial Overview',
+          style: AppTypography.textTheme.titleMedium!.copyWith(
+            fontWeight: FontWeight.w700,
+          ),
+        ),
         const SizedBox(height: AppSpacing.md),
         GridView.count(
           crossAxisCount: MediaQuery.of(context).size.width > 600 ? 3 : 2,
@@ -102,12 +131,54 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen> {
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
           children: [
-            AnalyticsStatCard(title: 'Total Billed', value: data.totalBilled, icon: Icons.account_balance_wallet, color: AppColors.primary, percentageChange: comparison?.totalBilledChange, currency: currency),
-            AnalyticsStatCard(title: 'Cash Collected', value: data.cashCollected, icon: Icons.money, color: AppColors.success, percentageChange: comparison?.cashCollectedChange, currency: currency),
-            AnalyticsStatCard(title: 'UPI Collected', value: data.upiCollected, icon: Icons.qr_code, color: AppColors.info, percentageChange: comparison?.upiCollectedChange, currency: currency),
-            AnalyticsStatCard(title: 'Credit Created', value: data.creditCreated, icon: Icons.credit_card, color: AppColors.warning, percentageChange: comparison?.creditCreatedChange, currency: currency),
-            AnalyticsStatCard(title: 'Credit Collected', value: data.creditCollected, icon: Icons.price_check, color: AppColors.success, percentageChange: comparison?.creditCollectedChange, currency: currency),
-            AnalyticsStatCard(title: 'Outstanding Credit', value: data.outstandingCredit, icon: Icons.warning_amber, color: AppColors.error, percentageChange: null, currency: currency),
+            AnalyticsStatCard(
+              title: 'Total Billed',
+              value: data.totalBilled,
+              icon: Icons.account_balance_wallet,
+              color: AppColors.primary,
+              percentageChange: comparison?.totalBilledChange,
+              currency: currency,
+            ),
+            AnalyticsStatCard(
+              title: 'Cash Collected',
+              value: data.cashCollected,
+              icon: Icons.money,
+              color: AppColors.success,
+              percentageChange: comparison?.cashCollectedChange,
+              currency: currency,
+            ),
+            AnalyticsStatCard(
+              title: 'UPI Collected',
+              value: data.upiCollected,
+              icon: Icons.qr_code,
+              color: AppColors.info,
+              percentageChange: comparison?.upiCollectedChange,
+              currency: currency,
+            ),
+            AnalyticsStatCard(
+              title: 'Credit Created',
+              value: data.creditCreated,
+              icon: Icons.credit_card,
+              color: AppColors.warning,
+              percentageChange: comparison?.creditCreatedChange,
+              currency: currency,
+            ),
+            AnalyticsStatCard(
+              title: 'Credit Collected',
+              value: data.creditCollected,
+              icon: Icons.price_check,
+              color: AppColors.success,
+              percentageChange: comparison?.creditCollectedChange,
+              currency: currency,
+            ),
+            AnalyticsStatCard(
+              title: 'Outstanding Credit',
+              value: data.outstandingCredit,
+              icon: Icons.warning_amber,
+              color: AppColors.error,
+              percentageChange: null,
+              currency: currency,
+            ),
           ],
         ),
       ],
@@ -121,11 +192,22 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen> {
       children: [
         TableRankingList(tables: data.tablePerformances, currency: currency),
         const SizedBox(height: AppSpacing.xl),
-        AnalyticsBarChart(series: data.peakBusinessHours, title: 'Peak Hours (Sessions Started)', barColor: AppColors.secondary),
+        AnalyticsBarChart(
+          series: data.peakBusinessHours,
+          title: 'Peak Hours (Sessions Started)',
+          barColor: AppColors.secondary,
+        ),
         const SizedBox(height: AppSpacing.xl),
-        Text('Table Performance Profiles', style: AppTypography.textTheme.titleMedium!.copyWith(fontWeight: FontWeight.w700)),
+        Text(
+          'Table Performance Profiles',
+          style: AppTypography.textTheme.titleMedium!.copyWith(
+            fontWeight: FontWeight.w700,
+          ),
+        ),
         const SizedBox(height: AppSpacing.md),
-        ...data.tablePerformances.map((t) => TablePerformanceCard(data: t, currency: currency)),
+        ...data.tablePerformances.map(
+          (t) => TablePerformanceCard(data: t, currency: currency),
+        ),
         const SizedBox(height: AppSpacing.xxl),
       ],
     );
@@ -138,30 +220,84 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen> {
       children: [
         Row(
           children: [
-            Expanded(child: AnalyticsStatCard(title: 'Total Sales Revenue', value: data.revenueOverview.totalQuickSaleBilled, icon: Icons.shopping_bag, color: AppColors.tertiary, currency: currency)),
+            Expanded(
+              child: AnalyticsStatCard(
+                title: 'Total Sales Revenue',
+                value: data.revenueOverview.totalQuickSaleBilled,
+                icon: Icons.shopping_bag,
+                color: AppColors.tertiary,
+                currency: currency,
+              ),
+            ),
             const SizedBox(width: AppSpacing.md),
-            Expanded(child: AnalyticsStatCard(title: 'Inventory Value', value: data.inventoryAnalytics.totalInventoryValue, icon: Icons.inventory_2, color: AppColors.info, currency: currency)),
+            Expanded(
+              child: AnalyticsStatCard(
+                title: 'Inventory Value',
+                value: data.inventoryAnalytics.totalInventoryValue,
+                icon: Icons.inventory_2,
+                color: AppColors.info,
+                currency: currency,
+              ),
+            ),
           ],
         ),
         const SizedBox(height: AppSpacing.md),
         Row(
           children: [
-            Expanded(child: AnalyticsStatCard(title: 'Cost of Goods Sold', value: data.inventoryAnalytics.costOfGoodsSold, icon: Icons.trending_down, color: AppColors.warning, currency: currency)),
+            Expanded(
+              child: AnalyticsStatCard(
+                title: 'Cost of Goods Sold',
+                value: data.inventoryAnalytics.costOfGoodsSold,
+                icon: Icons.trending_down,
+                color: AppColors.warning,
+                currency: currency,
+              ),
+            ),
             const SizedBox(width: AppSpacing.md),
-            Expanded(child: AnalyticsStatCard(title: 'Gross Profit (Est)', value: data.inventoryAnalytics.grossProfit, icon: Icons.trending_up, color: AppColors.success, currency: currency)),
+            Expanded(
+              child: AnalyticsStatCard(
+                title: 'Gross Profit (Est)',
+                value: data.inventoryAnalytics.grossProfit,
+                icon: Icons.trending_up,
+                color: AppColors.success,
+                currency: currency,
+              ),
+            ),
           ],
         ),
         const SizedBox(height: AppSpacing.xl),
         if (data.bestSellingProducts.isNotEmpty) ...[
-          Text('Top Selling Products', style: AppTypography.textTheme.titleMedium!.copyWith(fontWeight: FontWeight.w700)),
+          Text(
+            'Top Selling Products',
+            style: AppTypography.textTheme.titleMedium!.copyWith(
+              fontWeight: FontWeight.w700,
+            ),
+          ),
           const SizedBox(height: AppSpacing.md),
-          ...data.bestSellingProducts.take(5).map((p) => ListTile(
-            leading: const CircleAvatar(backgroundColor: AppColors.tertiary, child: Icon(Icons.fastfood, color: Colors.white, size: 16)),
-            title: Text(p.productName, style: const TextStyle(fontWeight: FontWeight.bold)),
-            subtitle: Text('${p.unitsSold} units sold'),
-            trailing: Text(CurrencyHelper.formatWhole(p.salesAmount, currency), style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.tertiary, fontSize: 16)),
-            contentPadding: EdgeInsets.zero,
-          )),
+          ...data.bestSellingProducts
+              .take(5)
+              .map(
+                (p) => ListTile(
+                  leading: const CircleAvatar(
+                    backgroundColor: AppColors.tertiary,
+                    child: Icon(Icons.fastfood, color: Colors.white, size: 16),
+                  ),
+                  title: Text(
+                    p.productName,
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  subtitle: Text('${p.unitsSold} units sold'),
+                  trailing: Text(
+                    CurrencyHelper.formatWhole(p.salesAmount, currency),
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.tertiary,
+                      fontSize: 16,
+                    ),
+                  ),
+                  contentPadding: EdgeInsets.zero,
+                ),
+              ),
         ],
         const SizedBox(height: AppSpacing.xxl),
       ],
@@ -181,15 +317,50 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen> {
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
           children: [
-            AnalyticsStatCard(title: 'Credit Created', value: data.creditAnalytics.creditCreated, icon: Icons.credit_card, color: AppColors.warning, currency: currency),
-            AnalyticsStatCard(title: 'Credit Collected', value: data.creditAnalytics.creditCollected, icon: Icons.price_check, color: AppColors.success, currency: currency),
-            AnalyticsStatCard(title: 'Outstanding Balance', value: data.creditAnalytics.currentOutstanding, icon: Icons.warning_amber, color: AppColors.error, currency: currency),
-            AnalyticsStatCard(title: 'Pending Customers', value: data.creditAnalytics.pendingCustomersCount.toDouble(), icon: Icons.people_outline, color: AppColors.info, isCurrency: false, currency: currency),
-            AnalyticsStatCard(title: 'Avg Collection Amount', value: data.creditAnalytics.averageCreditAmount, icon: Icons.analytics, color: AppColors.primary, currency: currency),
+            AnalyticsStatCard(
+              title: 'Credit Created',
+              value: data.creditAnalytics.creditCreated,
+              icon: Icons.credit_card,
+              color: AppColors.warning,
+              currency: currency,
+            ),
+            AnalyticsStatCard(
+              title: 'Credit Collected',
+              value: data.creditAnalytics.creditCollected,
+              icon: Icons.price_check,
+              color: AppColors.success,
+              currency: currency,
+            ),
+            AnalyticsStatCard(
+              title: 'Outstanding Balance',
+              value: data.creditAnalytics.currentOutstanding,
+              icon: Icons.warning_amber,
+              color: AppColors.error,
+              currency: currency,
+            ),
+            AnalyticsStatCard(
+              title: 'Pending Customers',
+              value: data.creditAnalytics.pendingCustomersCount.toDouble(),
+              icon: Icons.people_outline,
+              color: AppColors.info,
+              isCurrency: false,
+              currency: currency,
+            ),
+            AnalyticsStatCard(
+              title: 'Avg Collection Amount',
+              value: data.creditAnalytics.averageCreditAmount,
+              icon: Icons.analytics,
+              color: AppColors.primary,
+              currency: currency,
+            ),
           ],
         ),
         const SizedBox(height: AppSpacing.xl),
-        AnalyticsBarChart(series: data.creditCollectionTrend, title: 'Credit Collections Trend', barColor: AppColors.success),
+        AnalyticsBarChart(
+          series: data.creditCollectionTrend,
+          title: 'Credit Collections Trend',
+          barColor: AppColors.success,
+        ),
         const SizedBox(height: AppSpacing.xxl),
       ],
     );

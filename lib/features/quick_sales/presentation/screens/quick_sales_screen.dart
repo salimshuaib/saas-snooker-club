@@ -52,7 +52,7 @@ class _QuickSalesScreenState extends ConsumerState<QuickSalesScreen> {
   Future<void> _onDeleteSelected(List<QuickSale> allSales) async {
     if (_selectedSaleIds.isEmpty) return;
     final passcodeVerified = await AdminPasscodeDialog.verify(
-      context, 
+      context,
       ref,
       actionLabel: 'Delete',
       isDestructive: true,
@@ -64,24 +64,34 @@ class _QuickSalesScreenState extends ConsumerState<QuickSalesScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Text('Delete $selectedCount selected sale${selectedCount > 1 ? 's' : ''}?'),
+        title: Text(
+          'Delete $selectedCount selected sale${selectedCount > 1 ? 's' : ''}?',
+        ),
         content: const Text(
           'This action cannot be undone. Inventory stock will be restored and credit balances recalculated automatically.',
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text('Cancel', style: TextStyle(fontWeight: FontWeight.w600)),
+            child: const Text(
+              'Cancel',
+              style: TextStyle(fontWeight: FontWeight.w600),
+            ),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.error,
               foregroundColor: Colors.white,
               elevation: 0,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
             ),
             onPressed: () => Navigator.of(ctx).pop(true),
-            child: const Text('Delete Permanently', style: TextStyle(fontWeight: FontWeight.w700)),
+            child: const Text(
+              'Delete Permanently',
+              style: TextStyle(fontWeight: FontWeight.w700),
+            ),
           ),
         ],
       ),
@@ -90,21 +100,30 @@ class _QuickSalesScreenState extends ConsumerState<QuickSalesScreen> {
     if (confirm != true || !mounted) return;
 
     await Future.delayed(const Duration(milliseconds: 400));
-    final salesToDelete = allSales.where((s) => _selectedSaleIds.contains(s.id)).toList();
+    final salesToDelete = allSales
+        .where((s) => _selectedSaleIds.contains(s.id))
+        .toList();
 
     try {
-      await ref.read(quickSalesRepositoryProvider).deleteQuickSales(salesToDelete);
+      await ref
+          .read(quickSalesRepositoryProvider)
+          .deleteQuickSales(salesToDelete);
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('$selectedCount quick sale${selectedCount > 1 ? 's' : ''} deleted successfully.'),
+          content: Text(
+            '$selectedCount quick sale${selectedCount > 1 ? 's' : ''} deleted successfully.',
+          ),
           backgroundColor: AppColors.success,
         ),
       );
       _exitSelectionMode();
     } catch (e) {
       if (!mounted) return;
-      final errorMessage = e.toString().replaceFirst(RegExp(r'^Exception:\s*'), '');
+      final errorMessage = e.toString().replaceFirst(
+        RegExp(r'^Exception:\s*'),
+        '',
+      );
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(errorMessage),
@@ -196,7 +215,13 @@ class _QuickSalesScreenState extends ConsumerState<QuickSalesScreen> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.point_of_sale_outlined, size: 64, color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.4)),
+                  Icon(
+                    Icons.point_of_sale_outlined,
+                    size: 64,
+                    color: theme.colorScheme.onSurfaceVariant.withValues(
+                      alpha: 0.4,
+                    ),
+                  ),
                   const SizedBox(height: 16),
                   Text(
                     'No quick sales for this date.',
@@ -237,7 +262,10 @@ class _QuickSalesScreenState extends ConsumerState<QuickSalesScreen> {
                   if (_isSelectionMode) {
                     _toggleSelection(sale.id);
                   } else {
-                    context.push('${RouteNames.quickSales}/details', extra: sale);
+                    context.push(
+                      '${RouteNames.quickSales}/details',
+                      extra: sale,
+                    );
                   }
                 },
                 child: Card(
@@ -245,11 +273,15 @@ class _QuickSalesScreenState extends ConsumerState<QuickSalesScreen> {
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(16),
                     side: BorderSide(
-                      color: isSelected ? AppColors.primary : theme.colorScheme.outlineVariant,
+                      color: isSelected
+                          ? AppColors.primary
+                          : theme.colorScheme.outlineVariant,
                       width: isSelected ? 2.0 : 1.0,
                     ),
                   ),
-                  color: isSelected ? AppColors.primary.withValues(alpha: 0.15) : theme.colorScheme.surface,
+                  color: isSelected
+                      ? AppColors.primary.withValues(alpha: 0.15)
+                      : theme.colorScheme.surface,
                   child: Padding(
                     padding: const EdgeInsets.all(16),
                     child: Column(
@@ -259,15 +291,22 @@ class _QuickSalesScreenState extends ConsumerState<QuickSalesScreen> {
                           children: [
                             if (_isSelectionMode) ...[
                               Icon(
-                                isSelected ? Icons.check_circle : Icons.radio_button_unchecked,
-                                color: isSelected ? AppColors.primary : theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
+                                isSelected
+                                    ? Icons.check_circle
+                                    : Icons.radio_button_unchecked,
+                                color: isSelected
+                                    ? AppColors.primary
+                                    : theme.colorScheme.onSurfaceVariant
+                                          .withValues(alpha: 0.5),
                                 size: 22,
                               ),
                               const SizedBox(width: 12),
                             ],
                             Expanded(
                               child: Text(
-                                sale.customerName?.isNotEmpty == true ? sale.customerName! : 'Walk-in Customer',
+                                sale.customerName?.isNotEmpty == true
+                                    ? sale.customerName!
+                                    : 'Walk-in Customer',
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                                 style: theme.textTheme.titleMedium?.copyWith(
@@ -289,7 +328,10 @@ class _QuickSalesScreenState extends ConsumerState<QuickSalesScreen> {
                         Row(
                           children: [
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 4,
+                              ),
                               decoration: BoxDecoration(
                                 color: paymentColor.withValues(alpha: 0.15),
                                 borderRadius: BorderRadius.circular(8),
@@ -313,7 +355,12 @@ class _QuickSalesScreenState extends ConsumerState<QuickSalesScreen> {
                           ],
                         ),
                         const SizedBox(height: 12),
-                        Divider(height: 1, color: theme.colorScheme.outlineVariant.withValues(alpha: 0.5)),
+                        Divider(
+                          height: 1,
+                          color: theme.colorScheme.outlineVariant.withValues(
+                            alpha: 0.5,
+                          ),
+                        ),
                         const SizedBox(height: 10),
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -356,7 +403,10 @@ class _QuickSalesScreenState extends ConsumerState<QuickSalesScreen> {
                 context.push('${RouteNames.quickSales}/new');
               },
               icon: const Icon(Icons.add),
-              label: const Text('New Sale', style: TextStyle(fontWeight: FontWeight.w700)),
+              label: const Text(
+                'New Sale',
+                style: TextStyle(fontWeight: FontWeight.w700),
+              ),
             ),
     );
   }

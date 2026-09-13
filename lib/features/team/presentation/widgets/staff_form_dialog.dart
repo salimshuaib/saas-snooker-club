@@ -25,8 +25,12 @@ class _StaffFormDialogState extends ConsumerState<StaffFormDialog> {
   @override
   void initState() {
     super.initState();
-    _nameController = TextEditingController(text: widget.existingMember?.name ?? '');
-    _emailController = TextEditingController(text: widget.existingMember?.email ?? '');
+    _nameController = TextEditingController(
+      text: widget.existingMember?.name ?? '',
+    );
+    _emailController = TextEditingController(
+      text: widget.existingMember?.email ?? '',
+    );
     _passwordController = TextEditingController();
     _role = widget.existingMember?.role ?? StaffRole.staff;
   }
@@ -45,7 +49,7 @@ class _StaffFormDialogState extends ConsumerState<StaffFormDialog> {
 
     try {
       final repo = ref.read(teamRepositoryProvider);
-      
+
       if (widget.existingMember == null) {
         // Create new
         await repo.addStaffMember(
@@ -63,12 +67,15 @@ class _StaffFormDialogState extends ConsumerState<StaffFormDialog> {
         );
         await repo.updateStaffMember(updated);
       }
-      
+
       if (mounted) Navigator.of(context).pop();
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(e.toString()), backgroundColor: AppColors.error),
+          SnackBar(
+            content: Text(e.toString()),
+            backgroundColor: AppColors.error,
+          ),
         );
       }
     } finally {
@@ -102,7 +109,8 @@ class _StaffFormDialogState extends ConsumerState<StaffFormDialog> {
                   labelText: 'Name',
                   border: OutlineInputBorder(),
                 ),
-                validator: (val) => val == null || val.isEmpty ? 'Required' : null,
+                validator: (val) =>
+                    val == null || val.isEmpty ? 'Required' : null,
               ),
               const Gap(16),
               TextFormField(
@@ -111,8 +119,10 @@ class _StaffFormDialogState extends ConsumerState<StaffFormDialog> {
                   labelText: 'Email',
                   border: OutlineInputBorder(),
                 ),
-                enabled: !isEditing, // Do not allow changing email for existing accounts
-                validator: (val) => val == null || val.isEmpty ? 'Required' : null,
+                enabled:
+                    !isEditing, // Do not allow changing email for existing accounts
+                validator: (val) =>
+                    val == null || val.isEmpty ? 'Required' : null,
               ),
               if (!isEditing) ...[
                 const Gap(16),
@@ -123,7 +133,8 @@ class _StaffFormDialogState extends ConsumerState<StaffFormDialog> {
                     border: OutlineInputBorder(),
                   ),
                   obscureText: true,
-                  validator: (val) => val == null || val.length < 6 ? 'Min 6 characters' : null,
+                  validator: (val) =>
+                      val == null || val.length < 6 ? 'Min 6 characters' : null,
                 ),
               ],
               const Gap(16),
@@ -149,10 +160,17 @@ class _StaffFormDialogState extends ConsumerState<StaffFormDialog> {
                 child: FilledButton(
                   onPressed: _isProcessing ? null : _submit,
                   child: _isProcessing
-                      ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
+                        )
                       : Text(isEditing ? 'Save Changes' : 'Create Account'),
                 ),
-              )
+              ),
             ],
           ),
         ),

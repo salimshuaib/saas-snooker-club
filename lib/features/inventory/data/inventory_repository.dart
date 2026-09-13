@@ -1,4 +1,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:snooker_club/features/team/providers/team_providers.dart';
+import 'package:snooker_club/features/team/domain/models/staff_member.dart';
+import 'package:snooker_club/core/providers/club_scope_provider.dart';
 import 'package:snooker_club/core/config/app_environment.dart';
 import 'package:snooker_club/core/constants/firebase_constants.dart';
 import 'package:snooker_club/core/utils/logger.dart';
@@ -6,27 +10,58 @@ import 'package:snooker_club/features/inventory/domain/models/inventory_models.d
 
 class InventoryRepository {
   final FirebaseFirestore _firestore;
+  final Ref? _ref;
   final String? clubId;
 
-  InventoryRepository(this._firestore, {this.clubId});
+  InventoryRepository(this._firestore, {Ref? ref, this.clubId}) : _ref = ref;
+
+  StaffMember? get currentStaff => _ref?.read(currentStaffProvider).value;
+
+  String get currentUserName {
+    final staff = currentStaff;
+    if (staff != null) return staff.name;
+    try {
+      final club = _ref?.read(clubProfileProvider).value;
+      if (club != null) return club.ownerName;
+    } catch (_) {}
+    return 'Admin';
+  }
+
+  String get currentUserId {
+    final staff = currentStaff;
+    if (staff != null) return staff.id;
+    try {
+      final club = _ref?.read(clubProfileProvider).value;
+      if (club != null) return club.ownerUid;
+    } catch (_) {}
+    return 'Unknown';
+  }
+
 
   DocumentReference get _clubRef {
-    if (clubId == null) throw Exception('clubId cannot be null for InventoryRepository');
+    if (clubId == null)
+      throw Exception('clubId cannot be null for InventoryRepository');
     return _firestore.collection(FirebaseConstants.clubsCollection).doc(clubId);
   }
 
-  CollectionReference get _inventoryRef => _clubRef.collection(FirebaseConstants.inventoryCollection);
+  CollectionReference get _inventoryRef =>
+      _clubRef.collection(FirebaseConstants.inventoryCollection);
 
-  CollectionReference get _stockHistoryRef => _clubRef.collection('stock_history');
+  CollectionReference get _stockHistoryRef =>
+      _clubRef.collection('stock_history');
 
   Stream<List<InventoryItem>> watchInventory() {
     return _inventoryRef
         .where('isActive', isEqualTo: true)
         .snapshots()
-        .map((snapshot) => snapshot.docs.map((doc) {
-              return InventoryItem.fromMap(
-                  doc.id, doc.data() as Map<String, dynamic>);
-            }).toList());
+        .map(
+          (snapshot) => snapshot.docs.map((doc) {
+            return InventoryItem.fromMap(
+              doc.id,
+              doc.data() as Map<String, dynamic>,
+            );
+          }).toList(),
+        );
   }
 
   Stream<List<StockHistory>> watchStockHistory(DateTime date) {
@@ -38,10 +73,14 @@ class InventoryRepository {
         .where('date', isLessThan: Timestamp.fromDate(endOfDay))
         .orderBy('date', descending: true)
         .snapshots()
-        .map((snapshot) => snapshot.docs.map((doc) {
-              return StockHistory.fromMap(
-                  doc.id, doc.data() as Map<String, dynamic>);
-            }).toList());
+        .map(
+          (snapshot) => snapshot.docs.map((doc) {
+            return StockHistory.fromMap(
+              doc.id,
+              doc.data() as Map<String, dynamic>,
+            );
+          }).toList(),
+        );
   }
 
   Future<void> addProduct(InventoryItem item) async {
@@ -65,7 +104,7 @@ class InventoryRepository {
     required InventoryItem item,
     required int quantityAdded,
     required double purchasePrice,
-    required String employeeName,
+    String employeeName = 'Admin',
     String? notes,
   }) async {
     if (AppConfig.guardWrite('InventoryRepository.addStock')) return;
@@ -74,7 +113,7 @@ class InventoryRepository {
     // 1. Update InventoryItem
     final updatedStock = item.currentStock + quantityAdded;
     final updatedPurchased = item.totalPurchased + quantityAdded;
-    
+
     batch.update(_inventoryRef.doc(item.id), {
       'currentStock': updatedStock,
       'totalPurchased': updatedPurchased,
@@ -90,7 +129,7 @@ class InventoryRepository {
       productName: item.name,
       quantityAdded: quantityAdded,
       purchasePrice: purchasePrice,
-      employeeName: employeeName,
+      employeeName: currentUserName,
       notes: notes,
       date: DateTime.now(),
     );
@@ -101,7 +140,8 @@ class InventoryRepository {
 
   /// Seeds initial product catalogue with dummy stock if they do not already exist in Firestore.
   Future<void> seedInitialInventory(List<InventoryItem> initialItems) async {
-    if (AppConfig.guardWrite('InventoryRepository.seedInitialInventory')) return;
+    if (AppConfig.guardWrite('InventoryRepository.seedInitialInventory'))
+      return;
     try {
       final snapshot = await _inventoryRef.get();
       final existingNames = snapshot.docs.map((doc) {
@@ -122,7 +162,11 @@ class InventoryRepository {
         await batch.commit();
       }
     } catch (e, stackTrace) {
-      AppLogger.error('Error seeding initial inventory: $e', error: e, stackTrace: stackTrace);
+      AppLogger.error(
+        'Error seeding initial inventory: $e',
+        error: e,
+        stackTrace: stackTrace,
+      );
     }
   }
 }

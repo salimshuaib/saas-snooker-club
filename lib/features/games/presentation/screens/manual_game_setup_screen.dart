@@ -29,7 +29,8 @@ class ManualGameSetupScreen extends ConsumerStatefulWidget {
   });
 
   @override
-  ConsumerState<ManualGameSetupScreen> createState() => _ManualGameSetupScreenState();
+  ConsumerState<ManualGameSetupScreen> createState() =>
+      _ManualGameSetupScreenState();
 }
 
 class _ManualGameSetupScreenState extends ConsumerState<ManualGameSetupScreen> {
@@ -86,8 +87,8 @@ class _ManualGameSetupScreenState extends ConsumerState<ManualGameSetupScreen> {
   Future<void> _pickTime(bool isStart) async {
     final TimeOfDay? picked = await showTimePicker(
       context: context,
-      initialTime: isStart 
-          ? (_startTime ?? TimeOfDay.now()) 
+      initialTime: isStart
+          ? (_startTime ?? TimeOfDay.now())
           : (_endTime ?? TimeOfDay.now()),
     );
     if (picked != null) {
@@ -131,8 +132,20 @@ class _ManualGameSetupScreenState extends ConsumerState<ManualGameSetupScreen> {
         _showError('Please provide both Start and End Time.');
         return;
       }
-      finalStartTime = DateTime(now.year, now.month, now.day, _startTime!.hour, _startTime!.minute);
-      DateTime finalEndTime = DateTime(now.year, now.month, now.day, _endTime!.hour, _endTime!.minute);
+      finalStartTime = DateTime(
+        now.year,
+        now.month,
+        now.day,
+        _startTime!.hour,
+        _startTime!.minute,
+      );
+      DateTime finalEndTime = DateTime(
+        now.year,
+        now.month,
+        now.day,
+        _endTime!.hour,
+        _endTime!.minute,
+      );
       if (finalEndTime.isBefore(finalStartTime)) {
         // Assume next day
         finalEndTime = finalEndTime.add(const Duration(days: 1));
@@ -154,7 +167,13 @@ class _ManualGameSetupScreenState extends ConsumerState<ManualGameSetupScreen> {
           _showError('Please provide a Start Time.');
           return;
         }
-        finalStartTime = DateTime(now.year, now.month, now.day, _startTime!.hour, _startTime!.minute);
+        finalStartTime = DateTime(
+          now.year,
+          now.month,
+          now.day,
+          _startTime!.hour,
+          _startTime!.minute,
+        );
         if (finalStartTime.isAfter(now)) {
           finalStartTime = finalStartTime.subtract(const Duration(days: 1));
         }
@@ -168,7 +187,9 @@ class _ManualGameSetupScreenState extends ConsumerState<ManualGameSetupScreen> {
       return;
     }
 
-    final hasValidPlayer = _playerSelections.any((s) => s != null && s.name.trim().isNotEmpty);
+    final hasValidPlayer = _playerSelections.any(
+      (s) => s != null && s.name.trim().isNotEmpty,
+    );
     if (!hasValidPlayer) {
       _showError('Please add at least one player.');
       return;
@@ -200,39 +221,52 @@ class _ManualGameSetupScreenState extends ConsumerState<ManualGameSetupScreen> {
         String name = s.name.trim();
         if (name.isEmpty) continue;
         teamANames.add(name);
-        
+
         if (s.id != null) {
           finalPlayerIds.add(s.id!);
         } else {
           // New player - don't create profiles for default players
           if (!name.toLowerCase().startsWith('default ')) {
-             final newId = FirebaseFirestore.instance.collection('credits').doc().id;
-             final newProfile = PlayerProfile(
-               id: newId,
-               name: name,
-               lastTransactionDate: now,
-             );
-             newProfilesToCreate.add(newProfile);
-             finalPlayerIds.add(newId);
+            final newId = FirebaseFirestore.instance
+                .collection('credits')
+                .doc()
+                .id;
+            final newProfile = PlayerProfile(
+              id: newId,
+              name: name,
+              lastTransactionDate: now,
+            );
+            newProfilesToCreate.add(newProfile);
+            finalPlayerIds.add(newId);
           }
         }
       }
 
-      int framesPlayed = (_billingType == BillingType.perFrame) ? _currentFrame : 0;
+      int framesPlayed = (_billingType == BillingType.perFrame)
+          ? _currentFrame
+          : 0;
       List<GameRound> rounds = [];
       if (_billingType == BillingType.perFrame) {
-        rounds = List.generate(_currentFrame, (index) => GameRound(
-          roundNumber: index + 1,
-          durationSeconds: index == _currentFrame - 1 ? durationSeconds : 0,
-          startTime: finalStartTime!,
-          endTime: index == _currentFrame - 1 ? (now) : null,
-          roundCost: 0.0,
-        ));
+        rounds = List.generate(
+          _currentFrame,
+          (index) => GameRound(
+            roundNumber: index + 1,
+            durationSeconds: index == _currentFrame - 1 ? durationSeconds : 0,
+            startTime: finalStartTime!,
+            endTime: index == _currentFrame - 1 ? (now) : null,
+            roundCost: 0.0,
+          ),
+        );
       }
 
       final pricingSnapshot = appSettings.pricing;
 
-      double? customExtraCharge = TablePricingConfig.getExtraCharge(_selectedTable!, GameType.standard, _billingType!, pricingSnapshot);
+      double? customExtraCharge = TablePricingConfig.getExtraCharge(
+        _selectedTable!,
+        GameType.standard,
+        _billingType!,
+        pricingSnapshot,
+      );
 
       final session = GameSession(
         id: FirebaseFirestore.instance.collection('dummy').doc().id,
@@ -248,7 +282,9 @@ class _ManualGameSetupScreenState extends ConsumerState<ManualGameSetupScreen> {
         playerIds: finalPlayerIds,
         status: _isCompletedMode ? TableStatus.billing : TableStatus.running,
         startTime: finalStartTime!,
-        endTime: _isCompletedMode ? finalStartTime.add(Duration(seconds: durationSeconds)) : null,
+        endTime: _isCompletedMode
+            ? finalStartTime.add(Duration(seconds: durationSeconds))
+            : null,
         totalFrames: _currentFrame,
         framesPlayed: framesPlayed,
         rounds: rounds,
@@ -286,7 +322,6 @@ class _ManualGameSetupScreenState extends ConsumerState<ManualGameSetupScreen> {
           debugPrint('Failed to process manual game setup in background.');
         }
       });
-      
     } catch (e) {
       if (mounted) {
         _showError('Error: $e');
@@ -340,17 +375,26 @@ class _ManualGameSetupScreenState extends ConsumerState<ManualGameSetupScreen> {
                     DropdownButtonFormField<TableModel>(
                       value: _selectedTable,
                       hint: const Text('Select a table'),
-                      items: tables.map((t) => DropdownMenuItem(value: t, child: Text(t.name))).toList(),
+                      items: tables
+                          .map(
+                            (t) =>
+                                DropdownMenuItem(value: t, child: Text(t.name)),
+                          )
+                          .toList(),
                       onChanged: (val) {
                         setState(() {
                           _selectedTable = val;
-                          _billingType = BillingType.perMinute; // Reset billing when table changes
+                          _billingType = BillingType
+                              .perMinute; // Reset billing when table changes
                         });
                       },
                       decoration: InputDecoration(
                         filled: true,
                         fillColor: theme.colorScheme.surfaceContainerHighest,
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide.none,
+                        ),
                       ),
                     ),
                     const Gap(32),
@@ -367,16 +411,26 @@ class _ManualGameSetupScreenState extends ConsumerState<ManualGameSetupScreen> {
                             onTap: () => _pickTime(true),
                             borderRadius: BorderRadius.circular(12),
                             child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 16,
+                              ),
                               decoration: BoxDecoration(
-                                color: theme.colorScheme.surfaceContainerHighest,
+                                color:
+                                    theme.colorScheme.surfaceContainerHighest,
                                 borderRadius: BorderRadius.circular(12),
                               ),
                               child: Row(
                                 children: [
-                                  Icon(Icons.access_time, color: theme.colorScheme.primary, size: 20),
+                                  Icon(
+                                    Icons.access_time,
+                                    color: theme.colorScheme.primary,
+                                    size: 20,
+                                  ),
                                   const Gap(8),
-                                  Text(_startTime?.format(context) ?? 'Start Time'),
+                                  Text(
+                                    _startTime?.format(context) ?? 'Start Time',
+                                  ),
                                 ],
                               ),
                             ),
@@ -388,14 +442,22 @@ class _ManualGameSetupScreenState extends ConsumerState<ManualGameSetupScreen> {
                             onTap: () => _pickTime(false),
                             borderRadius: BorderRadius.circular(12),
                             child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 16,
+                              ),
                               decoration: BoxDecoration(
-                                color: theme.colorScheme.surfaceContainerHighest,
+                                color:
+                                    theme.colorScheme.surfaceContainerHighest,
                                 borderRadius: BorderRadius.circular(12),
                               ),
                               child: Row(
                                 children: [
-                                  Icon(Icons.access_time, color: theme.colorScheme.primary, size: 20),
+                                  Icon(
+                                    Icons.access_time,
+                                    color: theme.colorScheme.primary,
+                                    size: 20,
+                                  ),
                                   const Gap(8),
                                   Text(_endTime?.format(context) ?? 'End Time'),
                                 ],
@@ -413,7 +475,8 @@ class _ManualGameSetupScreenState extends ConsumerState<ManualGameSetupScreen> {
                           child: ChoiceChip(
                             label: const Text('Set Start Time'),
                             selected: !_useManualDuration,
-                            onSelected: (val) => setState(() => _useManualDuration = !val),
+                            onSelected: (val) =>
+                                setState(() => _useManualDuration = !val),
                           ),
                         ),
                         const Gap(12),
@@ -421,7 +484,8 @@ class _ManualGameSetupScreenState extends ConsumerState<ManualGameSetupScreen> {
                           child: ChoiceChip(
                             label: const Text('Enter Duration'),
                             selected: _useManualDuration,
-                            onSelected: (val) => setState(() => _useManualDuration = val),
+                            onSelected: (val) =>
+                                setState(() => _useManualDuration = val),
                           ),
                         ),
                       ],
@@ -432,16 +496,26 @@ class _ManualGameSetupScreenState extends ConsumerState<ManualGameSetupScreen> {
                         onTap: () => _pickTime(true),
                         borderRadius: BorderRadius.circular(12),
                         child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 16,
+                          ),
                           decoration: BoxDecoration(
                             color: theme.colorScheme.surfaceContainerHighest,
                             borderRadius: BorderRadius.circular(12),
                           ),
                           child: Row(
                             children: [
-                              Icon(Icons.access_time, color: theme.colorScheme.primary, size: 20),
+                              Icon(
+                                Icons.access_time,
+                                color: theme.colorScheme.primary,
+                                size: 20,
+                              ),
                               const Gap(8),
-                              Text(_startTime?.format(context) ?? 'Tap to select start time'),
+                              Text(
+                                _startTime?.format(context) ??
+                                    'Tap to select start time',
+                              ),
                             ],
                           ),
                         ),
@@ -454,7 +528,9 @@ class _ManualGameSetupScreenState extends ConsumerState<ManualGameSetupScreen> {
                               controller: _elapsedHoursController,
                               label: 'Hours',
                               keyboardType: TextInputType.number,
-                              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                              inputFormatters: [
+                                FilteringTextInputFormatter.digitsOnly,
+                              ],
                             ),
                           ),
                           const Gap(8),
@@ -463,7 +539,9 @@ class _ManualGameSetupScreenState extends ConsumerState<ManualGameSetupScreen> {
                               controller: _elapsedMinsController,
                               label: 'Mins',
                               keyboardType: TextInputType.number,
-                              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                              inputFormatters: [
+                                FilteringTextInputFormatter.digitsOnly,
+                              ],
                             ),
                           ),
                           const Gap(8),
@@ -472,7 +550,9 @@ class _ManualGameSetupScreenState extends ConsumerState<ManualGameSetupScreen> {
                               controller: _elapsedSecsController,
                               label: 'Secs',
                               keyboardType: TextInputType.number,
-                              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                              inputFormatters: [
+                                FilteringTextInputFormatter.digitsOnly,
+                              ],
                             ),
                           ),
                         ],
@@ -501,7 +581,10 @@ class _ManualGameSetupScreenState extends ConsumerState<ManualGameSetupScreen> {
                           ),
                           if (_playerSelections.length > 1)
                             IconButton(
-                              icon: const Icon(Icons.remove_circle_outline, color: Colors.red),
+                              icon: const Icon(
+                                Icons.remove_circle_outline,
+                                color: Colors.red,
+                              ),
                               onPressed: () => _removePlayer(i),
                             ),
                         ],
@@ -521,33 +604,59 @@ class _ManualGameSetupScreenState extends ConsumerState<ManualGameSetupScreen> {
                     DropdownButtonFormField<BillingType>(
                       value: _billingType,
                       hint: const Text('Select Billing Type'),
-                      items: BillingType.values.where((b) {
-                        if (b == BillingType.perCoin) return false; // Not for manual entry
-                        if (_selectedTable!.billingOptions != null) {
-                          return _selectedTable!.billingOptions![b.name]?.enabled == true;
-                        }
-                        if (_selectedTable!.type == TableType.snooker && b == BillingType.perFrame) return false;
-                        return true;
-                      }).map((b) {
-                        String label = '';
-                        switch (b) {
-                          case BillingType.perMinute: label = 'Per Minute'; break;
-                          case BillingType.halfHour: label = 'Half Hour'; break;
-                          case BillingType.oneHour: label = 'One Hour'; break;
-                          case BillingType.perFrame: label = 'Per Frame'; break;
-                          case BillingType.perCoin: label = 'Per Coin'; break;
-                        }
-                        return DropdownMenuItem(value: b, child: Text(label));
-                      }).toList(),
+                      items: BillingType.values
+                          .where((b) {
+                            if (b == BillingType.perCoin)
+                              return false; // Not for manual entry
+                            if (_selectedTable!.billingOptions != null) {
+                              return _selectedTable!
+                                      .billingOptions![b.name]
+                                      ?.enabled ==
+                                  true;
+                            }
+                            if (_selectedTable!.type == TableType.snooker &&
+                                b == BillingType.perFrame)
+                              return false;
+                            return true;
+                          })
+                          .map((b) {
+                            String label = '';
+                            switch (b) {
+                              case BillingType.perMinute:
+                                label = 'Per Minute';
+                                break;
+                              case BillingType.halfHour:
+                                label = 'Half Hour';
+                                break;
+                              case BillingType.oneHour:
+                                label = 'One Hour';
+                                break;
+                              case BillingType.perFrame:
+                                label = 'Per Frame';
+                                break;
+                              case BillingType.perCoin:
+                                label = 'Per Coin';
+                                break;
+                            }
+                            return DropdownMenuItem(
+                              value: b,
+                              child: Text(label),
+                            );
+                          })
+                          .toList(),
                       onChanged: (val) => setState(() => _billingType = val),
                       decoration: InputDecoration(
                         filled: true,
                         fillColor: theme.colorScheme.surfaceContainerHighest,
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide.none,
+                        ),
                       ),
                     ),
                     const Gap(16),
-                    if (_billingType == BillingType.perMinute && _selectedTable!.allowCustomPrice) ...[
+                    if (_billingType == BillingType.perMinute &&
+                        _selectedTable!.allowCustomPrice) ...[
                       SwitchListTile(
                         title: const Text('Custom Base Price'),
                         value: _useCustomPrice,
@@ -563,7 +672,9 @@ class _ManualGameSetupScreenState extends ConsumerState<ManualGameSetupScreen> {
                         AppTextField(
                           controller: _customPriceController,
                           label: 'Custom Base Price (\$/min)',
-                          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                          keyboardType: const TextInputType.numberWithOptions(
+                            decimal: true,
+                          ),
                         ),
                     ],
                     if (_billingType == BillingType.perFrame) ...[
@@ -574,10 +685,17 @@ class _ManualGameSetupScreenState extends ConsumerState<ManualGameSetupScreen> {
                           IconButton(
                             icon: const Icon(Icons.remove_circle_outline),
                             onPressed: () {
-                              if (_currentFrame > 1) setState(() => _currentFrame--);
+                              if (_currentFrame > 1)
+                                setState(() => _currentFrame--);
                             },
                           ),
-                          Text('$_currentFrame', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                          Text(
+                            '$_currentFrame',
+                            style: const TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
                           IconButton(
                             icon: const Icon(Icons.add_circle_outline),
                             onPressed: () => setState(() => _currentFrame++),
@@ -586,8 +704,13 @@ class _ManualGameSetupScreenState extends ConsumerState<ManualGameSetupScreen> {
                       ),
                     ],
                   ] else
-                    Text('Select a table first', style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
-                  
+                    Text(
+                      'Select a table first',
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+
                   const Gap(32),
 
                   // --- ACTION BUTTON ---
@@ -598,7 +721,13 @@ class _ManualGameSetupScreenState extends ConsumerState<ManualGameSetupScreen> {
                       onPressed: _isLoading ? null : _handleSave,
                       child: _isLoading
                           ? const CircularProgressIndicator(color: Colors.white)
-                          : Text(_isCompletedMode ? 'Generate Bill' : 'Start Game', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                          : Text(
+                              _isCompletedMode ? 'Generate Bill' : 'Start Game',
+                              style: const TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
                     ),
                   ),
                   const Gap(64),
@@ -611,4 +740,3 @@ class _ManualGameSetupScreenState extends ConsumerState<ManualGameSetupScreen> {
     );
   }
 }
-

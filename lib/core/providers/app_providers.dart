@@ -11,8 +11,6 @@ final localStorageServiceProvider = Provider<LocalStorageService>((ref) {
   return LocalStorageService();
 });
 
-
-
 final firestoreServiceProvider = Provider<FirestoreService>((ref) {
   return FirestoreService();
 });
@@ -22,7 +20,9 @@ final storageServiceProvider = Provider<StorageService>((ref) {
 });
 
 // ─── Theme Mode ───
-final themeModeProvider = NotifierProvider<ThemeModeNotifier, ThemeMode>(ThemeModeNotifier.new);
+final themeModeProvider = NotifierProvider<ThemeModeNotifier, ThemeMode>(
+  ThemeModeNotifier.new,
+);
 
 class ThemeModeNotifier extends Notifier<ThemeMode> {
   @override
@@ -50,7 +50,9 @@ class ThemeModeNotifier extends Notifier<ThemeMode> {
 }
 
 // ─── Currency ───
-final currencyProvider = NotifierProvider<CurrencyNotifier, Currency>(CurrencyNotifier.new);
+final currencyProvider = NotifierProvider<CurrencyNotifier, Currency>(
+  CurrencyNotifier.new,
+);
 
 class CurrencyNotifier extends Notifier<Currency> {
   @override
@@ -69,10 +71,12 @@ class CurrencyNotifier extends Notifier<Currency> {
   }
 }
 
-
 // --- Revenue Details Date Provider ---
 /// Provider for the currently selected date on the Revenue Details screen.
-final revenueDetailsDateProvider = NotifierProvider<RevenueDetailsDateNotifier, DateTime>(RevenueDetailsDateNotifier.new);
+final revenueDetailsDateProvider =
+    NotifierProvider<RevenueDetailsDateNotifier, DateTime>(
+      RevenueDetailsDateNotifier.new,
+    );
 
 class RevenueDetailsDateNotifier extends Notifier<DateTime> {
   @override
@@ -82,4 +86,3 @@ class RevenueDetailsDateNotifier extends Notifier<DateTime> {
     state = date;
   }
 }
-

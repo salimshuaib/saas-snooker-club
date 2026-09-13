@@ -56,9 +56,9 @@ enum TableType {
   }
 
   bool get isOtherGame {
-    return this != TableType.snooker && 
-           this != TableType.indianPool && 
-           this != TableType.americanPool;
+    return this != TableType.snooker &&
+        this != TableType.indianPool &&
+        this != TableType.americanPool;
   }
 }
 
@@ -282,7 +282,10 @@ class TableModel {
       order: map['order'] as int? ?? 0,
       billingOptions: map['billingOptions'] != null
           ? (map['billingOptions'] as Map<String, dynamic>).map(
-              (k, v) => MapEntry(k, TableBillingOption.fromMap(v as Map<String, dynamic>)),
+              (k, v) => MapEntry(
+                k,
+                TableBillingOption.fromMap(v as Map<String, dynamic>),
+              ),
             )
           : null,
       isMinimumBillEnabled: map['isMinimumBillEnabled'] as bool? ?? false,
@@ -442,40 +445,42 @@ class GameRound {
   }
 
   Map<String, dynamic> toMap() => {
-        'roundNumber': roundNumber,
-        'winner': winner,
-        'loser': loser,
-        'framePayers': framePayers,
-        'roundCost': roundCost,
-        'startTime': startTime != null ? Timestamp.fromDate(startTime!) : null,
-        'endTime': endTime != null ? Timestamp.fromDate(endTime!) : null,
-        'durationSeconds': durationSeconds,
-        'gracePeriodMinutes': gracePeriodMinutes,
-        'overtimeMinutes': overtimeMinutes,
-        'overtimeCharge': overtimeCharge,
-      };
+    'roundNumber': roundNumber,
+    'winner': winner,
+    'loser': loser,
+    'framePayers': framePayers,
+    'roundCost': roundCost,
+    'startTime': startTime != null ? Timestamp.fromDate(startTime!) : null,
+    'endTime': endTime != null ? Timestamp.fromDate(endTime!) : null,
+    'durationSeconds': durationSeconds,
+    'gracePeriodMinutes': gracePeriodMinutes,
+    'overtimeMinutes': overtimeMinutes,
+    'overtimeCharge': overtimeCharge,
+  };
 
   factory GameRound.fromMap(Map<String, dynamic> map) => GameRound(
-        roundNumber: (map['roundNumber'] as num?)?.toInt() ?? 1,
-        winner: map['winner'] as String?,
-        loser: map['loser'] as String?,
-        framePayers: map['framePayers'] != null ? List<String>.from(map['framePayers']) : null,
-        roundCost: (map['roundCost'] as num?)?.toDouble() ?? 0.0,
-        startTime: map['startTime'] != null
-            ? (map['startTime'] is Timestamp
-                ? (map['startTime'] as Timestamp).toDate()
-                : DateTime.tryParse(map['startTime'].toString()))
-            : null,
-        endTime: map['endTime'] != null
-            ? (map['endTime'] is Timestamp
-                ? (map['endTime'] as Timestamp).toDate()
-                : DateTime.tryParse(map['endTime'].toString()))
-            : null,
-        durationSeconds: (map['durationSeconds'] as num?)?.toInt(),
-        gracePeriodMinutes: (map['gracePeriodMinutes'] as num?)?.toInt(),
-        overtimeMinutes: (map['overtimeMinutes'] as num?)?.toInt(),
-        overtimeCharge: (map['overtimeCharge'] as num?)?.toDouble(),
-      );
+    roundNumber: (map['roundNumber'] as num?)?.toInt() ?? 1,
+    winner: map['winner'] as String?,
+    loser: map['loser'] as String?,
+    framePayers: map['framePayers'] != null
+        ? List<String>.from(map['framePayers'])
+        : null,
+    roundCost: (map['roundCost'] as num?)?.toDouble() ?? 0.0,
+    startTime: map['startTime'] != null
+        ? (map['startTime'] is Timestamp
+              ? (map['startTime'] as Timestamp).toDate()
+              : DateTime.tryParse(map['startTime'].toString()))
+        : null,
+    endTime: map['endTime'] != null
+        ? (map['endTime'] is Timestamp
+              ? (map['endTime'] as Timestamp).toDate()
+              : DateTime.tryParse(map['endTime'].toString()))
+        : null,
+    durationSeconds: (map['durationSeconds'] as num?)?.toInt(),
+    gracePeriodMinutes: (map['gracePeriodMinutes'] as num?)?.toInt(),
+    overtimeMinutes: (map['overtimeMinutes'] as num?)?.toInt(),
+    overtimeCharge: (map['overtimeCharge'] as num?)?.toDouble(),
+  );
 }
 
 // ─────────────────────────────────────────────
@@ -640,8 +645,9 @@ class GameSession {
     final pairs = pauseTimes.length;
     for (int i = 0; i < pairs; i++) {
       final pause = pauseTimes[i];
-      final resume =
-          (i < resumeTimes.length) ? resumeTimes[i] : (endTime ?? DateTime.now());
+      final resume = (i < resumeTimes.length)
+          ? resumeTimes[i]
+          : (endTime ?? DateTime.now());
       totalPausedMs += resume.difference(pause).inMilliseconds;
     }
 
@@ -792,7 +798,7 @@ class GameSession {
       'teamA': teamA,
       'teamB': teamB,
       'playerIds': playerIds,
-        'playerIdentities': playerIdentities,
+      'playerIdentities': playerIdentities,
       'status': status.name,
       'startTime': Timestamp.fromDate(startTime),
       'endTime': endTime != null ? Timestamp.fromDate(endTime!) : null,
@@ -802,7 +808,9 @@ class GameSession {
       'framesPlayed': framesPlayed,
       'orders': orders.map((o) => o.toMap()).toList(),
       'rounds': rounds.map((r) => r.toMap()).toList(),
-      'playerPaymentSplits': playerPaymentSplits?.map((k, v) => MapEntry(k, v.map((k2, v2) => MapEntry(k2.name, v2)))),
+      'playerPaymentSplits': playerPaymentSplits?.map(
+        (k, v) => MapEntry(k, v.map((k2, v2) => MapEntry(k2.name, v2))),
+      ),
       'playerLiabilities': playerLiabilities,
       'winnerId': winnerId,
       'selectedPayers': selectedPayers,
@@ -825,7 +833,9 @@ class GameSession {
       'date': date,
       'auditLogs': auditLogs.map((a) => a.toMap()).toList(),
       'isManualEntry': isManualEntry,
-      'recordedTime': recordedTime != null ? Timestamp.fromDate(recordedTime!) : null,
+      'recordedTime': recordedTime != null
+          ? Timestamp.fromDate(recordedTime!)
+          : null,
       'pricingSnapshot': pricingSnapshot?.toMap(),
       'gameSettingsSnapshot': gameSettingsSnapshot?.toMap(),
       'customExtraCharge': customExtraCharge,
@@ -839,13 +849,11 @@ class GameSession {
   factory GameSession.fromMap(Map<String, dynamic> map) {
     List<DateTime> parseDateList(dynamic raw) {
       if (raw == null) return [];
-      return (raw as List)
-          .map((e) => (e as Timestamp).toDate())
-          .toList();
+      return (raw as List).map((e) => (e as Timestamp).toDate()).toList();
     }
 
     return GameSession(
-            createdByUserId: map['createdByUserId'] as String?,
+      createdByUserId: map['createdByUserId'] as String?,
       createdByName: map['createdByName'] as String?,
       updatedByUserId: map['updatedByUserId'] as String?,
       updatedByName: map['updatedByName'] as String?,
@@ -857,7 +865,9 @@ class GameSession {
         orElse: () => GameType.standard,
       ),
       targetPoints: map['targetPoints'],
-      playerPoints: map['playerPoints'] != null ? Map<String, int>.from(map['playerPoints']) : null,
+      playerPoints: map['playerPoints'] != null
+          ? Map<String, int>.from(map['playerPoints'])
+          : null,
       tableType: TableType.values.firstWhere(
         (t) => t.name == map['tableType'],
         orElse: () => TableType.snooker,
@@ -877,7 +887,9 @@ class GameSession {
       teamA: List<String>.from(map['teamA'] ?? []),
       teamB: List<String>.from(map['teamB'] ?? []),
       playerIds: List<String>.from(map['playerIds'] ?? []),
-        playerIdentities: map['playerIdentities'] != null ? Map<String, String>.from(map['playerIdentities']) : null,
+      playerIdentities: map['playerIdentities'] != null
+          ? Map<String, String>.from(map['playerIdentities'])
+          : null,
       status: TableStatus.values.firstWhere(
         (s) => s.name == map['status'],
         orElse: () => TableStatus.available,
@@ -890,11 +902,13 @@ class GameSession {
       resumeTimes: parseDateList(map['resumeTimes']),
       totalFrames: (map['totalFrames'] as num?)?.toInt() ?? 1,
       framesPlayed: (map['framesPlayed'] as num?)?.toInt() ?? 0,
-      orders: (map['orders'] as List<dynamic>?)
+      orders:
+          (map['orders'] as List<dynamic>?)
               ?.map((o) => GameOrder.fromMap(o as Map<String, dynamic>))
               .toList() ??
           [],
-      rounds: (map['rounds'] as List<dynamic>?)
+      rounds:
+          (map['rounds'] as List<dynamic>?)
               ?.map((r) => GameRound.fromMap(r as Map<String, dynamic>))
               .toList() ??
           [],
@@ -902,7 +916,10 @@ class GameSession {
         if (map['playerPaymentSplits'] != null) {
           final splits = map['playerPaymentSplits'] as Map<String, dynamic>;
           return splits.map((player, methodsMap) {
-            final parsedMethods = (methodsMap as Map<String, dynamic>).map((methodName, amount) {
+            final parsedMethods = (methodsMap as Map<String, dynamic>).map((
+              methodName,
+              amount,
+            ) {
               final method = PaymentMethod.values.firstWhere(
                 (p) => p.name == methodName,
                 orElse: () => PaymentMethod.cash,
@@ -932,7 +949,9 @@ class GameSession {
             )
           : null,
       winnerId: map['winnerId'] as String?,
-      selectedPayers: map['selectedPayers'] != null ? List<String>.from(map['selectedPayers']) : null,
+      selectedPayers: map['selectedPayers'] != null
+          ? List<String>.from(map['selectedPayers'])
+          : null,
       discountAmount: (map['discountAmount'] as num?)?.toDouble(),
       discountedGameCharge: (map['discountedGameCharge'] as num?)?.toDouble(),
       customExtraCharge: (map['customExtraCharge'] as num?)?.toDouble(),
@@ -944,7 +963,8 @@ class GameSession {
           ? PaymentMethod.values.firstWhere(
               (p) => p.name == map['paymentMethod'],
               orElse: () => PaymentMethod.cash,
-      ) : null,
+            )
+          : null,
       paymentStatus: map['paymentStatus'] as String?,
       paidAmount: (map['paidAmount'] as num?)?.toDouble(),
       remainingAmount: (map['remainingAmount'] as num?)?.toDouble(),
@@ -958,15 +978,16 @@ class GameSession {
       finalAmount: (map['finalAmount'] as num?)?.toDouble(),
       employeeId: map['employeeId'] as String?,
       date: map['date'] as String,
-      auditLogs: (map['auditLogs'] as List<dynamic>?)
+      auditLogs:
+          (map['auditLogs'] as List<dynamic>?)
               ?.map((a) => AuditLog.fromMap(a as Map<String, dynamic>))
               .toList() ??
           [],
       isManualEntry: map['isManualEntry'] as bool? ?? false,
       recordedTime: map['recordedTime'] != null
           ? (map['recordedTime'] is Timestamp
-              ? (map['recordedTime'] as Timestamp).toDate()
-              : DateTime.tryParse(map['recordedTime'].toString()))
+                ? (map['recordedTime'] as Timestamp).toDate()
+                : DateTime.tryParse(map['recordedTime'].toString()))
           : null,
       pricingSnapshot: map['pricingSnapshot'] != null
           ? PricingSettings.fromMap(map['pricingSnapshot'])
@@ -978,8 +999,6 @@ class GameSession {
     );
   }
 }
-
-
 
 // Stub for OtherGameResource
 class OtherGameResource {

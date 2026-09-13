@@ -35,15 +35,17 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
     final currency = ref.watch(currencyProvider);
     final dateStr = DateFormat('yyyy-MM-dd').format(_selectedDate);
 
-    final gamesAsync = ref.watch(gamesRepositoryProvider).watchAllGamesByDate(dateStr);
-    final quickSalesAsync = ref.watch(quickSalesRepositoryProvider).watchQuickSales(_selectedDate);
+    final gamesAsync = ref
+        .watch(gamesRepositoryProvider)
+        .watchAllGamesByDate(dateStr);
+    final quickSalesAsync = ref
+        .watch(quickSalesRepositoryProvider)
+        .watchQuickSales(_selectedDate);
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('Calendar Revenue'),
-        actions: [
-          const SizedBox(width: 8),
-        ],
+        actions: [const SizedBox(width: 8)],
       ),
       body: Column(
         children: [
@@ -63,13 +65,19 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    _isToday ? "Today's Revenue Summary" : "Daily Revenue Summary",
-                    style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
+                    _isToday
+                        ? "Today's Revenue Summary"
+                        : "Daily Revenue Summary",
+                    style: theme.textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.w800,
+                    ),
                   ),
                   const Gap(4),
                   Text(
                     'Combined earnings from active games and POS quick sales.',
-                    style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
                   ),
                   const Gap(24),
 
@@ -80,15 +88,25 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                       return StreamBuilder(
                         stream: quickSalesAsync,
                         builder: (context, quickSalesSnap) {
-                          if (gamesSnap.connectionState == ConnectionState.waiting && !gamesSnap.hasData ||
-                              quickSalesSnap.connectionState == ConnectionState.waiting && !quickSalesSnap.hasData) {
+                          if (gamesSnap.connectionState ==
+                                      ConnectionState.waiting &&
+                                  !gamesSnap.hasData ||
+                              quickSalesSnap.connectionState ==
+                                      ConnectionState.waiting &&
+                                  !quickSalesSnap.hasData) {
                             return Padding(
                               padding: const EdgeInsets.symmetric(vertical: 20),
                               child: Column(
-                                children: List.generate(3, (_) => const Padding(
-                                  padding: EdgeInsets.only(bottom: 12),
-                                  child: SkeletonLoader(height: 80, borderRadius: 12),
-                                )),
+                                children: List.generate(
+                                  3,
+                                  (_) => const Padding(
+                                    padding: EdgeInsets.only(bottom: 12),
+                                    child: SkeletonLoader(
+                                      height: 80,
+                                      borderRadius: 12,
+                                    ),
+                                  ),
+                                ),
                               ),
                             );
                           }
@@ -99,19 +117,37 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                           // Calculate Cash/UPI revenues
                           final gamesRevenue = games
                               .where((g) => g.status == TableStatus.available)
-                              .fold(0.0, (sum, g) => sum + (g.finalAmount ?? g.grandTotal ?? 0.0));
-                          
-                          final quickSalesRevenue = quickSales
-                              .fold(0.0, (sum, s) => sum + s.totalAmount);
+                              .fold(
+                                0.0,
+                                (sum, g) =>
+                                    sum +
+                                    (g.finalAmount ?? g.grandTotal ?? 0.0),
+                              );
+
+                          final quickSalesRevenue = quickSales.fold(
+                            0.0,
+                            (sum, s) => sum + s.totalAmount,
+                          );
 
                           final totalRevenue = gamesRevenue + quickSalesRevenue;
 
                           // Credit tracking for information
                           final gamesCredit = games
-                              .where((g) => g.status == TableStatus.available && g.paymentMethod == PaymentMethod.credit)
-                              .fold(0.0, (sum, g) => sum + (g.finalAmount ?? g.grandTotal ?? 0.0));
+                              .where(
+                                (g) =>
+                                    g.status == TableStatus.available &&
+                                    g.paymentMethod == PaymentMethod.credit,
+                              )
+                              .fold(
+                                0.0,
+                                (sum, g) =>
+                                    sum +
+                                    (g.finalAmount ?? g.grandTotal ?? 0.0),
+                              );
                           final quickSalesCredit = quickSales
-                              .where((s) => s.paymentMethod == PaymentMethod.credit)
+                              .where(
+                                (s) => s.paymentMethod == PaymentMethod.credit,
+                              )
                               .fold(0.0, (sum, s) => sum + s.totalAmount);
 
                           return Column(
@@ -122,7 +158,10 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                                 padding: const EdgeInsets.all(24),
                                 decoration: BoxDecoration(
                                   gradient: LinearGradient(
-                                    colors: [AppColors.primary, AppColors.primaryDark],
+                                    colors: [
+                                      AppColors.primary,
+                                      AppColors.primaryDark,
+                                    ],
                                     begin: Alignment.topLeft,
                                     end: Alignment.bottomRight,
                                   ),
@@ -133,32 +172,49 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Row(
-                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.spaceBetween,
                                       children: [
                                         Text(
                                           'Total Revenue',
-                                          style: theme.textTheme.titleMedium?.copyWith(color: Colors.white70),
+                                          style: theme.textTheme.titleMedium
+                                              ?.copyWith(color: Colors.white70),
                                         ),
                                         Container(
-                                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 10,
+                                            vertical: 4,
+                                          ),
                                           decoration: BoxDecoration(
-                                            color: Colors.white.withValues(alpha: 0.2),
-                                            borderRadius: BorderRadius.circular(20),
+                                            color: Colors.white.withValues(
+                                              alpha: 0.2,
+                                            ),
+                                            borderRadius: BorderRadius.circular(
+                                              20,
+                                            ),
                                           ),
                                           child: const Text(
                                             'Cash & UPI',
-                                            style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
+                                            style: TextStyle(
+                                              color: Colors.white,
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.bold,
+                                            ),
                                           ),
                                         ),
                                       ],
                                     ),
                                     const Gap(8),
                                     Text(
-                                      CurrencyHelper.formatWhole(totalRevenue, currency),
-                                      style: theme.textTheme.displaySmall?.copyWith(
-                                        color: Colors.white,
-                                        fontWeight: FontWeight.w900,
+                                      CurrencyHelper.formatWhole(
+                                        totalRevenue,
+                                        currency,
                                       ),
+                                      style: theme.textTheme.displaySmall
+                                          ?.copyWith(
+                                            color: Colors.white,
+                                            fontWeight: FontWeight.w900,
+                                          ),
                                     ),
                                   ],
                                 ),
@@ -172,8 +228,12 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                                   Expanded(
                                     child: _RevenueCategoryCard(
                                       title: 'Games Income',
-                                      amount: CurrencyHelper.formatWhole(gamesRevenue, currency),
-                                      countText: '${games.where((g) => g.status == TableStatus.available).length} sessions',
+                                      amount: CurrencyHelper.formatWhole(
+                                        gamesRevenue,
+                                        currency,
+                                      ),
+                                      countText:
+                                          '${games.where((g) => g.status == TableStatus.available).length} sessions',
                                       icon: Icons.sports_esports,
                                       iconColor: AppColors.primary,
                                     ),
@@ -182,7 +242,10 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                                   Expanded(
                                     child: _RevenueCategoryCard(
                                       title: 'Quick Sales Income',
-                                      amount: CurrencyHelper.formatWhole(quickSalesRevenue, currency),
+                                      amount: CurrencyHelper.formatWhole(
+                                        quickSalesRevenue,
+                                        currency,
+                                      ),
                                       countText: '${quickSales.length} orders',
                                       icon: Icons.inventory_2,
                                       iconColor: AppColors.tertiary,
@@ -198,28 +261,46 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                                 Container(
                                   padding: const EdgeInsets.all(16),
                                   decoration: BoxDecoration(
-                                    color: AppColors.creditStatus.withValues(alpha: 0.1),
+                                    color: AppColors.creditStatus.withValues(
+                                      alpha: 0.1,
+                                    ),
                                     borderRadius: BorderRadius.circular(16),
-                                    border: Border.all(color: AppColors.creditStatus.withValues(alpha: 0.3)),
+                                    border: Border.all(
+                                      color: AppColors.creditStatus.withValues(
+                                        alpha: 0.3,
+                                      ),
+                                    ),
                                   ),
                                   child: Row(
                                     children: [
-                                      Icon(Icons.info_outline, color: AppColors.creditStatus, size: 24),
+                                      Icon(
+                                        Icons.info_outline,
+                                        color: AppColors.creditStatus,
+                                        size: 24,
+                                      ),
                                       const Gap(12),
                                       Expanded(
                                         child: Column(
-                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
                                           children: [
                                             Text(
                                               'Included Credit Sales Today: ${CurrencyHelper.formatWhole(gamesCredit + quickSalesCredit, currency)}',
-                                              style: theme.textTheme.labelLarge?.copyWith(
-                                                color: AppColors.creditStatus,
-                                                fontWeight: FontWeight.w700,
-                                              ),
+                                              style: theme.textTheme.labelLarge
+                                                  ?.copyWith(
+                                                    color:
+                                                        AppColors.creditStatus,
+                                                    fontWeight: FontWeight.w700,
+                                                  ),
                                             ),
                                             Text(
                                               'These credit amounts are included in your total revenue above.',
-                                              style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                                              style: theme.textTheme.bodySmall
+                                                  ?.copyWith(
+                                                    color: theme
+                                                        .colorScheme
+                                                        .onSurfaceVariant,
+                                                  ),
                                             ),
                                           ],
                                         ),
@@ -285,23 +366,30 @@ class _RevenueCategoryCard extends StatelessWidget {
               ),
               Text(
                 countText,
-                style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant, fontWeight: FontWeight.w600),
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
             ],
           ),
           const Gap(12),
           Text(
             title,
-            style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant, fontWeight: FontWeight.w600),
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+              fontWeight: FontWeight.w600,
+            ),
           ),
           const Gap(4),
           Text(
             amount,
-            style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w800),
+            style: theme.textTheme.headlineSmall?.copyWith(
+              fontWeight: FontWeight.w800,
+            ),
           ),
         ],
       ),
     );
   }
 }
-

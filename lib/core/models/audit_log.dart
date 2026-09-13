@@ -62,7 +62,9 @@ class AuditLog {
     }
 
     return AuditLog(
-      id: map['id'] as String? ?? DateTime.now().millisecondsSinceEpoch.toString(),
+      id:
+          map['id'] as String? ??
+          DateTime.now().millisecondsSinceEpoch.toString(),
       editedBy: map['editedBy'] as String? ?? 'Admin',
       timestamp: parseDate(map['timestamp']),
       field: map['field'] as String? ?? 'Unknown',

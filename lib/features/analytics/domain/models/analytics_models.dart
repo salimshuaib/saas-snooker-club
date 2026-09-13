@@ -120,11 +120,11 @@ class GameCategoryData {
 class GameAnalyticsData {
   final List<GameCategoryData> categories;
   final int totalGameSessions;
-  
+
   // Game Mode Analytics (if applicable)
   final double perMinuteBilled;
   final double perFrameBilled;
-  
+
   // TP vs Friendly
   final double splitBilled;
   final double singlePayerBilled;
@@ -147,18 +147,18 @@ class GameAnalyticsData {
 class TablePerformanceItem {
   final String tableId;
   final String tableName;
-  final String tableType;          // NEW
+  final String tableType; // NEW
   final int sessionsCount;
   final double totalBilled;
   final double averageSessionValue;
   final double totalOrdersRevenue; // NEW
-  final int totalDurationMinutes;  // NEW
-  final int avgDurationMinutes;    // NEW
+  final int totalDurationMinutes; // NEW
+  final int avgDurationMinutes; // NEW
   final double utilizationPercent; // NEW
   final Map<int, int> hourlyUsage; // NEW
-  final Map<int, int> dailyUsage;  // NEW
-  final double revenuePerHour;     // NEW
-  final int overtimeCount;         // NEW
+  final Map<int, int> dailyUsage; // NEW
+  final double revenuePerHour; // NEW
+  final int overtimeCount; // NEW
 
   const TablePerformanceItem({
     required this.tableId,
@@ -233,18 +233,25 @@ class CreditAnalyticsData {
 class PeriodComparisonData {
   final RevenueOverviewData currentPeriod;
   final RevenueOverviewData previousPeriod;
-  
+
   const PeriodComparisonData({
     required this.currentPeriod,
     required this.previousPeriod,
   });
-  
-  double get totalBilledChange => _calcChange(currentPeriod.totalBilled, previousPeriod.totalBilled);
-  double get cashCollectedChange => _calcChange(currentPeriod.cashCollected, previousPeriod.cashCollected);
-  double get upiCollectedChange => _calcChange(currentPeriod.upiCollected, previousPeriod.upiCollected);
-  double get creditCreatedChange => _calcChange(currentPeriod.creditCreated, previousPeriod.creditCreated);
-  double get creditCollectedChange => _calcChange(currentPeriod.creditCollected, previousPeriod.creditCollected);
-  
+
+  double get totalBilledChange =>
+      _calcChange(currentPeriod.totalBilled, previousPeriod.totalBilled);
+  double get cashCollectedChange =>
+      _calcChange(currentPeriod.cashCollected, previousPeriod.cashCollected);
+  double get upiCollectedChange =>
+      _calcChange(currentPeriod.upiCollected, previousPeriod.upiCollected);
+  double get creditCreatedChange =>
+      _calcChange(currentPeriod.creditCreated, previousPeriod.creditCreated);
+  double get creditCollectedChange => _calcChange(
+    currentPeriod.creditCollected,
+    previousPeriod.creditCollected,
+  );
+
   double _calcChange(double current, double previous) {
     if (previous == 0) return 0.0;
     return ((current - previous) / previous) * 100;
@@ -257,8 +264,8 @@ class BusinessInsightsData {
   final int newCustomersThisPeriod;
   final int repeatCustomersThisPeriod;
   final double averageCustomerSpend;
-  final double averageSessionDuration;    
-  final double tableUtilizationRate;      
+  final double averageSessionDuration;
+  final double tableUtilizationRate;
   final String busiestHour;
   final String slowestHour;
   final String busiestDay;
@@ -286,8 +293,8 @@ class InventoryAnalyticsData {
   final int lowStockCount;
   final int outOfStockCount;
   final double totalInventoryValue;
-  final double costOfGoodsSold;   
-  final double grossProfit;       
+  final double costOfGoodsSold;
+  final double grossProfit;
 
   const InventoryAnalyticsData({
     required this.totalProducts,
@@ -306,19 +313,19 @@ class CompleteAnalyticsData {
   final List<TimeSeriesPoint> revenueTrendSeries;
   final List<CategoryShare> paymentMethodsShare;
   final List<CategoryShare> revenueSourceShare;
-  
+
   final GameAnalyticsData gameAnalytics;
   final List<TablePerformanceItem> tablePerformances;
-  
+
   final List<BestSellingProductItem> bestSellingProducts;
   final List<QuickSaleCategoryData> quickSaleCategories;
-  
+
   final CreditAnalyticsData creditAnalytics;
   final List<TimeSeriesPoint> creditCollectionTrend;
-  
+
   final List<TimeSeriesPoint> peakBusinessHours;
   final PeriodComparisonData? periodComparison;
-  
+
   final BusinessInsightsData businessInsights;
   final InventoryAnalyticsData inventoryAnalytics;
 
