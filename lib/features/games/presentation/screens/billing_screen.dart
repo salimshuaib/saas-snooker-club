@@ -49,7 +49,9 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
   @override
   void initState() {
     super.initState();
-    _session = widget.session.copyWith(endTime: DateTime.now());
+    _session = widget.session.endTime == null 
+        ? widget.session.copyWith(endTime: DateTime.now()) 
+        : widget.session;
     _selectedPayers = List.from(_session.selectedPayers ?? _session.allPlayers);
     _discountAmount = _session.discountAmount ?? 0.0;
     _hasDiscount = _discountAmount > 0;
@@ -208,7 +210,7 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
 
   GameChargeBreakdown get _breakdown {
     final appSettings = ref.read(appSettingsProvider);
-    final tables = ref.read(tablesProvider).value ?? [];
+    final tables = ref.read(resolvedTablesProvider);
     final table = tables.firstWhere(
       (t) => t.id == _session.tableId,
       orElse: () => TableModel(id: _session.tableId, name: _session.tableName, type: _session.tableType),

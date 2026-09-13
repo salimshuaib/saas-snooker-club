@@ -5,6 +5,8 @@ import 'package:gap/gap.dart';
 import 'package:snooker_club/core/theme/app_colors.dart';
 import 'package:snooker_club/features/games/domain/models/game_models.dart';
 import 'package:snooker_club/features/games/providers/games_providers.dart';
+import 'package:snooker_club/features/team/providers/team_providers.dart';
+import 'package:snooker_club/features/games/presentation/screens/manual_game_setup_screen.dart';
 
 class TableCard extends ConsumerWidget {
   final TableModel table;
@@ -69,13 +71,51 @@ class TableCard extends ConsumerWidget {
             const Spacer(),
 
             // Table Name
-            Text(
-              table.name,
-              style: theme.textTheme.titleSmall?.copyWith(
-                fontWeight: FontWeight.w700,
-              ),
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: Text(
+                    table.name,
+                    style: theme.textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                const Gap(4),
+                InkWell(
+                  onTap: () {
+                    final employeeId = ref.read(currentStaffProvider).value?.id ?? '';
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => ManualGameSetupScreen(
+                          employeeId: employeeId,
+                          isCompletedGame: table.status != TableStatus.available,
+                          initialTable: table,
+                        ),
+                      ),
+                    );
+                  },
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.primary.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.edit_document, size: 12, color: theme.colorScheme.primary),
+                          const Gap(2),
+                          Text('Manual', style: TextStyle(fontSize: 9, color: theme.colorScheme.primary, fontWeight: FontWeight.bold)),
+                        ],
+                      )
+                    ),
+                  ),
+              ],
+
             ),
             const Gap(2),
             Text(

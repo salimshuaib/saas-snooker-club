@@ -38,48 +38,87 @@ class GameActivityCard extends ConsumerWidget {
           // HEADER
           Padding(
             padding: const EdgeInsets.all(16.0),
-            child: Column(
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  table.name,
-                  style: TextStyle(
-                    color: theme.colorScheme.onSurface,
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        table.name,
+                        style: TextStyle(
+                          color: theme.colorScheme.onSurface,
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Row(
+                        children: [
+                          Container(
+                            width: 8,
+                            height: 8,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: isAvailable
+                                  ? AppColors.available
+                                  : (isRunning
+                                      ? AppColors.success
+                                      : AppColors.paused),
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          Text(
+                            isAvailable
+                                ? 'AVAILABLE'
+                                : (isRunning ? 'RUNNING' : 'PAUSED'),
+                            style: TextStyle(
+                              color: isAvailable
+                                  ? AppColors.available
+                                  : (isRunning
+                                      ? AppColors.success
+                                      : AppColors.paused),
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
                   ),
                 ),
-                const SizedBox(height: 4),
-                Row(
-                  children: [
-                    Container(
-                      width: 8,
-                      height: 8,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: isAvailable
-                            ? AppColors.available
-                            : (isRunning
-                                  ? AppColors.success
-                                  : AppColors.paused),
+                const SizedBox(width: 8),
+                InkWell(
+                  onTap: () {
+                    final employeeId = ref.read(currentStaffProvider).value?.id ?? '';
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => ManualGameSetupScreen(
+                          employeeId: employeeId,
+                          isCompletedGame: !isAvailable,
+                          initialTable: table,
+                        ),
                       ),
+                    );
+                  },
+                  borderRadius: BorderRadius.circular(6),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: theme.colorScheme.primary.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(6),
                     ),
-                    const SizedBox(width: 6),
-                    Text(
-                      isAvailable
-                          ? 'Available'
-                          : (isRunning ? 'RUNNING' : 'PAUSED'),
-                      style: TextStyle(
-                        color: isAvailable
-                            ? AppColors.available
-                            : (isRunning
-                                  ? AppColors.success
-                                  : AppColors.paused),
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                      ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.edit_document, size: 14, color: theme.colorScheme.primary),
+                        const SizedBox(width: 4),
+                        Text('Manual', style: TextStyle(fontSize: 12, color: theme.colorScheme.primary, fontWeight: FontWeight.bold)),
+                      ],
                     ),
-                  ],
+                  ),
                 ),
               ],
             ),
@@ -157,36 +196,7 @@ class GameActivityCard extends ConsumerWidget {
                           ),
                         ),
                       ),
-                      const Gap(12),
-                      Expanded(
-                        child: OutlinedButton.icon(
-                          onPressed: () {
-                            final employeeId =
-                                ref.read(currentStaffProvider).value?.id ?? '';
-                            Navigator.of(context).push(
-                              MaterialPageRoute(
-                                builder: (_) => ManualGameSetupScreen(
-                                  employeeId: employeeId,
-                                  isCompletedGame: false,
-                                  initialTable: table,
-                                ),
-                              ),
-                            );
-                          },
-                          icon: const Icon(Icons.edit_document, size: 18),
-                          label: const Text(
-                            'Manual Entry',
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                          style: OutlinedButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(vertical: 12),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                          ),
-                        ),
-                      ),
+
                     ],
                   ),
                 ],

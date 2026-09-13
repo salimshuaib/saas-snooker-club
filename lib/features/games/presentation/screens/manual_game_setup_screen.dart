@@ -39,6 +39,7 @@ class _ManualGameSetupScreenState extends ConsumerState<ManualGameSetupScreen> {
 
   // Time State
   bool _useManualDuration = false;
+  DateTime _selectedDate = DateTime.now();
   TimeOfDay? _startTime;
   TimeOfDay? _endTime;
   final TextEditingController _elapsedHoursController = TextEditingController();
@@ -83,6 +84,18 @@ class _ManualGameSetupScreenState extends ConsumerState<ManualGameSetupScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(message), backgroundColor: AppColors.error),
     );
+  }
+
+  Future<void> _pickDate() async {
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: _selectedDate,
+      firstDate: DateTime(2020),
+      lastDate: DateTime.now().add(const Duration(days: 1)),
+    );
+    if (picked != null && mounted) {
+      setState(() => _selectedDate = picked);
+    }
   }
 
   Future<void> _pickTime(bool isStart) async {
@@ -130,22 +143,27 @@ class _ManualGameSetupScreenState extends ConsumerState<ManualGameSetupScreen> {
     DateTime? finalStartTime;
     int durationSeconds = 0;
 
+    if (!_isCompletedMode && _selectedTable!.status != TableStatus.available) {
+      _showError('Table is already running! Please select an available table, or choose "Completed Game".');
+      return;
+    }
+
     if (_isCompletedMode) {
       if (_startTime == null || _endTime == null) {
         _showError('Please provide both Start and End Time.');
         return;
       }
       finalStartTime = DateTime(
-        now.year,
-        now.month,
-        now.day,
+        _selectedDate.year,
+        _selectedDate.month,
+        _selectedDate.day,
         _startTime!.hour,
         _startTime!.minute,
       );
       DateTime finalEndTime = DateTime(
-        now.year,
-        now.month,
-        now.day,
+        _selectedDate.year,
+        _selectedDate.month,
+        _selectedDate.day,
         _endTime!.hour,
         _endTime!.minute,
       );
@@ -171,9 +189,9 @@ class _ManualGameSetupScreenState extends ConsumerState<ManualGameSetupScreen> {
           return;
         }
         finalStartTime = DateTime(
-          now.year,
-          now.month,
-          now.day,
+          _selectedDate.year,
+          _selectedDate.month,
+          _selectedDate.day,
           _startTime!.hour,
           _startTime!.minute,
         );
@@ -352,9 +370,13 @@ class _ManualGameSetupScreenState extends ConsumerState<ManualGameSetupScreen> {
           Padding(
             padding: const EdgeInsets.all(20),
             child: SegmentedButton<bool>(
-              segments: const [
-                ButtonSegment(value: false, label: Text('Ongoing Game')),
-                ButtonSegment(value: true, label: Text('Completed Game')),
+              segments: [
+                ButtonSegment(
+                  value: false, 
+                  label: const Text('Ongoing Game'),
+                  enabled: _selectedTable == null || _selectedTable!.status == TableStatus.available,
+                ),
+                const ButtonSegment(value: true, label: Text('Completed Game')),
               ],
               selected: {_isCompletedMode},
               onSelectionChanged: (Set<bool> newSelection) {
@@ -387,8 +409,10 @@ class _ManualGameSetupScreenState extends ConsumerState<ManualGameSetupScreen> {
                       onChanged: (val) {
                         setState(() {
                           _selectedTable = val;
-                          _billingType = BillingType
-                              .perMinute; // Reset billing when table changes
+                          _billingType = BillingType.perMinute;
+                          if (val != null && val.status != TableStatus.available) {
+                            _isCompletedMode = true; // Force completed mode for running tables
+                          }
                         });
                       },
                       decoration: InputDecoration(
@@ -401,6 +425,40 @@ class _ManualGameSetupScreenState extends ConsumerState<ManualGameSetupScreen> {
                       ),
                     ),
                     const Gap(32),
+                  ],
+
+                  // --- DATE SELECTION ---
+                  if (_isCompletedMode) ...[
+                    Text('Date', style: theme.textTheme.labelMedium),
+                    const Gap(8),
+                    InkWell(
+                      onTap: _pickDate,
+                      borderRadius: BorderRadius.circular(12),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 16,
+                        ),
+                        decoration: BoxDecoration(
+                          color: theme.colorScheme.surfaceContainerHighest,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.calendar_today,
+                              color: theme.colorScheme.primary,
+                              size: 20,
+                            ),
+                            const Gap(8),
+                            Text(
+                              DateFormat('EEEE, MMM d, yyyy').format(_selectedDate),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const Gap(24),
                   ],
 
                   // --- TIME SELECTION ---
