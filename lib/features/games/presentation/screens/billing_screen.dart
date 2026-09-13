@@ -613,23 +613,28 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
                   Text('Payment Method', style: theme.textTheme.titleMedium),
                   TextButton.icon(
                     onPressed: () {
-                      final player = _selectedPayers.isNotEmpty
+                      final basePlayer = _selectedPayers.isNotEmpty
                           ? _selectedPayers.first
                           : _session.allPlayers.isEmpty
                           ? 'Guest'
                           : _session.allPlayers.first;
+                      final isSingleDefault = !_isMultiPayer && basePlayer.toLowerCase().startsWith('default');
+                      final displayPlayer = (isSingleDefault && _PlayerProfileName != null && _PlayerProfileName!.isNotEmpty) 
+                          ? _PlayerProfileName! 
+                          : basePlayer;
+
                       showModalBottomSheet(
                         context: context,
                         isScrollControlled: true,
                         builder: (ctx) => PlayerSplitPaymentSheet(
-                          playerName: player,
+                          playerName: displayPlayer,
                           totalLiability: _roundedTotal,
                           initialSplits:
-                              _playerPaymentSplits[player] ??
+                              _playerPaymentSplits[basePlayer] ??
                               {_paymentMethod: _roundedTotal},
                           onSplitsSaved: (newSplits) {
                             setState(() {
-                              _playerPaymentSplits[player] = newSplits;
+                              _playerPaymentSplits[basePlayer] = newSplits;
                             });
                           },
                         ),
@@ -1127,12 +1132,23 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
         : _session.allPlayers.first;
     final isSplit = (_playerPaymentSplits[singlePayer]?.keys.length ?? 0) > 1;
 
-    if (!_isMultiPayer &&
-        !isSplit &&
-        _session.gameType == GameType.standard &&
-        _paymentMethod == PaymentMethod.credit &&
-        (_PlayerProfileName == null ||
-            _PlayerProfileName!.toLowerCase().startsWith('default'))) {
+    bool hasDefaultCredit = false;
+    final isDefaultProfile = _PlayerProfileName == null || _PlayerProfileName!.toLowerCase().startsWith('default');
+
+    if (!_isMultiPayer && _session.gameType == GameType.standard) {
+      if (!isSplit && _paymentMethod == PaymentMethod.credit && isDefaultProfile) {
+        hasDefaultCredit = true;
+      } else if (isSplit) {
+        final splits = _playerPaymentSplits[singlePayer] ?? {};
+        if (splits.containsKey(PaymentMethod.credit) && splits[PaymentMethod.credit]! > 0) {
+          if (isDefaultProfile && singlePayer.toLowerCase().startsWith('default')) {
+            hasDefaultCredit = true;
+          }
+        }
+      }
+    }
+
+    if (hasDefaultCredit) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Please select the customer taking the credit.'),
@@ -1150,30 +1166,47 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
     Map<String, String>? finalPlayerIdentities = _session.playerIdentities != null ? Map.from(_session.playerIdentities!) : null;
 
     if (!_isMultiPayer) {
-      if (!isSplit) {
-        final creditPayer =
-            (_paymentMethod == PaymentMethod.credit &&
-                _PlayerProfileName != null)
-            ? _PlayerProfileName!
-            : singlePayer;
-
-        // BUG 2 & 3 FIX: If the single payer was a default player and was renamed for credit,
-        // we must rename them in teamA/teamB so they show up in Khata Game History correctly.
-        if (singlePayer.toLowerCase().startsWith('default') && creditPayer != singlePayer) {
-          if (finalTeamA.contains(singlePayer)) {
-            finalTeamA[finalTeamA.indexOf(singlePayer)] = creditPayer;
-          }
-          if (finalTeamB.contains(singlePayer)) {
-            finalTeamB[finalTeamB.indexOf(singlePayer)] = creditPayer;
-          }
-          if (finalPlayerIdentities != null && finalPlayerIdentities.containsKey(singlePayer)) {
-             final oldId = finalPlayerIdentities.remove(singlePayer);
-             if (finalPlayerIds != null && oldId != null) {
-                finalPlayerIds.remove(oldId);
-             }
+      // Regardless of split or single method, if it was a default player and they renamed it,
+      // apply the rename across all tracking objects to prevent ghost Khata accounts.
+      final hasRenamedDefault = singlePayer.toLowerCase().startsWith('default') && 
+                                _PlayerProfileName != null && 
+                                _PlayerProfileName!.isNotEmpty && 
+                                _PlayerProfileName != singlePayer;
+                                
+      if (hasRenamedDefault) {
+        final creditPayer = _PlayerProfileName!;
+        
+        // 1. Rename in Team A/B
+        if (finalTeamA.contains(singlePayer)) {
+          finalTeamA[finalTeamA.indexOf(singlePayer)] = creditPayer;
+        }
+        if (finalTeamB.contains(singlePayer)) {
+          finalTeamB[finalTeamB.indexOf(singlePayer)] = creditPayer;
+        }
+        if (finalPlayerIdentities != null && finalPlayerIdentities.containsKey(singlePayer)) {
+           final oldId = finalPlayerIdentities.remove(singlePayer);
+           if (finalPlayerIds != null && oldId != null) {
+              finalPlayerIds.remove(oldId);
+           }
+        }
+        
+        // 2. Rename in Splits/Liabilities if they were populated under the old default name
+        if (isSplit && _playerPaymentSplits.containsKey(singlePayer)) {
+          final existingSplit = _playerPaymentSplits.remove(singlePayer);
+          if (existingSplit != null) {
+            _playerPaymentSplits[creditPayer] = existingSplit;
           }
         }
+        if (isSplit && _customLiabilities.containsKey(singlePayer)) {
+          final existingLiab = _customLiabilities.remove(singlePayer);
+          if (existingLiab != null) {
+            _customLiabilities[creditPayer] = existingLiab;
+          }
+        }
+      }
 
+      if (!isSplit) {
+        final creditPayer = hasRenamedDefault ? _PlayerProfileName! : singlePayer;
         _playerPaymentSplits.clear();
         _playerPaymentSplits[creditPayer] = {_paymentMethod: _roundedTotal};
 
