@@ -4,6 +4,8 @@ import 'package:go_router/go_router.dart';
 import 'package:snooker_club/core/routes/route_names.dart';
 import 'package:snooker_club/core/theme/app_colors.dart';
 import 'package:snooker_club/core/providers/club_scope_provider.dart';
+import 'package:snooker_club/features/team/providers/team_providers.dart';
+import 'package:snooker_club/features/team/domain/models/staff_member.dart';
 import 'package:snooker_club/features/games/domain/models/game_models.dart';
 import 'package:snooker_club/features/games/providers/games_providers.dart';
 import 'package:snooker_club/features/games/presentation/widgets/game_activity_card.dart';
@@ -17,6 +19,17 @@ class GameActivityScreen extends ConsumerWidget {
     final tablesAsync = ref.watch(resolvedTablesProvider);
     final club = ref.watch(clubProfileProvider).value;
     final clubName = club?.clubName ?? 'Loading...';
+    
+    final currentStaff = ref.watch(currentStaffProvider).value;
+    
+    String currentUserName = currentStaff?.name ?? 'Admin';
+    if (currentStaff?.role == StaffRole.owner || currentStaff == null || currentUserName == 'Admin' || currentUserName == 'Club Owner') {
+       final oName = club?.ownerName;
+       if (oName != null && oName.isNotEmpty) {
+         currentUserName = oName;
+       }
+    }
+
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
@@ -41,7 +54,7 @@ class GameActivityScreen extends ConsumerWidget {
             child: Row(
               children: [
                 Text(
-                  'Admin',
+                  currentUserName,
                   style: TextStyle(
                     color: theme.colorScheme.primary,
                     fontWeight: FontWeight.bold,

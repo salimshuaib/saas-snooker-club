@@ -10,6 +10,7 @@ import 'package:snooker_club/core/routes/route_names.dart';
 import 'package:snooker_club/core/theme/app_colors.dart';
 import 'package:snooker_club/core/widgets/cards/info_card.dart';
 import 'package:snooker_club/features/team/providers/team_providers.dart';
+import 'package:snooker_club/features/team/domain/models/staff_member.dart';
 import 'package:snooker_club/features/games/providers/games_providers.dart';
 import 'package:snooker_club/features/quick_sales/presentation/screens/new_quick_sale_screen.dart';
 import 'package:snooker_club/features/quick_sales/providers/quick_sales_providers.dart';
@@ -46,7 +47,13 @@ class DashboardScreen extends ConsumerWidget {
     
     // Get actual staff member from state
     final currentStaff = ref.watch(currentStaffProvider).value;
-    final employeeName = currentStaff?.name ?? clubAsync.value?.ownerName ?? 'Admin';
+    String employeeName = currentStaff?.name ?? 'Admin';
+    if (currentStaff?.role == StaffRole.owner || currentStaff == null || employeeName == 'Admin' || employeeName == 'Club Owner') {
+       final oName = clubAsync.value?.ownerName;
+       if (oName != null && oName.isNotEmpty) {
+         employeeName = oName;
+       }
+    }
 
     return Scaffold(
       appBar: AppBar(

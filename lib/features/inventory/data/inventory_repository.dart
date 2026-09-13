@@ -18,11 +18,18 @@ class InventoryRepository {
   StaffMember? get currentStaff => _ref?.read(currentStaffProvider).value;
 
   String get currentUserName {
-    final staff = currentStaff;
-    if (staff != null) return staff.name;
     try {
       final club = _ref?.read(clubProfileProvider).value;
-      if (club != null) return club.ownerName;
+      final staff = currentStaff;
+      if (staff != null) {
+        if (staff.role == StaffRole.owner && club != null && club.ownerName.isNotEmpty) {
+          return club.ownerName;
+        }
+        if (staff.name.isNotEmpty && staff.name != 'Admin' && staff.name != 'Club Owner') {
+          return staff.name;
+        }
+      }
+      if (club != null && club.ownerName.isNotEmpty) return club.ownerName;
     } catch (_) {}
     return 'Admin';
   }
