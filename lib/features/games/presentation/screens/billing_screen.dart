@@ -330,8 +330,8 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
         );
         if (shouldPop == true && mounted) {
           FocusScope.of(context).unfocus();
-          await Future.delayed(const Duration(milliseconds: 50));
-          if (mounted) Navigator.pop(context);
+          await Future.delayed(const Duration(milliseconds: 150));
+          if (mounted) Navigator.of(context).pop();
         }
       },
       child: Scaffold(

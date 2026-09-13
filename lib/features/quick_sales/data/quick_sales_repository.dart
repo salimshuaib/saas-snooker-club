@@ -272,7 +272,7 @@ class QuickSalesRepository {
 
     final audit = AuditLog(
       id: '${DateTime.now().millisecondsSinceEpoch}_name_${sale.id}',
-      editedBy: employeeName,
+      editedBy: currentUserName,
       timestamp: DateTime.now(),
       field: 'Customer Name',
       previousValue: oldName.isEmpty ? 'None / Walk-in' : oldName,
@@ -324,7 +324,7 @@ class QuickSalesRepository {
 
     final audit = AuditLog(
       id: '${sale.id}_pay',
-      editedBy: employeeName,
+      editedBy: currentUserName,
       timestamp: DateTime.now(),
       field: 'Payment Method',
       previousValue: oldMethod.displayName,

@@ -678,7 +678,7 @@ class GamesRepository {
       newLogs.add(
         AuditLog(
           id: '${DateTime.now().millisecondsSinceEpoch}_names_${session.id}',
-          editedBy: employeeName,
+          editedBy: currentUserName,
           timestamp: DateTime.now(),
           field: 'Player Names',
           previousValue: 'Players: ${oldPlayers.join(", ")}',
@@ -692,7 +692,7 @@ class GamesRepository {
       newLogs.add(
         AuditLog(
           id: '${DateTime.now().millisecondsSinceEpoch}_payer_${session.id}',
-          editedBy: employeeName,
+          editedBy: currentUserName,
           timestamp: DateTime.now(),
           field: 'Payer Name (Credit)',
           previousValue: oldPaidBy ?? 'None',
@@ -833,7 +833,7 @@ class GamesRepository {
         newLogs.add(
           AuditLog(
             id: '${session.id}_pay',
-            editedBy: employeeName,
+            editedBy: currentUserName,
             timestamp: DateTime.now(),
             field: 'Payment Method',
             previousValue: oldMethod.displayName,
@@ -871,7 +871,7 @@ class GamesRepository {
         newLogs.add(
           AuditLog(
             id: '_payer',
-            editedBy: employeeName,
+            editedBy: currentUserName,
             timestamp: DateTime.now(),
             field: 'Payer Name',
             previousValue: session.paidBy ?? 'None',
