@@ -304,532 +304,580 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
     final theme = Theme.of(context);
     final dtFmt = DateFormat('d MMM, hh:mm a');
 
-    return Scaffold(
-      appBar: AppBar(title: const Text('Bill'), centerTitle: false),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // ── Session Summary ──
-            _ExpandableSessionCard(
-              session: _session,
-              dtFmt: dtFmt,
-              durationStr: _formatDuration(_session.activeSeconds),
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) async {
+        if (didPop) return;
+        final shouldPop = await showDialog<bool>(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            title: const Text('Cancel Transaction?'),
+            content: const Text(
+              'Are you sure you want to go back? This game will remain open and unpaid.',
             ),
-            const Gap(16),
-
-            // ── Round ── Frame Summary ──
-            if (_session.rounds.isNotEmpty) ...[
-              Text('Round / Frame Summary', style: theme.textTheme.titleMedium),
-              const Gap(8),
-              _SectionCard(
-                children: [
-                  ..._session.rounds.map(
-                    (r) => Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 4),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Expanded(
-                            child: Text(
-                              r.framePayers == null
-                                  ? 'Frame ${r.roundNumber} · ${(r.durationSeconds ?? 0) ~/ 60} mins${(r.overtimeMinutes ?? 0) > 0 ? " (+${r.overtimeMinutes}m OT)" : ""}'
-                                  : 'Frame ${r.roundNumber} · Payers: ${r.framePayers!.join(', ')}${(r.overtimeMinutes ?? 0) > 0 ? " (+${r.overtimeMinutes}m OT)" : ""}',
-                              style: theme.textTheme.bodyMedium,
-                            ),
-                          ),
-                          Text(
-                            '\u20B9${(r.roundCost + (r.overtimeCharge ?? 0.0)).toStringAsFixed(2)}',
-                            style: theme.textTheme.bodyMedium?.copyWith(
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx, false),
+                child: const Text('No'),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.pop(ctx, true),
+                style: FilledButton.styleFrom(backgroundColor: AppColors.error),
+                child: const Text('Yes, Go Back'),
+              ),
+            ],
+          ),
+        );
+        if (shouldPop == true && mounted) {
+          Navigator.pop(context);
+        }
+      },
+      child: Scaffold(
+        appBar: AppBar(title: const Text('Bill'), centerTitle: false),
+        body: SingleChildScrollView(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // ── Session Summary ──
+              _ExpandableSessionCard(
+                session: _session,
+                dtFmt: dtFmt,
+                durationStr: _formatDuration(_session.activeSeconds),
               ),
               const Gap(16),
-            ],
 
-            //             // ─── Payer Selection ───
-            PayerSelectionWidget(
-              allPlayers: _session.allPlayers,
-              selectedPayers: _selectedPayers,
-              onAddPlayer: _showAddPlayerDialog,
-              onChanged: (newPayers) {
-                setState(() {
-                  _selectedPayers = newPayers;
-                });
-                _initializeLiabilities();
-              },
-            ),
-            const Gap(16),
-
-            // ── Orders ──
-            if (_session.orders.isNotEmpty) ...[
-              Text('Orders', style: theme.textTheme.titleMedium),
-              const Gap(8),
-              _SectionCard(
-                children: [
-                  ..._session.orders.map(
-                    (o) => Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 4),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Expanded(
-                            child: Text(
-                              '${o.quantity}x ${o.productName}${o.playerName != null ? ' (${o.playerName})' : ''}',
-                              style: theme.textTheme.bodyMedium,
-                            ),
-                          ),
-                          Text(
-                            '\u20B9${o.total.toStringAsFixed(0)}',
-                            style: theme.textTheme.bodyMedium?.copyWith(
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              const Gap(16),
-            ],
-
-            // ── Bill Summary ──
-            Text('Bill Summary', style: theme.textTheme.titleMedium),
-            const Gap(8),
-            _SectionCard(
-              children: [
-                if (_session.billingType == BillingType.perFrame) ...[
-                  _InfoRow(
-                    label: 'Frame Charges',
-                    value: '\u20B9${_baseGameCharge.toStringAsFixed(2)}',
-                  ),
-                  _InfoRow(
-                    label: 'Grace Period',
-                    value:
-                        '${TablePricingConfig.frameGracePeriodMinutes} Mins / Frame',
-                  ),
-                ] else ...[
-                  if (_session.billingType == BillingType.perMinute)
-                    _InfoRow(
-                      label: 'Rate',
-                      value:
-                          '\u20B9${(_session.customPrice ?? TablePricingConfig.getPerMinutePrice(_session.tableType, _session.gameType, _session.pricingSnapshot ?? appSettings.pricing)).toStringAsFixed(2)} / min',
-                    ),
-                  _InfoRow(
-                    label: 'Base Charge',
-                    value: '\u20B9${_baseGameCharge.toStringAsFixed(2)}',
-                  ),
-                ],
-                if (_overtimeMinutes > 0) ...[
-                  _InfoRow(
-                    label: 'Overtime (${_overtimeMinutes} mins)',
-                    value: '\u20B9${_overtimeCharge.toStringAsFixed(2)}',
-                  ),
-                ],
-                const Divider(height: 16),
-                _InfoRow(
-                  label: 'Total Game Charge',
-                  value: '\u20B9${_gameCharge.toStringAsFixed(2)}',
-                ),
-                if (_ordersTotal > 0)
-                  _InfoRow(
-                    label: 'Orders Total',
-                    value: '\u20B9${_ordersTotal.toStringAsFixed(2)}',
-                  ),
-                // ── Discount ──
-                const Gap(16),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text('Apply Discount', style: theme.textTheme.titleSmall),
-                    Switch(
-                      value: _hasDiscount,
-                      onChanged: (val) {
-                        setState(() {
-                          _hasDiscount = val;
-                          if (!val) {
-                            _discountAmount = 0.0;
-                            _discountPercentController.clear();
-                            _discountController.clear();
-                            _initializeLiabilities();
-                          }
-                        });
-                      },
-                    ),
-                  ],
-                ),
-                if (_hasDiscount) ...[
-                  const Gap(12),
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Expanded(
-                        child: TextFormField(
-                          controller: _discountPercentController,
-                          keyboardType: TextInputType.number,
-                          decoration: InputDecoration(
-                            labelText: 'Percentage',
-                            suffixText: '%',
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                          ),
-                          onChanged: (val) {
-                            final percent = double.tryParse(val) ?? 0.0;
-                            final amount = (_gameCharge * (percent / 100));
-                            setState(() {
-                              _discountAmount = amount;
-                              _discountController.text = amount == 0
-                                  ? ''
-                                  : amount.toStringAsFixed(0);
-                            });
-                            _initializeLiabilities();
-                          },
-                        ),
-                      ),
-                      const Gap(16),
-                      Expanded(
-                        child: TextFormField(
-                          controller: _discountController,
-                          keyboardType: TextInputType.number,
-                          decoration: InputDecoration(
-                            labelText: 'Amount',
-                            prefixText: '\u20B9',
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                          ),
-                          onChanged: (val) {
-                            final amount = double.tryParse(val) ?? 0.0;
-                            final percent = _gameCharge > 0
-                                ? (amount / _gameCharge) * 100
-                                : 0.0;
-                            setState(() {
-                              _discountAmount = amount;
-                              _discountPercentController.text = percent == 0
-                                  ? ''
-                                  : percent.toStringAsFixed(1);
-                            });
-                            _initializeLiabilities();
-                          },
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-                const Divider(height: 16),
-
-                // ── Final Amounts ──
-                if (_hasDiscount) ...[
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        'Discounted Game',
-                        style: theme.textTheme.titleSmall,
-                      ),
-                      Text(
-                        '\u20B9${_discountedGameCharge.toStringAsFixed(2)}',
-                        style: theme.textTheme.titleSmall,
-                      ),
-                    ],
-                  ),
-                  const Gap(4),
-                ],
-                if (_ordersTotal > 0) ...[
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text('Orders', style: theme.textTheme.titleSmall),
-                      Text(
-                        '\u20B9${_ordersTotal.toStringAsFixed(2)}',
-                        style: theme.textTheme.titleSmall,
-                      ),
-                    ],
-                  ),
-                  const Gap(12),
-                ] else if (!_hasDiscount) ...[
-                  // Add a small gap if both are hidden so the divider doesn't look too close
-                  const Gap(8),
-                ],
-                if ((_roundedTotal - _finalTotal).abs() > 0.01) ...[
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        'Rounding Adjustment',
-                        style: theme.textTheme.titleSmall,
-                      ),
-                      Text(
-                        '${(_roundedTotal - _finalTotal) > 0 ? '+' : '-'}\u20B9${(_roundedTotal - _finalTotal).abs().toStringAsFixed(2)}',
-                        style: theme.textTheme.titleSmall,
-                      ),
-                    ],
-                  ),
-                  const Gap(12),
-                ],
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      'Final Bill Amount',
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    Text(
-                      '\u20B9${_roundedTotal.toStringAsFixed(0)}',
-                      style: theme.textTheme.titleLarge?.copyWith(
-                        color: AppColors.primary,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-            const Gap(16),
-
-            // ── Payment Method ── Liability Distribution ──
-            if (_isMultiPayer) ...[
-              Text(
-                'Player Liabilities & Payment',
-                style: theme.textTheme.titleMedium,
-              ),
-              const Gap(8),
-              _buildSplitLiabilityTable(theme),
-              const Gap(32),
-            ] else ...[
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text('Payment Method', style: theme.textTheme.titleMedium),
-                  TextButton.icon(
-                    onPressed: () {
-                      final basePlayer = _selectedPayers.isNotEmpty
-                          ? _selectedPayers.first
-                          : _session.allPlayers.isEmpty
-                          ? 'Guest'
-                          : _session.allPlayers.first;
-                      final isSingleDefault = !_isMultiPayer && basePlayer.toLowerCase().startsWith('default');
-                      final displayPlayer = (isSingleDefault && _PlayerProfileName != null && _PlayerProfileName!.isNotEmpty) 
-                          ? _PlayerProfileName! 
-                          : basePlayer;
-
-                      showModalBottomSheet(
-                        context: context,
-                        isScrollControlled: true,
-                        builder: (ctx) => PlayerSplitPaymentSheet(
-                          playerName: displayPlayer,
-                          totalLiability: _roundedTotal,
-                          initialSplits:
-                              _playerPaymentSplits[basePlayer] ??
-                              {_paymentMethod: _roundedTotal},
-                          onSplitsSaved: (newSplits) {
-                            setState(() {
-                              _playerPaymentSplits[basePlayer] = newSplits;
-                            });
-                          },
-                        ),
-                      );
-                    },
-                    style: TextButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 4,
-                      ),
-                      minimumSize: Size.zero,
-                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                    ),
-                    icon: const Icon(Icons.call_split, size: 16),
-                    label: const Text('Payment Breakdown'),
-                  ),
-                ],
-              ),
-              const Gap(8),
-              Builder(
-                builder: (context) {
-                  final player = _selectedPayers.isNotEmpty
-                      ? _selectedPayers.first
-                      : _session.allPlayers.isEmpty
-                      ? 'Guest'
-                      : _session.allPlayers.first;
-                  final splits = _playerPaymentSplits[player] ?? {};
-                  final isSplit = splits.keys.length > 1;
-
-                  if (isSplit) {
-                    return Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.symmetric(
-                        vertical: 12,
-                        horizontal: 16,
-                      ),
-                      decoration: BoxDecoration(
-                        color: theme.colorScheme.surfaceContainerHighest,
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Text(
-                        splits.entries
-                            .map(
-                              (e) =>
-                                  '₹${e.value.toStringAsFixed(e.value.truncateToDouble() == e.value ? 0 : 2)} ${e.key.displayName}',
-                            )
-                            .join(' + '),
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          color: AppColors.primary,
-                          fontWeight: FontWeight.bold,
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                    );
-                  }
-
-                  return Row(
-                    children: PaymentMethod.values.map((method) {
-                      final isSelected =
-                          (splits.isEmpty && _paymentMethod == method) ||
-                          (splits.isNotEmpty && splits.keys.first == method);
-                      return Expanded(
-                        child: GestureDetector(
-                          onTap: () {
-                            if (method == PaymentMethod.credit && !isSplit && _session.allPlayers.length == 1 && player.toLowerCase().startsWith('default')) {
-                              _showCreditNameDialog(player, autoConfirm: false, setMethod: true);
-                            } else {
-                              setState(() {
-                                _paymentMethod = method;
-                                _playerPaymentSplits[player] = {
-                                  method: _roundedTotal,
-                                };
-                              });
-                            }
-                          },
-                          child: Container(
-                            margin: EdgeInsets.only(
-                              right: method != PaymentMethod.credit ? 8 : 0,
-                            ),
-                            padding: const EdgeInsets.symmetric(vertical: 14),
-                            decoration: BoxDecoration(
-                              color: isSelected
-                                  ? AppColors.primary
-                                  : theme.colorScheme.surfaceContainerHighest,
-                              borderRadius: BorderRadius.circular(12),
-                              border: isSelected
-                                  ? null
-                                  : Border.all(
-                                      color: theme.colorScheme.outlineVariant,
-                                    ),
-                            ),
-                            alignment: Alignment.center,
-                            child: Column(
-                              children: [
-                                Icon(
-                                  _paymentIcon(method),
-                                  color: isSelected
-                                      ? Colors.white
-                                      : theme.colorScheme.onSurfaceVariant,
-                                ),
-                                const Gap(4),
-                                Text(
-                                  method.displayName,
-                                  style: TextStyle(
-                                    color: isSelected
-                                        ? Colors.white
-                                        : theme.colorScheme.onSurface,
-                                    fontWeight: FontWeight.w600,
-                                    fontSize: 12,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      );
-                    }).toList(),
-                  );
-                },
-              ),
-              if (_paymentMethod == PaymentMethod.credit && 
-                  !(_session.allPlayers.length == 1 && _session.allPlayers.first.toLowerCase().startsWith('default'))) ...[
-                const Gap(24),
+              // ── Round ── Frame Summary ──
+              if (_session.rounds.isNotEmpty) ...[
                 Text(
-                  'Select Customer for Credit',
+                  'Round / Frame Summary',
                   style: theme.textTheme.titleMedium,
                 ),
                 const Gap(8),
                 _SectionCard(
                   children: [
-                    ..._session.allPlayers.map((p) {
-                      final isDefault = p.toLowerCase().startsWith('default');
-                      return _WinnerTile(
-                        label: p,
-                        isSelected: _PlayerProfileName == p,
-                        onTap: () {
-                          if (isDefault) {
-                            _showCreditNameDialog(p);
-                          } else {
-                            setState(() => _PlayerProfileName = p);
-                          }
-                        },
-                      );
-                    }),
-                    if (_PlayerProfileName != null &&
-                        !_session.allPlayers.contains(_PlayerProfileName))
-                      _WinnerTile(
-                        label: _PlayerProfileName!,
-                        isSelected: true,
-                        onTap: () => _showCreditNameDialog(_PlayerProfileName!),
+                    ..._session.rounds.map(
+                      (r) => Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 4),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Expanded(
+                              child: Text(
+                                r.framePayers == null
+                                    ? 'Frame ${r.roundNumber} · ${(r.durationSeconds ?? 0) ~/ 60} mins${(r.overtimeMinutes ?? 0) > 0 ? " (+${r.overtimeMinutes}m OT)" : ""}'
+                                    : 'Frame ${r.roundNumber} · Payers: ${r.framePayers!.join(', ')}${(r.overtimeMinutes ?? 0) > 0 ? " (+${r.overtimeMinutes}m OT)" : ""}',
+                                style: theme.textTheme.bodyMedium,
+                              ),
+                            ),
+                            Text(
+                              '\u20B9${(r.roundCost + (r.overtimeCharge ?? 0.0)).toStringAsFixed(2)}',
+                              style: theme.textTheme.bodyMedium?.copyWith(
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
-                    const Gap(8),
-                    TextButton.icon(
-                      onPressed: () => _showCreditNameDialog(''),
-                      icon: const Icon(Icons.edit),
-                      label: const Text('Enter Custom Name'),
                     ),
                   ],
                 ),
+                const Gap(16),
               ],
-              const Gap(32),
-            ],
 
-            // ── Confirm Button ──
-            SizedBox(
-              width: double.infinity,
-              child: FilledButton(
-                onPressed:
-                    (_isProcessing ||
-                        (_isMultiPayer ||
-                                _session.gameType != GameType.standard) &&
-                            !isBalanced)
-                    ? null
-                    : _confirmPayment,
-                style: FilledButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 18),
-                  backgroundColor: _ctaColor,
+              //             // ─── Payer Selection ───
+              PayerSelectionWidget(
+                allPlayers: _session.allPlayers,
+                selectedPayers: _selectedPayers,
+                onAddPlayer: _showAddPlayerDialog,
+                onChanged: (newPayers) {
+                  setState(() {
+                    _selectedPayers = newPayers;
+                  });
+                  _initializeLiabilities();
+                },
+              ),
+              const Gap(16),
+
+              // ── Orders ──
+              if (_session.orders.isNotEmpty) ...[
+                Text('Orders', style: theme.textTheme.titleMedium),
+                const Gap(8),
+                _SectionCard(
+                  children: [
+                    ..._session.orders.map(
+                      (o) => Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 4),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Expanded(
+                              child: Text(
+                                '${o.quantity}x ${o.productName}${o.playerName != null ? ' (${o.playerName})' : ''}',
+                                style: theme.textTheme.bodyMedium,
+                              ),
+                            ),
+                            Text(
+                              '\u20B9${o.total.toStringAsFixed(0)}',
+                              style: theme.textTheme.bodyMedium?.copyWith(
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
-                child: _isProcessing
-                    ? const SizedBox(
-                        width: 22,
-                        height: 22,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : Text(
-                        _ctaLabel,
-                        style: const TextStyle(
-                          fontSize: 16,
+                const Gap(16),
+              ],
+
+              // ── Bill Summary ──
+              Text('Bill Summary', style: theme.textTheme.titleMedium),
+              const Gap(8),
+              _SectionCard(
+                children: [
+                  if (_session.billingType == BillingType.perFrame) ...[
+                    _InfoRow(
+                      label: 'Frame Charges',
+                      value: '\u20B9${_baseGameCharge.toStringAsFixed(2)}',
+                    ),
+                    _InfoRow(
+                      label: 'Grace Period',
+                      value:
+                          '${TablePricingConfig.frameGracePeriodMinutes} Mins / Frame',
+                    ),
+                  ] else ...[
+                    if (_session.billingType == BillingType.perMinute)
+                      _InfoRow(
+                        label: 'Rate',
+                        value:
+                            '\u20B9${(_session.customPrice ?? TablePricingConfig.getPerMinutePrice(_session.tableType, _session.gameType, _session.pricingSnapshot ?? appSettings.pricing)).toStringAsFixed(2)} / min',
+                      ),
+                    _InfoRow(
+                      label: 'Base Charge',
+                      value: '\u20B9${_baseGameCharge.toStringAsFixed(2)}',
+                    ),
+                  ],
+                  if (_overtimeMinutes > 0) ...[
+                    _InfoRow(
+                      label: 'Overtime (${_overtimeMinutes} mins)',
+                      value: '\u20B9${_overtimeCharge.toStringAsFixed(2)}',
+                    ),
+                  ],
+                  const Divider(height: 16),
+                  _InfoRow(
+                    label: 'Total Game Charge',
+                    value: '\u20B9${_gameCharge.toStringAsFixed(2)}',
+                  ),
+                  if (_ordersTotal > 0)
+                    _InfoRow(
+                      label: 'Orders Total',
+                      value: '\u20B9${_ordersTotal.toStringAsFixed(2)}',
+                    ),
+                  // ── Discount ──
+                  const Gap(16),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text('Apply Discount', style: theme.textTheme.titleSmall),
+                      Switch(
+                        value: _hasDiscount,
+                        onChanged: (val) {
+                          setState(() {
+                            _hasDiscount = val;
+                            if (!val) {
+                              _discountAmount = 0.0;
+                              _discountPercentController.clear();
+                              _discountController.clear();
+                              _initializeLiabilities();
+                            }
+                          });
+                        },
+                      ),
+                    ],
+                  ),
+                  if (_hasDiscount) ...[
+                    const Gap(12),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          child: TextFormField(
+                            controller: _discountPercentController,
+                            keyboardType: TextInputType.number,
+                            decoration: InputDecoration(
+                              labelText: 'Percentage',
+                              suffixText: '%',
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                            onChanged: (val) {
+                              final percent = double.tryParse(val) ?? 0.0;
+                              final amount = (_gameCharge * (percent / 100));
+                              setState(() {
+                                _discountAmount = amount;
+                                _discountController.text = amount == 0
+                                    ? ''
+                                    : amount.toStringAsFixed(0);
+                              });
+                              _initializeLiabilities();
+                            },
+                          ),
+                        ),
+                        const Gap(16),
+                        Expanded(
+                          child: TextFormField(
+                            controller: _discountController,
+                            keyboardType: TextInputType.number,
+                            decoration: InputDecoration(
+                              labelText: 'Amount',
+                              prefixText: '\u20B9',
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                            onChanged: (val) {
+                              final amount = double.tryParse(val) ?? 0.0;
+                              final percent = _gameCharge > 0
+                                  ? (amount / _gameCharge) * 100
+                                  : 0.0;
+                              setState(() {
+                                _discountAmount = amount;
+                                _discountPercentController.text = percent == 0
+                                    ? ''
+                                    : percent.toStringAsFixed(1);
+                              });
+                              _initializeLiabilities();
+                            },
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                  const Divider(height: 16),
+
+                  // ── Final Amounts ──
+                  if (_hasDiscount) ...[
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'Discounted Game',
+                          style: theme.textTheme.titleSmall,
+                        ),
+                        Text(
+                          '\u20B9${_discountedGameCharge.toStringAsFixed(2)}',
+                          style: theme.textTheme.titleSmall,
+                        ),
+                      ],
+                    ),
+                    const Gap(4),
+                  ],
+                  if (_ordersTotal > 0) ...[
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text('Orders', style: theme.textTheme.titleSmall),
+                        Text(
+                          '\u20B9${_ordersTotal.toStringAsFixed(2)}',
+                          style: theme.textTheme.titleSmall,
+                        ),
+                      ],
+                    ),
+                    const Gap(12),
+                  ] else if (!_hasDiscount) ...[
+                    // Add a small gap if both are hidden so the divider doesn't look too close
+                    const Gap(8),
+                  ],
+                  if ((_roundedTotal - _finalTotal).abs() > 0.01) ...[
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'Rounding Adjustment',
+                          style: theme.textTheme.titleSmall,
+                        ),
+                        Text(
+                          '${(_roundedTotal - _finalTotal) > 0 ? '+' : '-'}\u20B9${(_roundedTotal - _finalTotal).abs().toStringAsFixed(2)}',
+                          style: theme.textTheme.titleSmall,
+                        ),
+                      ],
+                    ),
+                    const Gap(12),
+                  ],
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'Final Bill Amount',
+                        style: theme.textTheme.titleMedium?.copyWith(
                           fontWeight: FontWeight.w700,
                         ),
                       ),
+                      Text(
+                        '\u20B9${_roundedTotal.toStringAsFixed(0)}',
+                        style: theme.textTheme.titleLarge?.copyWith(
+                          color: AppColors.primary,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
               ),
-            ),
-          ],
+              const Gap(16),
+
+              // ── Payment Method ── Liability Distribution ──
+              if (_isMultiPayer) ...[
+                Text(
+                  'Player Liabilities & Payment',
+                  style: theme.textTheme.titleMedium,
+                ),
+                const Gap(8),
+                _buildSplitLiabilityTable(theme),
+                const Gap(32),
+              ] else ...[
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text('Payment Method', style: theme.textTheme.titleMedium),
+                    TextButton.icon(
+                      onPressed: () {
+                        final basePlayer = _selectedPayers.isNotEmpty
+                            ? _selectedPayers.first
+                            : _session.allPlayers.isEmpty
+                            ? 'Guest'
+                            : _session.allPlayers.first;
+                        final isSingleDefault =
+                            !_isMultiPayer &&
+                            basePlayer.toLowerCase().startsWith('default');
+                        final displayPlayer =
+                            (isSingleDefault &&
+                                _PlayerProfileName != null &&
+                                _PlayerProfileName!.isNotEmpty)
+                            ? _PlayerProfileName!
+                            : basePlayer;
+
+                        showModalBottomSheet(
+                          context: context,
+                          isScrollControlled: true,
+                          builder: (ctx) => PlayerSplitPaymentSheet(
+                            playerName: displayPlayer,
+                            totalLiability: _roundedTotal,
+                            initialSplits:
+                                _playerPaymentSplits[basePlayer] ??
+                                {_paymentMethod: _roundedTotal},
+                            onSplitsSaved: (newSplits) {
+                              setState(() {
+                                _playerPaymentSplits[basePlayer] = newSplits;
+                              });
+                            },
+                          ),
+                        );
+                      },
+                      style: TextButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
+                        minimumSize: Size.zero,
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      ),
+                      icon: const Icon(Icons.call_split, size: 16),
+                      label: const Text('Payment Breakdown'),
+                    ),
+                  ],
+                ),
+                const Gap(8),
+                Builder(
+                  builder: (context) {
+                    final player = _selectedPayers.isNotEmpty
+                        ? _selectedPayers.first
+                        : _session.allPlayers.isEmpty
+                        ? 'Guest'
+                        : _session.allPlayers.first;
+                    final splits = _playerPaymentSplits[player] ?? {};
+                    final isSplit = splits.keys.length > 1;
+
+                    if (isSplit) {
+                      return Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.symmetric(
+                          vertical: 12,
+                          horizontal: 16,
+                        ),
+                        decoration: BoxDecoration(
+                          color: theme.colorScheme.surfaceContainerHighest,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(
+                          splits.entries
+                              .map(
+                                (e) =>
+                                    '₹${e.value.toStringAsFixed(e.value.truncateToDouble() == e.value ? 0 : 2)} ${e.key.displayName}',
+                              )
+                              .join(' + '),
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            color: AppColors.primary,
+                            fontWeight: FontWeight.bold,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      );
+                    }
+
+                    return Row(
+                      children: PaymentMethod.values.map((method) {
+                        final isSelected =
+                            (splits.isEmpty && _paymentMethod == method) ||
+                            (splits.isNotEmpty && splits.keys.first == method);
+                        return Expanded(
+                          child: GestureDetector(
+                            onTap: () {
+                              if (method == PaymentMethod.credit &&
+                                  !isSplit &&
+                                  _session.allPlayers.length == 1 &&
+                                  player.toLowerCase().startsWith('default')) {
+                                _showCreditNameDialog(
+                                  player,
+                                  autoConfirm: false,
+                                  setMethod: true,
+                                );
+                              } else {
+                                setState(() {
+                                  _paymentMethod = method;
+                                  _playerPaymentSplits[player] = {
+                                    method: _roundedTotal,
+                                  };
+                                });
+                              }
+                            },
+                            child: Container(
+                              margin: EdgeInsets.only(
+                                right: method != PaymentMethod.credit ? 8 : 0,
+                              ),
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              decoration: BoxDecoration(
+                                color: isSelected
+                                    ? AppColors.primary
+                                    : theme.colorScheme.surfaceContainerHighest,
+                                borderRadius: BorderRadius.circular(12),
+                                border: isSelected
+                                    ? null
+                                    : Border.all(
+                                        color: theme.colorScheme.outlineVariant,
+                                      ),
+                              ),
+                              alignment: Alignment.center,
+                              child: Column(
+                                children: [
+                                  Icon(
+                                    _paymentIcon(method),
+                                    color: isSelected
+                                        ? Colors.white
+                                        : theme.colorScheme.onSurfaceVariant,
+                                  ),
+                                  const Gap(4),
+                                  Text(
+                                    method.displayName,
+                                    style: TextStyle(
+                                      color: isSelected
+                                          ? Colors.white
+                                          : theme.colorScheme.onSurface,
+                                      fontWeight: FontWeight.w600,
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        );
+                      }).toList(),
+                    );
+                  },
+                ),
+                if (_paymentMethod == PaymentMethod.credit &&
+                    !(_session.allPlayers.length == 1 &&
+                        _session.allPlayers.first.toLowerCase().startsWith(
+                          'default',
+                        ))) ...[
+                  const Gap(24),
+                  Text(
+                    'Select Customer for Credit',
+                    style: theme.textTheme.titleMedium,
+                  ),
+                  const Gap(8),
+                  _SectionCard(
+                    children: [
+                      ..._session.allPlayers.map((p) {
+                        final isDefault = p.toLowerCase().startsWith('default');
+                        return _WinnerTile(
+                          label: p,
+                          isSelected: _PlayerProfileName == p,
+                          onTap: () {
+                            if (isDefault) {
+                              _showCreditNameDialog(p);
+                            } else {
+                              setState(() => _PlayerProfileName = p);
+                            }
+                          },
+                        );
+                      }),
+                      if (_PlayerProfileName != null &&
+                          !_session.allPlayers.contains(_PlayerProfileName))
+                        _WinnerTile(
+                          label: _PlayerProfileName!,
+                          isSelected: true,
+                          onTap: () =>
+                              _showCreditNameDialog(_PlayerProfileName!),
+                        ),
+                      const Gap(8),
+                      TextButton.icon(
+                        onPressed: () => _showCreditNameDialog(''),
+                        icon: const Icon(Icons.edit),
+                        label: const Text('Enter Custom Name'),
+                      ),
+                    ],
+                  ),
+                ],
+                const Gap(32),
+              ],
+
+              // ── Confirm Button ──
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton(
+                  onPressed:
+                      (_isProcessing ||
+                          (_isMultiPayer ||
+                                  _session.gameType != GameType.standard) &&
+                              !isBalanced)
+                      ? null
+                      : _confirmPayment,
+                  style: FilledButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 18),
+                    backgroundColor: _ctaColor,
+                  ),
+                  child: _isProcessing
+                      ? const SizedBox(
+                          width: 22,
+                          height: 22,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : Text(
+                          _ctaLabel,
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -896,8 +944,16 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
                             ),
                           ),
                           IconButton(
-                            icon: const Icon(Icons.edit, size: 16, color: Colors.grey),
-                            onPressed: () => _showCreditNameDialog(player, autoConfirm: false, setMethod: false),
+                            icon: const Icon(
+                              Icons.edit,
+                              size: 16,
+                              color: Colors.grey,
+                            ),
+                            onPressed: () => _showCreditNameDialog(
+                              player,
+                              autoConfirm: false,
+                              setMethod: false,
+                            ),
                             padding: const EdgeInsets.symmetric(horizontal: 8),
                             constraints: const BoxConstraints(),
                             tooltip: 'Rename Player',
@@ -1011,13 +1067,23 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
                         return Expanded(
                           child: GestureDetector(
                             onTap: () {
-                              final displayName = _renamedPlayers[player] ?? player;
-                              if (method == PaymentMethod.credit && displayName.toLowerCase().startsWith('default')) {
-                                _showCreditNameDialog(player, autoConfirm: false, setMethod: true);
+                              final displayName =
+                                  _renamedPlayers[player] ?? player;
+                              if (method == PaymentMethod.credit &&
+                                  displayName.toLowerCase().startsWith(
+                                    'default',
+                                  )) {
+                                _showCreditNameDialog(
+                                  player,
+                                  autoConfirm: false,
+                                  setMethod: true,
+                                );
                               } else {
-                                setState(() => _playerPaymentSplits[player] = {
-                                  method: liabilities[player] ?? 0.0,
-                                });
+                                setState(
+                                  () => _playerPaymentSplits[player] = {
+                                    method: liabilities[player] ?? 0.0,
+                                  },
+                                );
                               }
                             },
                             child: Container(
@@ -1086,21 +1152,32 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
     }
   }
 
-  void _showCreditNameDialog(String defaultName, {bool autoConfirm = false, bool setMethod = false}) {
+  void _showCreditNameDialog(
+    String defaultName, {
+    bool autoConfirm = false,
+    bool setMethod = false,
+  }) {
     String initialText = '';
     if (!_isMultiPayer) {
-      initialText = _PlayerProfileName != null && !_PlayerProfileName!.toLowerCase().startsWith('default') 
-          ? _PlayerProfileName! 
-          : (defaultName.toLowerCase().startsWith('default') ? '' : defaultName);
+      initialText =
+          _PlayerProfileName != null &&
+              !_PlayerProfileName!.toLowerCase().startsWith('default')
+          ? _PlayerProfileName!
+          : (defaultName.toLowerCase().startsWith('default')
+                ? ''
+                : defaultName);
     } else {
       final renamed = _renamedPlayers[defaultName];
-      initialText = renamed != null && !renamed.toLowerCase().startsWith('default') 
-          ? renamed 
-          : (defaultName.toLowerCase().startsWith('default') ? '' : defaultName);
+      initialText =
+          renamed != null && !renamed.toLowerCase().startsWith('default')
+          ? renamed
+          : (defaultName.toLowerCase().startsWith('default')
+                ? ''
+                : defaultName);
     }
-        
+
     final nameCtrl = TextEditingController(text: initialText);
-    
+
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -1128,7 +1205,9 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
                   if (autoConfirm || setMethod) {
                     _paymentMethod = PaymentMethod.credit;
                     _playerPaymentSplits[defaultName] = {
-                      PaymentMethod.credit: !_isMultiPayer ? _roundedTotal : (_customLiabilities[defaultName] ?? 0.0),
+                      PaymentMethod.credit: !_isMultiPayer
+                          ? _roundedTotal
+                          : (_customLiabilities[defaultName] ?? 0.0),
                     };
                   }
                 });
@@ -1158,15 +1237,21 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
     final isSplit = (_playerPaymentSplits[singlePayer]?.keys.length ?? 0) > 1;
 
     bool hasDefaultCredit = false;
-    final isDefaultProfile = _PlayerProfileName == null || _PlayerProfileName!.toLowerCase().startsWith('default');
+    final isDefaultProfile =
+        _PlayerProfileName == null ||
+        _PlayerProfileName!.toLowerCase().startsWith('default');
 
     if (!_isMultiPayer && _session.gameType == GameType.standard) {
-      if (!isSplit && _paymentMethod == PaymentMethod.credit && isDefaultProfile) {
+      if (!isSplit &&
+          _paymentMethod == PaymentMethod.credit &&
+          isDefaultProfile) {
         hasDefaultCredit = true;
       } else if (isSplit) {
         final splits = _playerPaymentSplits[singlePayer] ?? {};
-        if (splits.containsKey(PaymentMethod.credit) && splits[PaymentMethod.credit]! > 0) {
-          if (isDefaultProfile && singlePayer.toLowerCase().startsWith('default')) {
+        if (splits.containsKey(PaymentMethod.credit) &&
+            splits[PaymentMethod.credit]! > 0) {
+          if (isDefaultProfile &&
+              singlePayer.toLowerCase().startsWith('default')) {
             hasDefaultCredit = true;
           }
         }
@@ -1174,7 +1259,8 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
     } else if (_isMultiPayer) {
       for (final player in _playerPaymentSplits.keys) {
         final splits = _playerPaymentSplits[player]!;
-        if (splits.containsKey(PaymentMethod.credit) && splits[PaymentMethod.credit]! > 0) {
+        if (splits.containsKey(PaymentMethod.credit) &&
+            splits[PaymentMethod.credit]! > 0) {
           final displayName = _renamedPlayers[player] ?? player;
           if (displayName.toLowerCase().startsWith('default')) {
             hasDefaultCredit = true;
@@ -1198,44 +1284,52 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
 
     List<String> finalTeamA = List.from(_session.teamA);
     List<String> finalTeamB = List.from(_session.teamB);
-    List<String>? finalPlayerIds = _session.playerIds != null ? List.from(_session.playerIds!) : null;
-    Map<String, String>? finalPlayerIdentities = _session.playerIdentities != null ? Map.from(_session.playerIdentities!) : null;
+    List<String>? finalPlayerIds = _session.playerIds != null
+        ? List.from(_session.playerIds!)
+        : null;
+    Map<String, String>? finalPlayerIdentities =
+        _session.playerIdentities != null
+        ? Map.from(_session.playerIdentities!)
+        : null;
 
     if (_isMultiPayer) {
       for (final entry in _renamedPlayers.entries) {
         final oldName = entry.key;
         final newName = entry.value;
         if (oldName == newName) continue;
-        
+
         if (finalTeamA.contains(oldName)) {
           finalTeamA[finalTeamA.indexOf(oldName)] = newName;
         }
         if (finalTeamB.contains(oldName)) {
           finalTeamB[finalTeamB.indexOf(oldName)] = newName;
         }
-        if (finalPlayerIdentities != null && finalPlayerIdentities.containsKey(oldName)) {
-           final oldId = finalPlayerIdentities.remove(oldName);
-           if (finalPlayerIds != null && oldId != null) finalPlayerIds.remove(oldId);
+        if (finalPlayerIdentities != null &&
+            finalPlayerIdentities.containsKey(oldName)) {
+          final oldId = finalPlayerIdentities.remove(oldName);
+          if (finalPlayerIds != null && oldId != null)
+            finalPlayerIds.remove(oldId);
         }
-        
+
         if (_playerPaymentSplits.containsKey(oldName)) {
-           _playerPaymentSplits[newName] = _playerPaymentSplits.remove(oldName)!;
+          _playerPaymentSplits[newName] = _playerPaymentSplits.remove(oldName)!;
         }
         if (_customLiabilities.containsKey(oldName)) {
-           _customLiabilities[newName] = _customLiabilities.remove(oldName)!;
+          _customLiabilities[newName] = _customLiabilities.remove(oldName)!;
         }
       }
     } else {
       // Regardless of split or single method, if it was a default player and they renamed it,
       // apply the rename across all tracking objects to prevent ghost Khata accounts.
-      final hasRenamedDefault = singlePayer.toLowerCase().startsWith('default') && 
-                                _PlayerProfileName != null && 
-                                _PlayerProfileName!.isNotEmpty && 
-                                _PlayerProfileName != singlePayer;
-                                
+      final hasRenamedDefault =
+          singlePayer.toLowerCase().startsWith('default') &&
+          _PlayerProfileName != null &&
+          _PlayerProfileName!.isNotEmpty &&
+          _PlayerProfileName != singlePayer;
+
       if (hasRenamedDefault) {
         final creditPayer = _PlayerProfileName!;
-        
+
         // 1. Rename in Team A/B
         if (finalTeamA.contains(singlePayer)) {
           finalTeamA[finalTeamA.indexOf(singlePayer)] = creditPayer;
@@ -1243,13 +1337,14 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
         if (finalTeamB.contains(singlePayer)) {
           finalTeamB[finalTeamB.indexOf(singlePayer)] = creditPayer;
         }
-        if (finalPlayerIdentities != null && finalPlayerIdentities.containsKey(singlePayer)) {
-           final oldId = finalPlayerIdentities.remove(singlePayer);
-           if (finalPlayerIds != null && oldId != null) {
-              finalPlayerIds.remove(oldId);
-           }
+        if (finalPlayerIdentities != null &&
+            finalPlayerIdentities.containsKey(singlePayer)) {
+          final oldId = finalPlayerIdentities.remove(singlePayer);
+          if (finalPlayerIds != null && oldId != null) {
+            finalPlayerIds.remove(oldId);
+          }
         }
-        
+
         // 2. Rename in Splits/Liabilities if they were populated under the old default name
         if (isSplit && _playerPaymentSplits.containsKey(singlePayer)) {
           final existingSplit = _playerPaymentSplits.remove(singlePayer);
@@ -1266,7 +1361,9 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
       }
 
       if (!isSplit) {
-        final creditPayer = hasRenamedDefault ? _PlayerProfileName! : singlePayer;
+        final creditPayer = hasRenamedDefault
+            ? _PlayerProfileName!
+            : singlePayer;
         _playerPaymentSplits.clear();
         _playerPaymentSplits[creditPayer] = {_paymentMethod: _roundedTotal};
 
@@ -1314,7 +1411,7 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
         // Stop the loading spinner and wait a frame to prevent CanvasKit crash
         setState(() => _isProcessing = false);
         await Future.delayed(const Duration(milliseconds: 50));
-        
+
         if (mounted) {
           context.go('/games');
           messenger.showSnackBar(
