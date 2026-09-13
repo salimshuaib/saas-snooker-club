@@ -16,11 +16,17 @@ class TableHistorySheet extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final todayStr = DateFormat('yyyy-MM-dd').format(DateTime.now());
-    final gamesAsync = ref.watch(tableGamesProvider((tableId: table.id, date: todayStr)));
+    final gamesAsync = ref.watch(
+      tableGamesProvider((tableId: table.id, date: todayStr)),
+    );
 
     return Container(
-      padding: const EdgeInsets.all(16).copyWith(bottom: MediaQuery.of(context).padding.bottom + 16),
-      constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.7),
+      padding: const EdgeInsets.all(
+        16,
+      ).copyWith(bottom: MediaQuery.of(context).padding.bottom + 16),
+      constraints: BoxConstraints(
+        maxHeight: MediaQuery.of(context).size.height * 0.7,
+      ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -28,16 +34,31 @@ class TableHistorySheet extends ConsumerWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(' - Today\'s History', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
-              IconButton(icon: const Icon(Icons.close), onPressed: () => Navigator.pop(context)),
-            ]
+              Text(
+                ' - Today\'s History',
+                style: theme.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              IconButton(
+                icon: const Icon(Icons.close),
+                onPressed: () => Navigator.pop(context),
+              ),
+            ],
           ),
           const Divider(),
           gamesAsync.when(
-            loading: () => const Center(child: Padding(padding: EdgeInsets.all(32), child: CircularProgressIndicator())),
+            loading: () => const Center(
+              child: Padding(
+                padding: EdgeInsets.all(32),
+                child: CircularProgressIndicator(),
+              ),
+            ),
             error: (e, _) => const Center(child: Text('Error loading history')),
             data: (allGames) {
-              final completedGames = allGames.where((g) => g.status == TableStatus.available).toList();
+              final completedGames = allGames
+                  .where((g) => g.status == TableStatus.available)
+                  .toList();
               // sort by endTime descending
               completedGames.sort((a, b) {
                 if (a.endTime == null && b.endTime == null) return 0;
@@ -52,7 +73,10 @@ class TableHistorySheet extends ConsumerWidget {
                 return const Center(
                   child: Padding(
                     padding: EdgeInsets.all(32.0),
-                    child: Text('No completed games today.', style: TextStyle(color: Colors.grey)),
+                    child: Text(
+                      'No completed games today.',
+                      style: TextStyle(color: Colors.grey),
+                    ),
                   ),
                 );
               }
@@ -92,10 +116,12 @@ class _HistoryListTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final dtFmt = DateFormat('hh:mm a');
-    final duration = game.endTime != null ? _formatDuration(game.activeSeconds) : '';
+    final duration = game.endTime != null
+        ? _formatDuration(game.activeSeconds)
+        : '';
 
-    final num price = game.grandTotal ?? 0;
-    
+    final num price = game.roundedAmount ?? game.finalAmount ?? game.grandTotal ?? 0;
+
     // Fallback if players list is empty
     final players = game.allPlayers.isEmpty ? ['Default 1'] : game.allPlayers;
 
@@ -112,9 +138,19 @@ class _HistoryListTile extends StatelessWidget {
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(dtFmt.format(game.startTime), style: theme.textTheme.labelMedium?.copyWith(fontWeight: FontWeight.w700)),
+              Text(
+                dtFmt.format(game.startTime),
+                style: theme.textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
               if (game.endTime != null)
-                Text(dtFmt.format(game.endTime!), style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
+                Text(
+                  dtFmt.format(game.endTime!),
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
             ],
           ),
           const Gap(12),
@@ -123,15 +159,30 @@ class _HistoryListTile extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(players.join(' vs '), style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600), overflow: TextOverflow.ellipsis),
+                Text(
+                  players.join(' vs '),
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
                 const Gap(2),
-                Text('$duration  •  ₹$price', style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
+                Text(
+                  '$duration  \u2022  \u20B9${price.toStringAsFixed(0)}',
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
               ],
             ),
           ),
           // Repeat Action
           IconButton(
-            icon: const Icon(Icons.replay_circle_filled, color: AppColors.primary, size: 28),
+            icon: const Icon(
+              Icons.replay_circle_filled,
+              color: AppColors.primary,
+              size: 28,
+            ),
             onPressed: () {
               Navigator.pop(context); // close sheet
               showModalBottomSheet(
