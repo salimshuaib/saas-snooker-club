@@ -695,7 +695,7 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
                         child: GestureDetector(
                           onTap: () {
                             if (method == PaymentMethod.credit && !isSplit && _session.allPlayers.length == 1 && player.toLowerCase().startsWith('default')) {
-                              _showCreditNameDialog(player, autoConfirm: true);
+                              _showCreditNameDialog(player, autoConfirm: false, setMethod: true);
                             } else {
                               setState(() {
                                 _paymentMethod = method;
@@ -1068,7 +1068,7 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
     }
   }
 
-  void _showCreditNameDialog(String defaultName, {bool autoConfirm = false}) {
+  void _showCreditNameDialog(String defaultName, {bool autoConfirm = false, bool setMethod = false}) {
     final initialText = _PlayerProfileName != null && !_PlayerProfileName!.toLowerCase().startsWith('default') 
         ? _PlayerProfileName! 
         : (defaultName.toLowerCase().startsWith('default') ? '' : defaultName);
@@ -1095,7 +1095,7 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
               if (nameCtrl.text.trim().isNotEmpty) {
                 setState(() {
                   _PlayerProfileName = nameCtrl.text.trim();
-                  if (autoConfirm) {
+                  if (autoConfirm || setMethod) {
                     _paymentMethod = PaymentMethod.credit;
                     _playerPaymentSplits[defaultName] = {
                       PaymentMethod.credit: _roundedTotal,
