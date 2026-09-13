@@ -71,8 +71,8 @@ class _ActiveGameCardState extends ConsumerState<ActiveGameCard> {
                 final appSettings = ref.watch(appSettingsProvider);
                 final charge = TablePricingConfig.calculateCharge(
                   tableType: game.tableType,
-                    gameType: GameType.standard,
-                    billingType: game.billingType,
+                  gameType: GameType.standard,
+                  billingType: game.billingType,
                   activeSeconds: seconds,
                   framesPlayed: math.max(game.framesPlayed, game.totalFrames),
                   pricingConfig: game.pricingSnapshot ?? appSettings.pricing,
@@ -82,8 +82,8 @@ class _ActiveGameCardState extends ConsumerState<ActiveGameCard> {
                   customExtraCharge: game.customExtraCharge,
                   playersCount: game.allPlayers.length,
                   coinQuantity: game.coinQuantity,
-                                  isMinimumBillEnabled: game.isMinimumBillEnabled,
-                                  minimumBillAmount: game.minimumBillAmount,
+                  isMinimumBillEnabled: game.isMinimumBillEnabled,
+                  minimumBillAmount: game.minimumBillAmount,
                 );
                 final h = (seconds ~/ 3600).toString().padLeft(2, '0');
                 final m = ((seconds % 3600) ~/ 60).toString().padLeft(2, '0');
@@ -100,13 +100,22 @@ class _ActiveGameCardState extends ConsumerState<ActiveGameCard> {
                           Expanded(
                             child: Text(
                               widget.table.name,
-                              style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
+                              style: theme.textTheme.titleLarge?.copyWith(
+                                fontWeight: FontWeight.w800,
+                              ),
                             ),
                           ),
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 4,
+                            ),
                             decoration: BoxDecoration(
-                              color: (game.status == TableStatus.running ? AppColors.running : AppColors.paused).withValues(alpha: 0.15),
+                              color:
+                                  (game.status == TableStatus.running
+                                          ? AppColors.running
+                                          : AppColors.paused)
+                                      .withValues(alpha: 0.15),
                               borderRadius: BorderRadius.circular(12),
                             ),
                             child: Row(
@@ -116,7 +125,9 @@ class _ActiveGameCardState extends ConsumerState<ActiveGameCard> {
                                   width: 8,
                                   height: 8,
                                   decoration: BoxDecoration(
-                                    color: game.status == TableStatus.running ? AppColors.running : AppColors.paused,
+                                    color: game.status == TableStatus.running
+                                        ? AppColors.running
+                                        : AppColors.paused,
                                     shape: BoxShape.circle,
                                   ),
                                 ),
@@ -124,7 +135,9 @@ class _ActiveGameCardState extends ConsumerState<ActiveGameCard> {
                                 Text(
                                   game.status.displayName.toUpperCase(),
                                   style: theme.textTheme.labelSmall?.copyWith(
-                                    color: game.status == TableStatus.running ? AppColors.running : AppColors.paused,
+                                    color: game.status == TableStatus.running
+                                        ? AppColors.running
+                                        : AppColors.paused,
                                     fontWeight: FontWeight.w800,
                                     letterSpacing: 0.5,
                                   ),
@@ -154,12 +167,19 @@ class _ActiveGameCardState extends ConsumerState<ActiveGameCard> {
                             ),
                             Builder(
                               builder: (context) {
-                                String displayStr = game.billingType.displayName;
+                                String displayStr =
+                                    game.billingType.displayName;
                                 if (game.billingType == BillingType.perMinute) {
-                                  final rate = game.customPrice ?? TablePricingConfig.getPerMinutePrice(
-                                    game.tableType, GameType.standard, game.pricingSnapshot ?? appSettings.pricing
-                                  );
-                                  displayStr += ' • \u20B9${rate.toStringAsFixed(2)}/min';
+                                  final rate =
+                                      game.customPrice ??
+                                      TablePricingConfig.getPerMinutePrice(
+                                        game.tableType,
+                                        GameType.standard,
+                                        game.pricingSnapshot ??
+                                            appSettings.pricing,
+                                      );
+                                  displayStr +=
+                                      ' • \u20B9${rate.toStringAsFixed(2)}/min';
                                 }
                                 return Text(
                                   displayStr,
@@ -167,7 +187,7 @@ class _ActiveGameCardState extends ConsumerState<ActiveGameCard> {
                                     color: theme.colorScheme.onSurfaceVariant,
                                   ),
                                 );
-                              }
+                              },
                             ),
                           ],
                         ),
@@ -218,17 +238,20 @@ class _ActiveGameCardState extends ConsumerState<ActiveGameCard> {
                       icon: Icons.people,
                       label: game.allPlayers.join(', '),
                     ),
-                    if (game.totalFrames > 1 || game.billingType == BillingType.perFrame)
+                    if (game.totalFrames > 1 ||
+                        game.billingType == BillingType.perFrame)
                       _InfoChip(
                         icon: Icons.grid_3x3,
-                        label: 'Frame ${game.framesPlayed + 1}/${game.totalFrames}',
+                        label:
+                            'Frame ${game.framesPlayed + 1}/${game.totalFrames}',
                       ),
                   ],
                 ),
                 const Gap(12),
 
                 // Completed Rounds
-                if (game.billingType == BillingType.perFrame && game.rounds.isNotEmpty) ...[
+                if (game.billingType == BillingType.perFrame &&
+                    game.rounds.isNotEmpty) ...[
                   Text(
                     'Completed Rounds',
                     style: theme.textTheme.labelMedium?.copyWith(
@@ -381,7 +404,10 @@ class _ActiveGameCardState extends ConsumerState<ActiveGameCard> {
               child: OutlinedButton.icon(
                 onPressed: () => _handleCancelGame(game, context),
                 icon: const Icon(Icons.cancel_outlined, color: AppColors.error),
-                label: const Text('Cancel', style: TextStyle(color: AppColors.error)),
+                label: const Text(
+                  'Cancel',
+                  style: TextStyle(color: AppColors.error),
+                ),
                 style: OutlinedButton.styleFrom(
                   side: const BorderSide(color: AppColors.error),
                 ),
@@ -413,7 +439,9 @@ class _ActiveGameCardState extends ConsumerState<ActiveGameCard> {
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Cancel Game?'),
-        content: const Text('Are you sure you want to cancel this game? This will free the table and delete the game record.'),
+        content: const Text(
+          'Are you sure you want to cancel this game? This will free the table and delete the game record.',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
@@ -433,18 +461,21 @@ class _ActiveGameCardState extends ConsumerState<ActiveGameCard> {
     await ref
         .read(gameSessionControllerProvider.notifier)
         .cancelGame(game.id, game.tableId, game.orders);
-        
+
     if (mounted && context.mounted) {
-       Navigator.of(context).pop();
-       ScaffoldMessenger.of(context).showSnackBar(
-         const SnackBar(content: Text('Game cancelled successfully'), backgroundColor: AppColors.success),
-       );
+      Navigator.of(context).pop();
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Game cancelled successfully'),
+          backgroundColor: AppColors.success,
+        ),
+      );
     }
   }
 
   Future<void> _showOrdersSheet(GameSession game, BuildContext context) async {
     final updated = await showModalBottomSheet<List<GameOrder>>(
-useRootNavigator: true,
+      useRootNavigator: true,
       context: context,
       isScrollControlled: true,
       builder: (_) =>
@@ -470,8 +501,8 @@ useRootNavigator: true,
     final appSettings = ref.read(appSettingsProvider);
     final charge = TablePricingConfig.calculateCharge(
       tableType: game.tableType,
-                    gameType: GameType.standard,
-                    billingType: game.billingType,
+      gameType: GameType.standard,
+      billingType: game.billingType,
       activeSeconds: activeSeconds,
       framesPlayed: roundNumber,
       pricingConfig: game.pricingSnapshot ?? appSettings.pricing,
@@ -481,22 +512,33 @@ useRootNavigator: true,
       customExtraCharge: game.customExtraCharge,
       playersCount: game.allPlayers.length,
       coinQuantity: game.coinQuantity,
-                                  isMinimumBillEnabled: game.isMinimumBillEnabled,
-                                  minimumBillAmount: game.minimumBillAmount,
+      isMinimumBillEnabled: game.isMinimumBillEnabled,
+      minimumBillAmount: game.minimumBillAmount,
     );
 
-    final currentOvertimeMinutes = charge.overtimeMinutes - game.rounds.fold<int>(0, (s, r) => s + (r.overtimeMinutes ?? 0));
-    final currentOvertimeCharge = charge.overtimeCharge - game.rounds.fold<double>(0.0, (s, r) => s + (r.overtimeCharge ?? 0.0));
+    final currentOvertimeMinutes =
+        charge.overtimeMinutes -
+        game.rounds.fold<int>(0, (s, r) => s + (r.overtimeMinutes ?? 0));
+    final currentOvertimeCharge =
+        charge.overtimeCharge -
+        game.rounds.fold<double>(0.0, (s, r) => s + (r.overtimeCharge ?? 0.0));
 
-    final previousBaseTotal = game.rounds.fold<double>(0.0, (s, r) => s + r.roundCost);
+    final previousBaseTotal = game.rounds.fold<double>(
+      0.0,
+      (s, r) => s + r.roundCost,
+    );
     final roundCost = charge.baseCharge - previousBaseTotal;
 
     return GameRound(
       roundNumber: roundNumber,
       framePayers: framePayers,
       roundCost: roundCost,
-      durationSeconds: activeSeconds - game.rounds.fold<int>(0, (s, r) => s + (r.durationSeconds ?? 0)),
-      overtimeMinutes: currentOvertimeMinutes > 0 ? currentOvertimeMinutes : null,
+      durationSeconds:
+          activeSeconds -
+          game.rounds.fold<int>(0, (s, r) => s + (r.durationSeconds ?? 0)),
+      overtimeMinutes: currentOvertimeMinutes > 0
+          ? currentOvertimeMinutes
+          : null,
       overtimeCharge: currentOvertimeCharge > 0 ? currentOvertimeCharge : null,
     );
   }
@@ -586,37 +628,54 @@ class _RoundCompletionDialogState extends State<_RoundCompletionDialog> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    
+
+    final allDefault = widget.game.allPlayers.every(
+      (p) => p.toLowerCase().startsWith('default'),
+    );
+
     return AlertDialog(
       title: const Text('Frame Completed'),
-      content: SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            PayerSelectionWidget(
-              allPlayers: widget.game.allPlayers,
-              selectedPayers: _selectedPayers,
-              onChanged: (newPayers) {
-                setState(() {
-                  _selectedPayers = newPayers;
-                });
-              },
+      content: allDefault
+          ? const Text(
+              'The frame has been completed. What would you like to do next?',
+            )
+          : SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  PayerSelectionWidget(
+                    allPlayers: widget.game.allPlayers,
+                    selectedPayers: _selectedPayers,
+                    onChanged: (newPayers) {
+                      setState(() {
+                        _selectedPayers = newPayers;
+                      });
+                    },
+                  ),
+                ],
+              ),
             ),
-          ],
-        ),
-      ),
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context),
-          child: Text('Cancel', style: TextStyle(color: theme.colorScheme.onSurface)),
+          child: Text(
+            'Cancel',
+            style: TextStyle(color: theme.colorScheme.onSurface),
+          ),
         ),
         TextButton(
-          onPressed: () => Navigator.pop(context, {'framePayers': _selectedPayers, 'continue': true}),
+          onPressed: () => Navigator.pop(context, {
+            'framePayers': _selectedPayers,
+            'continue': true,
+          }),
           child: const Text('Play Another'),
         ),
         FilledButton(
-          onPressed: () => Navigator.pop(context, {'framePayers': _selectedPayers, 'continue': false}),
+          onPressed: () => Navigator.pop(context, {
+            'framePayers': _selectedPayers,
+            'continue': false,
+          }),
           child: const Text('Finish & Bill'),
         ),
       ],
