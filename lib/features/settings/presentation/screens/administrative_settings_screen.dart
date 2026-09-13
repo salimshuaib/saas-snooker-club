@@ -204,30 +204,6 @@ class AdministrativeSettingsScreen extends ConsumerWidget {
             children: [
               ListTile(
                 contentPadding: EdgeInsets.zero,
-                title: const Text('Snooker Grace Period (Mins)'),
-                subtitle: const Text(
-                  'Time allowed before overtime charge begins',
-                ),
-                trailing: DropdownButton<int>(
-                  value: settings.game.frameGracePeriodMinutes,
-                  underline: const SizedBox(),
-                  items: [10, 15, 20, 25, 30].map((mins) {
-                    return DropdownMenuItem(
-                      value: mins,
-                      child: Text('$mins Mins'),
-                    );
-                  }).toList(),
-                  onChanged: (val) {
-                    if (val != null) {
-                      notifier.updateGameSettings(
-                        settings.game.copyWith(frameGracePeriodMinutes: val),
-                      );
-                    }
-                  },
-                ),
-              ),
-              ListTile(
-                contentPadding: EdgeInsets.zero,
                 title: const Text('Indian Pool Grace Period (Mins)'),
                 subtitle: const Text('Time allowed before overtime for Indian Pool'),
                 trailing: DropdownButton<int>(

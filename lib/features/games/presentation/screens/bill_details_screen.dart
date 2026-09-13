@@ -316,7 +316,7 @@ class _BillDetailsScreenState extends ConsumerState<BillDetailsScreen> {
                               ? '${ref.read(appSettingsProvider).game.indianPoolGracePeriodMinutes} Mins / Frame'
                               : session.tableType == TableType.americanPool
                               ? '${ref.read(appSettingsProvider).game.americanPoolGracePeriodMinutes} Mins / Frame'
-                              : '${ref.read(appSettingsProvider).game.frameGracePeriodMinutes} Mins / Frame',
+                              : 'Not Applicable',
                         ),
                     ] else ...[
                       _InfoRow(

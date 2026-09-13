@@ -616,7 +616,7 @@ class TablePricingConfig {
           final int currentFrameSeconds = (activeSeconds - previousSeconds)
               .clamp(0, 999999);
 
-          int gracePeriodMinutes = gameConfig.frameGracePeriodMinutes;
+          int gracePeriodMinutes = 0;
           if (tableType == TableType.indianPool) {
             gracePeriodMinutes = gameConfig.indianPoolGracePeriodMinutes;
           } else if (tableType == TableType.americanPool) {

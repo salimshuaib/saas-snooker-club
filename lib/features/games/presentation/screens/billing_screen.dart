@@ -451,7 +451,7 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
                           ? '${ref.read(appSettingsProvider).game.indianPoolGracePeriodMinutes} Mins / Frame'
                           : _session.tableType == TableType.americanPool
                           ? '${ref.read(appSettingsProvider).game.americanPoolGracePeriodMinutes} Mins / Frame'
-                          : '${ref.read(appSettingsProvider).game.frameGracePeriodMinutes} Mins / Frame',
+                          : 'Not Applicable',
                     ),
                   ] else ...[
                     if (_session.billingType == BillingType.perMinute)
