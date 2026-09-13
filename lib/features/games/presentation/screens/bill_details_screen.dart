@@ -122,14 +122,9 @@ class _BillDetailsScreenState extends ConsumerState<BillDetailsScreen> {
                   children: [
                     _InfoRow(label: 'Table Name', value: session.tableName),
                     _InfoRow(
-                      label: 'Table Type',
-                      value: session.tableType.displayName,
-                    ),
-                    _InfoRow(
                       label: 'Game Type',
                       value: session.billingType.displayName,
                     ),
-                    _InfoRow(label: 'Match Type', value: 'Standard'),
                     _InfoRow(
                       label: 'Billing Type',
                       value: session.billingType.displayName,
@@ -220,28 +215,6 @@ class _BillDetailsScreenState extends ConsumerState<BillDetailsScreen> {
                           ),
                         )
                         .toList(),
-                  ),
-                  const Gap(24),
-                ] else ...[
-                  Text('Match Results', style: theme.textTheme.titleMedium),
-                  const Gap(8),
-                  _SectionCard(
-                    children: [
-                      if (false) ...[
-                        _InfoRow(
-                          label: 'Winner',
-                          value: session.winnerDisplayName ?? 'N/A',
-                        ),
-                        _InfoRow(label: 'Loser', value: _getLoser(session)),
-                        _InfoRow(
-                          label: 'Paid By',
-                          value: _getLoser(session), // Loser pays
-                        ),
-                      ] else ...[
-                        // Friendly match
-                        _InfoRow(label: 'Paid By', value: 'Shared / Multiple'),
-                      ],
-                    ],
                   ),
                   const Gap(24),
                 ],
@@ -604,10 +577,6 @@ class _BillDetailsScreenState extends ConsumerState<BillDetailsScreen> {
         );
       },
     );
-  }
-
-  String _getLoser(GameSession session) {
-    return session.loserDisplayName ?? 'N/A';
   }
 
   Future<void> _showEditNamesModal(
