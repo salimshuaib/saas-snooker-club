@@ -204,7 +204,7 @@ class AdministrativeSettingsScreen extends ConsumerWidget {
             children: [
               ListTile(
                 contentPadding: EdgeInsets.zero,
-                title: const Text('Frame Grace Period (Mins)'),
+                title: const Text('Snooker Grace Period (Mins)'),
                 subtitle: const Text(
                   'Time allowed before overtime charge begins',
                 ),
@@ -221,6 +221,50 @@ class AdministrativeSettingsScreen extends ConsumerWidget {
                     if (val != null) {
                       notifier.updateGameSettings(
                         settings.game.copyWith(frameGracePeriodMinutes: val),
+                      );
+                    }
+                  },
+                ),
+              ),
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                title: const Text('Indian Pool Grace Period (Mins)'),
+                subtitle: const Text('Time allowed before overtime for Indian Pool'),
+                trailing: DropdownButton<int>(
+                  value: settings.game.indianPoolGracePeriodMinutes,
+                  underline: const SizedBox(),
+                  items: [10, 15, 20, 25, 30, 45, 60].map((mins) {
+                    return DropdownMenuItem(
+                      value: mins,
+                      child: Text('$mins Mins'),
+                    );
+                  }).toList(),
+                  onChanged: (val) {
+                    if (val != null) {
+                      notifier.updateGameSettings(
+                        settings.game.copyWith(indianPoolGracePeriodMinutes: val),
+                      );
+                    }
+                  },
+                ),
+              ),
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                title: const Text('American Pool Grace Period (Mins)'),
+                subtitle: const Text('Time allowed before overtime for American Pool'),
+                trailing: DropdownButton<int>(
+                  value: settings.game.americanPoolGracePeriodMinutes,
+                  underline: const SizedBox(),
+                  items: [10, 15, 20, 25, 30, 45, 60].map((mins) {
+                    return DropdownMenuItem(
+                      value: mins,
+                      child: Text('$mins Mins'),
+                    );
+                  }).toList(),
+                  onChanged: (val) {
+                    if (val != null) {
+                      notifier.updateGameSettings(
+                        settings.game.copyWith(americanPoolGracePeriodMinutes: val),
                       );
                     }
                   },
