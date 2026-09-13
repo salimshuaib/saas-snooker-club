@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:gap/gap.dart';
 import 'package:intl/intl.dart';
 import 'package:snooker_club/core/theme/app_colors.dart';
+import 'package:snooker_club/core/routes/app_router.dart';
 import 'package:snooker_club/features/games/domain/config/pricing_config.dart';
 import 'package:snooker_club/core/utils/billing_utils.dart';
 
@@ -1418,14 +1419,21 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
         await Future.delayed(const Duration(milliseconds: 150));
 
         if (mounted) {
-          Navigator.of(context).popUntil((route) => route.isFirst);
-          context.go('/live');
+          // Show success message
           messenger.showSnackBar(
             const SnackBar(
               content: Text('Payment recorded. Table is now available.'),
               backgroundColor: AppColors.success,
             ),
           );
+
+          // Pop the BillingScreen gracefully
+          Navigator.of(context).pop();
+
+          // Wait for the pop animation to finish, then safely switch tabs using the global router
+          Future.delayed(const Duration(milliseconds: 350), () {
+            ref.read(appRouterProvider).go('/live');
+          });
         }
         return;
       }
