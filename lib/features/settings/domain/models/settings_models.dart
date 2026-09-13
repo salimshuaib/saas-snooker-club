@@ -58,13 +58,17 @@ class BusinessSettings {
 }
 
 class GameSettings {
-  final int frameGracePeriodMinutes;
+  final int frameGracePeriodMinutes; // Fallback / Global
+  final int indianPoolGracePeriodMinutes;
+  final int americanPoolGracePeriodMinutes;
   final bool enableOvertimeBilling;
   final bool allowPauseResume;
   final int maxPlayersPerTeam;
 
   const GameSettings({
     this.frameGracePeriodMinutes = 20,
+    this.indianPoolGracePeriodMinutes = 20,
+    this.americanPoolGracePeriodMinutes = 20,
     this.enableOvertimeBilling = true,
     this.allowPauseResume = true,
     this.maxPlayersPerTeam = 3,
@@ -72,6 +76,8 @@ class GameSettings {
 
   GameSettings copyWith({
     int? frameGracePeriodMinutes,
+    int? indianPoolGracePeriodMinutes,
+    int? americanPoolGracePeriodMinutes,
     bool? enableOvertimeBilling,
     bool? allowPauseResume,
     int? maxPlayersPerTeam,
@@ -79,6 +85,10 @@ class GameSettings {
     return GameSettings(
       frameGracePeriodMinutes:
           frameGracePeriodMinutes ?? this.frameGracePeriodMinutes,
+      indianPoolGracePeriodMinutes:
+          indianPoolGracePeriodMinutes ?? this.indianPoolGracePeriodMinutes,
+      americanPoolGracePeriodMinutes:
+          americanPoolGracePeriodMinutes ?? this.americanPoolGracePeriodMinutes,
       enableOvertimeBilling:
           enableOvertimeBilling ?? this.enableOvertimeBilling,
       allowPauseResume: allowPauseResume ?? this.allowPauseResume,
@@ -89,6 +99,8 @@ class GameSettings {
   Map<String, dynamic> toMap() {
     return {
       'frameGracePeriodMinutes': frameGracePeriodMinutes,
+      'indianPoolGracePeriodMinutes': indianPoolGracePeriodMinutes,
+      'americanPoolGracePeriodMinutes': americanPoolGracePeriodMinutes,
       'enableOvertimeBilling': enableOvertimeBilling,
       'allowPauseResume': allowPauseResume,
       'maxPlayersPerTeam': maxPlayersPerTeam,

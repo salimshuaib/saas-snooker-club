@@ -11,6 +11,7 @@ import 'package:snooker_club/features/games/domain/models/game_models.dart';
 import 'package:snooker_club/features/games/presentation/widgets/admin_passcode_dialog.dart';
 import 'package:snooker_club/features/games/providers/games_providers.dart';
 import 'package:snooker_club/core/providers/club_scope_provider.dart';
+import 'package:snooker_club/features/settings/providers/settings_providers.dart';
 
 class BillDetailsScreen extends ConsumerStatefulWidget {
   final GameSession session;
@@ -309,9 +310,13 @@ class _BillDetailsScreenState extends ConsumerState<BillDetailsScreen> {
                             '₹${(session.baseGameCharge ?? session.gameCharge ?? 0).toStringAsFixed(2)}',
                       ),
                       if (session.baseGameCharge != null)
-                        const _InfoRow(
+                        _InfoRow(
                           label: 'Grace Period',
-                          value: '20 Mins / Frame',
+                          value: session.tableType == TableType.indianPool
+                              ? '${ref.read(appSettingsProvider).game.indianPoolGracePeriodMinutes} Mins / Frame'
+                              : session.tableType == TableType.americanPool
+                              ? '${ref.read(appSettingsProvider).game.americanPoolGracePeriodMinutes} Mins / Frame'
+                              : '${ref.read(appSettingsProvider).game.frameGracePeriodMinutes} Mins / Frame',
                         ),
                     ] else ...[
                       _InfoRow(

@@ -22,10 +22,14 @@ class InventoryRepository {
       final club = _ref?.read(clubProfileProvider).value;
       final staff = currentStaff;
       if (staff != null) {
-        if (staff.role == StaffRole.owner && club != null && club.ownerName.isNotEmpty) {
+        if (staff.role == StaffRole.owner &&
+            club != null &&
+            club.ownerName.isNotEmpty) {
           return club.ownerName;
         }
-        if (staff.name.isNotEmpty && staff.name != 'Admin' && staff.name != 'Club Owner') {
+        if (staff.name.isNotEmpty &&
+            staff.name != 'Admin' &&
+            staff.name != 'Club Owner') {
           return staff.name;
         }
       }
@@ -43,7 +47,6 @@ class InventoryRepository {
     } catch (_) {}
     return 'Unknown';
   }
-
 
   DocumentReference get _clubRef {
     if (clubId == null)

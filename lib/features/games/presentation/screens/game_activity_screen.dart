@@ -19,17 +19,19 @@ class GameActivityScreen extends ConsumerWidget {
     final tablesAsync = ref.watch(resolvedTablesProvider);
     final club = ref.watch(clubProfileProvider).value;
     final clubName = club?.clubName ?? 'Loading...';
-    
-    final currentStaff = ref.watch(currentStaffProvider).value;
-    
-    String currentUserName = currentStaff?.name ?? 'Admin';
-    if (currentStaff?.role == StaffRole.owner || currentStaff == null || currentUserName == 'Admin' || currentUserName == 'Club Owner') {
-       final oName = club?.ownerName;
-       if (oName != null && oName.isNotEmpty) {
-         currentUserName = oName;
-       }
-    }
 
+    final currentStaff = ref.watch(currentStaffProvider).value;
+
+    String currentUserName = currentStaff?.name ?? 'Admin';
+    if (currentStaff?.role == StaffRole.owner ||
+        currentStaff == null ||
+        currentUserName == 'Admin' ||
+        currentUserName == 'Club Owner') {
+      final oName = club?.ownerName;
+      if (oName != null && oName.isNotEmpty) {
+        currentUserName = oName;
+      }
+    }
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,

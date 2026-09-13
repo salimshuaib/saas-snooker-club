@@ -44,15 +44,18 @@ class DashboardScreen extends ConsumerWidget {
     }
 
     final clubAsync = ref.watch(clubProfileProvider);
-    
+
     // Get actual staff member from state
     final currentStaff = ref.watch(currentStaffProvider).value;
     String employeeName = currentStaff?.name ?? 'Admin';
-    if (currentStaff?.role == StaffRole.owner || currentStaff == null || employeeName == 'Admin' || employeeName == 'Club Owner') {
-       final oName = clubAsync.value?.ownerName;
-       if (oName != null && oName.isNotEmpty) {
-         employeeName = oName;
-       }
+    if (currentStaff?.role == StaffRole.owner ||
+        currentStaff == null ||
+        employeeName == 'Admin' ||
+        employeeName == 'Club Owner') {
+      final oName = clubAsync.value?.ownerName;
+      if (oName != null && oName.isNotEmpty) {
+        employeeName = oName;
+      }
     }
 
     return Scaffold(

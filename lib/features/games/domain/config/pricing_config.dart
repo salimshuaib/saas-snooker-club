@@ -616,8 +616,14 @@ class TablePricingConfig {
           final int currentFrameSeconds = (activeSeconds - previousSeconds)
               .clamp(0, 999999);
 
+          int gracePeriodMinutes = gameConfig.frameGracePeriodMinutes;
+          if (tableType == TableType.indianPool) {
+            gracePeriodMinutes = gameConfig.indianPoolGracePeriodMinutes;
+          } else if (tableType == TableType.americanPool) {
+            gracePeriodMinutes = gameConfig.americanPoolGracePeriodMinutes;
+          }
           final int currentOvertimeSeconds =
-              currentFrameSeconds - (gameConfig.frameGracePeriodMinutes * 60);
+              currentFrameSeconds - (gracePeriodMinutes * 60);
 
           if (currentOvertimeSeconds > 0 && overtimeEnabled) {
             final int currentOvertimeMinutes = (currentOvertimeSeconds / 60.0)

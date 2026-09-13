@@ -446,8 +446,11 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
                     ),
                     _InfoRow(
                       label: 'Grace Period',
-                      value:
-                          '${TablePricingConfig.frameGracePeriodMinutes} Mins / Frame',
+                      value: _session.tableType == TableType.indianPool
+                          ? '${ref.read(appSettingsProvider).game.indianPoolGracePeriodMinutes} Mins / Frame'
+                          : _session.tableType == TableType.americanPool
+                          ? '${ref.read(appSettingsProvider).game.americanPoolGracePeriodMinutes} Mins / Frame'
+                          : '${ref.read(appSettingsProvider).game.frameGracePeriodMinutes} Mins / Frame',
                     ),
                   ] else ...[
                     if (_session.billingType == BillingType.perMinute)

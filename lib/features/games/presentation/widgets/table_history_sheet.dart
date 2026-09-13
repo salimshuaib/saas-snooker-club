@@ -120,7 +120,8 @@ class _HistoryListTile extends StatelessWidget {
         ? _formatDuration(game.activeSeconds)
         : '';
 
-    final num price = game.roundedAmount ?? game.finalAmount ?? game.grandTotal ?? 0;
+    final num price =
+        game.roundedAmount ?? game.finalAmount ?? game.grandTotal ?? 0;
 
     // Fallback if players list is empty
     final players = game.allPlayers.isEmpty ? ['Default 1'] : game.allPlayers;
