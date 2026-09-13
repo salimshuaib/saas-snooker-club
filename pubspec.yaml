@@ -58,6 +58,7 @@ flutter:
   generate: true
   assets:
     - shorebird.yaml
+    - assets/logos/
 
 flutter_launcher_icons:
   android: "ic_launcher"
