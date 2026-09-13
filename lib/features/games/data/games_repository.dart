@@ -17,24 +17,29 @@ class GamesRepository {
   final FirebaseFirestore _db;
   final Ref? _ref;
   final String? clubId;
-  
-  GamesRepository({FirebaseFirestore? db, Ref? ref, this.clubId}) : _db = db ?? FirebaseFirestore.instance, _ref = ref;
+
+  GamesRepository({FirebaseFirestore? db, Ref? ref, this.clubId})
+    : _db = db ?? FirebaseFirestore.instance,
+      _ref = ref;
 
   StaffMember? get currentStaff => _ref?.read(currentStaffProvider).value;
 
   DocumentReference get _clubRef {
-    if (clubId == null) throw Exception('clubId cannot be null for GamesRepository');
+    if (clubId == null)
+      throw Exception('clubId cannot be null for GamesRepository');
     return _db.collection(FirebaseConstants.clubsCollection).doc(clubId);
   }
 
-  CollectionReference get _tablesRef => _clubRef.collection(FirebaseConstants.tablesCollection);
+  CollectionReference get _tablesRef =>
+      _clubRef.collection(FirebaseConstants.tablesCollection);
 
-  CollectionReference get _gamesRef => _clubRef.collection(FirebaseConstants.gamesCollection);
+  CollectionReference get _gamesRef =>
+      _clubRef.collection(FirebaseConstants.gamesCollection);
 
   GameSession _enrichWithStaff(GameSession session, bool isCreate) {
     final staff = currentStaff;
     if (staff == null) return session;
-    
+
     if (isCreate) {
       return session.copyWith(
         createdByUserId: staff.id,
@@ -67,7 +72,7 @@ class GamesRepository {
   /// Called at app startup. Idempotent â€” safe to call multiple times.
   Future<void> addTable(TableModel table) async {
     if (AppConfig.guardWrite('GamesRepository.addTable')) return;
-    
+
     if (table.id.isEmpty) {
       final docRef = _tablesRef.doc();
       final tableWithId = table.copyWith(id: docRef.id);
@@ -329,11 +334,12 @@ class GamesRepository {
   }
 
   /// Update orders on a running game.
-  Future<void> updatePlayerPoints(String gameId, Map<String, int> playerPoints) async {
+  Future<void> updatePlayerPoints(
+    String gameId,
+    Map<String, int> playerPoints,
+  ) async {
     if (AppConfig.guardWrite('GamesRepository.updatePlayerPoints')) return;
-    await _gamesRef.doc(gameId).update({
-      'playerPoints': playerPoints,
-    });
+    await _gamesRef.doc(gameId).update({'playerPoints': playerPoints});
   }
 
   Future<void> updateOrders(String gameId, List<GameOrder> orders) async {
@@ -359,33 +365,42 @@ class GamesRepository {
   }
 
   /// Cancel an active game. Restores inventory and frees the table.
-  Future<void> cancelGame(String gameId, String tableId, List<GameOrder> orders) async {
+  Future<void> cancelGame(
+    String gameId,
+    String tableId,
+    List<GameOrder> orders,
+  ) async {
     if (AppConfig.guardWrite('GamesRepository.cancelGame')) return;
-    
+
     final batch = _db.batch();
-    
+
     // 1. Restore inventory
     if (orders.isNotEmpty) {
-      final inventoryRef = _clubRef.collection(FirebaseConstants.inventoryCollection);
+      final inventoryRef = _clubRef.collection(
+        FirebaseConstants.inventoryCollection,
+      );
       final Map<String, int> stockRestorations = {};
-      
+
       for (final order in orders) {
-        stockRestorations[order.productId] = (stockRestorations[order.productId] ?? 0) + order.quantity;
+        stockRestorations[order.productId] =
+            (stockRestorations[order.productId] ?? 0) + order.quantity;
       }
-      
+
       for (final entry in stockRestorations.entries) {
         batch.update(inventoryRef.doc(entry.key), {
           'currentStock': FieldValue.increment(entry.value),
         });
       }
     }
-    
+
     // 2. Delete game record
     batch.delete(_gamesRef.doc(gameId));
-    
+
     // 3. Free the table
-    batch.update(_tablesRef.doc(tableId), {'status': TableStatus.available.name});
-    
+    batch.update(_tablesRef.doc(tableId), {
+      'status': TableStatus.available.name,
+    });
+
     // 4. Audit log
     final auditRef = _clubRef.collection('audit_logs').doc();
     batch.set(auditRef, {
@@ -398,7 +413,7 @@ class GamesRepository {
       'staffId': currentStaff?.id,
       'staffName': currentStaff?.name,
     });
-    
+
     await batch.commit();
   }
 
@@ -441,6 +456,10 @@ class GamesRepository {
       'totalFrames': session.totalFrames,
       'framesPlayed': session.framesPlayed,
       'date': session.date,
+      'teamA': session.teamA,
+      'teamB': session.teamB,
+      'playerIds': session.playerIds,
+      'playerIdentities': session.playerIdentities,
     };
 
     if (session.paymentMethod == PaymentMethod.credit) {
@@ -475,19 +494,23 @@ class GamesRepository {
     }
 
     final creditRepo = CreditRepository(_db, ref: _ref, clubId: clubId);
-    
-    if (session.paymentMethod == null && session.playerPaymentSplits != null && session.playerPaymentSplits!.isNotEmpty) {
+
+    if (session.paymentMethod == null &&
+        session.playerPaymentSplits != null &&
+        session.playerPaymentSplits!.isNotEmpty) {
       for (final playerEntry in session.playerPaymentSplits!.entries) {
         final customerName = playerEntry.key;
         final splits = playerEntry.value;
-        
+
         final creditAmount = splits[PaymentMethod.credit] ?? 0.0;
-        
+
         if (creditAmount > 0) {
           await creditRepo.appendCreditToBatch(
             batch: batch,
             customerName: customerName,
-            customerId: session.playerIdentities != null ? session.playerIdentities![customerName] : null,
+            customerId: session.playerIdentities != null
+                ? session.playerIdentities![customerName]
+                : null,
             amount: creditAmount,
             type: CreditTransactionType.game,
             referenceId: session.id,
@@ -497,16 +520,19 @@ class GamesRepository {
           );
         }
       }
-    } else if (session.paymentMethod == PaymentMethod.credit && session.paidBy != null) {
+    } else if (session.paymentMethod == PaymentMethod.credit &&
+        session.paidBy != null) {
       await creditRepo.appendCreditToBatch(
         batch: batch,
         customerName: session.paidBy!,
-        customerId: session.playerIdentities != null ? session.playerIdentities![session.paidBy!] : null,
+        customerId: session.playerIdentities != null
+            ? session.playerIdentities![session.paidBy!]
+            : null,
         amount: amountToPay,
         type: CreditTransactionType.game,
         referenceId: session.id,
         title: 'Game on Table ${session.tableName}',
-        subtitle: 'Billed Amount: Ã¢â€šÂ¹${amountToPay.toStringAsFixed(2)}',
+        subtitle: 'Billed Amount: \u20B9${amountToPay.toStringAsFixed(2)}',
         paymentMethod: session.paymentMethod!,
       );
     }
@@ -561,24 +587,26 @@ class GamesRepository {
     await creditRepo.cascadeDeleteGameCredits(sessions);
 
     final batch = _db.batch();
-    final inventoryRef = _clubRef.collection(FirebaseConstants.inventoryCollection);
+    final inventoryRef = _clubRef.collection(
+      FirebaseConstants.inventoryCollection,
+    );
     final Map<String, int> stockRestorations = {};
 
     for (final session in sessions) {
       // Delete game record
       batch.delete(_gamesRef.doc(session.id));
 
-        // Audit Log for Deletion
-        final auditRef = _clubRef.collection('audit_logs').doc();
-        batch.set(auditRef, {
-          'id': auditRef.id,
-          'action': 'Game Deleted',
-          'recordId': session.id,
-          'module': 'Games',
-          'userId': currentStaff?.id ?? 'Unknown',
-          'userName': currentStaff?.name ?? 'Admin',
-          'timestamp': FieldValue.serverTimestamp(),
-        });
+      // Audit Log for Deletion
+      final auditRef = _clubRef.collection('audit_logs').doc();
+      batch.set(auditRef, {
+        'id': auditRef.id,
+        'action': 'Game Deleted',
+        'recordId': session.id,
+        'module': 'Games',
+        'userId': currentStaff?.id ?? 'Unknown',
+        'userName': currentStaff?.name ?? 'Admin',
+        'timestamp': FieldValue.serverTimestamp(),
+      });
 
       // Aggregate inventory restoration if items were ordered
       for (final order in session.orders) {
@@ -685,9 +713,7 @@ class GamesRepository {
       newRounds = session.rounds.map((round) {
         if (round.framePayers == null) return round;
         return round.copyWith(
-          framePayers: round.framePayers!
-              .map((p) => nameMap[p] ?? p)
-              .toList(),
+          framePayers: round.framePayers!.map((p) => nameMap[p] ?? p).toList(),
         );
       }).toList();
     }
@@ -732,7 +758,7 @@ class GamesRepository {
             type: CreditTransactionType.game,
             title: 'Game on Table ${session.tableName}',
             subtitle:
-                'T.P. Match Split Liability (Ã¢â€šÂ¹${amount.toStringAsFixed(2)})',
+                'T.P. Match Split Liability (\u20B9${amount.toStringAsFixed(2)})',
           );
         }
       }
@@ -791,15 +817,18 @@ class GamesRepository {
           await creditRepo.appendCreditToBatch(
             batch: batch,
             customerName: newPaidBy ?? 'Unknown',
-          customerId: (newPaidBy != null && session.playerIdentities != null) ? session.playerIdentities![newPaidBy] : null,
-          amount: amountToPay,
-          type: CreditTransactionType.game,
-          referenceId: session.id,
-          title: 'Game on Table ${session.tableName}',
-          paymentMethod: newPaymentMethod,
+            customerId: (newPaidBy != null && session.playerIdentities != null)
+                ? session.playerIdentities![newPaidBy]
+                : null,
+            amount: amountToPay,
+            type: CreditTransactionType.game,
+            referenceId: session.id,
+            title: 'Game on Table ${session.tableName}',
+            paymentMethod: newPaymentMethod,
           );
         }
-        if (oldMethod == PaymentMethod.credit && newPaymentMethod != PaymentMethod.credit) {
+        if (oldMethod == PaymentMethod.credit &&
+            newPaymentMethod != PaymentMethod.credit) {
           await creditRepo.removeCreditFromBatch(
             batch: batch,
             referenceId: session.id,
@@ -852,15 +881,13 @@ class GamesRepository {
   }
 }
 
+Stream<List<OtherGameResource>> watchOtherGames() {
+  return const Stream.empty();
+}
 
-  Stream<List<OtherGameResource>> watchOtherGames() {
-    return const Stream.empty();
-  }
+Stream<List<OtherGameResource>> watchAllOtherGamesManagement() {
+  return const Stream.empty();
+}
 
-  Stream<List<OtherGameResource>> watchAllOtherGamesManagement() {
-    return const Stream.empty();
-  }
-
-  Future<void> addOtherGame(OtherGameResource resource) async {}
-  Future<void> updateOtherGame(OtherGameResource resource) async {}
-
+Future<void> addOtherGame(OtherGameResource resource) async {}
+Future<void> updateOtherGame(OtherGameResource resource) async {}
