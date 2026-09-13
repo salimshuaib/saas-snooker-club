@@ -32,7 +32,6 @@ class SettingsScreen extends ConsumerWidget {
     final notifier = ref.read(appSettingsProvider.notifier);
     final packageInfo = ref.watch(packageInfoProvider);
 
-
     return Scaffold(
       appBar: AppBar(
         title: const Text('Club Configuration & Settings'),
@@ -50,7 +49,9 @@ class SettingsScreen extends ConsumerWidget {
             children: [
               Text(
                 'Manage business, pricing, security and system configuration',
-                style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
               ),
               const Gap(16),
               SizedBox(
@@ -68,7 +69,8 @@ class SettingsScreen extends ConsumerWidget {
                     if (isAuthorized == true && context.mounted) {
                       Navigator.of(context).push(
                         MaterialPageRoute(
-                          builder: (context) => const AdministrativeSettingsScreen(),
+                          builder: (context) =>
+                              const AdministrativeSettingsScreen(),
                         ),
                       );
                     }
@@ -84,7 +86,6 @@ class SettingsScreen extends ConsumerWidget {
             ],
           ),
 
-
           // 2. Table Configuration
           SettingsSectionCard(
             title: 'Table Configuration',
@@ -95,16 +96,35 @@ class SettingsScreen extends ConsumerWidget {
                 padding: const EdgeInsets.symmetric(vertical: 4),
                 child: Text(
                   'Active club pool and snooker tables deployed across the facility:',
-                  style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
                 ),
               ),
               const Gap(8),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
-                  _buildTableCountBadge('Snooker', tables.where((t) => t.type == TableType.snooker).length, Colors.red, context),
-                  _buildTableCountBadge('Indian Pool', tables.where((t) => t.type == TableType.indianPool).length, Colors.amber, context),
-                  _buildTableCountBadge('American Pool', tables.where((t) => t.type == TableType.americanPool).length, Colors.blue, context),
+                  _buildTableCountBadge(
+                    'Snooker',
+                    tables.where((t) => t.type == TableType.snooker).length,
+                    Colors.red,
+                    context,
+                  ),
+                  _buildTableCountBadge(
+                    'Indian Pool',
+                    tables.where((t) => t.type == TableType.indianPool).length,
+                    Colors.amber,
+                    context,
+                  ),
+                  _buildTableCountBadge(
+                    'American Pool',
+                    tables
+                        .where((t) => t.type == TableType.americanPool)
+                        .length,
+                    Colors.blue,
+                    context,
+                  ),
                 ],
               ),
               const Gap(16),
@@ -112,7 +132,12 @@ class SettingsScreen extends ConsumerWidget {
                 width: double.infinity,
                 child: FilledButton.icon(
                   onPressed: () {
-                    Navigator.push(context, MaterialPageRoute(builder: (_) => const ResourceManagementScreen()));
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const ResourceManagementScreen(),
+                      ),
+                    );
                   },
                   icon: const Icon(Icons.settings_suggest),
                   label: const Text('Manage Games & Tables'),
@@ -121,7 +146,6 @@ class SettingsScreen extends ConsumerWidget {
               const Gap(8),
             ],
           ),
-
 
           // 6. Financial Settings
           SettingsSectionCard(
@@ -132,7 +156,9 @@ class SettingsScreen extends ConsumerWidget {
               ListTile(
                 contentPadding: EdgeInsets.zero,
                 title: const Text('System Currency'),
-                subtitle: Text('${currency.symbol} - ${currency.name} (${currency.code})'),
+                subtitle: Text(
+                  '${currency.symbol} - ${currency.name} (${currency.code})',
+                ),
                 trailing: OutlinedButton(
                   onPressed: () => _showCurrencyPicker(context, ref, currency),
                   child: const Text('Change'),
@@ -141,7 +167,6 @@ class SettingsScreen extends ConsumerWidget {
             ],
           ),
 
-
           // 8. Theme Customization
           SettingsSectionCard(
             title: 'Theme Customization',
@@ -149,15 +174,42 @@ class SettingsScreen extends ConsumerWidget {
             iconColor: Colors.purpleAccent,
             children: [
               const Gap(4),
-              Text('Select active appearance mode:', style: theme.textTheme.bodyMedium),
+              Text(
+                'Select active appearance mode:',
+                style: theme.textTheme.bodyMedium,
+              ),
               const Gap(12),
               Row(
                 children: [
-                  Expanded(child: _buildThemeOption(ThemeMode.light, 'Light', Icons.light_mode, themeMode, ref)),
+                  Expanded(
+                    child: _buildThemeOption(
+                      ThemeMode.light,
+                      'Light',
+                      Icons.light_mode,
+                      themeMode,
+                      ref,
+                    ),
+                  ),
                   const Gap(8),
-                  Expanded(child: _buildThemeOption(ThemeMode.dark, 'Dark', Icons.dark_mode, themeMode, ref)),
+                  Expanded(
+                    child: _buildThemeOption(
+                      ThemeMode.dark,
+                      'Dark',
+                      Icons.dark_mode,
+                      themeMode,
+                      ref,
+                    ),
+                  ),
                   const Gap(8),
-                  Expanded(child: _buildThemeOption(ThemeMode.system, 'System', Icons.settings_brightness, themeMode, ref)),
+                  Expanded(
+                    child: _buildThemeOption(
+                      ThemeMode.system,
+                      'System',
+                      Icons.settings_brightness,
+                      themeMode,
+                      ref,
+                    ),
+                  ),
                 ],
               ),
               const Gap(16),
@@ -170,7 +222,10 @@ class SettingsScreen extends ConsumerWidget {
                 trailing: DropdownButton<Locale>(
                   value: ref.watch(localeProvider),
                   items: const [
-                    DropdownMenuItem(value: Locale('en'), child: Text('English')),
+                    DropdownMenuItem(
+                      value: Locale('en'),
+                      child: Text('English'),
+                    ),
                     DropdownMenuItem(value: Locale('hi'), child: Text('हिंदी')),
                   ],
                   onChanged: (locale) {
@@ -193,27 +248,38 @@ class SettingsScreen extends ConsumerWidget {
               SwitchListTile(
                 contentPadding: EdgeInsets.zero,
                 title: const Text('Low Stock Alerts'),
-                subtitle: const Text('Notify operator immediately when inventory hits warning threshold'),
+                subtitle: const Text(
+                  'Notify operator immediately when inventory hits warning threshold',
+                ),
                 value: settings.notifications.lowStockAlerts,
-                onChanged: (val) => notifier.updateNotificationSettings(settings.notifications.copyWith(lowStockAlerts: val)),
+                onChanged: (val) => notifier.updateNotificationSettings(
+                  settings.notifications.copyWith(lowStockAlerts: val),
+                ),
               ),
               SwitchListTile(
                 contentPadding: EdgeInsets.zero,
                 title: const Text('Daily Revenue Summary'),
-                subtitle: const Text('Receive automatic closing reports and revenue summaries at end of day'),
+                subtitle: const Text(
+                  'Receive automatic closing reports and revenue summaries at end of day',
+                ),
                 value: settings.notifications.dailyRevenueSummary,
-                onChanged: (val) => notifier.updateNotificationSettings(settings.notifications.copyWith(dailyRevenueSummary: val)),
+                onChanged: (val) => notifier.updateNotificationSettings(
+                  settings.notifications.copyWith(dailyRevenueSummary: val),
+                ),
               ),
               SwitchListTile(
                 contentPadding: EdgeInsets.zero,
                 title: const Text('Backup Reminders'),
-                subtitle: const Text('Periodic reminder prompts to verify offline local backups'),
+                subtitle: const Text(
+                  'Periodic reminder prompts to verify offline local backups',
+                ),
                 value: settings.notifications.backupReminders,
-                onChanged: (val) => notifier.updateNotificationSettings(settings.notifications.copyWith(backupReminders: val)),
+                onChanged: (val) => notifier.updateNotificationSettings(
+                  settings.notifications.copyWith(backupReminders: val),
+                ),
               ),
             ],
           ),
-
 
           // 11. App Diagnostics & Sync
           SettingsSectionCard(
@@ -234,7 +300,9 @@ class SettingsScreen extends ConsumerWidget {
                           shape: BoxShape.circle,
                           color: syncStatus == FirebaseSyncStatus.connected
                               ? AppColors.success
-                              : (syncStatus == FirebaseSyncStatus.synchronizing ? AppColors.warning : AppColors.error),
+                              : (syncStatus == FirebaseSyncStatus.synchronizing
+                                    ? AppColors.warning
+                                    : AppColors.error),
                         ),
                       ),
                       const Gap(6),
@@ -244,7 +312,9 @@ class SettingsScreen extends ConsumerWidget {
                           fontWeight: FontWeight.w600,
                           color: syncStatus == FirebaseSyncStatus.connected
                               ? AppColors.success
-                              : (syncStatus == FirebaseSyncStatus.synchronizing ? AppColors.warning : AppColors.error),
+                              : (syncStatus == FirebaseSyncStatus.synchronizing
+                                    ? AppColors.warning
+                                    : AppColors.error),
                         ),
                       ),
                     ],
@@ -255,12 +325,21 @@ class SettingsScreen extends ConsumerWidget {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text('Last Successful Sync', style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
+                  Text(
+                    'Last Successful Sync',
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
                   Text(
                     settings.lastSyncTime == null
                         ? 'Not yet synced'
-                        : DateFormat('MMM d, yyyy - HH:mm').format(settings.lastSyncTime!),
-                    style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
+                        : DateFormat(
+                            'MMM d, yyyy - HH:mm',
+                          ).format(settings.lastSyncTime!),
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ],
               ),
@@ -273,12 +352,19 @@ class SettingsScreen extends ConsumerWidget {
             icon: Icons.info_outline,
             iconColor: Colors.blueGrey,
             children: [
-              _buildInfoTile('Application Name', '${settings.business.clubName} Management'),
-              _buildInfoTile('Version & Build', packageInfo.when(
-                data: (info) => 'v${info.version} (Build ${info.buildNumber})',
-                loading: () => 'Loading...',
-                error: (_, __) => 'Unknown',
-              )),
+              _buildInfoTile(
+                'Application Name',
+                '${settings.business.clubName} Management',
+              ),
+              _buildInfoTile(
+                'Version & Build',
+                packageInfo.when(
+                  data: (info) =>
+                      'v${info.version} (Build ${info.buildNumber})',
+                  loading: () => 'Loading...',
+                  error: (_, __) => 'Unknown',
+                ),
+              ),
               _buildInfoTile('Developer', 'Shuaib Ahmad'),
               const Gap(16),
               Row(
@@ -286,13 +372,22 @@ class SettingsScreen extends ConsumerWidget {
                   Expanded(
                     child: OutlinedButton.icon(
                       onPressed: () async {
-                        final url = Uri.parse('https://shuaibahmad.netlify.app/privacy-policy');
+                        final url = Uri.parse(
+                          'https://shuaibahmad.netlify.app/privacy-policy',
+                        );
                         try {
-                          await launchUrl(url, mode: LaunchMode.externalApplication);
+                          await launchUrl(
+                            url,
+                            mode: LaunchMode.externalApplication,
+                          );
                         } catch (e) {
                           if (context.mounted) {
                             ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('Could not open the privacy policy link.')),
+                              const SnackBar(
+                                content: Text(
+                                  'Could not open the privacy policy link.',
+                                ),
+                              ),
                             );
                           }
                         }
@@ -305,13 +400,22 @@ class SettingsScreen extends ConsumerWidget {
                   Expanded(
                     child: OutlinedButton.icon(
                       onPressed: () async {
-                        final url = Uri.parse('https://shuaibahmad.netlify.app/terms-of-service');
+                        final url = Uri.parse(
+                          'https://shuaibahmad.netlify.app/terms-of-service',
+                        );
                         try {
-                          await launchUrl(url, mode: LaunchMode.externalApplication);
+                          await launchUrl(
+                            url,
+                            mode: LaunchMode.externalApplication,
+                          );
                         } catch (e) {
                           if (context.mounted) {
                             ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('Could not open the terms of service link.')),
+                              const SnackBar(
+                                content: Text(
+                                  'Could not open the terms of service link.',
+                                ),
+                              ),
                             );
                           }
                         }
@@ -334,19 +438,29 @@ class SettingsScreen extends ConsumerWidget {
                   onPressed: () async {
                     final confirmed = await LogoutDialog.show(context);
                     if (confirmed == true && context.mounted) {
+                      // Allow dialog pop animation to complete before routing away to prevent CanvasKit crash
+                      await Future.delayed(const Duration(milliseconds: 100));
                       try {
-                        await ref.read(authRepositoryProvider).signOut();
+                        if (context.mounted) {
+                          await ref.read(authRepositoryProvider).signOut();
+                        }
                       } catch (e) {
                         if (context.mounted) {
                           ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text('Logout failed: $e'), backgroundColor: theme.colorScheme.error),
+                            SnackBar(
+                              content: Text('Logout failed: $e'),
+                              backgroundColor: theme.colorScheme.error,
+                            ),
                           );
                         }
                       }
                     }
                   },
                   icon: const Icon(Icons.logout),
-                  label: Text('Sign Out of ${settings.business.clubName}', style: const TextStyle(fontWeight: FontWeight.w700)),
+                  label: Text(
+                    'Sign Out of ${settings.business.clubName}',
+                    style: const TextStyle(fontWeight: FontWeight.w700),
+                  ),
                 ),
               ),
             ],
@@ -370,7 +484,10 @@ class SettingsScreen extends ConsumerWidget {
             child: Text(
               value,
               textAlign: TextAlign.right,
-              style: const TextStyle(fontWeight: FontWeight.w600, color: Colors.grey),
+              style: const TextStyle(
+                fontWeight: FontWeight.w600,
+                color: Colors.grey,
+              ),
             ),
           ),
         ],
@@ -378,8 +495,12 @@ class SettingsScreen extends ConsumerWidget {
     );
   }
 
-
-  Widget _buildTableCountBadge(String label, int count, Color color, BuildContext context) {
+  Widget _buildTableCountBadge(
+    String label,
+    int count,
+    Color color,
+    BuildContext context,
+  ) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       decoration: BoxDecoration(
@@ -389,15 +510,33 @@ class SettingsScreen extends ConsumerWidget {
       ),
       child: Column(
         children: [
-          Text(count.toString(), style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: color)),
+          Text(
+            count.toString(),
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.w800,
+              color: color,
+            ),
+          ),
           const Gap(4),
-          Text(label, style: Theme.of(context).textTheme.labelSmall?.copyWith(fontWeight: FontWeight.w600)),
+          Text(
+            label,
+            style: Theme.of(
+              context,
+            ).textTheme.labelSmall?.copyWith(fontWeight: FontWeight.w600),
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildThemeOption(ThemeMode mode, String label, IconData icon, ThemeMode currentMode, WidgetRef ref) {
+  Widget _buildThemeOption(
+    ThemeMode mode,
+    String label,
+    IconData icon,
+    ThemeMode currentMode,
+    WidgetRef ref,
+  ) {
     final isSelected = mode == currentMode;
     return InkWell(
       onTap: () => ref.read(themeModeProvider.notifier).setThemeMode(mode),
@@ -405,10 +544,14 @@ class SettingsScreen extends ConsumerWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 12),
         decoration: BoxDecoration(
-          color: isSelected ? AppColors.primary.withValues(alpha: 0.2) : Colors.transparent,
+          color: isSelected
+              ? AppColors.primary.withValues(alpha: 0.2)
+              : Colors.transparent,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: isSelected ? AppColors.primary : Colors.grey.withValues(alpha: 0.3),
+            color: isSelected
+                ? AppColors.primary
+                : Colors.grey.withValues(alpha: 0.3),
             width: isSelected ? 2 : 1,
           ),
         ),
@@ -416,19 +559,29 @@ class SettingsScreen extends ConsumerWidget {
           children: [
             Icon(icon, color: isSelected ? AppColors.primary : Colors.grey),
             const Gap(6),
-            Text(label, style: TextStyle(fontWeight: isSelected ? FontWeight.w700 : FontWeight.normal)),
+            Text(
+              label,
+              style: TextStyle(
+                fontWeight: isSelected ? FontWeight.w700 : FontWeight.normal,
+              ),
+            ),
           ],
         ),
       ),
     );
   }
 
-
-  void _showCurrencyPicker(BuildContext context, WidgetRef ref, Currency currentCurrency) {
+  void _showCurrencyPicker(
+    BuildContext context,
+    WidgetRef ref,
+    Currency currentCurrency,
+  ) {
     showModalBottomSheet(
-useRootNavigator: true,
-context: context,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      useRootNavigator: true,
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
       builder: (context) {
         return SafeArea(
           child: Column(
@@ -437,14 +590,25 @@ context: context,
             children: [
               Padding(
                 padding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
-                child: Text('Select Currency', style: Theme.of(context).textTheme.titleLarge),
+                child: Text(
+                  'Select Currency',
+                  style: Theme.of(context).textTheme.titleLarge,
+                ),
               ),
               ...Currency.supportedCurrencies.map(
                 (c) => ListTile(
-                  leading: Text(c.symbol, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+                  leading: Text(
+                    c.symbol,
+                    style: const TextStyle(
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                   title: Text(c.name),
                   subtitle: Text(c.code),
-                  trailing: c.code == currentCurrency.code ? const Icon(Icons.check, color: AppColors.success) : null,
+                  trailing: c.code == currentCurrency.code
+                      ? const Icon(Icons.check, color: AppColors.success)
+                      : null,
                   onTap: () {
                     ref.read(currencyProvider.notifier).setCurrency(c);
                     Navigator.of(context).pop();
