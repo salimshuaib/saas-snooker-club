@@ -29,6 +29,7 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
   late GameSession _session;
   PaymentMethod _paymentMethod = PaymentMethod.cash;
   String? _PlayerProfileName;
+  final Map<String, String> _renamedPlayers = {};
   late Map<String, Map<PaymentMethod, double>> _playerPaymentSplits;
   late Map<String, double> _customLiabilities;
   bool _isProcessing = false;
@@ -889,12 +890,19 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
                       Row(
                         children: [
                           Text(
-                            player,
+                            _renamedPlayers[player] ?? player,
                             style: theme.textTheme.titleSmall?.copyWith(
                               fontWeight: FontWeight.w700,
                             ),
                           ),
-                          const Gap(8),
+                          IconButton(
+                            icon: const Icon(Icons.edit, size: 16, color: Colors.grey),
+                            onPressed: () => _showCreditNameDialog(player, autoConfirm: false, setMethod: false),
+                            padding: const EdgeInsets.symmetric(horizontal: 8),
+                            constraints: const BoxConstraints(),
+                            tooltip: 'Rename Player',
+                          ),
+                          const Gap(4),
                           TextButton(
                             onPressed: () {
                               showModalBottomSheet(
@@ -1002,11 +1010,16 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
                         final isSelected = splits.keys.first == method;
                         return Expanded(
                           child: GestureDetector(
-                            onTap: () => setState(
-                              () => _playerPaymentSplits[player] = {
-                                method: liabilities[player] ?? 0.0,
-                              },
-                            ),
+                            onTap: () {
+                              final displayName = _renamedPlayers[player] ?? player;
+                              if (method == PaymentMethod.credit && displayName.toLowerCase().startsWith('default')) {
+                                _showCreditNameDialog(player, autoConfirm: false, setMethod: true);
+                              } else {
+                                setState(() => _playerPaymentSplits[player] = {
+                                  method: liabilities[player] ?? 0.0,
+                                });
+                              }
+                            },
                             child: Container(
                               margin: EdgeInsets.only(
                                 right: method != PaymentMethod.credit ? 8 : 0,
@@ -1074,9 +1087,17 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
   }
 
   void _showCreditNameDialog(String defaultName, {bool autoConfirm = false, bool setMethod = false}) {
-    final initialText = _PlayerProfileName != null && !_PlayerProfileName!.toLowerCase().startsWith('default') 
-        ? _PlayerProfileName! 
-        : (defaultName.toLowerCase().startsWith('default') ? '' : defaultName);
+    String initialText = '';
+    if (!_isMultiPayer) {
+      initialText = _PlayerProfileName != null && !_PlayerProfileName!.toLowerCase().startsWith('default') 
+          ? _PlayerProfileName! 
+          : (defaultName.toLowerCase().startsWith('default') ? '' : defaultName);
+    } else {
+      final renamed = _renamedPlayers[defaultName];
+      initialText = renamed != null && !renamed.toLowerCase().startsWith('default') 
+          ? renamed 
+          : (defaultName.toLowerCase().startsWith('default') ? '' : defaultName);
+    }
         
     final nameCtrl = TextEditingController(text: initialText);
     
@@ -1099,11 +1120,15 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
             onPressed: () async {
               if (nameCtrl.text.trim().isNotEmpty) {
                 setState(() {
-                  _PlayerProfileName = nameCtrl.text.trim();
+                  if (!_isMultiPayer) {
+                    _PlayerProfileName = nameCtrl.text.trim();
+                  } else {
+                    _renamedPlayers[defaultName] = nameCtrl.text.trim();
+                  }
                   if (autoConfirm || setMethod) {
                     _paymentMethod = PaymentMethod.credit;
                     _playerPaymentSplits[defaultName] = {
-                      PaymentMethod.credit: _roundedTotal,
+                      PaymentMethod.credit: !_isMultiPayer ? _roundedTotal : (_customLiabilities[defaultName] ?? 0.0),
                     };
                   }
                 });
@@ -1146,6 +1171,17 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
           }
         }
       }
+    } else if (_isMultiPayer) {
+      for (final player in _playerPaymentSplits.keys) {
+        final splits = _playerPaymentSplits[player]!;
+        if (splits.containsKey(PaymentMethod.credit) && splits[PaymentMethod.credit]! > 0) {
+          final displayName = _renamedPlayers[player] ?? player;
+          if (displayName.toLowerCase().startsWith('default')) {
+            hasDefaultCredit = true;
+            break;
+          }
+        }
+      }
     }
 
     if (hasDefaultCredit) {
@@ -1165,7 +1201,31 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
     List<String>? finalPlayerIds = _session.playerIds != null ? List.from(_session.playerIds!) : null;
     Map<String, String>? finalPlayerIdentities = _session.playerIdentities != null ? Map.from(_session.playerIdentities!) : null;
 
-    if (!_isMultiPayer) {
+    if (_isMultiPayer) {
+      for (final entry in _renamedPlayers.entries) {
+        final oldName = entry.key;
+        final newName = entry.value;
+        if (oldName == newName) continue;
+        
+        if (finalTeamA.contains(oldName)) {
+          finalTeamA[finalTeamA.indexOf(oldName)] = newName;
+        }
+        if (finalTeamB.contains(oldName)) {
+          finalTeamB[finalTeamB.indexOf(oldName)] = newName;
+        }
+        if (finalPlayerIdentities != null && finalPlayerIdentities.containsKey(oldName)) {
+           final oldId = finalPlayerIdentities.remove(oldName);
+           if (finalPlayerIds != null && oldId != null) finalPlayerIds.remove(oldId);
+        }
+        
+        if (_playerPaymentSplits.containsKey(oldName)) {
+           _playerPaymentSplits[newName] = _playerPaymentSplits.remove(oldName)!;
+        }
+        if (_customLiabilities.containsKey(oldName)) {
+           _customLiabilities[newName] = _customLiabilities.remove(oldName)!;
+        }
+      }
+    } else {
       // Regardless of split or single method, if it was a default player and they renamed it,
       // apply the rename across all tracking objects to prevent ghost Khata accounts.
       final hasRenamedDefault = singlePayer.toLowerCase().startsWith('default') && 
