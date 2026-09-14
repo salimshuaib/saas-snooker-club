@@ -20,12 +20,7 @@ class ResponsiveScaffoldWrapper extends StatelessWidget {
           const CRMSidebar(),
           Expanded(
             child: ClipRect(
-              child: Center(
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 1200),
-                  child: child,
-                ),
-              ),
+              child: child,
             ),
           ),
         ],

@@ -34,12 +34,12 @@ class DesktopDashboardLayout extends ConsumerWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Expanded(
-                flex: 2,
+                flex: 5,
                 child: _buildFinancialBreakdown(context, ref),
               ),
               const Gap(24),
               Expanded(
-                flex: 1,
+                flex: 3,
                 child: _buildQuickAccess(context),
               ),
             ],
@@ -192,47 +192,39 @@ class DesktopDashboardLayout extends ConsumerWidget {
     required Color color,
     VoidCallback? onTap,
   }) {
-    return GestureDetector(
+    return AnimatedHoverCard(
       onTap: onTap,
-      child: MouseRegion(
-        cursor: onTap != null ? SystemMouseCursors.click : SystemMouseCursors.basic,
-        child: Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: const Color(0xFF12141F),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: Colors.white.withValues(alpha: 0.06), width: 0.5),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                width: 36,
-                height: 36,
-                decoration: BoxDecoration(
-                  color: color.withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Center(
-                  child: Icon(icon, size: 20, color: color),
-                ),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                color: color.withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(10),
               ),
-              const Gap(12),
-              Text(
-                title,
-                style: const TextStyle(fontSize: 14, color: Color(0xFF8B8EA3)),
+              child: Center(
+                child: Icon(icon, size: 20, color: color),
               ),
-              const Gap(4),
-              Text(
-                value,
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.w600,
-                  color: valueColor,
-                ),
+            ),
+            const Gap(12),
+            Text(
+              title,
+              style: const TextStyle(fontSize: 14, color: Color(0xFF8B8EA3)),
+            ),
+            const Gap(4),
+            Text(
+              value,
+              style: TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.w600,
+                color: valueColor,
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
@@ -256,70 +248,67 @@ class DesktopDashboardLayout extends ConsumerWidget {
     final creditCreated = summary?.creditCreated ?? 0;
     final outstandingCredit = summary?.outstandingCredit ?? 0;
 
-    return Container(
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: const Color(0xFF12141F),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.06), width: 0.5),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text(
-                'Financial breakdown',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: Colors.white),
-              ),
-              GestureDetector(
-                onTap: () => context.push(RouteNames.financialReview),
-                child: const MouseRegion(
-                  cursor: SystemMouseCursors.click,
-                  child: Icon(Icons.chevron_right, size: 18, color: Color(0xFF8B8EA3)),
+    return AnimatedHoverCard(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  'Financial breakdown',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: Colors.white),
                 ),
-              ),
-            ],
-          ),
-          const Gap(18),
-          const Text(
-            'Collections',
-            style: TextStyle(fontSize: 14, color: Color(0xFF8B8EA3)),
-          ),
-          const Gap(12),
-          
-          _buildProgressBar('Cash', '$currencySymbol${cash.toStringAsFixed(0)}', cashPct, const Color(0xFF5DCAA5)),
-          const Gap(12),
-          _buildProgressBar('UPI', '$currencySymbol${upi.toStringAsFixed(0)}', upiPct, const Color(0xFF6C6FEF)),
-          const Gap(18),
-          _buildProgressBar('Credit', '$currencySymbol${creditColl.toStringAsFixed(0)}', creditPct, const Color(0xFFE24B4A)),
-          
-          const Gap(16),
-          Container(height: 0.5, color: Colors.white.withValues(alpha: 0.08)),
-          const Gap(16),
-          
-          const Text(
-            'Credit activity',
-            style: TextStyle(fontSize: 14, color: Color(0xFF8B8EA3)),
-          ),
-          const Gap(12),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text('Credit created', style: TextStyle(fontSize: 15, color: Color(0xFFC9CBE0))),
-              Text('$currencySymbol${creditCreated.toStringAsFixed(0)}', style: const TextStyle(fontSize: 15, color: Color(0xFFF0B429))),
-            ],
-          ),
-          const Gap(10),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text('Outstanding credit', style: TextStyle(fontSize: 15, color: Color(0xFFC9CBE0))),
-              Text('$currencySymbol${outstandingCredit.toStringAsFixed(0)}', style: const TextStyle(fontSize: 15, color: Color(0xFFE24B4A))),
-            ],
-          ),
-        ],
+                GestureDetector(
+                  onTap: () => context.push(RouteNames.financialReview),
+                  child: const MouseRegion(
+                    cursor: SystemMouseCursors.click,
+                    child: Icon(Icons.chevron_right, size: 18, color: Color(0xFF8B8EA3)),
+                  ),
+                ),
+              ],
+            ),
+            const Gap(18),
+            const Text(
+              'Collections',
+              style: TextStyle(fontSize: 14, color: Color(0xFF8B8EA3)),
+            ),
+            const Gap(12),
+            
+            _buildProgressBar('Cash', '$currencySymbol${cash.toStringAsFixed(0)}', cashPct, const Color(0xFF5DCAA5)),
+            const Gap(12),
+            _buildProgressBar('UPI', '$currencySymbol${upi.toStringAsFixed(0)}', upiPct, const Color(0xFF6C6FEF)),
+            const Gap(18),
+            _buildProgressBar('Credit', '$currencySymbol${creditColl.toStringAsFixed(0)}', creditPct, const Color(0xFFE24B4A)),
+            
+            const Gap(16),
+            Container(height: 0.5, color: Colors.white.withValues(alpha: 0.08)),
+            const Gap(16),
+            
+            const Text(
+              'Credit activity',
+              style: TextStyle(fontSize: 14, color: Color(0xFF8B8EA3)),
+            ),
+            const Gap(12),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text('Credit created', style: TextStyle(fontSize: 15, color: Color(0xFFC9CBE0))),
+                Text('$currencySymbol${creditCreated.toStringAsFixed(0)}', style: const TextStyle(fontSize: 15, color: Color(0xFFF0B429))),
+              ],
+            ),
+            const Gap(10),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text('Outstanding credit', style: TextStyle(fontSize: 15, color: Color(0xFFC9CBE0))),
+                Text('$currencySymbol${outstandingCredit.toStringAsFixed(0)}', style: const TextStyle(fontSize: 15, color: Color(0xFFE24B4A))),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -342,15 +331,29 @@ class DesktopDashboardLayout extends ConsumerWidget {
             color: const Color(0xFF1A1D29),
             borderRadius: BorderRadius.circular(999),
           ),
-          child: FractionallySizedBox(
-            alignment: Alignment.centerLeft,
-            widthFactor: percentage,
-            child: Container(
-              decoration: BoxDecoration(
-                color: color,
-                borderRadius: BorderRadius.circular(999),
-              ),
-            ),
+          child: TweenAnimationBuilder<double>(
+            duration: const Duration(milliseconds: 1000),
+            curve: Curves.easeOutCubic,
+            tween: Tween<double>(begin: 0, end: percentage),
+            builder: (context, value, _) {
+              return FractionallySizedBox(
+                alignment: Alignment.centerLeft,
+                widthFactor: value,
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: color,
+                    borderRadius: BorderRadius.circular(999),
+                    boxShadow: [
+                      BoxShadow(
+                        color: color.withValues(alpha: 0.4),
+                        blurRadius: 6,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
           ),
         ),
       ],
@@ -386,27 +389,19 @@ class DesktopDashboardLayout extends ConsumerWidget {
           onTap: () => context.push(RouteNames.settings),
         ),
         const Gap(14),
-        GestureDetector(
+        AnimatedHoverCard(
           onTap: () {
             Navigator.push(context, MaterialPageRoute(builder: (c) => const InventoryStatusScreen()));
           },
-          child: MouseRegion(
-            cursor: SystemMouseCursors.click,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-              decoration: BoxDecoration(
-                color: const Color(0xFF12141F),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.white.withValues(alpha: 0.06), width: 0.5),
-              ),
-              child: Row(
-                children: [
-                  const Icon(Icons.check_circle_outline, size: 18, color: Color(0xFF5DCAA5)),
-                  const Gap(12),
-                  const Text('Inventory status: ', style: TextStyle(fontSize: 14, color: Color(0xFFC9CBE0))),
-                  const Text('All good', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: Color(0xFF5DCAA5))),
-                ],
-              ),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+            child: Row(
+              children: [
+                const Icon(Icons.check_circle_outline, size: 18, color: Color(0xFF5DCAA5)),
+                const Gap(12),
+                const Text('Inventory status: ', style: TextStyle(fontSize: 14, color: Color(0xFFC9CBE0))),
+                const Text('All good', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: Color(0xFF5DCAA5))),
+              ],
             ),
           ),
         ),
@@ -422,42 +417,84 @@ class DesktopDashboardLayout extends ConsumerWidget {
     required String subtitle,
     required VoidCallback onTap,
   }) {
-    return GestureDetector(
+    return AnimatedHoverCard(
       onTap: onTap,
-      child: MouseRegion(
-        cursor: SystemMouseCursors.click,
-        child: Container(
-          padding: const EdgeInsets.all(16),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Row(
+          children: [
+            Container(
+              width: 42,
+              height: 42,
+              decoration: BoxDecoration(
+                color: iconBg,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Center(child: Icon(icon, size: 22, color: iconColor)),
+            ),
+            const Gap(16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(title, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500, color: Colors.white)),
+                  const Gap(2),
+                  Text(subtitle, style: const TextStyle(fontSize: 13, color: Color(0xFF8B8EA3))),
+                ],
+              ),
+            ),
+            const Icon(Icons.chevron_right, size: 18, color: Color(0xFF8B8EA3)),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class AnimatedHoverCard extends StatefulWidget {
+  final Widget child;
+  final VoidCallback? onTap;
+
+  const AnimatedHoverCard({super.key, required this.child, this.onTap});
+
+  @override
+  State<AnimatedHoverCard> createState() => _AnimatedHoverCardState();
+}
+
+class _AnimatedHoverCardState extends State<AnimatedHoverCard> {
+  bool _isHovered = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return MouseRegion(
+      cursor: widget.onTap != null ? SystemMouseCursors.click : SystemMouseCursors.basic,
+      onEnter: (_) => setState(() => _isHovered = true),
+      onExit: (_) => setState(() => _isHovered = false),
+      child: GestureDetector(
+        onTap: widget.onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          curve: Curves.easeOut,
+          transform: Matrix4.identity()..scale(_isHovered ? 1.015 : 1.0),
+          transformAlignment: Alignment.center,
           decoration: BoxDecoration(
-            color: const Color(0xFF12141F),
+            color: _isHovered ? const Color(0xFF161926) : const Color(0xFF12141F),
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: Colors.white.withValues(alpha: 0.06), width: 0.5),
+            border: Border.all(
+              color: _isHovered ? Colors.white.withValues(alpha: 0.15) : Colors.white.withValues(alpha: 0.06),
+              width: 0.5,
+            ),
+            boxShadow: _isHovered
+                ? [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.3),
+                      blurRadius: 12,
+                      offset: const Offset(0, 4),
+                    )
+                  ]
+                : [],
           ),
-          child: Row(
-            children: [
-              Container(
-                width: 42,
-                height: 42,
-                decoration: BoxDecoration(
-                  color: iconBg,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Center(child: Icon(icon, size: 22, color: iconColor)),
-              ),
-              const Gap(16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(title, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500, color: Colors.white)),
-                    const Gap(2),
-                    Text(subtitle, style: const TextStyle(fontSize: 13, color: Color(0xFF8B8EA3))),
-                  ],
-                ),
-              ),
-              const Icon(Icons.chevron_right, size: 18, color: Color(0xFF8B8EA3)),
-            ],
-          ),
+          child: widget.child,
         ),
       ),
     );
