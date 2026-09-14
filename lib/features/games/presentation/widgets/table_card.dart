@@ -96,15 +96,7 @@ class TableCard extends ConsumerWidget {
             ),
             const Gap(8),
 
-            // Timer + Bill (only when running/paused)
-            activeGameAsync.when(
-              loading: () => const SizedBox.shrink(),
-              error: (_, __) => const SizedBox.shrink(),
-              data: (game) {
-                if (game == null) return const SizedBox.shrink();
-                return _ActiveGameInfo(game: game);
-              },
-            ),
+            
           ],
         ),
       ),
@@ -244,40 +236,3 @@ class _PulseDotState extends State<_PulseDot>
   }
 }
 
-class _ActiveGameInfo extends ConsumerStatefulWidget {
-  final GameSession game;
-
-  const _ActiveGameInfo({required this.game});
-
-  @override
-  ConsumerState<_ActiveGameInfo> createState() => _ActiveGameInfoState();
-}
-
-class _ActiveGameInfoState extends ConsumerState<_ActiveGameInfo> {
-  @override
-  Widget build(BuildContext context) {
-    // Watch the per-second tick for local timer updates
-    ref.watch(gameTimerProvider(widget.game.id));
-    final seconds = widget.game.activeSeconds;
-
-    final h = (seconds ~/ 3600).toString().padLeft(2, '0');
-    final m = ((seconds % 3600) ~/ 60).toString().padLeft(2, '0');
-    final s = (seconds % 60).toString().padLeft(2, '0');
-    final timeStr = seconds >= 3600 ? '$h:$m:$s' : '$m:$s';
-
-    final theme = Theme.of(context);
-    return Row(
-      children: [
-        Icon(Icons.timer, size: 12, color: theme.colorScheme.onSurfaceVariant),
-        const Gap(4),
-        Text(
-          timeStr,
-          style: theme.textTheme.labelSmall?.copyWith(
-            fontWeight: FontWeight.w700,
-            color: AppColors.running,
-          ),
-        ),
-      ],
-    );
-  }
-}

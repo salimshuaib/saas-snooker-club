@@ -214,31 +214,6 @@ class _TableDetailsScreenState extends ConsumerState<TableDetailsScreen> {
         onRefresh: () async {},
         child: CustomScrollView(
           slivers: [
-            // ── Current Game Section ──
-            SliverToBoxAdapter(
-              child: activeGameAsync.when(
-                loading: () => const _LoadingCard(),
-                error: (e, _) => _NoActiveGameCard(
-                  table: widget.table,
-                  isToday: widget.isToday,
-                ),
-                data: (game) {
-                  if (game != null) {
-                    return ActiveGameCard(
-                      game: game,
-                      table: widget.table,
-                      isToday: widget.isToday,
-                      showTableName: false,
-                    );
-                  }
-                  return _NoActiveGameCard(
-                    table: widget.table,
-                    isToday: widget.isToday,
-                  );
-                },
-              ),
-            ),
-
             // ── History Section ──
             SliverToBoxAdapter(
               child: Padding(
@@ -350,92 +325,6 @@ class _TableDetailsScreenState extends ConsumerState<TableDetailsScreen> {
 // No Active Game Card
 // ─────────────────────────────────────────────
 
-class _NoActiveGameCard extends ConsumerWidget {
-  final TableModel table;
-  final bool isToday;
-
-  const _NoActiveGameCard({required this.table, required this.isToday});
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final theme = Theme.of(context);
-    final authState = ref.watch(authStateProvider);
-    final employeeId = authState.maybeWhen(
-      data: (user) => user?.uid ?? 'admin',
-      orElse: () => 'admin',
-    );
-
-    return Container(
-      margin: const EdgeInsets.fromLTRB(20, 16, 20, 0),
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surface,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: AppColors.available.withValues(alpha: 0.5),
-          width: 1.5,
-        ),
-      ),
-      child: Column(
-        children: [
-          Icon(
-            Icons.table_restaurant,
-            size: 64,
-            color: AppColors.available.withValues(alpha: 0.6),
-          ),
-          const Gap(12),
-          Text('Table Available', style: theme.textTheme.titleLarge),
-          const Gap(4),
-          Text(
-            table.type.displayName,
-            style: theme.textTheme.bodyMedium?.copyWith(
-              color: theme.colorScheme.onSurfaceVariant,
-            ),
-          ),
-          const Gap(20),
-          if (isToday)
-            SizedBox(
-              width: double.infinity,
-              child: FilledButton.icon(
-                onPressed: () => _showGameSetup(context, ref, employeeId),
-                icon: const Icon(Icons.play_arrow),
-                label: const Text('Start Game'),
-                style: FilledButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                ),
-              ),
-            )
-          else
-            Text(
-              'Cannot start a game on a past date.',
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
-            ),
-        ],
-      ),
-    );
-  }
-
-  Future<void> _showGameSetup(
-    BuildContext context,
-    WidgetRef ref,
-    String employeeId,
-  ) async {
-    final result = await showDialog<GameSession>(
-      context: context,
-      builder: (_) => GameSetupDialog(table: table, employeeId: employeeId),
-    );
-
-    if (result != null &&
-        result.status == TableStatus.billing &&
-        context.mounted) {
-      await Navigator.of(
-        context,
-      ).push(MaterialPageRoute(builder: (_) => BillingScreen(session: result)));
-    }
-  }
-}
 
 // ─────────────────────────────────────────────
 // History Card

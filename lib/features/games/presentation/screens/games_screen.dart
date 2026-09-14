@@ -41,7 +41,7 @@ class _GamesScreenState extends ConsumerState<GamesScreen> {
           icon: const Icon(Icons.arrow_back),
           onPressed: () => context.go('/dashboard'),
         ),
-        title: Text(AppLocalizations.of(context)!.games),
+        title: const Text('Game History'),
         centerTitle: false,
       ),
       body: Column(
