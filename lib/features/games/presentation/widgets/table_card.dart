@@ -84,36 +84,6 @@ class TableCard extends ConsumerWidget {
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
-                const Gap(4),
-                InkWell(
-                  onTap: () {
-                    final employeeId = ref.read(currentStaffProvider).value?.id ?? '';
-                    Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (_) => ManualGameSetupScreen(
-                          employeeId: employeeId,
-                          isCompletedGame: table.status != TableStatus.available,
-                          initialTable: table,
-                        ),
-                      ),
-                    );
-                  },
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: theme.colorScheme.primary.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(Icons.edit_document, size: 12, color: theme.colorScheme.primary),
-                          const Gap(2),
-                          Text('Manual', style: TextStyle(fontSize: 9, color: theme.colorScheme.primary, fontWeight: FontWeight.bold)),
-                        ],
-                      )
-                    ),
-                  ),
               ],
 
             ),

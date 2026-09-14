@@ -89,37 +89,6 @@ class GameActivityCard extends ConsumerWidget {
                     ],
                   ),
                 ),
-                const SizedBox(width: 8),
-                InkWell(
-                  onTap: () {
-                    final employeeId = ref.read(currentStaffProvider).value?.id ?? '';
-                    Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (_) => ManualGameSetupScreen(
-                          employeeId: employeeId,
-                          isCompletedGame: !isAvailable,
-                          initialTable: table,
-                        ),
-                      ),
-                    );
-                  },
-                  borderRadius: BorderRadius.circular(6),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                    decoration: BoxDecoration(
-                      color: theme.colorScheme.primary.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(6),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(Icons.edit_document, size: 14, color: theme.colorScheme.primary),
-                        const SizedBox(width: 4),
-                        Text('Manual', style: TextStyle(fontSize: 12, color: theme.colorScheme.primary, fontWeight: FontWeight.bold)),
-                      ],
-                    ),
-                  ),
-                ),
               ],
             ),
           ),

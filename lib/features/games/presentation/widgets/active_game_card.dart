@@ -148,28 +148,6 @@ class _ActiveGameCardState extends ConsumerState<ActiveGameCard> {
                               ],
                             ),
                           ),
-                          const Gap(12),
-                          FilledButton.tonalIcon(
-                            style: FilledButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 0),
-                              minimumSize: const Size(0, 28),
-                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                            ),
-                            icon: const Icon(Icons.edit_document, size: 14),
-                            label: const Text('Manual Entry', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
-                            onPressed: () {
-                              final employeeId = ref.read(currentStaffProvider).value?.id ?? '';
-                              Navigator.of(context).push(
-                                MaterialPageRoute(
-                                  builder: (_) => ManualGameSetupScreen(
-                                    employeeId: employeeId,
-                                    isCompletedGame: true,
-                                    initialTable: widget.table,
-                                  ),
-                                ),
-                              );
-                            },
-                          ),
                         ],
                       ),
                       const Gap(12),
