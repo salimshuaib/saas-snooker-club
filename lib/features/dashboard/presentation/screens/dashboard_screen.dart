@@ -1,5 +1,7 @@
 import 'package:snooker_club/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
+import 'package:snooker_club/features/dashboard/presentation/screens/desktop_dashboard_layout.dart';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:gap/gap.dart';
@@ -56,6 +58,14 @@ class DashboardScreen extends ConsumerWidget {
       if (oName != null && oName.isNotEmpty) {
         employeeName = oName;
       }
+    }
+
+    final isDesktopTop = MediaQuery.sizeOf(context).width > 800;
+    if (isDesktopTop) {
+      return Scaffold(
+        backgroundColor: const Color(0xFF0B0D14),
+        body: DesktopDashboardLayout(employeeName: employeeName),
+      );
     }
 
     return Scaffold(
