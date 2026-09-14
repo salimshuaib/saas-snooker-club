@@ -22,14 +22,14 @@ class DesktopDashboardLayout extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(24.0),
+      padding: const EdgeInsets.all(32.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _buildHeader(context, ref),
+          const Gap(32),
+          _buildStatsGrid(context, ref),
           const Gap(24),
-          _buildStatsRow(context, ref),
-          const Gap(16),
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -37,7 +37,7 @@ class DesktopDashboardLayout extends ConsumerWidget {
                 flex: 2,
                 child: _buildFinancialBreakdown(context, ref),
               ),
-              const Gap(16),
+              const Gap(24),
               Expanded(
                 flex: 1,
                 child: _buildQuickAccess(context),
@@ -62,16 +62,16 @@ class DesktopDashboardLayout extends ConsumerWidget {
             const Text(
               'Dashboard',
               style: TextStyle(
-                fontSize: 24,
+                fontSize: 28,
                 fontWeight: FontWeight.w600,
                 color: Colors.white,
               ),
             ),
-            const Gap(4),
+            const Gap(6),
             Text(
               dateStr,
               style: const TextStyle(
-                fontSize: 13,
+                fontSize: 14,
                 color: Color(0xFF8B8EA3),
               ),
             ),
@@ -81,7 +81,7 @@ class DesktopDashboardLayout extends ConsumerWidget {
     );
   }
 
-  Widget _buildStatsRow(BuildContext context, WidgetRef ref) {
+  Widget _buildStatsGrid(BuildContext context, WidgetRef ref) {
     final asyncSummary = ref.watch(financialSummaryProvider);
     final runningCount = ref.watch(runningTablesCountProvider);
     final availableCount = ref.watch(availableTablesCountProvider);
@@ -94,8 +94,11 @@ class DesktopDashboardLayout extends ConsumerWidget {
     final cashCollected = summary?.cashCollected ?? 0;
     final outstandingCredit = summary?.outstandingCredit ?? 0;
 
-    return Row(
-      children: [
+    return LayoutBuilder(builder: (context, constraints) {
+      // If width is tight, use 3 columns (2 rows) instead of 6 columns
+      final useTwoRows = constraints.maxWidth < 1100;
+      
+      final cards = [
         _buildStatCard(
           title: 'Total billed',
           value: '$currencySymbol${totalBilled.toStringAsFixed(0)}',
@@ -104,7 +107,6 @@ class DesktopDashboardLayout extends ConsumerWidget {
           color: const Color(0xFF6C6FEF),
           onTap: () => context.push(RouteNames.financialReview),
         ),
-        const Gap(16),
         _buildStatCard(
           title: 'Cash collected',
           value: '$currencySymbol${cashCollected.toStringAsFixed(0)}',
@@ -113,7 +115,6 @@ class DesktopDashboardLayout extends ConsumerWidget {
           color: const Color(0xFF5DCAA5),
           onTap: () => context.push(RouteNames.financialReview),
         ),
-        const Gap(16),
         _buildStatCard(
           title: 'Outstanding credit',
           value: '$currencySymbol${outstandingCredit.toStringAsFixed(0)}',
@@ -122,7 +123,6 @@ class DesktopDashboardLayout extends ConsumerWidget {
           color: const Color(0xFFE24B4A),
           onTap: () => context.push(RouteNames.credit),
         ),
-        const Gap(16),
         _buildStatCard(
           title: 'Running tables',
           value: runningCount.toString(),
@@ -133,7 +133,6 @@ class DesktopDashboardLayout extends ConsumerWidget {
             Navigator.push(context, MaterialPageRoute(builder: (c) => const RunningTablesScreen()));
           },
         ),
-        const Gap(16),
         _buildStatCard(
           title: 'Available tables',
           value: availableCount.toString(),
@@ -144,7 +143,6 @@ class DesktopDashboardLayout extends ConsumerWidget {
             Navigator.push(context, MaterialPageRoute(builder: (c) => const AvailableTablesScreen()));
           },
         ),
-        const Gap(16),
         _buildStatCard(
           title: 'Quick sales today',
           value: qsCount.toString(),
@@ -153,8 +151,37 @@ class DesktopDashboardLayout extends ConsumerWidget {
           color: const Color(0xFF6C6FEF),
           onTap: () => context.push(RouteNames.quickSales),
         ),
-      ],
-    );
+      ];
+
+      if (useTwoRows) {
+        return Column(
+          children: [
+            Row(children: [
+              Expanded(child: cards[0]), const Gap(16),
+              Expanded(child: cards[1]), const Gap(16),
+              Expanded(child: cards[2]),
+            ]),
+            const Gap(16),
+            Row(children: [
+              Expanded(child: cards[3]), const Gap(16),
+              Expanded(child: cards[4]), const Gap(16),
+              Expanded(child: cards[5]),
+            ]),
+          ],
+        );
+      }
+
+      return Row(
+        children: [
+          Expanded(child: cards[0]), const Gap(16),
+          Expanded(child: cards[1]), const Gap(16),
+          Expanded(child: cards[2]), const Gap(16),
+          Expanded(child: cards[3]), const Gap(16),
+          Expanded(child: cards[4]), const Gap(16),
+          Expanded(child: cards[5]),
+        ],
+      );
+    });
   }
 
   Widget _buildStatCard({
@@ -165,48 +192,46 @@ class DesktopDashboardLayout extends ConsumerWidget {
     required Color color,
     VoidCallback? onTap,
   }) {
-    return Expanded(
-      child: GestureDetector(
-        onTap: onTap,
-        child: MouseRegion(
-          cursor: onTap != null ? SystemMouseCursors.click : SystemMouseCursors.basic,
-          child: Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: const Color(0xFF12141F),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.white.withValues(alpha: 0.06), width: 0.5),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
-                  width: 28,
-                  height: 28,
-                  decoration: BoxDecoration(
-                    color: color.withValues(alpha: 0.15),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Center(
-                    child: Icon(icon, size: 14, color: color),
-                  ),
+    return GestureDetector(
+      onTap: onTap,
+      child: MouseRegion(
+        cursor: onTap != null ? SystemMouseCursors.click : SystemMouseCursors.basic,
+        child: Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: const Color(0xFF12141F),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.06), width: 0.5),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(10),
                 ),
-                const Gap(8),
-                Text(
-                  title,
-                  style: const TextStyle(fontSize: 11, color: Color(0xFF8B8EA3)),
+                child: Center(
+                  child: Icon(icon, size: 20, color: color),
                 ),
-                const Gap(2),
-                Text(
-                  value,
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w500,
-                    color: valueColor,
-                  ),
+              ),
+              const Gap(12),
+              Text(
+                title,
+                style: const TextStyle(fontSize: 14, color: Color(0xFF8B8EA3)),
+              ),
+              const Gap(4),
+              Text(
+                value,
+                style: TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.w600,
+                  color: valueColor,
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ),
@@ -232,7 +257,7 @@ class DesktopDashboardLayout extends ConsumerWidget {
     final outstandingCredit = summary?.outstandingCredit ?? 0;
 
     return Container(
-      padding: const EdgeInsets.all(18),
+      padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
         color: const Color(0xFF12141F),
         borderRadius: BorderRadius.circular(12),
@@ -246,52 +271,52 @@ class DesktopDashboardLayout extends ConsumerWidget {
             children: [
               const Text(
                 'Financial breakdown',
-                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: Colors.white),
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: Colors.white),
               ),
               GestureDetector(
                 onTap: () => context.push(RouteNames.financialReview),
                 child: const MouseRegion(
                   cursor: SystemMouseCursors.click,
-                  child: Icon(Icons.chevron_right, size: 15, color: Color(0xFF8B8EA3)),
+                  child: Icon(Icons.chevron_right, size: 18, color: Color(0xFF8B8EA3)),
                 ),
               ),
             ],
           ),
-          const Gap(14),
+          const Gap(18),
           const Text(
             'Collections',
-            style: TextStyle(fontSize: 11, color: Color(0xFF8B8EA3)),
+            style: TextStyle(fontSize: 14, color: Color(0xFF8B8EA3)),
           ),
-          const Gap(8),
+          const Gap(12),
           
           _buildProgressBar('Cash', '$currencySymbol${cash.toStringAsFixed(0)}', cashPct, const Color(0xFF5DCAA5)),
-          const Gap(8),
+          const Gap(12),
           _buildProgressBar('UPI', '$currencySymbol${upi.toStringAsFixed(0)}', upiPct, const Color(0xFF6C6FEF)),
-          const Gap(14),
+          const Gap(18),
           _buildProgressBar('Credit', '$currencySymbol${creditColl.toStringAsFixed(0)}', creditPct, const Color(0xFFE24B4A)),
           
-          const Gap(12),
+          const Gap(16),
           Container(height: 0.5, color: Colors.white.withValues(alpha: 0.08)),
-          const Gap(12),
+          const Gap(16),
           
           const Text(
             'Credit activity',
-            style: TextStyle(fontSize: 11, color: Color(0xFF8B8EA3)),
+            style: TextStyle(fontSize: 14, color: Color(0xFF8B8EA3)),
           ),
-          const Gap(8),
+          const Gap(12),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text('Credit created', style: TextStyle(fontSize: 13, color: Color(0xFFC9CBE0))),
-              Text('$currencySymbol${creditCreated.toStringAsFixed(0)}', style: const TextStyle(fontSize: 13, color: Color(0xFFF0B429))),
+              const Text('Credit created', style: TextStyle(fontSize: 15, color: Color(0xFFC9CBE0))),
+              Text('$currencySymbol${creditCreated.toStringAsFixed(0)}', style: const TextStyle(fontSize: 15, color: Color(0xFFF0B429))),
             ],
           ),
-          const Gap(6),
+          const Gap(10),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text('Outstanding credit', style: TextStyle(fontSize: 13, color: Color(0xFFC9CBE0))),
-              Text('$currencySymbol${outstandingCredit.toStringAsFixed(0)}', style: const TextStyle(fontSize: 13, color: Color(0xFFE24B4A))),
+              const Text('Outstanding credit', style: TextStyle(fontSize: 15, color: Color(0xFFC9CBE0))),
+              Text('$currencySymbol${outstandingCredit.toStringAsFixed(0)}', style: const TextStyle(fontSize: 15, color: Color(0xFFE24B4A))),
             ],
           ),
         ],
@@ -306,13 +331,13 @@ class DesktopDashboardLayout extends ConsumerWidget {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(label, style: const TextStyle(fontSize: 12, color: Color(0xFFC9CBE0))),
-            Text(value, style: TextStyle(fontSize: 12, color: color)),
+            Text(label, style: const TextStyle(fontSize: 14, color: Color(0xFFC9CBE0))),
+            Text(value, style: TextStyle(fontSize: 14, color: color)),
           ],
         ),
-        const Gap(4),
+        const Gap(6),
         Container(
-          height: 5,
+          height: 8,
           decoration: BoxDecoration(
             color: const Color(0xFF1A1D29),
             borderRadius: BorderRadius.circular(999),
@@ -337,10 +362,10 @@ class DesktopDashboardLayout extends ConsumerWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Padding(
-          padding: EdgeInsets.only(bottom: 10),
+          padding: EdgeInsets.only(bottom: 14),
           child: Text(
             'Quick access',
-            style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: Colors.white),
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: Colors.white),
           ),
         ),
         _buildQuickAccessTile(
@@ -351,7 +376,7 @@ class DesktopDashboardLayout extends ConsumerWidget {
           subtitle: 'Manage table reservations',
           onTap: () => context.push(RouteNames.bookings),
         ),
-        const Gap(10),
+        const Gap(14),
         _buildQuickAccessTile(
           icon: Icons.settings,
           iconColor: const Color(0xFFC9CBE0),
@@ -360,7 +385,7 @@ class DesktopDashboardLayout extends ConsumerWidget {
           subtitle: 'App config',
           onTap: () => context.push(RouteNames.settings),
         ),
-        const Gap(10),
+        const Gap(14),
         GestureDetector(
           onTap: () {
             Navigator.push(context, MaterialPageRoute(builder: (c) => const InventoryStatusScreen()));
@@ -368,7 +393,7 @@ class DesktopDashboardLayout extends ConsumerWidget {
           child: MouseRegion(
             cursor: SystemMouseCursors.click,
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
               decoration: BoxDecoration(
                 color: const Color(0xFF12141F),
                 borderRadius: BorderRadius.circular(12),
@@ -376,10 +401,10 @@ class DesktopDashboardLayout extends ConsumerWidget {
               ),
               child: Row(
                 children: [
-                  const Icon(Icons.check_circle_outline, size: 15, color: Color(0xFF5DCAA5)),
-                  const Gap(10),
-                  const Text('Inventory status: ', style: TextStyle(fontSize: 12, color: Color(0xFFC9CBE0))),
-                  const Text('All good', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: Color(0xFF5DCAA5))),
+                  const Icon(Icons.check_circle_outline, size: 18, color: Color(0xFF5DCAA5)),
+                  const Gap(12),
+                  const Text('Inventory status: ', style: TextStyle(fontSize: 14, color: Color(0xFFC9CBE0))),
+                  const Text('All good', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: Color(0xFF5DCAA5))),
                 ],
               ),
             ),
@@ -402,7 +427,7 @@ class DesktopDashboardLayout extends ConsumerWidget {
       child: MouseRegion(
         cursor: SystemMouseCursors.click,
         child: Container(
-          padding: const EdgeInsets.all(14),
+          padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
             color: const Color(0xFF12141F),
             borderRadius: BorderRadius.circular(12),
@@ -411,26 +436,26 @@ class DesktopDashboardLayout extends ConsumerWidget {
           child: Row(
             children: [
               Container(
-                width: 36,
-                height: 36,
+                width: 42,
+                height: 42,
                 decoration: BoxDecoration(
                   color: iconBg,
-                  borderRadius: BorderRadius.circular(10),
+                  borderRadius: BorderRadius.circular(12),
                 ),
-                child: Center(child: Icon(icon, size: 17, color: iconColor)),
+                child: Center(child: Icon(icon, size: 22, color: iconColor)),
               ),
-              const Gap(12),
+              const Gap(16),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(title, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: Colors.white)),
-                    const Gap(1),
-                    Text(subtitle, style: const TextStyle(fontSize: 11, color: Color(0xFF8B8EA3))),
+                    Text(title, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500, color: Colors.white)),
+                    const Gap(2),
+                    Text(subtitle, style: const TextStyle(fontSize: 13, color: Color(0xFF8B8EA3))),
                   ],
                 ),
               ),
-              const Icon(Icons.chevron_right, size: 15, color: Color(0xFF8B8EA3)),
+              const Icon(Icons.chevron_right, size: 18, color: Color(0xFF8B8EA3)),
             ],
           ),
         ),
