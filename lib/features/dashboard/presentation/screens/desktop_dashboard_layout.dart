@@ -4,6 +4,12 @@ import 'package:gap/gap.dart';
 import 'package:intl/intl.dart';
 import 'package:snooker_club/core/providers/app_providers.dart';
 import 'package:snooker_club/core/routes/route_names.dart';
+import 'package:snooker_club/features/dashboard/presentation/screens/financial_review_screen.dart';
+import 'package:snooker_club/features/credit/presentation/screens/credit_screen.dart';
+import 'package:snooker_club/features/quick_sales/presentation/screens/quick_sales_screen.dart';
+import 'package:snooker_club/features/settings/presentation/screens/settings_screen.dart';
+import 'package:snooker_club/features/bookings/presentation/screens/booking_management_screen.dart';
+
 import 'package:go_router/go_router.dart';
 
 import 'package:snooker_club/features/dashboard/providers/financial_providers.dart';
@@ -105,7 +111,7 @@ class DesktopDashboardLayout extends ConsumerWidget {
           valueColor: const Color(0xFF6C6FEF),
           icon: Icons.account_balance_wallet,
           color: const Color(0xFF6C6FEF),
-          onTap: () => context.push(RouteNames.financialReview),
+          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (c) => const FinancialReviewScreen())),
         ),
         _buildStatCard(
           title: 'Cash collected',
@@ -113,7 +119,7 @@ class DesktopDashboardLayout extends ConsumerWidget {
           valueColor: Colors.white,
           icon: Icons.payments,
           color: const Color(0xFF5DCAA5),
-          onTap: () => context.push(RouteNames.financialReview),
+          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (c) => const FinancialReviewScreen())),
         ),
         _buildStatCard(
           title: 'Outstanding credit',
@@ -121,7 +127,7 @@ class DesktopDashboardLayout extends ConsumerWidget {
           valueColor: Colors.white,
           icon: Icons.credit_card,
           color: const Color(0xFFE24B4A),
-          onTap: () => context.push(RouteNames.credit),
+          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (c) => const CreditScreen())),
         ),
         _buildStatCard(
           title: 'Running tables',
@@ -149,7 +155,7 @@ class DesktopDashboardLayout extends ConsumerWidget {
           valueColor: Colors.white,
           icon: Icons.shopping_cart,
           color: const Color(0xFF6C6FEF),
-          onTap: () => context.push(RouteNames.quickSales),
+          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (c) => const QuickSalesScreen())),
         ),
       ];
 
@@ -249,6 +255,7 @@ class DesktopDashboardLayout extends ConsumerWidget {
     final outstandingCredit = summary?.outstandingCredit ?? 0;
 
     return AnimatedHoverCard(
+      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (c) => const FinancialReviewScreen())),
       child: Padding(
         padding: const EdgeInsets.all(24),
         child: Column(
@@ -261,13 +268,7 @@ class DesktopDashboardLayout extends ConsumerWidget {
                   'Financial breakdown',
                   style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: Colors.white),
                 ),
-                GestureDetector(
-                  onTap: () => context.push(RouteNames.financialReview),
-                  child: const MouseRegion(
-                    cursor: SystemMouseCursors.click,
-                    child: Icon(Icons.chevron_right, size: 18, color: Color(0xFF8B8EA3)),
-                  ),
-                ),
+                const Icon(Icons.chevron_right, size: 18, color: Color(0xFF8B8EA3)),
               ],
             ),
             const Gap(18),
@@ -377,7 +378,7 @@ class DesktopDashboardLayout extends ConsumerWidget {
           iconBg: const Color(0xFF6C6FEF).withValues(alpha: 0.15),
           title: 'Reservations & bookings',
           subtitle: 'Manage table reservations',
-          onTap: () => context.push(RouteNames.bookings),
+          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (c) => const BookingManagementScreen())),
         ),
         const Gap(14),
         _buildQuickAccessTile(
@@ -386,7 +387,7 @@ class DesktopDashboardLayout extends ConsumerWidget {
           iconBg: const Color(0xFF1A1D29),
           title: 'Settings',
           subtitle: 'App config',
-          onTap: () => context.push(RouteNames.settings),
+          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (c) => const SettingsScreen())),
         ),
         const Gap(14),
         AnimatedHoverCard(
