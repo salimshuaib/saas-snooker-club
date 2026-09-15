@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:snooker_club/core/error/app_exception.dart';
 import 'package:snooker_club/core/utils/logger.dart';
+import 'package:snooker_club/core/services/push_notification_service.dart';
 
 /// Repository that wraps Firebase Authentication.
 /// All Firebase-specific code is isolated here.
@@ -31,6 +32,15 @@ class AuthRepository {
         password: password,
       );
       AppLogger.info('Login successful for: $email');
+      
+      // Save FCM Token
+      try {
+        final pushService = PushNotificationService();
+        await pushService.initialize();
+      } catch (e) {
+        AppLogger.error('Failed to init push service after login: $e');
+      }
+
       return credential.user!;
     } on FirebaseAuthException catch (e) {
       AppLogger.warning('FirebaseAuthException: ${e.code}');

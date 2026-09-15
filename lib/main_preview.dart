@@ -9,12 +9,23 @@ import 'package:snooker_club/core/services/firestore_service.dart';
 import 'package:snooker_club/core/services/local_storage_service.dart';
 import 'package:snooker_club/core/utils/logger.dart';
 import 'package:snooker_club/firebase_options.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:snooker_club/core/services/push_notification_service.dart';
+
+@pragma('vm:entry-point')
+Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  print('Handling a background message: ${message.messageId}');
+}
 
 /// Preview entry point.
 /// Connects to real Firebase for READS, but all WRITES are blocked.
 /// Use this to safely experiment with UI changes.
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Register background handler
+  FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
 
   // Set environment to PREVIEW — this blocks all write operations
   AppConfig.initialize(AppEnvironment.preview);
@@ -28,6 +39,14 @@ void main() async {
   // Initialize Firebase (needed for reads and plugin compatibility)
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   AppLogger.info('Firebase initialized (PREVIEW mode - writes blocked)');
+
+  // Initialize Push Notifications
+  try {
+    final pushService = PushNotificationService();
+    await pushService.initialize();
+  } catch (e) {
+    AppLogger.error('Failed to initialize push notifications: $e');
+  }
 
   // Enable Firestore offline persistence
   final firestoreService = FirestoreService();

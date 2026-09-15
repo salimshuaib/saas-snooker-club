@@ -1,0 +1,15 @@
+{
+  "name": "snooker-club-backend",
+  "version": "1.0.0",
+  "description": "Background worker for Firebase FCM Push Notifications",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "firebase-admin": "^11.8.0"
+  },
+  "engines": {
+    "node": "18.x"
+  }
+}

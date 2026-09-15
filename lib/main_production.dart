@@ -12,12 +12,23 @@ import 'package:snooker_club/core/services/local_storage_service.dart';
 import 'package:snooker_club/core/utils/logger.dart';
 import 'package:snooker_club/firebase_options.dart';
 import 'package:firebase_crashlytics/firebase_crashlytics.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:snooker_club/core/services/push_notification_service.dart';
 import 'dart:ui';
+
+@pragma('vm:entry-point')
+Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  print('Handling a background message: ${message.messageId}');
+}
 
 /// Production entry point.
 /// Connects to real Firebase with full read/write access.
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Register background handler
+  FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
 
   // Set environment to PRODUCTION
   AppConfig.initialize(AppEnvironment.production);
@@ -31,6 +42,14 @@ void main() async {
   // Initialize Firebase
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   AppLogger.info('Firebase initialized successfully');
+
+  // Initialize Push Notifications
+  try {
+    final pushService = PushNotificationService();
+    await pushService.initialize();
+  } catch (e) {
+    AppLogger.error('Failed to initialize push notifications: $e');
+  }
 
   // Debug: log persisted auth state
   final persistedUser = FirebaseAuth.instance.currentUser;
