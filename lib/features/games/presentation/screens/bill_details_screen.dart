@@ -9,6 +9,7 @@ import 'package:snooker_club/core/theme/app_colors.dart';
 import 'package:snooker_club/core/widgets/inputs/app_text_field.dart';
 import 'package:snooker_club/features/games/domain/models/game_models.dart';
 import 'package:snooker_club/features/games/presentation/widgets/admin_passcode_dialog.dart';
+import 'package:snooker_club/features/games/presentation/widgets/edit_bill_sheet.dart';
 import 'package:snooker_club/features/games/providers/games_providers.dart';
 import 'package:snooker_club/core/providers/club_scope_provider.dart';
 import 'package:snooker_club/features/settings/providers/settings_providers.dart';
@@ -79,13 +80,25 @@ class _BillDetailsScreenState extends ConsumerState<BillDetailsScreen> {
                 icon: const Icon(Icons.edit_outlined),
                 tooltip: 'Edit Bill Details',
                 onSelected: (value) {
-                  if (value == 'names') {
+                  if (value == 'full_edit') {
+                    _showFullEditModal(context, session);
+                  } else if (value == 'names') {
                     _showEditNamesModal(context, session);
                   } else if (value == 'payment') {
                     _showEditPaymentModal(context, session);
                   }
                 },
                 itemBuilder: (context) => [
+                  const PopupMenuItem(
+                    value: 'full_edit',
+                    child: Row(
+                      children: [
+                        Icon(Icons.edit_document, size: 20),
+                        Gap(12),
+                        Text('Edit Full Bill'),
+                      ],
+                    ),
+                  ),
                   const PopupMenuItem(
                     value: 'names',
                     child: Row(
@@ -576,6 +589,27 @@ class _BillDetailsScreenState extends ConsumerState<BillDetailsScreen> {
           ),
         );
       },
+    );
+  }
+
+  Future<void> _showFullEditModal(
+    BuildContext context,
+    GameSession session,
+  ) async {
+    final verified = await AdminPasscodeDialog.verify(
+      context,
+      ref,
+      title: 'Admin Authorization',
+      subtitle: 'Enter administrator passcode to edit full bill details.',
+    );
+    if (verified != true || !context.mounted) return;
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => EditBillSheet(session: session),
+        fullscreenDialog: true,
+      ),
     );
   }
 

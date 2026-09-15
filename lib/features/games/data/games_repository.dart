@@ -9,6 +9,7 @@ import 'package:snooker_club/features/games/domain/config/tables_config.dart';
 import 'package:snooker_club/features/games/domain/models/game_models.dart';
 import 'package:snooker_club/features/credit/data/credit_repository.dart';
 import 'package:snooker_club/features/credit/domain/models/credit_models.dart';
+import 'package:snooker_club/features/credit/providers/credit_providers.dart';
 import 'package:snooker_club/core/models/audit_log.dart';
 import 'package:snooker_club/features/team/domain/models/staff_member.dart';
 
@@ -1009,6 +1010,192 @@ class GamesRepository {
       updateMap['auditLogs'] = updatedAuditLogs.map((a) => a.toMap()).toList();
       batch.update(_gamesRef.doc(session.id), updateMap);
       await batch.commit();
+    }
+  }
+
+  /// Fully edits a completed bill: changes payer count, re-splits amounts,
+  /// multi-method per player, syncs credit entries, and logs audit trail.
+  Future<void> editCompletedBill({
+    required GameSession session,
+    required double newBillTotal,
+    required Map<String, Map<PaymentMethod, double>> newPlayerPaymentSplits,
+    required List<String> newSelectedPayers,
+    required Map<String, double> newPlayerLiabilities,
+    PaymentMethod? newPaymentMethod,
+    String? newPaidBy,
+  }) async {
+    if (AppConfig.guardWrite('GamesRepository.editCompletedBill')) return;
+    final creditRepo = _ref?.read(creditRepositoryProvider);
+    final batch = _db.batch();
+    final List<AuditLog> newLogs = [];
+    final String editor = currentStaff?.name ?? 'Admin';
+
+    // ── 1. Determine old credit entries ──
+    final Map<String, double> oldCreditAmounts = {};
+    if (session.playerPaymentSplits != null &&
+        session.playerPaymentSplits!.isNotEmpty) {
+      for (final entry in session.playerPaymentSplits!.entries) {
+        final creditAmt = entry.value[PaymentMethod.credit] ?? 0.0;
+        if (creditAmt > 0) {
+          oldCreditAmounts[entry.key] = creditAmt;
+        }
+      }
+    } else if (session.paymentMethod == PaymentMethod.credit) {
+      final payer = session.paidBy ?? session.players.firstOrNull ?? '';
+      final amount = session.finalAmount ?? session.grandTotal ?? 0.0;
+      if (payer.isNotEmpty && amount > 0) {
+        oldCreditAmounts[payer] = amount;
+      }
+    }
+
+    // ── 2. Determine new credit entries ──
+    final Map<String, double> newCreditAmounts = {};
+    for (final entry in newPlayerPaymentSplits.entries) {
+      final creditAmt = entry.value[PaymentMethod.credit] ?? 0.0;
+      if (creditAmt > 0) {
+        newCreditAmounts[entry.key] = creditAmt;
+      }
+    }
+
+    // ── 3. Sync credit: remove old, add new ──
+    if (creditRepo != null) {
+      // Remove all old credit entries for this game
+      for (final entry in oldCreditAmounts.entries) {
+        try {
+          await creditRepo.removeCreditFromBatch(
+            batch: batch,
+            referenceId: session.id,
+            customerName: entry.key,
+          );
+        } catch (e) {
+          // If credit has been partially paid, throw to block the edit
+          rethrow;
+        }
+      }
+
+      // Add new credit entries
+      for (final entry in newCreditAmounts.entries) {
+        await creditRepo.appendCreditToBatch(
+          batch: batch,
+          customerName: entry.key,
+          amount: entry.value,
+          type: CreditTransactionType.game,
+          referenceId: session.id,
+          title: '${session.tableName} - Game',
+          subtitle: session.date,
+          isTransfer: true, // bypass duplicate check since we just removed old ones
+        );
+      }
+    }
+
+    // ── 4. Build update map for game session ──
+    final Map<String, dynamic> updateMap = {};
+
+    // Payment splits
+    updateMap['playerPaymentSplits'] = newPlayerPaymentSplits.map(
+      (k, v) => MapEntry(k, v.map((k2, v2) => MapEntry(k2.name, v2))),
+    );
+    updateMap['playerLiabilities'] = newPlayerLiabilities;
+    updateMap['selectedPayers'] = newSelectedPayers;
+
+    // Bill total
+    if ((newBillTotal - (session.finalAmount ?? session.grandTotal ?? 0.0)).abs() > 0.01) {
+      updateMap['finalAmount'] = newBillTotal;
+      updateMap['roundedAmount'] = newBillTotal;
+    }
+
+    // Overall payment method (for single payer, single method case)
+    if (newPaymentMethod != null) {
+      updateMap['paymentMethod'] = newPaymentMethod.name;
+    }
+    if (newPaidBy != null) {
+      updateMap['paidBy'] = newPaidBy;
+    }
+
+    // Update players list if payers changed
+    final allPayerNames = newPlayerPaymentSplits.keys.toList();
+    updateMap['teamA'] = allPayerNames;
+    updateMap['players'] = allPayerNames;
+
+    // Payment status
+    if (newCreditAmounts.isNotEmpty) {
+      // Has some credit
+      final totalCredit = newCreditAmounts.values.fold<double>(0, (s, v) => s + v);
+      if (totalCredit >= newBillTotal - 0.5) {
+        updateMap['paymentStatus'] = 'Outstanding';
+        updateMap['paidAmount'] = 0.0;
+        updateMap['remainingAmount'] = newBillTotal;
+      } else {
+        updateMap['paymentStatus'] = 'Partially Paid';
+        updateMap['paidAmount'] = newBillTotal - totalCredit;
+        updateMap['remainingAmount'] = totalCredit;
+      }
+    } else {
+      updateMap['paymentStatus'] = 'Paid';
+      updateMap['paidAmount'] = newBillTotal;
+      updateMap['remainingAmount'] = 0.0;
+    }
+
+    // ── 5. Create audit log ──
+    // Summarize old state
+    String oldSummary = '';
+    if (session.playerPaymentSplits != null &&
+        session.playerPaymentSplits!.isNotEmpty) {
+      oldSummary = session.playerPaymentSplits!.entries.map((e) {
+        final methods = e.value.entries.map((m) => '₹${m.value.toStringAsFixed(0)} ${m.key.displayName}').join('+');
+        return '${e.key}: $methods';
+      }).join(', ');
+    } else {
+      oldSummary = '${session.paidBy ?? 'Unknown'}: ₹${(session.finalAmount ?? session.grandTotal ?? 0).toStringAsFixed(0)} ${session.paymentMethod?.displayName ?? 'Unknown'}';
+    }
+
+    // Summarize new state
+    final newSummary = newPlayerPaymentSplits.entries.map((e) {
+      final methods = e.value.entries.map((m) => '₹${m.value.toStringAsFixed(0)} ${m.key.displayName}').join('+');
+      return '${e.key}: $methods';
+    }).join(', ');
+
+    newLogs.add(AuditLog(
+      id: DateTime.now().millisecondsSinceEpoch.toString(),
+      editedBy: editor,
+      timestamp: DateTime.now(),
+      field: 'Bill Edit (Full)',
+      previousValue: oldSummary,
+      newValue: newSummary,
+    ));
+
+    // If bill total changed
+    final oldTotal = session.finalAmount ?? session.grandTotal ?? 0.0;
+    if ((newBillTotal - oldTotal).abs() > 0.01) {
+      newLogs.add(AuditLog(
+        id: '${DateTime.now().millisecondsSinceEpoch}_total',
+        editedBy: editor,
+        timestamp: DateTime.now(),
+        field: 'Bill Total',
+        previousValue: '₹${oldTotal.toStringAsFixed(0)}',
+        newValue: '₹${newBillTotal.toStringAsFixed(0)}',
+      ));
+    }
+
+    final updatedAuditLogs = [...session.auditLogs, ...newLogs];
+    updateMap['auditLogs'] = updatedAuditLogs.map((a) => a.toMap()).toList();
+
+    // ── 6. Commit ──
+    batch.update(_gamesRef.doc(session.id), updateMap);
+    await batch.commit();
+
+    // ── 7. Recalculate credit accounts ──
+    if (creditRepo != null) {
+      final allAffectedNames = <String>{
+        ...oldCreditAmounts.keys,
+        ...newCreditAmounts.keys,
+      };
+      for (final name in allAffectedNames) {
+        final customer = await creditRepo.getCustomerByName(name);
+        if (customer != null) {
+          await creditRepo.recalculateCustomerAccount(customer.id);
+        }
+      }
     }
   }
 }
