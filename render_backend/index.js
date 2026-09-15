@@ -40,8 +40,16 @@ app.listen(PORT, () => {
 // -----------------------------------------
 console.log("Started S&B Manager Push Notification Listener.");
 
+const START_TIME = Date.now();
+
 db.collectionGroup("bookings").onSnapshot(async (snapshot) => {
   const changes = snapshot.docChanges();
+  
+  // Prevent spamming notifications for existing bookings when the server restarts
+  if (Date.now() - START_TIME < 5000) {
+    console.log(`Ignoring initial load of ${changes.length} bookings.`);
+    return;
+  }
   
   for (const change of changes) {
     if (change.type === "added") {
@@ -60,7 +68,7 @@ db.collectionGroup("bookings").onSnapshot(async (snapshot) => {
 
 async function handleNewBooking(clubId, bookingData, bookingId) {
   try {
-    const userClubsSnapshot = await db.collection("userClubs")
+    const userClubsSnapshot = await db.collection("user_clubs")
       .where("clubId", "==", clubId)
       .get();
 
