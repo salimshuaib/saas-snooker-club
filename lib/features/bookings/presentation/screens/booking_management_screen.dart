@@ -48,7 +48,7 @@ class _BookingManagementScreenState
                 if (linkIdentifier == null) return;
 
                 final link =
-                    'https://saas-snooker-club.web.app/?club=${linkIdentifier}';
+                    'https://saas-snooker-bookings.web.app/?club=${linkIdentifier}';
                 Clipboard.setData(ClipboardData(text: link));
 
                 ScaffoldMessenger.of(context).showSnackBar(
