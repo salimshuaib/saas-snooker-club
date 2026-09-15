@@ -119,7 +119,7 @@ async function handleNewBooking(clubId, bookingData, bookingId) {
       tokens: tokens,
     };
 
-    const response = await admin.messaging().sendMulticast(message);
+    const response = await admin.messaging().sendEachForMulticast(message);
     console.log(`Successfully sent messages: ${response.successCount}, Failed: ${response.failureCount}`);
     
     if (response.failureCount > 0) {
