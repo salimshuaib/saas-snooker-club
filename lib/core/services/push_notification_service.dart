@@ -63,11 +63,12 @@ class PushNotificationService {
       }
     });
 
-    // 4. Save Token if user is logged in
-    final user = FirebaseAuth.instance.currentUser;
-    if (user != null) {
-      await _saveTokenToDatabase(user.uid);
-    }
+    // 4. Save Token whenever user logs in or app starts
+    FirebaseAuth.instance.authStateChanges().listen((user) async {
+      if (user != null) {
+        await _saveTokenToDatabase(user.uid);
+      }
+    });
 
     // 5. Listen to token refresh
     _fcm.onTokenRefresh.listen((newToken) async {

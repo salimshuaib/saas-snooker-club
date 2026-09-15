@@ -107,7 +107,7 @@ async function handleNewBooking(clubId, bookingData, bookingId) {
       return;
     }
 
-    const payload = {
+    const message = {
       notification: {
         title: "New Booking Request \uD83C\uDFB1",
         body: `${bookingData.customerName || "A customer"} booked ${bookingData.resourceName || "a table"}.`,
@@ -115,11 +115,20 @@ async function handleNewBooking(clubId, bookingData, bookingId) {
       data: {
         bookingId: bookingId,
         clubId: clubId,
-      }
+      },
+      tokens: tokens,
     };
 
-    const response = await admin.messaging().sendToDevice(tokens, payload);
-    console.log("Successfully sent messages:", response.successCount);
+    const response = await admin.messaging().sendMulticast(message);
+    console.log(`Successfully sent messages: ${response.successCount}, Failed: ${response.failureCount}`);
+    
+    if (response.failureCount > 0) {
+      response.responses.forEach((resp, idx) => {
+        if (!resp.success) {
+          console.error(`Error sending to token ${tokens[idx]}:`, resp.error);
+        }
+      });
+    }
 
   } catch (error) {
     console.error("Error processing booking notification:", error);
