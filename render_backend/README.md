@@ -2,7 +2,7 @@
 
 This is a standalone Node.js server that listens to your Firebase Firestore in real-time and sends Push Notifications (FCM) to the Club Owners when a new booking is made. 
 
-It is designed to be hosted for **free** on [Render.com](https://render.com) using their "Background Worker" tier.
+It is designed to be hosted for **free** on [Render.com](https://render.com) using their "Web Service" tier.
 
 ## How to Deploy on Render.com
 
@@ -17,7 +17,7 @@ It is designed to be hosted for **free** on [Render.com](https://render.com) usi
 
 3. **Create the Render Web Service:**
    - Go to [Render.com](https://dashboard.render.com/) and create a free account.
-   - Click **New +** -> **Background Worker**.
+   - Click **New +** -> **Web Service**.
    - Connect your GitHub account and select your `Saas Snooker Club` repository.
    - Set the following details:
      - **Name:** snooker-push-notifications
@@ -33,6 +33,15 @@ It is designed to be hosted for **free** on [Render.com](https://render.com) usi
    - **Value:** *Paste the entire contents of the `.json` file you downloaded in Step 2 here.*
 
 5. **Deploy!**
-   - Click **Create Background Worker**.
-   - Render will start your server. You can check the Logs tab to see "Started S&B Manager Push Notification Server."
+   - Click **Create Web Service**.
+   - Render will start your server. 
+
+### Keep the Free Server Awake
+Render will put Free Web Services to sleep if they do not receive web traffic for 15 minutes. If it sleeps, it will stop checking for bookings! 
+To fix this, you can set up a free pinger:
+1. Copy the URL Render gives your new service (e.g., `https://snooker-push-notifications.onrender.com`).
+2. Go to [cron-job.org](https://cron-job.org/) (a 100% free service).
+3. Create a free account, click **Create Cronjob**.
+4. Paste the URL, and set it to execute every **14 minutes**.
+This will trick Render into thinking a user is visiting the site, keeping your Push Notification server awake forever for free!
 

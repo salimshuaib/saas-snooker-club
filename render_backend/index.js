@@ -1,7 +1,7 @@
 const admin = require("firebase-admin");
+const express = require("express");
 
 // Initialize Firebase Admin using the Service Account credentials
-// Render will inject the FIREBASE_SERVICE_ACCOUNT_JSON environment variable
 let serviceAccount;
 try {
   serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_JSON);
@@ -15,12 +15,32 @@ admin.initializeApp({
 });
 
 const db = admin.firestore();
-console.log("Started S&B Manager Push Notification Server.");
 
-// Listen to all bookings collections across all clubs
-// We use a collectionGroup query to listen to ALL "bookings" collections in real-time
+// -----------------------------------------
+// Express Web Server (Required for Render Web Service)
+// -----------------------------------------
+const app = express();
+const PORT = process.env.PORT || 10000;
+
+app.get("/", (req, res) => {
+  res.send("S&B Manager Push Notification Server is running!");
+});
+
+// A ping endpoint to keep the free tier awake
+app.get("/ping", (req, res) => {
+  res.status(200).send("pong");
+});
+
+app.listen(PORT, () => {
+  console.log(`Web server listening on port ${PORT}`);
+});
+
+// -----------------------------------------
+// Firestore Listener Logic
+// -----------------------------------------
+console.log("Started S&B Manager Push Notification Listener.");
+
 db.collectionGroup("bookings").onSnapshot(async (snapshot) => {
-  // Extract only the newly added bookings
   const changes = snapshot.docChanges();
   
   for (const change of changes) {
@@ -28,8 +48,6 @@ db.collectionGroup("bookings").onSnapshot(async (snapshot) => {
       const bookingData = change.doc.data();
       const bookingRef = change.doc.ref;
       
-      // The path is clubs/{clubId}/bookings/{bookingId}
-      // Let's extract the clubId from the path
       const clubId = bookingRef.parent.parent.id;
       
       console.log(`New booking detected for club ${clubId}: ${bookingData.customerName}`);
@@ -42,7 +60,6 @@ db.collectionGroup("bookings").onSnapshot(async (snapshot) => {
 
 async function handleNewBooking(clubId, bookingData, bookingId) {
   try {
-    // 1. Find all users associated with this club
     const userClubsSnapshot = await db.collection("userClubs")
       .where("clubId", "==", clubId)
       .get();
@@ -55,7 +72,6 @@ async function handleNewBooking(clubId, bookingData, bookingId) {
     const userIds = userClubsSnapshot.docs.map(doc => doc.id);
     const tokens = [];
 
-    // 2. Fetch FCM tokens for these users
     for (const uid of userIds) {
       const userDoc = await db.collection("users").doc(uid).get();
       if (userDoc.exists) {
@@ -71,7 +87,6 @@ async function handleNewBooking(clubId, bookingData, bookingId) {
       return;
     }
 
-    // 3. Construct the notification payload
     const payload = {
       notification: {
         title: "New Booking Request \uD83C\uDFB1",
@@ -83,18 +98,8 @@ async function handleNewBooking(clubId, bookingData, bookingId) {
       }
     };
 
-    // 4. Send the push notification
     const response = await admin.messaging().sendToDevice(tokens, payload);
     console.log("Successfully sent messages:", response.successCount);
-    
-    // Optional: Cleanup invalid tokens
-    const tokensToRemove = [];
-    response.results.forEach((result, index) => {
-      const error = result.error;
-      if (error) {
-        console.error("Failure sending notification to", tokens[index], error);
-      }
-    });
 
   } catch (error) {
     console.error("Error processing booking notification:", error);
