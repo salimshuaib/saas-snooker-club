@@ -68,16 +68,28 @@ db.collectionGroup("bookings").onSnapshot(async (snapshot) => {
 
 async function handleNewBooking(clubId, bookingData, bookingId) {
   try {
+    const userIds = new Set();
+
+    // 1. Fetch the club document to get the ownerUid
+    const clubDoc = await db.collection("clubs").doc(clubId).get();
+    if (clubDoc.exists && clubDoc.data().ownerUid) {
+      userIds.add(clubDoc.data().ownerUid);
+    }
+
+    // 2. Find any staff members in user_clubs
     const userClubsSnapshot = await db.collection("user_clubs")
       .where("clubId", "==", clubId)
       .get();
 
-    if (userClubsSnapshot.empty) {
+    if (!userClubsSnapshot.empty) {
+      userClubsSnapshot.docs.forEach(doc => userIds.add(doc.id));
+    }
+
+    if (userIds.size === 0) {
       console.log(`No users found for club ${clubId}`);
       return;
     }
 
-    const userIds = userClubsSnapshot.docs.map(doc => doc.id);
     const tokens = [];
 
     for (const uid of userIds) {
