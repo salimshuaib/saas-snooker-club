@@ -55,8 +55,6 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
         data: (items) {
           final categories = {
             'All',
-            'Drinks',
-            'Cigarettes',
             ...items.map((e) => e.category),
           };
 

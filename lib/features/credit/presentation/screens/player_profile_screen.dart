@@ -14,6 +14,7 @@ import 'package:snooker_club/features/quick_sales/providers/quick_sales_provider
 import 'package:snooker_club/features/quick_sales/presentation/screens/quick_sale_details_screen.dart';
 import 'package:snooker_club/features/credit/domain/models/credit_models.dart';
 import 'package:snooker_club/features/credit/providers/credit_providers.dart';
+import 'package:snooker_club/features/credit/presentation/widgets/add_manual_credit_sheet.dart' as snooker_manual_credit;
 
 final playerGamesProvider = FutureProvider.autoDispose
     .family<List<GameSession>, PlayerProfile>((ref, player) async {
@@ -70,6 +71,19 @@ class _PlayerProfileScreenState extends ConsumerState<PlayerProfileScreen> {
       appBar: AppBar(
         title: const Text('Player Profile'),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.add_card),
+            tooltip: 'Add Manual Khata',
+            onPressed: () {
+              showModalBottomSheet(
+                context: context,
+                isScrollControlled: true,
+                builder: (ctx) => snooker_manual_credit.AddManualCreditSheet(
+                  preSelectedPlayerName: currentCustomer.name,
+                ),
+              );
+            },
+          ),
           IconButton(
             icon: const Icon(Icons.edit_outlined),
             tooltip: 'Edit Profile',

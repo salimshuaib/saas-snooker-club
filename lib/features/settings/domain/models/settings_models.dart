@@ -3,6 +3,7 @@ class BusinessSettings {
   final String address;
   final String contactNumber;
   final String? gstNumber;
+  final String? upiId;
   final String? logoUrl;
   final String? slug;
 
@@ -11,6 +12,7 @@ class BusinessSettings {
     this.address = 'Main Club Complex, City Center',
     this.contactNumber = '+91 9876543210',
     this.gstNumber,
+    this.upiId,
     this.logoUrl,
     this.slug,
   });
@@ -20,6 +22,7 @@ class BusinessSettings {
     String? address,
     String? contactNumber,
     String? gstNumber,
+    String? upiId,
     String? logoUrl,
     String? slug,
   }) {
@@ -28,6 +31,7 @@ class BusinessSettings {
       address: address ?? this.address,
       contactNumber: contactNumber ?? this.contactNumber,
       gstNumber: gstNumber ?? this.gstNumber,
+      upiId: upiId ?? this.upiId,
       logoUrl: logoUrl ?? this.logoUrl,
       slug: slug ?? this.slug,
     );
@@ -39,6 +43,7 @@ class BusinessSettings {
       'address': address,
       'contactNumber': contactNumber,
       'gstNumber': gstNumber,
+      'upiId': upiId,
       'logoUrl': logoUrl,
       'slug': slug,
     };
@@ -51,6 +56,7 @@ class BusinessSettings {
       address: map['address'] as String? ?? 'Main Club Complex, City Center',
       contactNumber: map['contactNumber'] as String? ?? '+91 9876543210',
       gstNumber: map['gstNumber'] as String?,
+      upiId: map['upiId'] as String?,
       logoUrl: map['logoUrl'] as String?,
       slug: map['slug'] as String?,
     );
@@ -64,6 +70,7 @@ class GameSettings {
   final bool enableOvertimeBilling;
   final bool allowPauseResume;
   final int maxPlayersPerTeam;
+  final bool hideBillingDetails;
 
   const GameSettings({
     this.frameGracePeriodMinutes = 20,
@@ -72,6 +79,7 @@ class GameSettings {
     this.enableOvertimeBilling = true,
     this.allowPauseResume = true,
     this.maxPlayersPerTeam = 3,
+    this.hideBillingDetails = false,
   });
 
   GameSettings copyWith({
@@ -81,6 +89,7 @@ class GameSettings {
     bool? enableOvertimeBilling,
     bool? allowPauseResume,
     int? maxPlayersPerTeam,
+    bool? hideBillingDetails,
   }) {
     return GameSettings(
       frameGracePeriodMinutes:
@@ -93,6 +102,7 @@ class GameSettings {
           enableOvertimeBilling ?? this.enableOvertimeBilling,
       allowPauseResume: allowPauseResume ?? this.allowPauseResume,
       maxPlayersPerTeam: maxPlayersPerTeam ?? this.maxPlayersPerTeam,
+      hideBillingDetails: hideBillingDetails ?? this.hideBillingDetails,
     );
   }
 
@@ -104,6 +114,7 @@ class GameSettings {
       'enableOvertimeBilling': enableOvertimeBilling,
       'allowPauseResume': allowPauseResume,
       'maxPlayersPerTeam': maxPlayersPerTeam,
+      'hideBillingDetails': hideBillingDetails,
     };
   }
 
@@ -112,9 +123,14 @@ class GameSettings {
     return GameSettings(
       frameGracePeriodMinutes:
           (map['frameGracePeriodMinutes'] as num?)?.toInt() ?? 20,
+      indianPoolGracePeriodMinutes:
+          (map['indianPoolGracePeriodMinutes'] as num?)?.toInt() ?? 20,
+      americanPoolGracePeriodMinutes:
+          (map['americanPoolGracePeriodMinutes'] as num?)?.toInt() ?? 20,
       enableOvertimeBilling: map['enableOvertimeBilling'] as bool? ?? true,
       allowPauseResume: map['allowPauseResume'] as bool? ?? true,
       maxPlayersPerTeam: (map['maxPlayersPerTeam'] as num?)?.toInt() ?? 3,
+      hideBillingDetails: map['hideBillingDetails'] as bool? ?? false,
     );
   }
 }

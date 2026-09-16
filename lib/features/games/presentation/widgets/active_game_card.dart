@@ -424,7 +424,7 @@ class _ActiveGameCardState extends ConsumerState<ActiveGameCard> {
                 label: Text(
                   game.billingType == BillingType.perFrame
                       ? 'Finish Frame'
-                      : 'End Game',
+                      : 'Finish Game',
                 ),
                 style: FilledButton.styleFrom(
                   backgroundColor: AppColors.creditStatus,
@@ -432,6 +432,30 @@ class _ActiveGameCardState extends ConsumerState<ActiveGameCard> {
               ),
             ),
           ],
+        ),
+        const Gap(12),
+        FilledButton.tonalIcon(
+          style: FilledButton.styleFrom(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 0),
+            minimumSize: const Size(0, 36),
+          ),
+          icon: const Icon(Icons.edit_document, size: 16),
+          label: const Text(
+            'Manual Entry',
+            style: TextStyle(fontWeight: FontWeight.bold),
+          ),
+          onPressed: () {
+            final employeeId = ref.read(currentStaffProvider).value?.id ?? '';
+            Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (_) => ManualGameSetupScreen(
+                  employeeId: employeeId,
+                  isCompletedGame: true,
+                  initialTable: widget.table,
+                ),
+              ),
+            );
+          },
         ),
       ],
     );

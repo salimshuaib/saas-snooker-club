@@ -57,6 +57,15 @@ class _PlayerSearchFieldState extends ConsumerState<PlayerSearchField> {
           }
         });
 
+        focusNode.addListener(() {
+          if (focusNode.hasFocus && controller.text.toLowerCase().startsWith('default')) {
+            controller.selection = TextSelection(
+              baseOffset: 0,
+              extentOffset: controller.text.length,
+            );
+          }
+        });
+
         return TextField(
           controller: controller,
           focusNode: focusNode,

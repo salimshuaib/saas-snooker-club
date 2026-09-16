@@ -21,6 +21,7 @@ class _BusinessEditSheetState extends ConsumerState<BusinessEditSheet> {
   late final TextEditingController _phoneController;
   late final TextEditingController _addressController;
   late final TextEditingController _slugController;
+  late final TextEditingController _upiIdController;
   bool _isSaving = false;
 
   @override
@@ -38,6 +39,9 @@ class _BusinessEditSheetState extends ConsumerState<BusinessEditSheet> {
     _slugController = TextEditingController(
       text: widget.initialSettings.slug ?? '',
     );
+    _upiIdController = TextEditingController(
+      text: widget.initialSettings.upiId ?? '',
+    );
   }
 
   @override
@@ -46,6 +50,7 @@ class _BusinessEditSheetState extends ConsumerState<BusinessEditSheet> {
     _phoneController.dispose();
     _addressController.dispose();
     _slugController.dispose();
+    _upiIdController.dispose();
     super.dispose();
   }
 
@@ -63,6 +68,7 @@ class _BusinessEditSheetState extends ConsumerState<BusinessEditSheet> {
         contactNumber: _phoneController.text.trim(),
         address: _addressController.text.trim(),
         slug: slugValue.isEmpty ? null : slugValue,
+        upiId: _upiIdController.text.trim().isEmpty ? null : _upiIdController.text.trim(),
       );
 
       await ref
@@ -164,6 +170,16 @@ class _BusinessEditSheetState extends ConsumerState<BusinessEditSheet> {
                   labelText: 'Contact Number',
                   border: OutlineInputBorder(),
                   prefixIcon: Icon(Icons.phone),
+                ),
+              ),
+              const Gap(16),
+              TextFormField(
+                controller: _upiIdController,
+                decoration: const InputDecoration(
+                  labelText: 'UPI ID (For Payments)',
+                  hintText: 'e.g., myclub@ybl',
+                  border: OutlineInputBorder(),
+                  prefixIcon: Icon(Icons.qr_code_scanner),
                 ),
               ),
               const Gap(16),

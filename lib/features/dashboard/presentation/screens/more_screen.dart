@@ -5,6 +5,7 @@ import 'package:snooker_club/core/routes/route_names.dart';
 import 'package:snooker_club/core/theme/app_colors.dart';
 import 'package:snooker_club/features/team/providers/team_providers.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:snooker_club/features/credit/presentation/widgets/add_manual_credit_sheet.dart' as snooker_manual_credit;
 
 class MoreScreen extends ConsumerWidget {
   const MoreScreen({super.key});
@@ -97,14 +98,7 @@ class MoreScreen extends ConsumerWidget {
               iconColor: AppColors.primary,
               onTap: () => context.push(RouteNames.games),
             ),
-            const Gap(12),
-            _MoreMenuItem(
-              icon: Icons.inventory_2,
-              title: 'Inventory',
-              subtitle: 'Stock & products',
-              iconColor: AppColors.tertiary,
-              onTap: () => context.push(RouteNames.inventory),
-            ),
+
             const Gap(12),
             _MoreMenuItem(
               icon: Icons.credit_card,
@@ -112,6 +106,20 @@ class MoreScreen extends ConsumerWidget {
               subtitle: 'Customer tabs',
               iconColor: AppColors.creditStatus,
               onTap: () => context.push(RouteNames.credit),
+            ),
+            const Gap(12),
+            _MoreMenuItem(
+              icon: Icons.account_balance_wallet,
+              title: 'Manual Khata',
+              subtitle: 'Add direct credit',
+              iconColor: AppColors.creditStatus,
+              onTap: () {
+                showModalBottomSheet(
+                  context: context,
+                  isScrollControlled: true,
+                  builder: (ctx) => const snooker_manual_credit.AddManualCreditSheet(),
+                );
+              },
             ),
             const Gap(12),
             _MoreMenuItem(

@@ -50,11 +50,10 @@ class _OrdersSheetState extends ConsumerState<OrdersSheet> {
             Center(child: Text('Error loading products: $err')),
         data: (items) {
           final activeProducts = items.where((i) => i.isActive).toList();
-          final categories = {
-            'Drinks',
-            'Cigarettes',
-            ...activeProducts.map((e) => e.category),
-          }.toList();
+          var categories = activeProducts.map((e) => e.category).toSet().toList();
+          if (categories.isEmpty) {
+            categories = ['All'];
+          }
 
           return DefaultTabController(
             length: categories.length,

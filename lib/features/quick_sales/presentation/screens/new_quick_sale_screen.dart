@@ -310,7 +310,7 @@ class _NewQuickSaleScreenState extends ConsumerState<NewQuickSaleScreen> {
           // Category Chips
           inventoryAsync.maybeWhen(
             data: (items) {
-              final Set<String> categories = {'All', 'Drinks', 'Cigarettes'};
+              final Set<String> categories = {'All'};
               for (final i in items) {
                 if (i.category.isNotEmpty) categories.add(i.category);
               }

@@ -9,13 +9,15 @@ import 'package:snooker_club/core/routes/app_router.dart';
 import 'package:snooker_club/features/games/domain/config/pricing_config.dart';
 import 'package:snooker_club/core/utils/billing_utils.dart';
 
+import 'package:snooker_club/core/models/audit_log.dart';
+import 'package:snooker_club/features/authentication/providers/auth_providers.dart';
 import 'package:snooker_club/features/settings/providers/settings_providers.dart';
 import 'package:snooker_club/features/games/domain/models/game_models.dart';
 import 'package:snooker_club/features/games/providers/games_providers.dart';
 import 'package:snooker_club/features/games/presentation/widgets/payer_selection_widget.dart';
 import 'package:snooker_club/features/games/presentation/widgets/player_split_payment_sheet.dart';
 import 'package:snooker_club/features/credit/presentation/widgets/player_search_field.dart';
-import 'package:snooker_club/features/credit/presentation/widgets/player_search_field.dart';
+import 'package:snooker_club/features/games/presentation/widgets/upi_qr_dialog.dart';
 
 class BillingScreen extends ConsumerStatefulWidget {
   final GameSession session;
@@ -34,6 +36,8 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
   late Map<String, Map<PaymentMethod, double>> _playerPaymentSplits;
   late Map<String, double> _customLiabilities;
   bool _isProcessing = false;
+  bool _isRefreshing = false;
+  bool _isTimeManuallyEdited = false;
 
   late List<String> _selectedPayers;
   double _discountAmount = 0.0;
@@ -78,6 +82,53 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
       c.dispose();
     }
     super.dispose();
+  }
+
+  Future<void> _editTime(bool isStart) async {
+    final currentDt = isStart ? _session.startTime : _session.endTime!;
+    final picked = await showTimePicker(
+      context: context,
+      initialEntryMode: TimePickerEntryMode.input,
+      initialTime: TimeOfDay.fromDateTime(currentDt),
+    );
+    if (picked != null) {
+      setState(() {
+        _isTimeManuallyEdited = true;
+        
+        // Zero out seconds to ensure clean exact minutes duration math
+        final cleanStart = DateTime(
+          _session.startTime.year,
+          _session.startTime.month,
+          _session.startTime.day,
+          _session.startTime.hour,
+          _session.startTime.minute,
+          0,
+        );
+        final cleanEnd = _session.endTime != null ? DateTime(
+          _session.endTime!.year,
+          _session.endTime!.month,
+          _session.endTime!.day,
+          _session.endTime!.hour,
+          _session.endTime!.minute,
+          0,
+        ) : null;
+
+        final newDt = DateTime(
+          currentDt.year,
+          currentDt.month,
+          currentDt.day,
+          picked.hour,
+          picked.minute,
+          0,
+        );
+        if (isStart) {
+          _session = _session.copyWith(startTime: newDt, endTime: cleanEnd);
+        } else {
+          _session = _session.copyWith(startTime: cleanStart, endTime: newDt);
+        }
+        _initializeLiabilities();
+      });
+    }
   }
 
   @override
@@ -360,6 +411,8 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
                 session: _session,
                 dtFmt: dtFmt,
                 durationStr: _formatDuration(_session.activeSeconds),
+                onEditStart: () => _editTime(true),
+                onEditEnd: () => _editTime(false),
               ),
               const Gap(16),
 
@@ -449,46 +502,78 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
               ],
 
               // ── Bill Summary ──
-              Text('Bill Summary', style: theme.textTheme.titleMedium),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text('Bill Summary', style: theme.textTheme.titleMedium),
+                  if (widget.session.endTime == null && !_isTimeManuallyEdited)
+                    _isRefreshing
+                        ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : IconButton(
+                            icon: const Icon(Icons.refresh, size: 20),
+                            padding: EdgeInsets.zero,
+                            constraints: const BoxConstraints(),
+                            tooltip: 'Refresh live duration & bill',
+                            onPressed: () async {
+                              setState(() => _isRefreshing = true);
+                              await Future.delayed(
+                                  const Duration(milliseconds: 300));
+                              if (!mounted) return;
+                              setState(() {
+                                _session = _session.copyWith(
+                                    endTime: DateTime.now());
+                                _initializeLiabilities();
+                                _isRefreshing = false;
+                              });
+                            },
+                          ),
+                ],
+              ),
               const Gap(8),
               _SectionCard(
                 children: [
-                  if (_session.billingType == BillingType.perFrame) ...[
-                    _InfoRow(
-                      label: 'Frame Charges',
-                      value: '\u20B9${_baseGameCharge.toStringAsFixed(2)}',
-                    ),
-                    _InfoRow(
-                      label: 'Grace Period',
-                      value: _session.tableType == TableType.indianPool
-                          ? '${ref.read(appSettingsProvider).game.indianPoolGracePeriodMinutes} Mins / Frame'
-                          : _session.tableType == TableType.americanPool
-                          ? '${ref.read(appSettingsProvider).game.americanPoolGracePeriodMinutes} Mins / Frame'
-                          : 'Not Applicable',
-                    ),
-                  ] else ...[
-                    if (_session.billingType == BillingType.perMinute)
+                  if (!appSettings.game.hideBillingDetails) ...[
+                    if (_session.billingType == BillingType.perFrame) ...[
                       _InfoRow(
-                        label: 'Rate',
-                        value:
-                            '\u20B9${(_session.customPrice ?? TablePricingConfig.getPerMinutePrice(table, _session.gameType, _session.pricingSnapshot ?? appSettings.pricing)).toStringAsFixed(2)} / min',
+                        label: 'Frame Charges',
+                        value: '\u20B9${_baseGameCharge.toStringAsFixed(2)}',
                       ),
+                      _InfoRow(
+                        label: 'Grace Period',
+                        value: _session.tableType == TableType.indianPool
+                            ? '${ref.read(appSettingsProvider).game.indianPoolGracePeriodMinutes} Mins / Frame'
+                            : _session.tableType == TableType.americanPool
+                            ? '${ref.read(appSettingsProvider).game.americanPoolGracePeriodMinutes} Mins / Frame'
+                            : 'Not Applicable',
+                      ),
+                    ] else ...[
+                      if (_session.billingType == BillingType.perMinute)
+                        _InfoRow(
+                          label: 'Rate',
+                          value:
+                              '\u20B9${(_session.customPrice ?? TablePricingConfig.getPerMinutePrice(table, _session.gameType, _session.pricingSnapshot ?? appSettings.pricing)).toStringAsFixed(2)} / min',
+                        ),
+                      _InfoRow(
+                        label: 'Base Charge',
+                        value: '\u20B9${_baseGameCharge.toStringAsFixed(2)}',
+                      ),
+                    ],
+                    if (_overtimeMinutes > 0) ...[
+                      _InfoRow(
+                        label: 'Overtime (${_overtimeMinutes} mins)',
+                        value: '\u20B9${_overtimeCharge.toStringAsFixed(2)}',
+                      ),
+                    ],
+                    const Divider(height: 16),
                     _InfoRow(
-                      label: 'Base Charge',
-                      value: '\u20B9${_baseGameCharge.toStringAsFixed(2)}',
+                      label: 'Total Game Charge',
+                      value: '\u20B9${_gameCharge.toStringAsFixed(2)}',
                     ),
                   ],
-                  if (_overtimeMinutes > 0) ...[
-                    _InfoRow(
-                      label: 'Overtime (${_overtimeMinutes} mins)',
-                      value: '\u20B9${_overtimeCharge.toStringAsFixed(2)}',
-                    ),
-                  ],
-                  const Divider(height: 16),
-                  _InfoRow(
-                    label: 'Total Game Charge',
-                    value: '\u20B9${_gameCharge.toStringAsFixed(2)}',
-                  ),
                   if (_ordersTotal > 0)
                     _InfoRow(
                       label: 'Orders Total',
@@ -578,39 +663,42 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
                   const Divider(height: 16),
 
                   // ── Final Amounts ──
-                  if (_hasDiscount) ...[
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          'Discounted Game',
-                          style: theme.textTheme.titleSmall,
-                        ),
-                        Text(
-                          '\u20B9${_discountedGameCharge.toStringAsFixed(2)}',
-                          style: theme.textTheme.titleSmall,
-                        ),
-                      ],
-                    ),
-                    const Gap(4),
+                  if (!appSettings.game.hideBillingDetails) ...[
+                    if (_hasDiscount) ...[
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            'Discounted Game',
+                            style: theme.textTheme.titleSmall,
+                          ),
+                          Text(
+                            '\u20B9${_discountedGameCharge.toStringAsFixed(2)}',
+                            style: theme.textTheme.titleSmall,
+                          ),
+                        ],
+                      ),
+                      const Gap(4),
+                    ],
+                    if (_ordersTotal > 0) ...[
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text('Orders', style: theme.textTheme.titleSmall),
+                          Text(
+                            '\u20B9${_ordersTotal.toStringAsFixed(2)}',
+                            style: theme.textTheme.titleSmall,
+                          ),
+                        ],
+                      ),
+                      const Gap(12),
+                    ] else if (!_hasDiscount) ...[
+                      // Add a small gap if both are hidden so the divider doesn't look too close
+                      const Gap(8),
+                    ],
                   ],
-                  if (_ordersTotal > 0) ...[
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text('Orders', style: theme.textTheme.titleSmall),
-                        Text(
-                          '\u20B9${_ordersTotal.toStringAsFixed(2)}',
-                          style: theme.textTheme.titleSmall,
-                        ),
-                      ],
-                    ),
-                    const Gap(12),
-                  ] else if (!_hasDiscount) ...[
-                    // Add a small gap if both are hidden so the divider doesn't look too close
-                    const Gap(8),
-                  ],
-                  if ((_roundedTotal - _finalTotal).abs() > 0.01) ...[
+                  if (!appSettings.game.hideBillingDetails &&
+                      (_roundedTotal - _finalTotal).abs() > 0.01) ...[
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
@@ -662,51 +750,94 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text('Payment Method', style: theme.textTheme.titleMedium),
-                    TextButton.icon(
-                      onPressed: () {
-                        final basePlayer = _selectedPayers.isNotEmpty
-                            ? _selectedPayers.first
-                            : _session.allPlayers.isEmpty
-                            ? 'Guest'
-                            : _session.allPlayers.first;
-                        final isSingleDefault =
-                            !_isMultiPayer &&
-                            basePlayer.toLowerCase().startsWith('default');
-                        final displayPlayer =
-                            (isSingleDefault &&
-                                _PlayerProfileName != null &&
-                                _PlayerProfileName!.isNotEmpty)
-                            ? _PlayerProfileName!
-                            : basePlayer;
-
-                        showModalBottomSheet(
-                          context: context,
-                          isScrollControlled: true,
-                          builder: (ctx) => PlayerSplitPaymentSheet(
-                            playerName: displayPlayer,
-                            totalLiability: _roundedTotal,
-                            initialSplits:
-                                _playerPaymentSplits[basePlayer] ??
-                                {_paymentMethod: _roundedTotal},
-                            onSplitsSaved: (newSplits) {
-                              setState(() {
-                                _playerPaymentSplits[basePlayer] = newSplits;
-                              });
+                    (() {
+                      final basePlayer = _selectedPayers.isNotEmpty
+                          ? _selectedPayers.first
+                          : _session.allPlayers.isEmpty
+                          ? 'Guest'
+                          : _session.allPlayers.first;
+                      final isSingleDefault =
+                          !_isMultiPayer &&
+                          basePlayer.toLowerCase().startsWith('default');
+                      final displayPlayer =
+                          (isSingleDefault &&
+                              _PlayerProfileName != null &&
+                              _PlayerProfileName!.isNotEmpty)
+                          ? _PlayerProfileName!
+                          : basePlayer;
+                      return Expanded(
+                        child: Wrap(
+                          alignment: WrapAlignment.end,
+                          crossAxisAlignment: WrapCrossAlignment.center,
+                          spacing: 4,
+                          runSpacing: 4,
+                          children: [
+                          if (appSettings.business.upiId != null &&
+                              appSettings.business.upiId!.isNotEmpty)
+                            Padding(
+                              padding: const EdgeInsets.only(right: 8.0),
+                              child: TextButton.icon(
+                                onPressed: () {
+                                  final splits = _playerPaymentSplits[basePlayer];
+                                  final upiAmount = splits != null ? (splits[PaymentMethod.upi] ?? 0.0) : 0.0;
+                                  final qrAmount = upiAmount > 0 ? upiAmount : _roundedTotal;
+                                  showDialog(
+                                    context: context,
+                                    builder: (ctx) => UpiQrDialog(
+                                      upiId: appSettings.business.upiId!,
+                                      payeeName: appSettings.business.clubName,
+                                      amount: qrAmount,
+                                    ),
+                                  );
+                                },
+                                style: TextButton.styleFrom(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 8,
+                                    vertical: 4,
+                                  ),
+                                  minimumSize: Size.zero,
+                                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                ),
+                                icon: const Icon(Icons.qr_code_2, size: 16),
+                                label: const Text(
+                                  'Generate QR',
+                                  style: TextStyle(fontSize: 12),
+                                ),
+                              ),
+                            ),
+                          TextButton.icon(
+                            onPressed: () {
+                              showModalBottomSheet(
+                                context: context,
+                                isScrollControlled: true,
+                                builder: (ctx) => PlayerSplitPaymentSheet(
+                                  playerName: displayPlayer,
+                                  totalLiability: _roundedTotal,
+                                  initialSplits:
+                                      _playerPaymentSplits[basePlayer] ??
+                                      {_paymentMethod: _roundedTotal},
+                                  onSplitsSaved: (newSplits) {
+                                    setState(() {
+                                      _playerPaymentSplits[basePlayer] = newSplits;
+                                    });
+                                  },
+                                ),
+                              );
                             },
+                            style: TextButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 4,
+                              ),
+                              minimumSize: Size.zero,
+                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                            ),
+                            icon: const Icon(Icons.call_split, size: 16),
+                            label: const Text('Payment Breakdown', style: TextStyle(fontSize: 12)),
                           ),
-                        );
-                      },
-                      style: TextButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 4,
-                        ),
-                        minimumSize: Size.zero,
-                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                      ),
-                      icon: const Icon(Icons.call_split, size: 16),
-                      label: const Text('Payment Breakdown'),
-                    ),
+                        ],
+                      ));
+                    })(),
                   ],
                 ),
                 const Gap(8),
@@ -903,6 +1034,7 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
   }
 
   Widget _buildSplitLiabilityTable(ThemeData theme) {
+    final appSettings = ref.watch(appSettingsProvider);
     final liabilities = _customLiabilities;
     final players = _session.allPlayers;
 
@@ -954,15 +1086,17 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Row(
-                        children: [
-                          Text(
-                            _renamedPlayers[player] ?? player,
-                            style: theme.textTheme.titleSmall?.copyWith(
-                              fontWeight: FontWeight.w700,
+                      Expanded(
+                        child: Wrap(
+                          crossAxisAlignment: WrapCrossAlignment.center,
+                          children: [
+                            Text(
+                              _renamedPlayers[player] ?? player,
+                              style: theme.textTheme.titleSmall?.copyWith(
+                                fontWeight: FontWeight.w700,
+                              ),
                             ),
-                          ),
-                          IconButton(
+                            IconButton(
                             icon: const Icon(
                               Icons.edit,
                               size: 16,
@@ -978,38 +1112,85 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
                             tooltip: 'Rename Player',
                           ),
                           const Gap(4),
-                          TextButton(
-                            onPressed: () {
-                              showModalBottomSheet(
-                                context: context,
-                                isScrollControlled: true,
-                                builder: (ctx) => PlayerSplitPaymentSheet(
-                                  playerName: player,
-                                  totalLiability: liabilities[player] ?? 0.0,
-                                  initialSplits: splits,
-                                  onSplitsSaved: (newSplits) {
-                                    setState(() {
-                                      _playerPaymentSplits[player] = newSplits;
-                                    });
-                                  },
+                          Wrap(
+                            spacing: 4,
+                            runSpacing: 4,
+                            children: [
+                              if (appSettings.business.upiId != null &&
+                                  appSettings.business.upiId!.isNotEmpty)
+                                Padding(
+                                  padding: const EdgeInsets.only(right: 8.0),
+                                  child: TextButton.icon(
+                                    onPressed: () {
+                                      final upiAmount = splits[PaymentMethod.upi] ?? 0.0;
+                                      final qrAmount = upiAmount > 0 ? upiAmount : (liabilities[player] ?? 0.0);
+                                      showDialog(
+                                        context: context,
+                                        builder: (ctx) => UpiQrDialog(
+                                          upiId: appSettings.business.upiId!,
+                                          payeeName:
+                                              appSettings.business.clubName,
+                                          amount: qrAmount,
+                                        ),
+                                      );
+                                    },
+                                    style: TextButton.styleFrom(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 8,
+                                        vertical: 4,
+                                      ),
+                                      minimumSize: Size.zero,
+                                      tapTargetSize:
+                                          MaterialTapTargetSize.shrinkWrap,
+                                    ),
+                                    icon: const Icon(
+                                      Icons.qr_code_2,
+                                      size: 16,
+                                    ),
+                                    label: const Text(
+                                      'Generate QR',
+                                      style: TextStyle(fontSize: 12),
+                                    ),
+                                  ),
                                 ),
-                              );
-                            },
-                            style: TextButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 8,
-                                vertical: 4,
+                              TextButton.icon(
+                                onPressed: () {
+                                  showModalBottomSheet(
+                                    context: context,
+                                    isScrollControlled: true,
+                                    builder: (ctx) => PlayerSplitPaymentSheet(
+                                      playerName: player,
+                                      totalLiability:
+                                          liabilities[player] ?? 0.0,
+                                      initialSplits: splits,
+                                      onSplitsSaved: (newSplits) {
+                                        setState(() {
+                                          _playerPaymentSplits[player] =
+                                              newSplits;
+                                        });
+                                      },
+                                    ),
+                                  );
+                                },
+                                style: TextButton.styleFrom(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 8,
+                                    vertical: 4,
+                                  ),
+                                  minimumSize: Size.zero,
+                                  tapTargetSize:
+                                      MaterialTapTargetSize.shrinkWrap,
+                                ),
+                                icon: const Icon(Icons.call_split, size: 16),
+                                label: const Text(
+                                  'Payment Breakdown',
+                                  style: TextStyle(fontSize: 12),
+                                ),
                               ),
-                              minimumSize: Size.zero,
-                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                            ),
-                            child: const Text(
-                              'Payment Breakdown',
-                              style: TextStyle(fontSize: 12),
-                            ),
+                            ],
                           ),
                         ],
-                      ),
+                      )),
                       SizedBox(
                         width: 120,
                         child: TextFormField(
@@ -1391,13 +1572,44 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
       }
     }
 
-    final finalEndTime = _session.isManualEntry
-        ? _session.endTime!
-        : DateTime.now();
+    final finalEndTime = _session.endTime!;
     final finalDate = DateFormat('yyyy-MM-dd').format(finalEndTime);
+
+    final List<AuditLog> updatedLogs = List.from(_session.auditLogs);
+    if (_isTimeManuallyEdited) {
+      final user = ref.read(authStateProvider).value;
+      final editorName = user?.displayName ?? user?.email ?? 'Staff';
+      
+      final oldStart = widget.session.startTime;
+      final newStart = _session.startTime;
+      if (oldStart != newStart) {
+        updatedLogs.add(AuditLog(
+          id: DateTime.now().millisecondsSinceEpoch.toString() + '_start',
+          editedBy: editorName,
+          timestamp: DateTime.now(),
+          field: 'Start Time',
+          previousValue: DateFormat('hh:mm a').format(oldStart),
+          newValue: DateFormat('hh:mm a').format(newStart),
+        ));
+      }
+      
+      final oldEnd = widget.session.endTime;
+      final newEnd = _session.endTime!;
+      if (oldEnd != newEnd) {
+        updatedLogs.add(AuditLog(
+          id: DateTime.now().millisecondsSinceEpoch.toString() + '_end',
+          editedBy: editorName,
+          timestamp: DateTime.now(),
+          field: 'End Time',
+          previousValue: oldEnd != null ? DateFormat('hh:mm a').format(oldEnd) : 'Live/Running',
+          newValue: DateFormat('hh:mm a').format(newEnd),
+        ));
+      }
+    }
 
     final finalSession = _session.copyWith(
       endTime: finalEndTime,
+      auditLogs: updatedLogs,
       status: TableStatus.available,
       teamA: finalTeamA,
       teamB: finalTeamB,
@@ -1427,29 +1639,16 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
           .read(gameSessionControllerProvider.notifier)
           .endGame(finalSession);
       if (mounted) {
-        // Stop the loading spinner and wait a frame to prevent CanvasKit crash
-        setState(() => _isProcessing = false);
-        await Future.delayed(const Duration(milliseconds: 150));
-
-        if (mounted) {
-          // Show success message
-          messenger.showSnackBar(
-            const SnackBar(
-              content: Text('Payment recorded. Table is now available.'),
-              backgroundColor: AppColors.success,
-            ),
-          );
-
-          // Capture router before widget unmounts to prevent riverpod unmounted ref error
-          final router = ref.read(appRouterProvider);
-          
-          // Pop the BillingScreen gracefully
+        messenger.showSnackBar(
+          const SnackBar(
+            content: Text('Payment recorded. Table is now available.'),
+            backgroundColor: AppColors.success,
+          ),
+        );
+        if (Navigator.of(context).canPop()) {
           Navigator.of(context).pop();
-
-          // Wait for the pop animation to finish, then safely switch tabs using the global router
-          Future.delayed(const Duration(milliseconds: 350), () {
-            router.go('/live');
-          });
+        } else {
+          ref.read(appRouterProvider).go('/');
         }
         return;
       }
@@ -1496,8 +1695,9 @@ class _SectionCard extends StatelessWidget {
 class _InfoRow extends StatelessWidget {
   final String label;
   final String value;
+  final Widget? trailing;
 
-  const _InfoRow({required this.label, required this.value});
+  const _InfoRow({required this.label, required this.value, this.trailing});
 
   @override
   Widget build(BuildContext context) {
@@ -1513,11 +1713,20 @@ class _InfoRow extends StatelessWidget {
               color: theme.colorScheme.onSurfaceVariant,
             ),
           ),
-          Text(
-            value,
-            style: theme.textTheme.bodyMedium?.copyWith(
-              fontWeight: FontWeight.w600,
-            ),
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                value,
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              if (trailing != null) ...[
+                const SizedBox(width: 8),
+                trailing!,
+              ],
+            ],
           ),
         ],
       ),
@@ -1585,11 +1794,15 @@ class _ExpandableSessionCard extends StatefulWidget {
   final GameSession session;
   final DateFormat dtFmt;
   final String durationStr;
+  final VoidCallback? onEditStart;
+  final VoidCallback? onEditEnd;
 
   const _ExpandableSessionCard({
     required this.session,
     required this.dtFmt,
     required this.durationStr,
+    this.onEditStart,
+    this.onEditEnd,
   });
 
   @override
@@ -1671,10 +1884,22 @@ class _ExpandableSessionCardState extends State<_ExpandableSessionCard> {
                           _InfoRow(
                             label: 'Start Time',
                             value: widget.dtFmt.format(s.startTime),
+                            trailing: widget.onEditStart != null
+                                ? InkWell(
+                                    onTap: widget.onEditStart,
+                                    child: const Icon(Icons.edit, size: 16),
+                                  )
+                                : null,
                           ),
                           _InfoRow(
                             label: 'End Time',
                             value: widget.dtFmt.format(s.endTime!),
+                            trailing: widget.onEditEnd != null
+                                ? InkWell(
+                                    onTap: widget.onEditEnd,
+                                    child: const Icon(Icons.edit, size: 16),
+                                  )
+                                : null,
                           ),
                           if (s.billingType == BillingType.perFrame)
                             _InfoRow(

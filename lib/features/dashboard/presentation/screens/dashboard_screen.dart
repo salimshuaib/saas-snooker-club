@@ -370,6 +370,13 @@ class DashboardScreen extends ConsumerWidget {
                 childAspectRatio: 1.2,
                 children: [
                   _ModuleCard(
+                    icon: Icons.inventory_2,
+                    label: 'Inventory',
+                    description: 'Stock & products',
+                    color: AppColors.tertiary,
+                    onTap: () => context.push(RouteNames.inventory),
+                  ),
+                  _ModuleCard(
                     icon: Icons.settings,
                     label: 'Settings',
                     description: 'App config',

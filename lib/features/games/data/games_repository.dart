@@ -466,6 +466,7 @@ class GamesRepository {
 
     final updateMap = <String, dynamic>{
       'status': TableStatus.available.name,
+      'startTime': Timestamp.fromDate(session.startTime),
       'endTime': Timestamp.fromDate(session.endTime!),
       'orders': session.orders.map((o) => o.toMap()).toList(),
       'rounds': session.rounds.map((r) => r.toMap()).toList(),
@@ -493,6 +494,7 @@ class GamesRepository {
       'teamB': session.teamB,
       'playerIds': session.playerIds,
       'playerIdentities': session.playerIdentities,
+      'auditLogs': session.auditLogs.map((a) => a.toMap()).toList(),
     };
 
     if (session.paymentMethod == PaymentMethod.credit) {

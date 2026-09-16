@@ -1,7 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:snooker_club/features/games/domain/models/game_models.dart';
 
-enum CreditTransactionType { game, quickSale }
+enum CreditTransactionType { game, quickSale, manual }
 
 enum CreditTransactionStatus { pending, partiallyPaid, paid }
 

@@ -24,7 +24,6 @@ class GlassCard extends StatelessWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     final container = Container(
-      padding: padding ?? const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: isDark
             ? Colors.white.withValues(alpha: 0.06)
@@ -36,7 +35,13 @@ class GlassCard extends StatelessWidget {
               : Colors.white.withValues(alpha: 0.5),
         ),
       ),
-      child: child,
+      child: Material(
+        type: MaterialType.transparency,
+        child: Padding(
+          padding: padding ?? const EdgeInsets.all(16),
+          child: child,
+        ),
+      ),
     );
 
     return GestureDetector(

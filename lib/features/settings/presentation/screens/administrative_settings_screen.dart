@@ -259,6 +259,17 @@ class AdministrativeSettingsScreen extends ConsumerWidget {
               ),
               SwitchListTile(
                 contentPadding: EdgeInsets.zero,
+                title: const Text('Hide Billing Details'),
+                subtitle: const Text(
+                  'Only show Total, Discount and Final Amount on the bill',
+                ),
+                value: settings.game.hideBillingDetails,
+                onChanged: (val) => notifier.updateGameSettings(
+                  settings.game.copyWith(hideBillingDetails: val),
+                ),
+              ),
+              SwitchListTile(
+                contentPadding: EdgeInsets.zero,
                 title: const Text('Allow Pause & Resume'),
                 subtitle: const Text(
                   'Permit operators to pause active table sessions',

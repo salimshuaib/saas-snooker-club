@@ -165,7 +165,31 @@ class GameActivityCard extends ConsumerWidget {
                           ),
                         ),
                       ),
-
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: () {
+                            final employeeId = ref.read(currentStaffProvider).value?.id ?? '';
+                            Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (_) => ManualGameSetupScreen(
+                                  employeeId: employeeId,
+                                  isCompletedGame: false,
+                                  initialTable: table,
+                                ),
+                              ),
+                            );
+                          },
+                          icon: const Icon(Icons.edit_document, size: 18),
+                          label: const Text('Manual'),
+                          style: OutlinedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                        ),
+                      ),
                     ],
                   ),
                 ],
