@@ -102,10 +102,11 @@ class _PlayerProfileScreenState extends ConsumerState<PlayerProfileScreen> {
           const Gap(16),
           Expanded(
             child: DefaultTabController(
-              length: 3,
+              length: 4,
               child: Column(
                 children: [
                   TabBar(
+                    isScrollable: true,
                     labelColor: AppColors.primary,
                     unselectedLabelColor: theme.colorScheme.onSurfaceVariant,
                     indicatorColor: AppColors.primary,
@@ -113,6 +114,7 @@ class _PlayerProfileScreenState extends ConsumerState<PlayerProfileScreen> {
                       Tab(text: 'Transactions'),
                       Tab(text: 'Game History'),
                       Tab(text: 'Quick Sales'),
+                      Tab(text: 'Manual Khata'),
                     ],
                   ),
                   Expanded(
@@ -129,6 +131,10 @@ class _PlayerProfileScreenState extends ConsumerState<PlayerProfileScreen> {
                         ),
                         _QuickSalesTab(
                           quickSalesAsync: quickSalesAsync,
+                          currency: currency,
+                        ),
+                        _ManualKhataTab(
+                          customerId: currentCustomer.id,
                           currency: currency,
                         ),
                       ],
@@ -831,6 +837,104 @@ class _PaymentSheetState extends ConsumerState<_PaymentSheet> {
           ),
         ],
       ),
+    );
+  }
+}
+class _ManualKhataTab extends ConsumerWidget {
+  final String customerId;
+  final dynamic currency;
+  const _ManualKhataTab({required this.customerId, required this.currency});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final transactionsAsync = ref.watch(allTransactionsProvider(customerId));
+
+    return transactionsAsync.when(
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (e, st) => Center(child: Text("Error: $e")),
+      data: (transactions) {
+        final manualKhataTxs = transactions.where((tx) => tx.type == CreditTransactionType.manual).toList();
+        if (manualKhataTxs.isEmpty) {
+          return const Center(child: Text("No manual khata found."));
+        }
+        return ListView.builder(
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 80),
+          itemCount: manualKhataTxs.length,
+          itemBuilder: (context, index) {
+            final tx = manualKhataTxs[index];
+            return Card(
+              margin: const EdgeInsets.only(bottom: 8),
+              child: ListTile(
+                title: const Text("Manual Khata"),
+                subtitle: Text(DateFormat("MMM d, y h:mm a").format(tx.date)),
+                trailing: Text(
+                  CurrencyHelper.format(tx.amount, currency),
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                ),
+                onTap: () {
+                  _showManualKhataReceipt(context, tx, currency);
+                },
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  void _showManualKhataReceipt(BuildContext context, CreditTransaction tx, dynamic currency) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text("Manual Khata Receipt"),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text("Added by: ${tx.employeeName ?? 'Admin'}"),
+              const Gap(8),
+              Text("Date: ${DateFormat('MMM d, y h:mm a').format(tx.date)}"),
+              const Gap(16),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text("Total Amount:"),
+                  Text(CurrencyHelper.format(tx.amount, currency), style: const TextStyle(fontWeight: FontWeight.bold)),
+                ],
+              ),
+              const Gap(4),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text("Paid Amount:"),
+                  Text(CurrencyHelper.format(tx.paidAmount, currency), style: const TextStyle(color: AppColors.success)),
+                ],
+              ),
+              const Gap(4),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text("Remaining Amount:"),
+                  Text(CurrencyHelper.format(tx.remainingAmount, currency), style: const TextStyle(color: AppColors.error)),
+                ],
+              ),
+              const Gap(16),
+              Text("Status: ${tx.status.name.toUpperCase()}"),
+              if (tx.subtitle != null && tx.subtitle!.isNotEmpty) ...[
+                const Gap(8),
+                Text("Note: ${tx.subtitle}"),
+              ],
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text("Close"),
+            ),
+          ],
+        );
+      },
     );
   }
 }

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:gap/gap.dart';
 import 'package:snooker_club/core/theme/app_colors.dart';
@@ -69,26 +70,55 @@ class TableHistorySheet extends ConsumerWidget {
 
               final recentGames = completedGames.take(4).toList();
 
-              if (recentGames.isEmpty) {
-                return const Center(
-                  child: Padding(
-                    padding: EdgeInsets.all(32.0),
-                    child: Text(
-                      'No completed games today.',
-                      style: TextStyle(color: Colors.grey),
+              return Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  if (recentGames.isEmpty)
+                    const Padding(
+                      padding: EdgeInsets.all(32.0),
+                      child: Center(
+                        child: Text(
+                          'No completed games today.',
+                          style: TextStyle(color: Colors.grey),
+                        ),
+                      ),
+                    )
+                  else
+                    ListView.separated(
+                      shrinkWrap: true,
+                      itemCount: recentGames.length,
+                      separatorBuilder: (_, _) => const Gap(12),
+                      itemBuilder: (context, index) {
+                        final game = recentGames[index];
+                        return _HistoryListTile(game: game, table: table);
+                      },
+                    ),
+                  const Gap(16),
+                  OutlinedButton(
+                    onPressed: () {
+                      Navigator.pop(context);
+                      context.push(
+                        '/games/table',
+                        extra: {
+                          'table': table,
+                          'selectedDate': DateTime.now(),
+                          'isToday': true,
+                        },
+                      );
+                    },
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    child: const Text(
+                      'Show Full History',
+                      style: TextStyle(fontWeight: FontWeight.bold),
                     ),
                   ),
-                );
-              }
-
-              return ListView.separated(
-                shrinkWrap: true,
-                itemCount: recentGames.length,
-                separatorBuilder: (_, __) => const Gap(12),
-                itemBuilder: (context, index) {
-                  final game = recentGames[index];
-                  return _HistoryListTile(game: game, table: table);
-                },
+                ],
               );
             },
           ),

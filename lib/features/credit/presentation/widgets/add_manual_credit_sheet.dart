@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gap/gap.dart';
 import 'package:snooker_club/core/theme/app_colors.dart';
+import 'package:snooker_club/features/team/providers/team_providers.dart';
 import 'package:snooker_club/features/credit/domain/models/credit_models.dart';
 import 'package:snooker_club/features/credit/providers/credit_providers.dart';
 import 'package:snooker_club/features/credit/presentation/widgets/player_search_field.dart';
@@ -57,6 +58,7 @@ class _AddManualCreditSheetState extends ConsumerState<AddManualCreditSheet> {
 
     try {
       final repo = ref.read(creditRepositoryProvider);
+      final staff = ref.read(currentStaffProvider).value;
       final refId = 'manual_${DateTime.now().millisecondsSinceEpoch}';
       await repo.addCreditRecord(
         customerName: _playerName.trim(),
@@ -65,6 +67,7 @@ class _AddManualCreditSheetState extends ConsumerState<AddManualCreditSheet> {
         referenceId: refId,
         title: 'Manual Khata Entry',
         subtitle: _noteController.text.trim().isNotEmpty ? _noteController.text.trim() : null,
+        employeeName: staff?.name ?? 'Admin',
       );
 
       if (mounted) {

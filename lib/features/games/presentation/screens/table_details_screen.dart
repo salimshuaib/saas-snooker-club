@@ -10,6 +10,7 @@ import 'package:snooker_club/features/games/domain/config/pricing_config.dart';
 import 'package:snooker_club/features/games/domain/models/game_models.dart';
 import 'package:snooker_club/features/games/presentation/screens/billing_screen.dart';
 import 'package:snooker_club/features/games/presentation/screens/bill_details_screen.dart';
+import 'package:snooker_club/core/widgets/shared/date_navigation_header.dart';
 import 'package:snooker_club/features/games/presentation/widgets/admin_passcode_dialog.dart';
 import 'package:snooker_club/features/games/presentation/widgets/game_setup_dialog.dart';
 import 'package:snooker_club/features/games/presentation/widgets/orders_sheet.dart';
@@ -37,6 +38,13 @@ class TableDetailsScreen extends ConsumerStatefulWidget {
 class _TableDetailsScreenState extends ConsumerState<TableDetailsScreen> {
   bool _isSelectionMode = false;
   final Set<String> _selectedGameIds = {};
+  late DateTime _currentDate;
+
+  @override
+  void initState() {
+    super.initState();
+    _currentDate = widget.selectedDate;
+  }
 
   void _toggleSelection(String gameId) {
     setState(() {
@@ -162,11 +170,56 @@ class _TableDetailsScreenState extends ConsumerState<TableDetailsScreen> {
     }
   }
 
+  Widget _buildMetricsRow(List<GameSession> games, ThemeData theme) {
+    int totalDuration = 0;
+    double totalRevenue = 0.0;
+    for (final game in games) {
+      totalDuration += game.activeSeconds;
+      totalRevenue += (game.finalAmount ?? 0.0);
+    }
+
+    final dur = Duration(seconds: totalDuration);
+    final hours = dur.inHours;
+    final mins = dur.inMinutes.remainder(60);
+    final durationStr = hours > 0 ? '${hours}h ${mins}m' : '${mins}m';
+
+    return Row(
+      children: [
+        Expanded(
+          child: _MetricCard(
+            title: 'Games',
+            value: '${games.length}',
+            icon: Icons.sports_esports,
+            theme: theme,
+          ),
+        ),
+        const Gap(12),
+        Expanded(
+          child: _MetricCard(
+            title: 'Time',
+            value: durationStr,
+            icon: Icons.schedule,
+            theme: theme,
+          ),
+        ),
+        const Gap(12),
+        Expanded(
+          child: _MetricCard(
+            title: 'Revenue',
+            value: '₹${totalRevenue.toStringAsFixed(0)}',
+            icon: Icons.currency_rupee,
+            theme: theme,
+          ),
+        ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final activeGameAsync = ref.watch(activeGameProvider(widget.table.id));
-    final dateStr = dateToString(widget.selectedDate);
+    final dateStr = dateToString(_currentDate);
     final gamesAsync = ref.watch(
       tableGamesProvider((tableId: widget.table.id, date: dateStr)),
     );
@@ -216,14 +269,22 @@ class _TableDetailsScreenState extends ConsumerState<TableDetailsScreen> {
           slivers: [
             // ── History Section ──
             SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(20, 24, 20, 8),
-                child: Text(
-                  'History — ${DateFormat('d MMMM yyyy').format(widget.selectedDate)}',
-                  style: theme.textTheme.titleMedium,
-                ),
+              child: DateNavigationHeader(
+                selectedDate: _currentDate,
+                onDateChanged: (date) {
+                  setState(() {
+                    _currentDate = date;
+                  });
+                },
               ),
             ),
+            if (completedGamesList.isNotEmpty)
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
+                  child: _buildMetricsRow(completedGamesList, theme),
+                ),
+              ),
             gamesAsync.when(
               loading: () => const SliverToBoxAdapter(child: _LoadingCard()),
               error: (e, _) => SliverToBoxAdapter(
@@ -324,7 +385,6 @@ class _TableDetailsScreenState extends ConsumerState<TableDetailsScreen> {
 // ─────────────────────────────────────────────
 // No Active Game Card
 // ─────────────────────────────────────────────
-
 
 // ─────────────────────────────────────────────
 // History Card
@@ -545,6 +605,52 @@ class _LoadingCard extends StatelessWidget {
     return const Padding(
       padding: EdgeInsets.fromLTRB(20, 16, 20, 0),
       child: SkeletonLoader(height: 200, borderRadius: 20),
+    );
+  }
+}
+
+class _MetricCard extends StatelessWidget {
+  final String title;
+  final String value;
+  final IconData icon;
+  final ThemeData theme;
+
+  const _MetricCard({
+    required this.title,
+    required this.value,
+    required this.icon,
+    required this.theme,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surface,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: theme.colorScheme.outlineVariant),
+      ),
+      child: Column(
+        children: [
+          Icon(icon, size: 20, color: theme.colorScheme.primary),
+          const Gap(4),
+          Text(
+            value,
+            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+          const Gap(2),
+          Text(
+            title,
+            style: TextStyle(
+              fontSize: 10,
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

@@ -16,6 +16,7 @@ import 'package:snooker_club/core/widgets/loading/skeleton_loader.dart';
 import 'package:snooker_club/features/credit/domain/models/credit_models.dart';
 import 'package:snooker_club/features/credit/providers/credit_providers.dart';
 import 'package:snooker_club/features/credit/presentation/widgets/customer_card.dart';
+import 'package:snooker_club/features/credit/presentation/widgets/add_manual_credit_sheet.dart';
 
 class CreditScreen extends ConsumerWidget {
   const CreditScreen({super.key});
@@ -41,6 +42,21 @@ class CreditScreen extends ConsumerWidget {
               : 'Khata Profile',
         ),
         actions: [
+          if (selectedIds.isEmpty)
+            IconButton(
+              icon: const Icon(Icons.add_card),
+              tooltip: 'Add Manual Khata',
+              onPressed: () {
+                showModalBottomSheet(
+                  context: context,
+                  isScrollControlled: true,
+                  shape: const RoundedRectangleBorder(
+                    borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+                  ),
+                  builder: (_) => const AddManualCreditSheet(),
+                );
+              },
+            ),
           if (selectedIds.isNotEmpty)
             IconButton(
               icon: const Icon(Icons.delete, color: AppColors.error),

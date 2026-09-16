@@ -974,6 +974,7 @@ class CreditRepository {
     required String referenceId,
     required String title,
     String? subtitle,
+    String? employeeName,
   }) async {
     if (AppConfig.guardWrite('CreditRepository.addCreditRecord')) return;
     if (customerName.isEmpty || amount <= 0) return;
@@ -1019,6 +1020,7 @@ class CreditRepository {
       date: DateTime.now(),
       title: title,
       subtitle: subtitle,
+      employeeName: employeeName,
     );
     await transRef.set(tx.toMap());
     await recalculateCustomerAccount(customerRef.id);

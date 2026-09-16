@@ -279,6 +279,12 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                     ),
                     GoRoute(
                       path: 'details',
+                      redirect: (context, state) {
+                        if (state.extra == null || state.extra is! QuickSale) {
+                          return '/quick-sales';
+                        }
+                        return null;
+                      },
                       builder: (context, state) {
                         final sale = state.extra as QuickSale;
                         return QuickSaleDetailsScreen(sale: sale);
@@ -365,6 +371,12 @@ final appRouterProvider = Provider<GoRouter>((ref) {
               routes: [
                 GoRoute(
                   path: 'details',
+                  redirect: (context, state) {
+                    if (state.extra == null || state.extra is! PlayerProfile) {
+                      return '/credit';
+                    }
+                    return null;
+                  },
                   builder: (context, state) {
                     final customer = state.extra as PlayerProfile;
                     return PlayerProfileScreen(customer: customer);

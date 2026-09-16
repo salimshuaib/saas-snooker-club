@@ -12,6 +12,7 @@ import 'package:snooker_club/features/games/presentation/screens/billing_screen.
 import 'package:snooker_club/features/games/presentation/widgets/orders_sheet.dart';
 import 'package:snooker_club/features/games/presentation/widgets/payer_selection_widget.dart';
 import 'package:snooker_club/features/games/presentation/screens/manual_game_setup_screen.dart';
+import 'package:snooker_club/features/games/presentation/widgets/table_history_sheet.dart';
 import 'package:snooker_club/features/team/providers/team_providers.dart';
 
 class ActiveGameCard extends ConsumerStatefulWidget {
@@ -434,28 +435,60 @@ class _ActiveGameCardState extends ConsumerState<ActiveGameCard> {
           ],
         ),
         const Gap(12),
-        FilledButton.tonalIcon(
-          style: FilledButton.styleFrom(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 0),
-            minimumSize: const Size(0, 36),
-          ),
-          icon: const Icon(Icons.edit_document, size: 16),
-          label: const Text(
-            'Manual Entry',
-            style: TextStyle(fontWeight: FontWeight.bold),
-          ),
-          onPressed: () {
-            final employeeId = ref.read(currentStaffProvider).value?.id ?? '';
-            Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (_) => ManualGameSetupScreen(
-                  employeeId: employeeId,
-                  isCompletedGame: true,
-                  initialTable: widget.table,
+        Row(
+          children: [
+            Expanded(
+              child: FilledButton.tonalIcon(
+                style: FilledButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 0),
+                  minimumSize: const Size(0, 36),
                 ),
+                icon: const Icon(Icons.history, size: 16),
+                label: const Text(
+                  'History',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+                onPressed: () {
+                  showModalBottomSheet(
+                    context: context,
+                    isScrollControlled: true,
+                    shape: const RoundedRectangleBorder(
+                      borderRadius: BorderRadius.vertical(
+                        top: Radius.circular(16),
+                      ),
+                    ),
+                    builder: (_) => TableHistorySheet(table: widget.table),
+                  );
+                },
               ),
-            );
-          },
+            ),
+            const Gap(12),
+            Expanded(
+              child: FilledButton.tonalIcon(
+                style: FilledButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 0),
+                  minimumSize: const Size(0, 36),
+                ),
+                icon: const Icon(Icons.edit_document, size: 16),
+                label: const Text(
+                  'Manual Entry',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+                onPressed: () {
+                  final employeeId = ref.read(currentStaffProvider).value?.id ?? '';
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => ManualGameSetupScreen(
+                        employeeId: employeeId,
+                        isCompletedGame: true,
+                        initialTable: widget.table,
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+          ],
         ),
       ],
     );

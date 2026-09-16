@@ -85,6 +85,7 @@ class CreditTransaction {
   final CreditTransactionStatus status;
   final DateTime date;
   final PaymentMethod? paymentMethod;
+  final String? employeeName;
 
   // Minimal info for display without needing to fetch the referenced doc immediately
   final String title;
@@ -101,6 +102,7 @@ class CreditTransaction {
     required this.status,
     required this.date,
     this.paymentMethod,
+    this.employeeName,
     required this.title,
     this.subtitle,
   });
@@ -116,6 +118,7 @@ class CreditTransaction {
     CreditTransactionStatus? status,
     DateTime? date,
     PaymentMethod? paymentMethod,
+    String? employeeName,
     String? title,
     String? subtitle,
   }) {
@@ -130,6 +133,7 @@ class CreditTransaction {
       status: status ?? this.status,
       date: date ?? this.date,
       paymentMethod: paymentMethod ?? this.paymentMethod,
+      employeeName: employeeName ?? this.employeeName,
       title: title ?? this.title,
       subtitle: subtitle ?? this.subtitle,
     );
@@ -146,6 +150,7 @@ class CreditTransaction {
       'status': status.name,
       'date': Timestamp.fromDate(date),
       'paymentMethod': paymentMethod?.name,
+      'employeeName': employeeName,
       'title': title,
       'subtitle': subtitle,
     };
@@ -171,6 +176,13 @@ class CreditTransaction {
         orElse: () => CreditTransactionStatus.pending,
       ),
       date: (map['date'] as Timestamp?)?.toDate() ?? DateTime.now(),
+      paymentMethod: map['paymentMethod'] != null
+          ? PaymentMethod.values.firstWhere(
+              (e) => e.name == map['paymentMethod'],
+              orElse: () => PaymentMethod.cash,
+            )
+          : null,
+      employeeName: map['employeeName'] as String?,
       title: map['title'] as String? ?? '',
       subtitle: map['subtitle'] as String?,
     );
