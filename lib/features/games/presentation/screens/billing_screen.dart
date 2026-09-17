@@ -45,6 +45,7 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
 
   late TextEditingController _discountController;
   late TextEditingController _discountPercentController;
+  late TextEditingController _discountedGameController;
 
   final Map<String, TextEditingController> _liabilityControllers = {};
 
@@ -78,6 +79,7 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
   void dispose() {
     _discountController.dispose();
     _discountPercentController.dispose();
+    _discountedGameController.dispose();
     for (final c in _liabilityControllers.values) {
       c.dispose();
     }
@@ -447,7 +449,8 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
       final roundedShare = BillingUtils.roundAmount(rawShare);
       return (roundedShare * _selectedPayers.length) + _ordersTotal;
     }
-    return BillingUtils.roundAmount(_finalTotal);
+    // Single payer: Round the discounted game charge, then add exact orders
+    return BillingUtils.roundAmount(_discountedGameCharge) + _ordersTotal;
   }
 
   String _formatDuration(int seconds) {
@@ -733,7 +736,10 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
                               _discountAmount = 0.0;
                               _discountPercentController.clear();
                               _discountController.clear();
+                              _discountedGameController.clear();
                               _initializeLiabilities();
+                            } else {
+                              _discountedGameController.text = _gameCharge.toStringAsFixed(0);
                             }
                           });
                         },
@@ -750,8 +756,7 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
                             controller: _discountPercentController,
                             keyboardType: TextInputType.number,
                             decoration: InputDecoration(
-                              labelText: 'Percentage',
-                              suffixText: '%',
+                              labelText: '%',
                               border: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(12),
                               ),
@@ -764,12 +769,16 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
                                 _discountController.text = amount == 0
                                     ? ''
                                     : amount.toStringAsFixed(0);
+                                final finalCharge = _gameCharge - amount;
+                                _discountedGameController.text = finalCharge == 0
+                                    ? ''
+                                    : finalCharge.toStringAsFixed(0);
                               });
                               _initializeLiabilities();
                             },
                           ),
                         ),
-                        const Gap(16),
+                        const Gap(12),
                         Expanded(
                           child: TextFormField(
                             controller: _discountController,
@@ -788,6 +797,45 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
                                   : 0.0;
                               setState(() {
                                 _discountAmount = amount;
+                                _discountPercentController.text = percent == 0
+                                    ? ''
+                                    : percent.toStringAsFixed(1);
+                                final finalCharge = _gameCharge - amount;
+                                _discountedGameController.text = finalCharge == 0
+                                    ? ''
+                                    : finalCharge.toStringAsFixed(0);
+                              });
+                              _initializeLiabilities();
+                            },
+                          ),
+                        ),
+                        const Gap(12),
+                        Expanded(
+                          child: TextFormField(
+                            controller: _discountedGameController,
+                            keyboardType: TextInputType.number,
+                            decoration: InputDecoration(
+                              labelText: 'Final Game',
+                              prefixText: '\u20B9',
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                            onChanged: (val) {
+                              double finalGame = double.tryParse(val) ?? _gameCharge;
+                              if (finalGame > _gameCharge) finalGame = _gameCharge;
+                              if (finalGame < 0) finalGame = 0;
+                              
+                              final amount = _gameCharge - finalGame;
+                              final percent = _gameCharge > 0
+                                  ? (amount / _gameCharge) * 100
+                                  : 0.0;
+                                  
+                              setState(() {
+                                _discountAmount = amount;
+                                _discountController.text = amount == 0
+                                    ? ''
+                                    : amount.toStringAsFixed(0);
                                 _discountPercentController.text = percent == 0
                                     ? ''
                                     : percent.toStringAsFixed(1);
