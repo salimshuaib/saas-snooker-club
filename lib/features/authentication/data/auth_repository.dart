@@ -115,6 +115,17 @@ class AuthRepository {
   /// Sign out the current user.
   Future<void> signOut() async {
     AppLogger.info('Signing out user: ${_auth.currentUser?.email}');
+    
+    try {
+      final uid = _auth.currentUser?.uid;
+      if (uid != null) {
+        final pushService = PushNotificationService();
+        await pushService.removeToken(uid);
+      }
+    } catch (e) {
+      AppLogger.error('Failed to remove FCM token on sign out: $e');
+    }
+
     // GoogleSignIn signOut may fail on web — catch silently so Firebase signOut always runs
     try {
       await GoogleSignIn().signOut();
