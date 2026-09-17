@@ -177,18 +177,28 @@ class GameActivityScreen extends ConsumerWidget {
                             ),
                             LayoutBuilder(
                               builder: (context, constraints) {
-                                if (MediaQuery.sizeOf(context).width > 800) {
+                                final isTabletOrDesktop = MediaQuery.sizeOf(context).width >= 600;
+                                
+                                if (isTabletOrDesktop) {
+                                  int crossAxisCount = (constraints.maxWidth / 320).floor();
+                                  if (crossAxisCount < 2) crossAxisCount = 2;
+                                  
+                                  final double spacing = 16.0;
+                                  final double totalSpacing = spacing * (crossAxisCount - 1);
+                                  final double cardWidth = (constraints.maxWidth - totalSpacing) / crossAxisCount;
+
                                   return Wrap(
-                                    spacing: 16,
-                                    runSpacing: 16,
+                                    spacing: spacing,
+                                    runSpacing: spacing,
                                     children: grouped[sortedKeys[i]]!.map(
                                       (t) => SizedBox(
-                                        width: 380,
+                                        width: cardWidth,
                                         child: GameActivityCard(table: t),
                                       ),
                                     ).toList(),
                                   );
                                 }
+                                
                                 return Column(
                                   children: grouped[sortedKeys[i]]!.map(
                                     (t) => GameActivityCard(table: t),
