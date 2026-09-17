@@ -6,6 +6,7 @@ class PayerSelectionWidget extends StatefulWidget {
   final ValueChanged<List<String>> onChanged;
   final String title;
   final void Function(String)? onEditPlayer;
+  final void Function(String)? onRemovePlayer;
   final VoidCallback? onAddPlayer;
 
   const PayerSelectionWidget({
@@ -15,6 +16,7 @@ class PayerSelectionWidget extends StatefulWidget {
     required this.onChanged,
     this.title = 'Who will Pay?',
     this.onEditPlayer,
+    this.onRemovePlayer,
     this.onAddPlayer,
   });
 
@@ -74,6 +76,8 @@ class _PayerSelectionWidgetState extends State<PayerSelectionWidget> {
     required String title,
     required bool isSelected,
     required VoidCallback onTap,
+    VoidCallback? onEdit,
+    VoidCallback? onRemove,
   }) {
     final theme = Theme.of(context);
     const highlightColor = Colors.red;
@@ -112,20 +116,41 @@ class _PayerSelectionWidgetState extends State<PayerSelectionWidget> {
                 Expanded(
                   child: Row(
                     children: [
-                      Text(
-                        title,
-                        style: theme.textTheme.titleSmall?.copyWith(
-                          fontWeight: isSelected
-                              ? FontWeight.w700
-                              : FontWeight.w500,
-                          color: isSelected
-                              ? highlightColor
-                              : theme.colorScheme.onSurface,
+                      Expanded(
+                        child: Text(
+                          title,
+                          overflow: TextOverflow.ellipsis,
+                          style: theme.textTheme.titleSmall?.copyWith(
+                            fontWeight: isSelected
+                                ? FontWeight.w700
+                                : FontWeight.w500,
+                            color: isSelected
+                                ? highlightColor
+                                : theme.colorScheme.onSurface,
+                          ),
                         ),
                       ),
                     ],
                   ),
                 ),
+                if (onEdit != null)
+                  IconButton(
+                    icon: const Icon(Icons.edit_outlined, size: 20),
+                    onPressed: onEdit,
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                if (onEdit != null) const SizedBox(width: 12),
+                if (onRemove != null)
+                  IconButton(
+                    icon: const Icon(Icons.delete_outline, size: 20),
+                    onPressed: onRemove,
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
+                    color: theme.colorScheme.error,
+                  ),
+                if (onRemove != null) const SizedBox(width: 12),
                 if (isSelected)
                   const Icon(
                     Icons.check_circle,
@@ -184,6 +209,12 @@ class _PayerSelectionWidgetState extends State<PayerSelectionWidget> {
               title: player,
               isSelected: isSelected,
               onTap: () => _togglePlayer(player),
+              onEdit: widget.onEditPlayer != null
+                  ? () => widget.onEditPlayer!(player)
+                  : null,
+              onRemove: widget.onRemovePlayer != null
+                  ? () => widget.onRemovePlayer!(player)
+                  : null,
             );
           }),
           if (widget.onAddPlayer != null) ...[

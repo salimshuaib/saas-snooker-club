@@ -190,6 +190,92 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
     });
   }
 
+  void _removePlayer(String player) {
+    setState(() {
+      final newTeamA = List<String>.from(_session.teamA)..remove(player);
+      final newTeamB = List<String>.from(_session.teamB)..remove(player);
+      _session = _session.copyWith(teamA: newTeamA, teamB: newTeamB);
+      
+      _selectedPayers.remove(player);
+      _playerPaymentSplits.remove(player);
+      _liabilityControllers.remove(player);
+      _customLiabilities.remove(player);
+      
+      _initializeLiabilities();
+    });
+  }
+
+  void _editPlayer(String oldName) {
+    PlayerSelection? newPlayerSelection = PlayerSelection(name: oldName);
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Edit Player Name'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              PlayerSearchField(
+                hint: 'Player Name',
+                initialSelection: newPlayerSelection,
+                onSelected: (sel) {
+                  newPlayerSelection = sel;
+                },
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: () {
+                final name = newPlayerSelection?.name.trim();
+                if (name != null && name.isNotEmpty) {
+                  Navigator.pop(context, name);
+                }
+              },
+              child: const Text('Save'),
+            ),
+          ],
+        );
+      },
+    ).then((newName) {
+      if (newName != null && newName is String && newName != oldName) {
+        setState(() {
+          final newTeamA = List<String>.from(_session.teamA);
+          final aIndex = newTeamA.indexOf(oldName);
+          if (aIndex != -1) newTeamA[aIndex] = newName;
+
+          final newTeamB = List<String>.from(_session.teamB);
+          final bIndex = newTeamB.indexOf(oldName);
+          if (bIndex != -1) newTeamB[bIndex] = newName;
+
+          _session = _session.copyWith(teamA: newTeamA, teamB: newTeamB);
+
+          if (_selectedPayers.contains(oldName)) {
+            _selectedPayers.remove(oldName);
+            _selectedPayers.add(newName);
+          }
+
+          final splits = _playerPaymentSplits.remove(oldName);
+          _playerPaymentSplits[newName] = splits ?? {PaymentMethod.cash: 0.0};
+
+          final controller = _liabilityControllers.remove(oldName);
+          _liabilityControllers[newName] = controller ?? TextEditingController();
+
+          if (_customLiabilities.containsKey(oldName)) {
+            final liab = _customLiabilities.remove(oldName);
+            _customLiabilities[newName] = liab!;
+          }
+
+          _initializeLiabilities();
+        });
+      }
+    });
+  }
+
   void _initializeLiabilities() {
     final Map<String, double> liabilities = {
       for (final p in _session.allPlayers) p: 0.0,
@@ -455,6 +541,8 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
                 allPlayers: _session.allPlayers,
                 selectedPayers: _selectedPayers,
                 onAddPlayer: _showAddPlayerDialog,
+                onEditPlayer: _editPlayer,
+                onRemovePlayer: _removePlayer,
                 onChanged: (newPayers) {
                   setState(() {
                     _selectedPayers = newPayers;
