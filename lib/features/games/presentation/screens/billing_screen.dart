@@ -205,9 +205,9 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
     });
   }
 
-  void _editPlayer(String oldName) {
+  Future<void> _editPlayer(String oldName) async {
     PlayerSelection? newPlayerSelection = PlayerSelection(name: oldName);
-    showDialog(
+    final newName = await showDialog<String>(
       context: context,
       builder: (context) {
         return AlertDialog(
@@ -241,8 +241,9 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
           ],
         );
       },
-    ).then((newName) {
-      if (newName != null && newName is String && newName != oldName) {
+    );
+
+    if (newName != null && newName != oldName) {
         setState(() {
           final newTeamA = List<String>.from(_session.teamA);
           final aIndex = newTeamA.indexOf(oldName);
@@ -273,7 +274,59 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
           _initializeLiabilities();
         });
       }
-    });
+  }
+
+  Future<void> _showManagePayersDialog() async {
+    await showDialog(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setStateDialog) {
+            return AlertDialog(
+              title: const Text('Manage Payers'),
+              content: SizedBox(
+                width: double.maxFinite,
+                child: ListView.builder(
+                  shrinkWrap: true,
+                  itemCount: _session.allPlayers.length,
+                  itemBuilder: (context, index) {
+                    final player = _session.allPlayers[index];
+                    return ListTile(
+                      title: Text(player),
+                      trailing: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          IconButton(
+                            icon: const Icon(Icons.edit_outlined),
+                            onPressed: () async {
+                              await _editPlayer(player);
+                              if (mounted) setStateDialog(() {});
+                            },
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.delete_outline, color: Colors.red),
+                            onPressed: () {
+                              _removePlayer(player);
+                              setStateDialog(() {});
+                            },
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('Done'),
+                )
+              ],
+            );
+          },
+        );
+      },
+    );
   }
 
   void _initializeLiabilities() {
@@ -541,8 +594,7 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
                 allPlayers: _session.allPlayers,
                 selectedPayers: _selectedPayers,
                 onAddPlayer: _showAddPlayerDialog,
-                onEditPlayer: _editPlayer,
-                onRemovePlayer: _removePlayer,
+                onManagePayers: _showManagePayersDialog,
                 onChanged: (newPayers) {
                   setState(() {
                     _selectedPayers = newPayers;
