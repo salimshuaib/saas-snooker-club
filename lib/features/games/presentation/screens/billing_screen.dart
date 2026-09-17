@@ -1104,7 +1104,6 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
                             onTap: () {
                               if (method == PaymentMethod.credit &&
                                   !isSplit &&
-                                  _session.allPlayers.length == 1 &&
                                   player.toLowerCase().startsWith('default')) {
                                 _showCreditNameDialog(
                                   player,
@@ -1117,6 +1116,9 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
                                   _playerPaymentSplits[player] = {
                                     method: _roundedTotal,
                                   };
+                                  if (method == PaymentMethod.credit && !isSplit) {
+                                    _PlayerProfileName = player;
+                                  }
                                 });
                               }
                             },
@@ -1165,50 +1167,6 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
                     );
                   },
                 ),
-                if (_paymentMethod == PaymentMethod.credit &&
-                    !(_session.allPlayers.length == 1 &&
-                        _session.allPlayers.first.toLowerCase().startsWith(
-                          'default',
-                        ))) ...[
-                  const Gap(24),
-                  Text(
-                    'Select Customer for Credit',
-                    style: theme.textTheme.titleMedium,
-                  ),
-                  const Gap(8),
-                  _SectionCard(
-                    children: [
-                      ..._session.allPlayers.map((p) {
-                        final isDefault = p.toLowerCase().startsWith('default');
-                        return _WinnerTile(
-                          label: p,
-                          isSelected: _PlayerProfileName == p,
-                          onTap: () {
-                            if (isDefault) {
-                              _showCreditNameDialog(p);
-                            } else {
-                              setState(() => _PlayerProfileName = p);
-                            }
-                          },
-                        );
-                      }),
-                      if (_PlayerProfileName != null &&
-                          !_session.allPlayers.contains(_PlayerProfileName))
-                        _WinnerTile(
-                          label: _PlayerProfileName!,
-                          isSelected: true,
-                          onTap: () =>
-                              _showCreditNameDialog(_PlayerProfileName!),
-                        ),
-                      const Gap(8),
-                      TextButton.icon(
-                        onPressed: () => _showCreditNameDialog(''),
-                        icon: const Icon(Icons.edit),
-                        label: const Text('Enter Custom Name'),
-                      ),
-                    ],
-                  ),
-                ],
                 const Gap(32),
               ],
 
