@@ -348,7 +348,16 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
 
     if (_selectedPayers.isNotEmpty) {
       final rawShare = discountedGame / _selectedPayers.length;
-      final roundedShare = BillingUtils.roundAmount(rawShare);
+      double roundedShare = BillingUtils.roundAmount(rawShare);
+
+      // Protect minimum bill from split rounding loss
+      final expectedMinimum = _session.isMinimumBillEnabled 
+          ? (_session.minimumBillAmount - _discountAmount) 
+          : 0.0;
+      
+      while ((roundedShare * _selectedPayers.length) < expectedMinimum) {
+        roundedShare += 5.0;
+      }
 
       for (final p in _selectedPayers) {
         liabilities[p] = roundedShare;
@@ -443,14 +452,33 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
     if (_session.tableType == TableType.arcade) {
       return _finalTotal;
     }
+    
+    final expectedMinimum = _session.isMinimumBillEnabled 
+        ? (_session.minimumBillAmount - _discountAmount) 
+        : 0.0;
+
     if (_isMultiPayer) {
       if (_selectedPayers.isEmpty) return _finalTotal;
       final rawShare = _discountedGameCharge / _selectedPayers.length;
-      final roundedShare = BillingUtils.roundAmount(rawShare);
+      double roundedShare = BillingUtils.roundAmount(rawShare);
+      
+      // Protect minimum bill from split rounding loss
+      while ((roundedShare * _selectedPayers.length) < expectedMinimum) {
+        roundedShare += 5.0;
+      }
+      
       return (roundedShare * _selectedPayers.length) + _ordersTotal;
     }
+    
     // Single payer: Round the discounted game charge, then add exact orders
-    return BillingUtils.roundAmount(_discountedGameCharge) + _ordersTotal;
+    double roundedGame = BillingUtils.roundAmount(_discountedGameCharge);
+    
+    // Protect minimum bill from rounding loss
+    while (roundedGame < expectedMinimum) {
+      roundedGame += 5.0;
+    }
+    
+    return roundedGame + _ordersTotal;
   }
 
   String _formatDuration(int seconds) {
