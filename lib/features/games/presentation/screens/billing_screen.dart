@@ -181,10 +181,6 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
           final newTeamA = List<String>.from(_session.teamA)..add(playerName);
           _session = _session.copyWith(teamA: newTeamA);
 
-          if (!_selectedPayers.contains(playerName)) {
-            _selectedPayers.add(playerName);
-          }
-
           _playerPaymentSplits[playerName] = {PaymentMethod.cash: 0.0};
           _liabilityControllers[playerName] = TextEditingController();
 
