@@ -58,10 +58,26 @@ final tablesProvider = StreamProvider<List<TableModel>>((ref) {
 /// Resolved tables: Firestore data if available, otherwise central default tables.
 final resolvedTablesProvider = Provider<List<TableModel>>((ref) {
   final async = ref.watch(tablesProvider);
+
+  List<TableModel> sortTables(List<TableModel> list) {
+    return List<TableModel>.from(list)..sort((a, b) {
+      final o = a.order.compareTo(b.order);
+      if (o != 0) return o;
+      final r = RegExp(r'\d+');
+      final mA = r.firstMatch(a.name);
+      final mB = r.firstMatch(b.name);
+      if (mA != null && mB != null) {
+        final c = int.parse(mA.group(0)!).compareTo(int.parse(mB.group(0)!));
+        if (c != 0) return c;
+      }
+      return a.name.compareTo(b.name);
+    });
+  }
+
   return async.when(
-    data: (tables) => tables.isEmpty ? TablesConfig.defaultTables : tables,
-    loading: () => TablesConfig.defaultTables,
-    error: (_, __) => TablesConfig.defaultTables,
+    data: (tables) => sortTables(tables.isEmpty ? TablesConfig.defaultTables : tables),
+    loading: () => sortTables(TablesConfig.defaultTables),
+    error: (_, __) => sortTables(TablesConfig.defaultTables),
   );
 });
 

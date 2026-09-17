@@ -79,8 +79,7 @@ class GameActivityScreen extends ConsumerWidget {
       ),
       body: Builder(
         builder: (context) {
-          final tables = tablesAsync;
-          if (tables.isEmpty) {
+          if (tablesAsync.isEmpty) {
             return Center(
               child: Text(
                 'No tables configured.',
@@ -88,6 +87,8 @@ class GameActivityScreen extends ConsumerWidget {
               ),
             );
           }
+
+          final tables = tablesAsync;
 
           final snookerTables = tables
               .where((t) => t.type == TableType.snooker)
