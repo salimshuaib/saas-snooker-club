@@ -69,6 +69,7 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
     // We cannot use _gameCharge here because it requires context for appSettings,
     // so we will just initialize empty and let the UI handle it or we can calculate base.
     _discountPercentController = TextEditingController();
+    _discountedGameController = TextEditingController();
 
     _playerPaymentSplits = {
       for (final p in _session.allPlayers) p: {PaymentMethod.cash: 0.0},
