@@ -191,6 +191,8 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
   }
 
   void _removePlayer(String player) {
+    if (_session.allPlayers.length <= 1) return;
+    
     setState(() {
       final newTeamA = List<String>.from(_session.teamA)..remove(player);
       final newTeamB = List<String>.from(_session.teamB)..remove(player);
@@ -303,13 +305,14 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
                               if (mounted) setStateDialog(() {});
                             },
                           ),
-                          IconButton(
-                            icon: const Icon(Icons.delete_outline, color: Colors.red),
-                            onPressed: () {
-                              _removePlayer(player);
-                              setStateDialog(() {});
-                            },
-                          ),
+                          if (_session.allPlayers.length > 1)
+                            IconButton(
+                              icon: const Icon(Icons.delete_outline, color: Colors.red),
+                              onPressed: () {
+                                _removePlayer(player);
+                                setStateDialog(() {});
+                              },
+                            ),
                         ],
                       ),
                     );
