@@ -346,10 +346,14 @@ class _QuickSalesScreenState extends ConsumerState<QuickSalesScreen> {
                               ),
                             ),
                             const SizedBox(width: 10),
-                            Text(
-                              '${sale.items.length} ${sale.items.length == 1 ? 'item' : 'items'} purchased',
-                              style: theme.textTheme.bodyMedium?.copyWith(
-                                color: theme.colorScheme.onSurfaceVariant,
+                            Expanded(
+                              child: Text(
+                                sale.items.map((i) => i.productName).join(', '),
+                                style: theme.textTheme.bodyMedium?.copyWith(
+                                  color: theme.colorScheme.onSurfaceVariant,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
                               ),
                             ),
                           ],

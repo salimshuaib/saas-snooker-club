@@ -13,6 +13,7 @@ import 'package:snooker_club/features/games/domain/models/game_models.dart';
 import 'package:snooker_club/features/quick_sales/domain/models/quick_sale_models.dart';
 import 'package:snooker_club/features/quick_sales/providers/quick_sales_providers.dart';
 import 'package:snooker_club/features/credit/providers/credit_providers.dart';
+import 'package:snooker_club/features/team/providers/team_providers.dart';
 
 class NewQuickSaleScreen extends ConsumerStatefulWidget {
   const NewQuickSaleScreen({super.key});
@@ -123,6 +124,7 @@ class _NewQuickSaleScreenState extends ConsumerState<NewQuickSaleScreen> {
         totalAmount += (product.sellingPrice * entry.value);
       }
 
+      final staff = ref.read(currentStaffProvider).value;
       final sale = QuickSale(
         id: '',
         customerName: _customerNameController.text.trim().isEmpty
@@ -131,7 +133,7 @@ class _NewQuickSaleScreenState extends ConsumerState<NewQuickSaleScreen> {
         items: saleItems,
         totalAmount: totalAmount,
         paymentMethod: _paymentMethod,
-        employeeName: 'Admin',
+        employeeName: staff?.name ?? 'Admin',
         date: DateTime.now(),
       );
 
