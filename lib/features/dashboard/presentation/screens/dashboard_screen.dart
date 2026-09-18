@@ -250,7 +250,7 @@ class DashboardScreen extends ConsumerWidget {
                           runningTablesCountProvider,
                         );
                         return InfoCard(
-                          title: 'Running Tables',
+                          title: 'Running Games',
                           value: runningCount.toString(),
                           icon: Icons.table_restaurant,
                           iconColor: AppColors.running,
@@ -275,7 +275,7 @@ class DashboardScreen extends ConsumerWidget {
                           availableTablesCountProvider,
                         );
                         return InfoCard(
-                          title: 'Available Tables',
+                          title: 'Available Games',
                           value: availableCount.toString(),
                           icon: Icons.check_circle_outline,
                           iconColor: AppColors.available,

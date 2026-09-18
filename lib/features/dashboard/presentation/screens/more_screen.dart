@@ -89,8 +89,13 @@ class MoreScreen extends ConsumerWidget {
               ),
             ),
             const Gap(12),
-
-
+            _MoreMenuItem(
+              icon: Icons.inventory_2,
+              title: 'Inventory',
+              subtitle: 'Stock & products',
+              iconColor: AppColors.primary,
+              onTap: () => context.push(RouteNames.inventory),
+            ),
             const Gap(12),
             _MoreMenuItem(
               icon: Icons.credit_card,

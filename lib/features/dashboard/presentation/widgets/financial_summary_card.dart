@@ -118,7 +118,7 @@ class FinancialSummaryCard extends ConsumerWidget {
                   ),
                   const Gap(4),
                   _buildRow(
-                    "Credit Created",
+                    "Today's Credit",
                     summary.creditCreated,
                     currency,
                     theme,
@@ -126,7 +126,7 @@ class FinancialSummaryCard extends ConsumerWidget {
                   ),
                   if (!forSelectedDate)
                     _buildRow(
-                      "Outstanding Credit",
+                      "Pending Credit",
                       summary.outstandingCredit,
                       currency,
                       theme,
