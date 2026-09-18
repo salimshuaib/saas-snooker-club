@@ -158,59 +158,70 @@ class _ActiveGameCardState extends ConsumerState<ActiveGameCard> {
                       const Gap(12),
                     ],
                     Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         // Timer
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              timeStr,
-                              style: theme.textTheme.displaySmall?.copyWith(
-                                fontWeight: FontWeight.w800,
-                                color: game.status == TableStatus.running
-                                    ? AppColors.running
-                                    : AppColors.paused,
-                                letterSpacing: 2,
-                              ),
-                            ),
-                            Builder(
-                              builder: (context) {
-                                String displayStr =
-                                    game.billingType.displayName;
-                                if (game.billingType == BillingType.perMinute) {
-                                  final rate =
-                                      game.customPrice ??
-                                      TablePricingConfig.getPerMinutePrice(
-                                        widget.table,
-                                        GameType.standard,
-                                        game.pricingSnapshot ??
-                                            appSettings.pricing,
-                                      );
-                                  displayStr +=
-                                      ' • \u20B9${rate.toStringAsFixed(2)}/min';
-                                }
-                                return Text(
-                                  displayStr,
-                                  style: theme.textTheme.labelSmall?.copyWith(
-                                    color: theme.colorScheme.onSurfaceVariant,
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              FittedBox(
+                                fit: BoxFit.scaleDown,
+                                alignment: Alignment.centerLeft,
+                                child: Text(
+                                  timeStr,
+                                  style: theme.textTheme.displaySmall?.copyWith(
+                                    fontWeight: FontWeight.w800,
+                                    color: game.status == TableStatus.running
+                                        ? AppColors.running
+                                        : AppColors.paused,
+                                    letterSpacing: 2,
+                                    height: 1.1,
                                   ),
-                                );
-                              },
-                            ),
-                          ],
+                                ),
+                              ),
+                              Builder(
+                                builder: (context) {
+                                  String displayStr =
+                                      game.billingType.displayName;
+                                  if (game.billingType == BillingType.perMinute) {
+                                    final rate =
+                                        game.customPrice ??
+                                        TablePricingConfig.getPerMinutePrice(
+                                          widget.table,
+                                          GameType.standard,
+                                          game.pricingSnapshot ??
+                                              appSettings.pricing,
+                                        );
+                                    displayStr +=
+                                        ' • ₹${rate.toStringAsFixed(2)}/min';
+                                  }
+                                  return Text(
+                                    displayStr,
+                                    style: theme.textTheme.labelSmall?.copyWith(
+                                      color: theme.colorScheme.onSurfaceVariant,
+                                    ),
+                                  );
+                                },
+                              ),
+                            ],
+                          ),
                         ),
-                        const Gap(8),
+                        const Gap(12),
                         // Current Charge
                         Column(
                           crossAxisAlignment: CrossAxisAlignment.end,
                           children: [
                             Text(
-                              '\u20B9${charge.totalCharge.toStringAsFixed(2)}',
+                              '₹${charge.totalCharge.toStringAsFixed(2)}',
                               style: theme.textTheme.headlineSmall?.copyWith(
                                 fontWeight: FontWeight.w700,
                                 color: AppColors.primary,
+                                height: 1.2,
                               ),
                             ),
+                            const Gap(2),
                             Text(
                               'Game charge',
                               style: theme.textTheme.labelSmall?.copyWith(
