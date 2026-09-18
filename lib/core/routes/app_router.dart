@@ -46,7 +46,7 @@ import 'package:snooker_club/core/providers/club_scope_provider.dart';
 import 'package:snooker_club/features/subscription/presentation/screens/no_club_screen.dart';
 import 'package:snooker_club/features/subscription/presentation/screens/subscription_expired_screen.dart';
 
-final GlobalKey<NavigatorState> _rootNavigatorKey = GlobalKey<NavigatorState>(
+final GlobalKey<NavigatorState> rootNavigatorKey = GlobalKey<NavigatorState>(
   debugLabel: 'root',
 );
 final GlobalKey<NavigatorState> _liveNavigatorKey = GlobalKey<NavigatorState>(
@@ -90,7 +90,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
   final notifier = RouterNotifier(ref);
 
   return GoRouter(
-    navigatorKey: _rootNavigatorKey,
+    navigatorKey: rootNavigatorKey,
     initialLocation: RouteNames.splash,
     refreshListenable: notifier,
     redirect: (context, state) {

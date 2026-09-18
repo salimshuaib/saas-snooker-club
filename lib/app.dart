@@ -8,7 +8,6 @@ import 'package:snooker_club/core/providers/locale_provider.dart';
 import 'package:snooker_club/core/routes/app_router.dart';
 import 'package:snooker_club/core/theme/app_theme.dart';
 import 'package:snooker_club/l10n/app_localizations.dart';
-import 'package:snooker_club/features/games/presentation/widgets/alarm_listener_wrapper.dart';
 
 /// Root application widget.
 class SnookerClubApp extends ConsumerWidget {
@@ -57,16 +56,14 @@ class SnookerClubApp extends ConsumerWidget {
         }
 
         if (AppConfig.isPreview) {
-          return AlarmListenerWrapper(
-            child: Banner(
-              message: 'PREVIEW',
-              location: BannerLocation.topEnd,
-              color: Colors.deepOrange,
-              child: content,
-            ),
+          return Banner(
+            message: 'PREVIEW',
+            location: BannerLocation.topEnd,
+            color: Colors.deepOrange,
+            child: content,
           );
         }
-        return AlarmListenerWrapper(child: content);
+        return content;
       },
     );
 

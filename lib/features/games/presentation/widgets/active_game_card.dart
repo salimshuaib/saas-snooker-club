@@ -151,6 +151,8 @@ class _ActiveGameCardState extends ConsumerState<ActiveGameCard> {
                               ],
                             ),
                           ),
+                          const Spacer(),
+                          _BellIcon(gameId: game.id, tableName: widget.table.name),
                         ],
                       ),
                       const Gap(12),
