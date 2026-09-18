@@ -663,18 +663,24 @@ class _NewQuickSaleScreenState extends ConsumerState<NewQuickSaleScreen> {
                 borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
               ),
               builder: (sheetContext) => StatefulBuilder(
-                builder: (stfContext, setModalState) => Container(
-                  constraints: BoxConstraints(
-                    maxHeight: MediaQuery.of(context).size.height * 0.85,
+                builder: (stfContext, setModalState) {
+                  final bottomInset = MediaQuery.of(sheetContext).viewInsets.bottom;
+                  return Padding(
+                    padding: EdgeInsets.only(bottom: bottomInset),
+                    child: Container(
+                      constraints: BoxConstraints(
+                        maxHeight: MediaQuery.of(context).size.height * 0.9 - bottomInset,
+                      ),
+                    child: _buildCartPanel(
+                      theme,
+                      customerNames,
+                      isModal: true,
+                      onModalUpdate: () => setModalState(() {}),
+                      sheetContext: sheetContext,
+                    ),
                   ),
-                  child: _buildCartPanel(
-                    theme,
-                    customerNames,
-                    isModal: true,
-                    onModalUpdate: () => setModalState(() {}),
-                    sheetContext: sheetContext,
-                  ),
-                ),
+                );
+                },
               ),
             );
           },
