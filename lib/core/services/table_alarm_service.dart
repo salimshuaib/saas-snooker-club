@@ -84,7 +84,7 @@ class TableAlarmService {
       );
 
       await _localNotifications.initialize(
-        initializationSettings,
+        settings: initializationSettings,
         onDidReceiveNotificationResponse: (details) {
           if (details.payload != null) {
             try {
