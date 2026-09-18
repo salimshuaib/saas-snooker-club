@@ -239,62 +239,6 @@ class DashboardScreen extends ConsumerWidget {
               // --- PHASE 5: NEW FINANCIAL SUMMARY ---
               const FinancialSummaryCard(),
               const Gap(12),
-
-              // Table Status Grid
-              Row(
-                children: [
-                  Expanded(
-                    child: Consumer(
-                      builder: (context, ref, child) {
-                        final runningCount = ref.watch(
-                          runningTablesCountProvider,
-                        );
-                        return InfoCard(
-                          title: 'Running Games',
-                          value: runningCount.toString(),
-                          icon: Icons.table_restaurant,
-                          iconColor: AppColors.running,
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) =>
-                                    const RunningTablesScreen(),
-                              ),
-                            );
-                          },
-                        );
-                      },
-                    ),
-                  ),
-                  const Gap(12),
-                  Expanded(
-                    child: Consumer(
-                      builder: (context, ref, child) {
-                        final availableCount = ref.watch(
-                          availableTablesCountProvider,
-                        );
-                        return InfoCard(
-                          title: 'Available Games',
-                          value: availableCount.toString(),
-                          icon: Icons.check_circle_outline,
-                          iconColor: AppColors.available,
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) =>
-                                    const AvailableTablesScreen(),
-                              ),
-                            );
-                          },
-                        );
-                      },
-                    ),
-                  ),
-                ],
-              ),
-              const Gap(24),
               Row(
                 children: [
                   Expanded(
