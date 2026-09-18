@@ -177,30 +177,32 @@ class GameActivityScreen extends ConsumerWidget {
                                       color: theme.colorScheme.onSurface,
                                     ),
                                   ),
-                                  const Spacer(),
-                                  _StatusBadge(
-                                    label: 'Running',
-                                    count: tables.where((t) => t.status == TableStatus.running || t.status == TableStatus.paused).length,
-                                    color: AppColors.running,
-                                    onTap: () => _showTablesList(
-                                      context,
-                                      sortedKeys[i].displayName,
-                                      'Running Games',
-                                      tables.where((t) => t.status == TableStatus.running || t.status == TableStatus.paused).toList(),
+                                  if (i == 0) ...[
+                                    const Spacer(),
+                                    _StatusBadge(
+                                      label: 'Running',
+                                      count: tables.where((t) => t.status == TableStatus.running || t.status == TableStatus.paused).length,
+                                      color: AppColors.running,
+                                      onTap: () => _showTablesList(
+                                        context,
+                                        'All Tables',
+                                        'Running Games',
+                                        tables.where((t) => t.status == TableStatus.running || t.status == TableStatus.paused).toList(),
+                                      ),
                                     ),
-                                  ),
-                                  const SizedBox(width: 8),
-                                  _StatusBadge(
-                                    label: 'Available',
-                                    count: tables.where((t) => t.status == TableStatus.available).length,
-                                    color: AppColors.available,
-                                    onTap: () => _showTablesList(
-                                      context,
-                                      sortedKeys[i].displayName,
-                                      'Available Games',
-                                      tables.where((t) => t.status == TableStatus.available).toList(),
+                                    const SizedBox(width: 8),
+                                    _StatusBadge(
+                                      label: 'Available',
+                                      count: tables.where((t) => t.status == TableStatus.available).length,
+                                      color: AppColors.available,
+                                      onTap: () => _showTablesList(
+                                        context,
+                                        'All Tables',
+                                        'Available Games',
+                                        tables.where((t) => t.status == TableStatus.available).toList(),
+                                      ),
                                     ),
-                                  ),
+                                  ]
                                 ],
                               ),
                             ),
