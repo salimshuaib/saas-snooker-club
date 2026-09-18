@@ -151,7 +151,7 @@ class _ActiveGameCardState extends ConsumerState<ActiveGameCard> {
                               ],
                             ),
                           ),
-                          const Spacer(),
+                          const Gap(8),
                           _BellIcon(gameId: game.id, tableName: widget.table.name),
                         ],
                       ),
@@ -199,8 +199,6 @@ class _ActiveGameCardState extends ConsumerState<ActiveGameCard> {
                             ),
                           ],
                         ),
-                        const Spacer(),
-                        _BellIcon(gameId: game.id, tableName: widget.table.name),
                         const Gap(8),
                         // Current Charge
                         Column(

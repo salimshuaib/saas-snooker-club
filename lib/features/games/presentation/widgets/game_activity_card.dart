@@ -9,6 +9,8 @@ import 'package:snooker_club/features/games/domain/models/game_models.dart';
 import 'package:snooker_club/features/games/presentation/widgets/game_setup_dialog.dart';
 import 'package:snooker_club/features/games/providers/games_providers.dart';
 import 'package:snooker_club/features/games/presentation/widgets/active_game_card.dart';
+import 'package:snooker_club/core/services/table_alarm_service.dart';
+import 'package:snooker_club/features/games/presentation/widgets/alarm_setup_sheet.dart';
 import 'package:snooker_club/features/team/providers/team_providers.dart';
 
 class GameActivityCard extends ConsumerWidget {
@@ -46,13 +48,42 @@ class GameActivityCard extends ConsumerWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        table.name,
-                        style: TextStyle(
-                          color: theme.colorScheme.onSurface,
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                        ),
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Flexible(
+                            child: Text(
+                              table.name,
+                              style: TextStyle(
+                                color: theme.colorScheme.onSurface,
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          if (!isAvailable && gameAsync.value != null)
+                            StreamBuilder<void>(
+                              stream: TableAlarmService().onAlarmsChanged,
+                              builder: (context, _) {
+                                final alarm = TableAlarmService().getAlarmInfo(gameAsync.value!.id);
+                                final isActive = alarm != null;
+                                return IconButton(
+                                  padding: EdgeInsets.zero,
+                                  constraints: const BoxConstraints(),
+                                  onPressed: () {
+                                    AlarmSetupSheet.show(context, gameAsync.value!.id, table.name);
+                                  },
+                                  icon: Icon(
+                                    isActive ? Icons.notifications_active : Icons.notifications_none,
+                                    color: isActive ? theme.colorScheme.primary : theme.colorScheme.onSurfaceVariant,
+                                    size: 22,
+                                  ),
+                                  tooltip: 'Set Reminder',
+                                );
+                              },
+                            ),
+                        ],
                       ),
                       const SizedBox(height: 4),
                       Row(
