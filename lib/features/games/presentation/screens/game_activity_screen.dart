@@ -168,12 +168,40 @@ class GameActivityScreen extends ConsumerWidget {
                                 bottom: 12,
                                 top: i > 0 ? 8 : 0,
                               ),
-                              child: Text(
-                                sortedKeys[i].displayName,
-                                style: theme.textTheme.titleMedium?.copyWith(
-                                  fontWeight: FontWeight.bold,
-                                  color: theme.colorScheme.onSurface,
-                                ),
+                              child: Row(
+                                children: [
+                                  Text(
+                                    sortedKeys[i].displayName,
+                                    style: theme.textTheme.titleMedium?.copyWith(
+                                      fontWeight: FontWeight.bold,
+                                      color: theme.colorScheme.onSurface,
+                                    ),
+                                  ),
+                                  const Spacer(),
+                                  _StatusBadge(
+                                    label: 'Running',
+                                    count: grouped[sortedKeys[i]]!.where((t) => t.status == TableStatus.running || t.status == TableStatus.paused).length,
+                                    color: AppColors.running,
+                                    onTap: () => _showTablesList(
+                                      context,
+                                      sortedKeys[i].displayName,
+                                      'Running Games',
+                                      grouped[sortedKeys[i]]!.where((t) => t.status == TableStatus.running || t.status == TableStatus.paused).toList(),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  _StatusBadge(
+                                    label: 'Available',
+                                    count: grouped[sortedKeys[i]]!.where((t) => t.status == TableStatus.available).length,
+                                    color: AppColors.available,
+                                    onTap: () => _showTablesList(
+                                      context,
+                                      sortedKeys[i].displayName,
+                                      'Available Games',
+                                      grouped[sortedKeys[i]]!.where((t) => t.status == TableStatus.available).toList(),
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
                             LayoutBuilder(
