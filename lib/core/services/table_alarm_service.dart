@@ -135,14 +135,12 @@ class TableAlarmService {
       );
       
       await _localNotifications.zonedSchedule(
-        notificationId,
-        tableName,
-        'Time Over!',
-        tz.TZDateTime.from(fireAt, tz.local),
-        const NotificationDetails(android: androidDetails),
+        id: notificationId,
+        title: tableName,
+        body: 'Time Over!',
+        scheduledDate: tz.TZDateTime.from(fireAt, tz.local),
+        notificationDetails: const NotificationDetails(android: androidDetails),
         androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-        uiLocalNotificationDateInterpretation:
-            UILocalNotificationDateInterpretation.absoluteTime,
         payload: jsonEncode(alarm.toJson()),
       );
     }
@@ -173,7 +171,7 @@ class TableAlarmService {
 
     if (!kIsWeb) {
       final notificationId = _generateId(gameId);
-      await _localNotifications.cancel(notificationId);
+      await _localNotifications.cancel(id: notificationId);
     }
   }
 
