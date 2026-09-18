@@ -14,6 +14,8 @@ import 'package:snooker_club/features/games/presentation/widgets/payer_selection
 import 'package:snooker_club/features/games/presentation/screens/manual_game_setup_screen.dart';
 import 'package:snooker_club/features/games/presentation/widgets/table_history_sheet.dart';
 import 'package:snooker_club/features/team/providers/team_providers.dart';
+import 'package:snooker_club/core/services/table_alarm_service.dart';
+import 'package:snooker_club/features/games/presentation/widgets/alarm_setup_sheet.dart';
 
 class ActiveGameCard extends ConsumerStatefulWidget {
   final GameSession game;
@@ -196,6 +198,8 @@ class _ActiveGameCardState extends ConsumerState<ActiveGameCard> {
                           ],
                         ),
                         const Spacer(),
+                        _BellIcon(gameId: game.id, tableName: widget.table.name),
+                        const Gap(8),
                         // Current Charge
                         Column(
                           crossAxisAlignment: CrossAxisAlignment.end,
@@ -770,6 +774,42 @@ class _InfoChip extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+
+class _BellIcon extends StatefulWidget {
+  final String gameId;
+  final String tableName;
+
+  const _BellIcon({required this.gameId, required this.tableName});
+
+  @override
+  State<_BellIcon> createState() => _BellIconState();
+}
+
+class _BellIconState extends State<_BellIcon> {
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder<void>(
+      stream: TableAlarmService().onAlarmsChanged,
+      builder: (context, _) {
+        final alarm = TableAlarmService().getAlarmInfo(widget.gameId);
+        final isActive = alarm != null;
+        final theme = Theme.of(context);
+
+        return IconButton(
+          onPressed: () {
+            AlarmSetupSheet.show(context, widget.gameId, widget.tableName);
+          },
+          icon: Icon(
+            isActive ? Icons.notifications_active : Icons.notifications_none,
+            color: isActive ? theme.colorScheme.primary : theme.colorScheme.onSurfaceVariant,
+          ),
+          tooltip: 'Set Reminder',
+        );
+      },
     );
   }
 }

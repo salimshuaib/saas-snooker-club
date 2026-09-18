@@ -11,6 +11,7 @@ import 'package:snooker_club/core/utils/logger.dart';
 import 'package:snooker_club/firebase_options.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:snooker_club/core/services/push_notification_service.dart';
+import 'package:snooker_club/core/services/table_alarm_service.dart';
 
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
@@ -46,6 +47,13 @@ void main() async {
     await pushService.initialize();
   } catch (e) {
     AppLogger.error('Failed to initialize push notifications: $e');
+  }
+
+  // Initialize Table Alarms
+  try {
+    await TableAlarmService().initialize();
+  } catch (e) {
+    AppLogger.error('Failed to initialize table alarms: $e');
   }
 
   // Enable Firestore offline persistence

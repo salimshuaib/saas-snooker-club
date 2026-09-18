@@ -14,6 +14,7 @@ import 'package:snooker_club/firebase_options.dart';
 import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:snooker_club/core/services/push_notification_service.dart';
+import 'package:snooker_club/core/services/table_alarm_service.dart';
 import 'dart:ui';
 
 @pragma('vm:entry-point')
@@ -49,6 +50,13 @@ void main() async {
     await pushService.initialize();
   } catch (e) {
     AppLogger.error('Failed to initialize push notifications: $e');
+  }
+
+  // Initialize Table Alarms
+  try {
+    await TableAlarmService().initialize();
+  } catch (e) {
+    AppLogger.error('Failed to initialize table alarms: $e');
   }
 
   // Debug: log persisted auth state

@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import 'package:snooker_club/features/games/data/games_repository.dart';
 import 'package:snooker_club/features/games/domain/config/tables_config.dart';
 import 'package:snooker_club/features/games/domain/models/game_models.dart';
+import 'package:snooker_club/core/services/table_alarm_service.dart';
 import 'package:snooker_club/core/providers/app_providers.dart';
 import 'package:snooker_club/features/quick_sales/providers/quick_sales_providers.dart';
 import 'package:snooker_club/features/team/providers/team_providers.dart';
@@ -160,6 +161,7 @@ class GameSessionController extends Notifier<AsyncValue<void>> {
     List<GameOrder> orders,
   ) async {
     try {
+      TableAlarmService().cancelAlarm(gameId);
       await _repo.cancelGame(gameId, tableId, orders);
     } catch (e, st) {
       state = AsyncValue.error(e, st);
@@ -202,6 +204,7 @@ class GameSessionController extends Notifier<AsyncValue<void>> {
   Future<void> endGame(GameSession session) async {
     state = const AsyncValue.loading();
     try {
+      TableAlarmService().cancelAlarm(session.id);
       await _repo.endGame(session);
       state = const AsyncValue.data(null);
     } catch (e, st) {
