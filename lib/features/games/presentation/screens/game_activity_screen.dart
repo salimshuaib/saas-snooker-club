@@ -179,27 +179,43 @@ class GameActivityScreen extends ConsumerWidget {
                                   ),
                                   if (i == 0) ...[
                                     const Spacer(),
-                                    _StatusBadge(
-                                      label: 'Running',
-                                      count: tables.where((t) => t.status == TableStatus.running || t.status == TableStatus.paused).length,
-                                      color: AppColors.running,
-                                      onTap: () => _showTablesList(
-                                        context,
-                                        'All Tables',
-                                        'Running Games',
-                                        tables.where((t) => t.status == TableStatus.running || t.status == TableStatus.paused).toList(),
+                                    Builder(
+                                      builder: (innerContext) => _StatusBadge(
+                                        label: 'Running',
+                                        count: tables.where((t) => t.status == TableStatus.running || t.status == TableStatus.paused).length,
+                                        color: AppColors.running,
+                                        onTap: () => _showTablesList(
+                                          innerContext,
+                                          'All Tables',
+                                          'Running Games',
+                                          tables.where((t) => t.status == TableStatus.running || t.status == TableStatus.paused).toList(),
+                                          allTables: tables,
+                                          existingTypes: existingTypes,
+                                          snookerTables: snookerTables,
+                                          poolTables: poolTables,
+                                          consoleTables: consoleTables,
+                                          otherTables: otherTables,
+                                        ),
                                       ),
                                     ),
                                     const SizedBox(width: 8),
-                                    _StatusBadge(
-                                      label: 'Available',
-                                      count: tables.where((t) => t.status == TableStatus.available).length,
-                                      color: AppColors.available,
-                                      onTap: () => _showTablesList(
-                                        context,
-                                        'All Tables',
-                                        'Available Games',
-                                        tables.where((t) => t.status == TableStatus.available).toList(),
+                                    Builder(
+                                      builder: (innerContext) => _StatusBadge(
+                                        label: 'Available',
+                                        count: tables.where((t) => t.status == TableStatus.available).length,
+                                        color: AppColors.available,
+                                        onTap: () => _showTablesList(
+                                          innerContext,
+                                          'All Tables',
+                                          'Available Games',
+                                          tables.where((t) => t.status == TableStatus.available).toList(),
+                                          allTables: tables,
+                                          existingTypes: existingTypes,
+                                          snookerTables: snookerTables,
+                                          poolTables: poolTables,
+                                          consoleTables: consoleTables,
+                                          otherTables: otherTables,
+                                        ),
                                       ),
                                     ),
                                   ]
@@ -253,7 +269,18 @@ class GameActivityScreen extends ConsumerWidget {
 }
 
 
-void _showTablesList(BuildContext context, String category, String title, List<TableModel> tables) {
+void _showTablesList(
+  BuildContext context,
+  String category,
+  String title,
+  List<TableModel> tables, {
+  List<TableModel>? allTables,
+  List<String>? existingTypes,
+  List<TableModel>? snookerTables,
+  List<TableModel>? poolTables,
+  List<TableModel>? consoleTables,
+  List<TableModel>? otherTables,
+}) {
   final theme = Theme.of(context);
   showModalBottomSheet(
     context: context,
@@ -261,7 +288,7 @@ void _showTablesList(BuildContext context, String category, String title, List<T
     shape: const RoundedRectangleBorder(
       borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
     ),
-    builder: (context) {
+    builder: (sheetContext) {
       return SafeArea(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -279,7 +306,7 @@ void _showTablesList(BuildContext context, String category, String title, List<T
                   const Spacer(),
                   IconButton(
                     icon: const Icon(Icons.close),
-                    onPressed: () => Navigator.pop(context),
+                    onPressed: () => Navigator.pop(sheetContext),
                   ),
                 ],
               ),
@@ -295,7 +322,7 @@ void _showTablesList(BuildContext context, String category, String title, List<T
                 child: ListView.builder(
                   shrinkWrap: true,
                   itemCount: tables.length,
-                  itemBuilder: (context, index) {
+                  itemBuilder: (_, index) {
                     final table = tables[index];
                     return ListTile(
                       leading: Icon(
@@ -306,16 +333,52 @@ void _showTablesList(BuildContext context, String category, String title, List<T
                         table.name,
                         style: const TextStyle(fontWeight: FontWeight.w600),
                       ),
-                      trailing: Text(
-                        table.status.displayName.toUpperCase(),
-                        style: theme.textTheme.labelSmall?.copyWith(
-                          color: table.status == TableStatus.available
-                              ? AppColors.available
-                              : AppColors.running,
-                          fontWeight: FontWeight.bold,
-                        ),
+                      trailing: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            table.status.displayName.toUpperCase(),
+                            style: theme.textTheme.labelSmall?.copyWith(
+                              color: table.status == TableStatus.available
+                                  ? AppColors.available
+                                  : AppColors.running,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(width: 4),
+                          Icon(
+                            Icons.chevron_right,
+                            size: 18,
+                            color: theme.colorScheme.onSurfaceVariant,
+                          ),
+                        ],
                       ),
-                      onTap: () => Navigator.pop(context),
+                      onTap: () {
+                        // Close the bottom sheet
+                        Navigator.pop(sheetContext);
+
+                        // Navigate to the correct tab
+                        if (existingTypes != null) {
+                          String? targetTab;
+                          if (snookerTables != null && snookerTables.any((t) => t.id == table.id)) {
+                            targetTab = 'Snooker';
+                          } else if (poolTables != null && poolTables.any((t) => t.id == table.id)) {
+                            targetTab = 'Pool';
+                          } else if (consoleTables != null && consoleTables.any((t) => t.id == table.id)) {
+                            targetTab = 'Console & PC';
+                          } else if (otherTables != null && otherTables.any((t) => t.id == table.id)) {
+                            targetTab = 'Other';
+                          }
+
+                          if (targetTab != null) {
+                            final tabIndex = existingTypes.indexOf(targetTab);
+                            if (tabIndex >= 0) {
+                              final tabController = DefaultTabController.of(context);
+                              tabController.animateTo(tabIndex);
+                            }
+                          }
+                        }
+                      },
                     );
                   },
                 ),
