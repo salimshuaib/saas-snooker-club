@@ -65,7 +65,7 @@ class TableAlarmService {
 
     if (!kIsWeb) {
       const AndroidNotificationChannel alarmChannel = AndroidNotificationChannel(
-        'table_alarm_channel',
+        'table_alarm_channel_v3',
         'Table Alarms',
         description: 'Loud alarm notifications when table time is over',
         importance: Importance.max,
@@ -144,7 +144,7 @@ class TableAlarmService {
 
     if (!kIsWeb) {
       final androidDetails = AndroidNotificationDetails(
-        'table_alarm_channel',
+        'table_alarm_channel_v3',
         'Table Alarms',
         channelDescription: 'Loud alarm notifications when table time is over',
         importance: Importance.max,
