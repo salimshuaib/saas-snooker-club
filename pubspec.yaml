@@ -1,7 +1,7 @@
 name: snooker_club
 description: "Snooker Club Management System"
 publish_to: 'none'
-version: 1.0.19+19
+version: 1.0.20+20
 
 environment:
   sdk: ^3.11.1
@@ -50,7 +50,6 @@ dependencies:
   flutter_local_notifications: ^22.3.1
   timezone: ^0.11.1
   flutter_tts: ^4.2.5
-
 dev_dependencies:
   flutter_test:
     sdk: flutter

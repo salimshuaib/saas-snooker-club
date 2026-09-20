@@ -199,12 +199,22 @@ class TableAlarmService {
     }
 
     try {
+      // Configure TTS for maximum clarity
+      await _flutterTts.setLanguage("en-IN");
+      await _flutterTts.setSpeechRate(0.45);
+      await _flutterTts.setPitch(1.0);
+      await _flutterTts.setVolume(1.0);
+
       final textToSpeak = '${alarm.tableName} time over';
-      _flutterTts.speak(textToSpeak);
+      
+      // Wait for the loud background alarm to finish playing before speaking
+      await Future.delayed(const Duration(seconds: 4));
+      
+      await _flutterTts.speak(textToSpeak);
       
       int speakCount = 0;
       _ttsLoopTimer?.cancel();
-      _ttsLoopTimer = Timer.periodic(const Duration(seconds: 4), (timer) async {
+      _ttsLoopTimer = Timer.periodic(const Duration(seconds: 5), (timer) async {
         speakCount++;
         if (speakCount > 15) {
           timer.cancel();
