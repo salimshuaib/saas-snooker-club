@@ -72,9 +72,7 @@ class GameActivityCard extends ConsumerWidget {
                                   padding: EdgeInsets.zero,
                                   constraints: const BoxConstraints(),
                                   onPressed: () {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(content: Text('This feature is coming soon')),
-                                    );
+                                    AlarmSetupSheet.show(context, gameAsync.value!.id, table.name);
                                   },
                                   icon: Icon(
                                     isActive ? Icons.notifications_active : Icons.notifications_none,
