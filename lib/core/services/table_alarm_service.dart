@@ -188,7 +188,7 @@ class TableAlarmService {
     }
   }
 
-  void _onAlarmFired(AlarmInfo alarm) {
+  Future<void> _onAlarmFired(AlarmInfo alarm) async {
     _activeAlarms.remove(alarm.gameId);
     _activeTimers.remove(alarm.gameId);
     _saveAlarms();
