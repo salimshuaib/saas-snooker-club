@@ -1,18 +1,23 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gap/gap.dart';
 import 'package:snooker_club/core/theme/app_colors.dart';
+import 'package:snooker_club/core/services/table_alarm_service.dart';
+import 'package:snooker_club/core/widgets/inputs/app_text_field.dart';
+import 'package:snooker_club/features/settings/domain/models/settings_models.dart';
 import 'package:snooker_club/features/settings/providers/settings_providers.dart';
 import 'package:snooker_club/features/games/domain/config/pricing_config.dart';
 import 'package:snooker_club/features/games/domain/models/game_models.dart';
 import 'package:snooker_club/features/games/providers/games_providers.dart';
+import 'package:snooker_club/features/games/utils/game_validation_utils.dart';
+import 'package:snooker_club/features/team/domain/models/staff_member.dart';
+import 'package:snooker_club/features/team/providers/team_providers.dart';
 import 'package:snooker_club/features/credit/providers/credit_providers.dart';
 import 'package:snooker_club/features/credit/presentation/widgets/player_search_field.dart';
 import 'package:snooker_club/features/credit/domain/models/credit_models.dart';
-import 'package:snooker_club/core/widgets/inputs/app_text_field.dart';
-import 'package:flutter/services.dart';
-import 'package:snooker_club/features/games/utils/game_validation_utils.dart';
+import 'package:snooker_club/features/credit/domain/models/player_profile.dart';
 
 class GameSetupDialog extends ConsumerStatefulWidget {
   final TableModel table;
@@ -624,9 +629,24 @@ class _GameSetupDialogState extends ConsumerState<GameSetupDialog> {
           }
           if (_tableType != TableType.arcade) {
             await gamesRepo.startGame(gameSession);
+            
+            // Automatically schedule alarm for fixed duration games
+            if (gameSession.billingType == BillingType.halfHour) {
+              TableAlarmService().setAlarm(
+                gameId: gameSession.id,
+                tableName: gameSession.tableName,
+                durationMinutes: 30,
+              );
+            } else if (gameSession.billingType == BillingType.oneHour) {
+              TableAlarmService().setAlarm(
+                gameId: gameSession.id,
+                tableName: gameSession.tableName,
+                durationMinutes: 60,
+              );
+            }
           }
         } catch (e) {
-          debugPrint('Failed to start game in background: ');
+          debugPrint('Failed to start game in background: $e');
         }
       });
     } catch (e) {
