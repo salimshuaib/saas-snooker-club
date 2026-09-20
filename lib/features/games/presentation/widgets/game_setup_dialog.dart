@@ -17,7 +17,6 @@ import 'package:snooker_club/features/team/providers/team_providers.dart';
 import 'package:snooker_club/features/credit/providers/credit_providers.dart';
 import 'package:snooker_club/features/credit/presentation/widgets/player_search_field.dart';
 import 'package:snooker_club/features/credit/domain/models/credit_models.dart';
-import 'package:snooker_club/features/credit/domain/models/player_profile.dart';
 
 class GameSetupDialog extends ConsumerStatefulWidget {
   final TableModel table;
