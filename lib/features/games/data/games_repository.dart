@@ -426,8 +426,17 @@ class GamesRepository {
       }
     }
 
-    // 2. Delete game record
-    batch.delete(_gamesRef.doc(gameId));
+    // 2. Mark game as cancelled instead of deleting
+    batch.update(_gamesRef.doc(gameId), {
+      'status': TableStatus.available.name,
+      'isCancelled': true,
+      'endTime': FieldValue.serverTimestamp(),
+      'paymentStatus': 'Cancelled',
+      'gameCharge': 0.0,
+      'grandTotal': 0.0,
+      'ordersTotal': 0.0,
+      'finalAmount': 0.0,
+    });
 
     // 3. Free the table
     batch.update(_tablesRef.doc(tableId), {

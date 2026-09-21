@@ -128,6 +128,39 @@ class _BillDetailsScreenState extends ConsumerState<BillDetailsScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                  if (session.isCancelled) ...[
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: AppColors.error.withValues(alpha: 0.1),
+                        border: Border.all(color: AppColors.error),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Column(
+                        children: [
+                          const Icon(Icons.cancel_outlined, color: AppColors.error, size: 32),
+                          const Gap(8),
+                          Text(
+                            'THIS GAME WAS CANCELLED',
+                            style: theme.textTheme.titleMedium?.copyWith(
+                              color: AppColors.error,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const Gap(4),
+                          Text(
+                            'The inventory was restored and no charges were billed.',
+                            style: theme.textTheme.bodyMedium?.copyWith(
+                              color: AppColors.error,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                        ],
+                      ),
+                    ),
+                    const Gap(24),
+                  ],
                 // ── General Information ──
                 Text('General Information', style: theme.textTheme.titleMedium),
                 const Gap(8),

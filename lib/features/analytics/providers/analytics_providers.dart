@@ -278,8 +278,9 @@ RevenueOverviewData _computeRevenue(
   double creditCollected = 0;
 
   for (final g in games) {
-    if (g.status != TableStatus.available || g.paymentStatus == 'pending')
+    if (g.status != TableStatus.available || g.paymentStatus == 'pending' || g.isCancelled) {
       continue;
+    }
 
     final actualPaid = g.finalAmount ?? g.grandTotal ?? 0.0;
 
@@ -425,8 +426,9 @@ CompleteAnalyticsData getCompleteAnalyticsData(dynamic ref) {
   double totalCogs = 0;
 
   for (final g in games) {
-    if (g.status != TableStatus.available || g.paymentStatus == 'pending')
+    if (g.status != TableStatus.available || g.paymentStatus == 'pending' || g.isCancelled) {
       continue;
+    }
 
     // Revenue & Category
     final double gTotal = g.finalAmount ?? g.grandTotal ?? 0.0;

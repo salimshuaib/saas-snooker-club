@@ -539,6 +539,7 @@ class GameSession {
   final String date; // YYYY-MM-DD for Firestore date queries
   final List<AuditLog> auditLogs;
   final bool isManualEntry;
+  final bool isCancelled;
   final DateTime? recordedTime;
   final PricingSettings? pricingSnapshot;
   final GameSettings? gameSettingsSnapshot;
@@ -599,6 +600,7 @@ class GameSession {
     required this.date,
     this.auditLogs = const [],
     this.isManualEntry = false,
+    this.isCancelled = false,
     this.recordedTime,
     this.pricingSnapshot,
     this.gameSettingsSnapshot,
@@ -709,10 +711,13 @@ class GameSession {
     String? date,
     List<AuditLog>? auditLogs,
     bool? isManualEntry,
+    bool? isCancelled,
     DateTime? recordedTime,
     PricingSettings? pricingSnapshot,
     GameSettings? gameSettingsSnapshot,
     double? customExtraCharge,
+    bool? isMinimumBillEnabled,
+    double? minimumBillAmount,
     int? coinQuantity,
     double? customPrice,
   }) {
@@ -767,6 +772,7 @@ class GameSession {
       date: date ?? this.date,
       auditLogs: auditLogs ?? this.auditLogs,
       isManualEntry: isManualEntry ?? this.isManualEntry,
+      isCancelled: isCancelled ?? this.isCancelled,
       recordedTime: recordedTime ?? this.recordedTime,
       pricingSnapshot: pricingSnapshot ?? this.pricingSnapshot,
       gameSettingsSnapshot: gameSettingsSnapshot ?? this.gameSettingsSnapshot,
