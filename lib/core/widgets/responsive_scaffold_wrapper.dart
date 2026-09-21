@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:snooker_club/core/widgets/crm_sidebar.dart';
 
+import 'package:snooker_club/core/widgets/gaming_background.dart';
+
 class ResponsiveScaffoldWrapper extends StatelessWidget {
   final Widget child;
 
@@ -15,15 +17,18 @@ class ResponsiveScaffoldWrapper extends StatelessWidget {
     }
 
     return Scaffold(
-      body: Row(
-        children: [
-          const CRMSidebar(),
-          Expanded(
-            child: ClipRect(
-              child: child,
+      backgroundColor: Colors.transparent,
+      body: GamingBackground(
+        child: Row(
+          children: [
+            const CRMSidebar(),
+            Expanded(
+              child: ClipRect(
+                child: child,
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

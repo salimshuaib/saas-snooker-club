@@ -22,7 +22,12 @@ class CRMSidebar extends ConsumerWidget {
 
     return Container(
       width: 250,
-      color: theme.colorScheme.surface,
+      decoration: BoxDecoration(
+        color: Colors.transparent,
+        border: Border(
+          right: BorderSide(color: Colors.white.withValues(alpha: 0.05), width: 1),
+        ),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

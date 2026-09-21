@@ -63,7 +63,7 @@ class DashboardScreen extends ConsumerWidget {
     final isDesktopTop = MediaQuery.sizeOf(context).width > 800;
     if (isDesktopTop) {
       return Scaffold(
-        backgroundColor: const Color(0xFF0B0D14),
+        backgroundColor: Colors.transparent,
         body: DesktopDashboardLayout(employeeName: employeeName),
       );
     }
