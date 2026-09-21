@@ -40,20 +40,6 @@ class SnookerClubApp extends ConsumerWidget {
       supportedLocales: const [Locale('en'), Locale('hi')],
       builder: (context, child) {
         Widget content = child ?? const SizedBox.shrink();
-        
-        // Fix stretching of screens in desktop mode
-        final isDesktop = MediaQuery.sizeOf(context).width > 800;
-        if (isDesktop) {
-          content = Container(
-            color: Theme.of(context).scaffoldBackgroundColor,
-            child: Center(
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 1400), // using 1400 so Dashboard still looks good
-                child: ClipRect(child: content),
-              ),
-            ),
-          );
-        }
 
         if (AppConfig.isPreview) {
           return Banner(
