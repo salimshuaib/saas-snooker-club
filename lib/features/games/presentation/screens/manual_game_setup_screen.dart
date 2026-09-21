@@ -67,8 +67,24 @@ class _ManualGameSetupScreenState extends ConsumerState<ManualGameSetupScreen> {
     _isCompletedMode = widget.isCompletedGame;
     _selectedTable = widget.initialTable;
     if (_selectedTable != null) {
-      _billingType = BillingType.perMinute;
+      _billingType = _getDefaultBillingType(_selectedTable!);
     }
+  }
+
+  BillingType _getDefaultBillingType(TableModel table) {
+    final validTypes = BillingType.values.where((b) {
+      if (b == BillingType.perCoin) return false;
+      if (table.billingOptions != null) {
+        return table.billingOptions![b.name]?.enabled == true;
+      }
+      if (table.type == TableType.snooker && b == BillingType.perFrame) return false;
+      return true;
+    }).toList();
+    
+    if (validTypes.contains(BillingType.perMinute)) {
+      return BillingType.perMinute;
+    }
+    return validTypes.isNotEmpty ? validTypes.first : BillingType.perMinute;
   }
 
   @override
@@ -409,7 +425,9 @@ class _ManualGameSetupScreenState extends ConsumerState<ManualGameSetupScreen> {
                       onChanged: (val) {
                         setState(() {
                           _selectedTable = val;
-                          _billingType = BillingType.perMinute;
+                          if (val != null) {
+                            _billingType = _getDefaultBillingType(val);
+                          }
                           if (val != null && val.status != TableStatus.available) {
                             _isCompletedMode = true; // Force completed mode for running tables
                           }
