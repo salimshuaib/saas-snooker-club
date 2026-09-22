@@ -199,11 +199,18 @@ class _HistoryListTile extends StatelessWidget {
                 ),
                 const Gap(2),
                 Text(
-                  '$duration  \u2022  \u20B9${price.toStringAsFixed(0)}',
+                  '$duration  •  ₹${price.toStringAsFixed(0)}',
                   style: theme.textTheme.bodyMedium?.copyWith(
                     color: theme.colorScheme.onSurfaceVariant,
                   ),
                 ),
+                if (game.processedByName != null)
+                  Text(
+                    'by ${game.processedByName}',
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
               ],
             ),
           ),

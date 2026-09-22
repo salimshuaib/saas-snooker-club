@@ -21,7 +21,7 @@ class CRMSidebar extends ConsumerWidget {
     final isOwnerOrAdmin = currentStaff?.role == StaffRole.owner || currentStaff?.role == StaffRole.manager;
 
     return Container(
-      width: 250,
+      width: 220, // Reduced from 250
       decoration: BoxDecoration(
         color: Colors.transparent,
         border: Border(
@@ -32,15 +32,15 @@ class CRMSidebar extends ConsumerWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Padding(
-            padding: const EdgeInsets.all(24.0),
+            padding: const EdgeInsets.fromLTRB(16, 24, 16, 24), // Reduced left padding
             child: Row(
               children: [
                 Icon(Icons.sports_esports, color: theme.colorScheme.primary, size: 28),
-                const SizedBox(width: 12),
+                const SizedBox(width: 8),
                 Expanded(
                   child: Text(
                     clubName,
-                    style: theme.textTheme.titleLarge?.copyWith(
+                    style: theme.textTheme.titleMedium?.copyWith( // Slightly smaller to fit 220px
                       fontWeight: FontWeight.bold,
                       color: theme.colorScheme.onSurface,
                     ),
@@ -86,7 +86,7 @@ class CRMSidebar extends ConsumerWidget {
                   onTap: () => context.go(RouteNames.history),
                 ),
                 const Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                  padding: EdgeInsets.symmetric(horizontal: 16, vertical: 16), // Reduced padding
                   child: Text('MANAGEMENT', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.grey)),
                 ),
                 _SidebarItem(
@@ -147,7 +147,7 @@ class _SidebarItem extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2), // Reduced horizontal padding
       child: Material(
         color: Colors.transparent,
         child: InkWell(
@@ -155,7 +155,7 @@ class _SidebarItem extends StatelessWidget {
           borderRadius: BorderRadius.circular(12),
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 200),
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12), // Reduced inner horizontal padding
             decoration: BoxDecoration(
               color: isSelected ? theme.colorScheme.primary.withOpacity(0.15) : Colors.transparent,
               borderRadius: BorderRadius.circular(12),
@@ -167,7 +167,7 @@ class _SidebarItem extends StatelessWidget {
                   size: 22,
                   color: isSelected ? theme.colorScheme.primary : theme.colorScheme.onSurfaceVariant,
                 ),
-                const SizedBox(width: 16),
+                const SizedBox(width: 12), // Reduced gap
                 Text(
                   label,
                   style: theme.textTheme.bodyMedium?.copyWith(

@@ -35,6 +35,7 @@ class GameActivityCard extends ConsumerWidget {
         side: BorderSide(color: theme.colorScheme.outlineVariant),
       ),
       child: Column(
+        mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           // HEADER

@@ -197,10 +197,14 @@ class _ActiveGameCardState extends ConsumerState<ActiveGameCard> {
                                     displayStr +=
                                         ' • ₹${rate.toStringAsFixed(2)}/min';
                                   }
+                                  if (game.createdByName != null) {
+                                    displayStr += '\nStarted by: ${game.createdByName}';
+                                  }
                                   return Text(
                                     displayStr,
                                     style: theme.textTheme.labelSmall?.copyWith(
                                       color: theme.colorScheme.onSurfaceVariant,
+                                      height: 1.5,
                                     ),
                                   );
                                 },
@@ -559,7 +563,7 @@ class _ActiveGameCardState extends ConsumerState<ActiveGameCard> {
     if (updated != null && mounted) {
       await ref
           .read(gameSessionControllerProvider.notifier)
-          .updateOrders(game.id, updated);
+          .updateOrders(game.id, game.orders, updated);
     }
   }
 

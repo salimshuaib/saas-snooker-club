@@ -113,6 +113,8 @@ class TableCard extends ConsumerWidget {
         return AppColors.paused;
       case TableStatus.billing:
         return AppColors.billing;
+      case TableStatus.cancelled:
+        return Colors.grey;
     }
   }
 
@@ -186,6 +188,8 @@ class _StatusBadge extends StatelessWidget {
         return AppColors.paused;
       case TableStatus.billing:
         return AppColors.billing;
+      case TableStatus.cancelled:
+        return Colors.grey;
     }
   }
 }

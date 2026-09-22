@@ -305,26 +305,52 @@ class GamesRepository {
   Future<GameSession> startGame(GameSession session) async {
     if (AppConfig.guardWrite('GamesRepository.startGame')) return session;
     final enrichedSession = _enrichWithStaff(session, true);
-    final docRef = _gamesRef.doc(enrichedSession.id);
+    
+    final newAuditLog = AuditLog(
+      id: '${DateTime.now().millisecondsSinceEpoch}_start',
+      editedBy: currentUserName,
+      timestamp: DateTime.now(),
+      field: 'Game Started',
+      previousValue: '-',
+      newValue: session.tableName,
+    );
+    final finalSession = enrichedSession.copyWith(
+      auditLogs: [...enrichedSession.auditLogs, newAuditLog]
+    );
+
+    final docRef = _gamesRef.doc(finalSession.id);
     final batch = _db.batch();
-    batch.set(docRef, enrichedSession.toMap());
+    batch.set(docRef, finalSession.toMap());
     batch.update(_tablesRef.doc(session.tableId), {
       'status': TableStatus.running.name,
       'activeGameId': session.id,
     });
     await batch.commit();
     AppLogger.info('Game started: ${session.id} on ${session.tableId}');
-    return session;
+    return finalSession;
   }
 
   /// Save a game record without marking the table as running (used for instant-bill games like Arcade).
   Future<GameSession> saveGameOnly(GameSession session) async {
     if (AppConfig.guardWrite('GamesRepository.saveGameOnly')) return session;
     final enrichedSession = _enrichWithStaff(session, true);
-    final docRef = _gamesRef.doc(enrichedSession.id);
-    await docRef.set(enrichedSession.toMap());
+    
+    final newAuditLog = AuditLog(
+      id: '${DateTime.now().millisecondsSinceEpoch}_start',
+      editedBy: currentUserName,
+      timestamp: DateTime.now(),
+      field: 'Game Started',
+      previousValue: '-',
+      newValue: session.tableName,
+    );
+    final finalSession = enrichedSession.copyWith(
+      auditLogs: [...enrichedSession.auditLogs, newAuditLog]
+    );
+
+    final docRef = _gamesRef.doc(finalSession.id);
+    await docRef.set(finalSession.toMap());
     AppLogger.info('Game saved (no table update): ${session.id}');
-    return session;
+    return finalSession;
   }
 
   /// Fetch a single game by its ID.
@@ -341,10 +367,21 @@ class GamesRepository {
     DateTime pausedAt,
   ) async {
     if (AppConfig.guardWrite('GamesRepository.pauseGame')) return;
+    
+    final newAuditLog = AuditLog(
+      id: '${DateTime.now().millisecondsSinceEpoch}_pause',
+      editedBy: currentUserName,
+      timestamp: DateTime.now(),
+      field: 'Game Paused',
+      previousValue: 'Running',
+      newValue: 'Paused',
+    );
+
     final batch = _db.batch();
     batch.update(_gamesRef.doc(gameId), {
       'status': TableStatus.paused.name,
       'pauseTimes': FieldValue.arrayUnion([Timestamp.fromDate(pausedAt)]),
+      'auditLogs': FieldValue.arrayUnion([newAuditLog.toMap()]),
     });
     batch.update(_tablesRef.doc(tableId), {'status': TableStatus.paused.name});
     await batch.commit();
@@ -357,10 +394,21 @@ class GamesRepository {
     DateTime resumedAt,
   ) async {
     if (AppConfig.guardWrite('GamesRepository.resumeGame')) return;
+    
+    final newAuditLog = AuditLog(
+      id: '${DateTime.now().millisecondsSinceEpoch}_resume',
+      editedBy: currentUserName,
+      timestamp: DateTime.now(),
+      field: 'Game Resumed',
+      previousValue: 'Paused',
+      newValue: 'Running',
+    );
+
     final batch = _db.batch();
     batch.update(_gamesRef.doc(gameId), {
       'status': TableStatus.running.name,
       'resumeTimes': FieldValue.arrayUnion([Timestamp.fromDate(resumedAt)]),
+      'auditLogs': FieldValue.arrayUnion([newAuditLog.toMap()]),
     });
     batch.update(_tablesRef.doc(tableId), {'status': TableStatus.running.name});
     await batch.commit();
@@ -375,11 +423,40 @@ class GamesRepository {
     await _gamesRef.doc(gameId).update({'playerPoints': playerPoints});
   }
 
-  Future<void> updateOrders(String gameId, List<GameOrder> orders) async {
+  Future<void> updateOrders(String gameId, List<GameOrder> oldOrders, List<GameOrder> orders) async {
     if (AppConfig.guardWrite('GamesRepository.updateOrders')) return;
-    await _gamesRef.doc(gameId).update({
+    
+    final List<AuditLog> newLogs = [];
+    final diff = orders.length - oldOrders.length;
+    if (diff > 0) {
+      // Order Added
+      final added = orders.last;
+      newLogs.add(AuditLog(
+        id: '${DateTime.now().millisecondsSinceEpoch}_order_add',
+        editedBy: currentUserName,
+        timestamp: DateTime.now(),
+        field: 'Order Added',
+        previousValue: '-',
+        newValue: '${added.quantity} x ${added.productName}',
+      ));
+    } else if (diff < 0) {
+      // Order Removed (we just log broadly that an order was removed if we can't easily tell which)
+      newLogs.add(AuditLog(
+        id: '${DateTime.now().millisecondsSinceEpoch}_order_remove',
+        editedBy: currentUserName,
+        timestamp: DateTime.now(),
+        field: 'Order Removed',
+        previousValue: '${oldOrders.length} orders',
+        newValue: '${orders.length} orders',
+      ));
+    }
+
+    final batch = _db.batch();
+    batch.update(_gamesRef.doc(gameId), {
       'orders': orders.map((o) => o.toMap()).toList(),
+      if (newLogs.isNotEmpty) 'auditLogs': FieldValue.arrayUnion(newLogs.map((l) => l.toMap()).toList()),
     });
+    await batch.commit();
   }
 
   /// Update rounds and frame counters on a running game.
@@ -427,8 +504,17 @@ class GamesRepository {
     }
 
     // 2. Mark game as cancelled instead of deleting
+    final newAuditLog = AuditLog(
+      id: '${DateTime.now().millisecondsSinceEpoch}_cancel',
+      editedBy: currentUserName,
+      timestamp: DateTime.now(),
+      field: 'Game Cancelled',
+      previousValue: 'Running',
+      newValue: 'Cancelled',
+    );
+
     batch.update(_gamesRef.doc(gameId), {
-      'status': TableStatus.available.name,
+      'status': TableStatus.cancelled.name,
       'isCancelled': true,
       'endTime': FieldValue.serverTimestamp(),
       'paymentStatus': 'Cancelled',
@@ -436,11 +522,15 @@ class GamesRepository {
       'grandTotal': 0.0,
       'ordersTotal': 0.0,
       'finalAmount': 0.0,
+      'cancelledByUserId': currentUserId == 'Unknown' ? null : currentUserId,
+      'cancelledByName': currentUserName,
+      'auditLogs': FieldValue.arrayUnion([newAuditLog.toMap()]),
     });
 
     // 3. Free the table
     batch.update(_tablesRef.doc(tableId), {
       'status': TableStatus.available.name,
+      'activeGameId': FieldValue.delete(),
     });
 
     // 4. Audit log
@@ -471,10 +561,25 @@ class GamesRepository {
   /// Finalize the game: record payment and free the table.
   Future<void> endGame(GameSession session) async {
     if (AppConfig.guardWrite('GamesRepository.endGame')) return;
+    
+    final newAuditLog = AuditLog(
+      id: '${DateTime.now().millisecondsSinceEpoch}_end',
+      editedBy: currentUserName,
+      timestamp: DateTime.now(),
+      field: 'Game Ended',
+      previousValue: 'Running',
+      newValue: 'Ended',
+    );
+    final auditLogsData = session.auditLogs.map((l) => l.toMap()).toList();
+    auditLogsData.add(newAuditLog.toMap());
+
     final batch = _db.batch();
 
     final updateMap = <String, dynamic>{
       'status': TableStatus.available.name,
+      'endedByUserId': currentUserId == 'Unknown' ? null : currentUserId,
+      'endedByName': currentUserName,
+      'auditLogs': auditLogsData,
       'startTime': Timestamp.fromDate(session.startTime),
       'endTime': Timestamp.fromDate(session.endTime!),
       'orders': session.orders.map((o) => o.toMap()).toList(),
@@ -496,6 +601,9 @@ class GamesRepository {
       'grandTotal': session.grandTotal,
       'roundedAmount': session.roundedAmount,
       'finalAmount': session.finalAmount,
+      'paymentStatus': session.paymentStatus,
+      'processedByUserId': session.processedByUserId ?? (currentUserId == 'Unknown' ? null : currentUserId),
+      'processedByName': session.processedByName ?? currentUserName,
       'totalFrames': session.totalFrames,
       'framesPlayed': session.framesPlayed,
       'date': session.date,

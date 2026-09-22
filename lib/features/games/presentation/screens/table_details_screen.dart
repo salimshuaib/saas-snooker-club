@@ -593,6 +593,8 @@ class _TableStatusChip extends StatelessWidget {
         return AppColors.paused;
       case TableStatus.billing:
         return AppColors.billing;
+      case TableStatus.cancelled:
+        return Colors.grey;
     }
   }
 }

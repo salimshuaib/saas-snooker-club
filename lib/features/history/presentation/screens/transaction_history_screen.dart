@@ -381,10 +381,12 @@ class _GameTransactionTile extends StatelessWidget {
                       ),
                       const Gap(4),
                       Text(
-                        '${session.tableType.displayName} • ${session.billingType.displayName}',
+                        '$players • ${session.billingType.displayName}',
                         style: theme.textTheme.bodySmall?.copyWith(
                           color: theme.colorScheme.onSurfaceVariant,
                         ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
                       const Gap(4),
                       Row(
@@ -392,7 +394,9 @@ class _GameTransactionTile extends StatelessWidget {
                         children: [
                           Expanded(
                             child: Text(
-                              players,
+                              session.processedByName != null
+                                  ? 'Processed by ${session.processedByName}'
+                                  : (session.endedByName != null ? 'Ended by ${session.endedByName}' : ''),
                               style: theme.textTheme.bodySmall?.copyWith(
                                 color: theme.colorScheme.onSurface,
                                 fontWeight: FontWeight.w500,
@@ -412,7 +416,9 @@ class _GameTransactionTile extends StatelessWidget {
                               borderRadius: BorderRadius.circular(6),
                             ),
                             child: Text(
-                              '${session.paymentMethod?.displayName ?? "Paid"} • $timeStr',
+                              session.isCancelled || session.status == TableStatus.cancelled
+                                  ? 'Cancelled • $timeStr'
+                                  : '${session.paymentMethod?.displayName ?? "Paid"} • $timeStr',
                               style: theme.textTheme.labelSmall?.copyWith(
                                 fontWeight: FontWeight.w600,
                               ),

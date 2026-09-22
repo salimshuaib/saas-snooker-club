@@ -62,8 +62,15 @@ final resolvedTablesProvider = Provider<List<TableModel>>((ref) {
 
   List<TableModel> sortTables(List<TableModel> list) {
     return List<TableModel>.from(list)..sort((a, b) {
+      // 1. Sort by Category
+      final t = a.type.index.compareTo(b.type.index);
+      if (t != 0) return t;
+
+      // 2. Sort by explicitly set order
       final o = a.order.compareTo(b.order);
       if (o != 0) return o;
+
+      // 3. Sort by numeric value in the name (if any)
       final r = RegExp(r'\d+');
       final mA = r.firstMatch(a.name);
       final mB = r.firstMatch(b.name);
@@ -71,6 +78,8 @@ final resolvedTablesProvider = Provider<List<TableModel>>((ref) {
         final c = int.parse(mA.group(0)!).compareTo(int.parse(mB.group(0)!));
         if (c != 0) return c;
       }
+
+      // 4. Alphabetical fallback
       return a.name.compareTo(b.name);
     });
   }
@@ -169,9 +178,9 @@ class GameSessionController extends Notifier<AsyncValue<void>> {
     }
   }
 
-  Future<void> updateOrders(String gameId, List<GameOrder> orders) async {
+  Future<void> updateOrders(String gameId, List<GameOrder> oldOrders, List<GameOrder> orders) async {
     try {
-      await _repo.updateOrders(gameId, orders);
+      await _repo.updateOrders(gameId, oldOrders, orders);
     } catch (e, st) {
       state = AsyncValue.error(e, st);
       rethrow;
@@ -298,7 +307,7 @@ final todaysCompletedPaidGamesProvider = StreamProvider<List<GameSession>>((
   final repo = ref.watch(gamesRepositoryProvider);
   if (repo.clubId == null) return const Stream.empty();
   return repo.watchAllGamesByDate(dateStr).map((games) {
-    return games.where((g) => g.status == TableStatus.available).toList();
+    return games.where((g) => g.status == TableStatus.available || g.status == TableStatus.cancelled).toList();
   });
 });
 
@@ -311,7 +320,7 @@ final selectedDateCompletedPaidGamesProvider = StreamProvider<List<GameSession>>
   final repo = ref.watch(gamesRepositoryProvider);
   if (repo.clubId == null) return const Stream.empty();
   return repo.watchAllGamesByDate(dateStr).map((games) {
-    return games.where((g) => g.status == TableStatus.available).toList();
+    return games.where((g) => g.status == TableStatus.available || g.status == TableStatus.cancelled).toList();
   });
 });
 

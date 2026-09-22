@@ -10,9 +10,11 @@ import 'package:snooker_club/core/widgets/inputs/app_text_field.dart';
 import 'package:snooker_club/features/games/domain/models/game_models.dart';
 import 'package:snooker_club/features/games/presentation/widgets/admin_passcode_dialog.dart';
 import 'package:snooker_club/features/games/presentation/widgets/edit_bill_sheet.dart';
+import 'package:snooker_club/features/games/presentation/widgets/audit_log_sheet.dart';
 import 'package:snooker_club/features/games/providers/games_providers.dart';
 import 'package:snooker_club/core/providers/club_scope_provider.dart';
 import 'package:snooker_club/features/settings/providers/settings_providers.dart';
+import 'package:snooker_club/features/team/providers/team_providers.dart';
 
 class BillDetailsScreen extends ConsumerStatefulWidget {
   final GameSession session;
@@ -172,11 +174,6 @@ class _BillDetailsScreenState extends ConsumerState<BillDetailsScreen> {
                       value: session.billingType.displayName,
                     ),
                     _InfoRow(
-                      label: 'Billing Type',
-                      value: session.billingType.displayName,
-                    ),
-                    _InfoRow(label: 'Game Date', value: session.date),
-                    _InfoRow(
                       label: 'Start Time',
                       value: dtFmt.format(session.startTime),
                     ),
@@ -195,6 +192,14 @@ class _BillDetailsScreenState extends ConsumerState<BillDetailsScreen> {
                         value:
                             '${session.framesPlayed > 0 ? session.framesPlayed : session.totalFrames}',
                       ),
+                    if (session.createdByName != null)
+                      _InfoRow(label: 'Started by', value: session.createdByName!),
+                    if (session.endedByName != null)
+                      _InfoRow(label: 'Ended by', value: session.endedByName!),
+                    if (session.processedByName != null)
+                      _InfoRow(label: 'Processed by', value: session.processedByName!),
+                    if (session.cancelledByName != null)
+                      _InfoRow(label: 'Cancelled by', value: session.cancelledByName!),
                   ],
                 ),
                 const Gap(24),
@@ -570,50 +575,16 @@ class _BillDetailsScreenState extends ConsumerState<BillDetailsScreen> {
                 ],
                 const Gap(24),
                 if (session.auditLogs.isNotEmpty) ...[
-                  Text('Audit History', style: theme.textTheme.titleMedium),
-                  const Gap(8),
-                  _SectionCard(
-                    children: session.auditLogs
-                        .map(
-                          (log) => Padding(
-                            padding: const EdgeInsets.only(bottom: 12.0),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    Text(
-                                      log.field,
-                                      style: theme.textTheme.bodyMedium
-                                          ?.copyWith(
-                                            fontWeight: FontWeight.bold,
-                                          ),
-                                    ),
-                                    Text(
-                                      dtFmt.format(log.timestamp),
-                                      style: theme.textTheme.labelSmall
-                                          ?.copyWith(
-                                            color: theme
-                                                .colorScheme
-                                                .onSurfaceVariant,
-                                          ),
-                                    ),
-                                  ],
-                                ),
-                                const Gap(4),
-                                Text(
-                                  'Changed from "${log.previousValue}" to "${log.newValue}" by ${log.editedBy}',
-                                  style: theme.textTheme.bodySmall?.copyWith(
-                                    color: theme.colorScheme.onSurfaceVariant,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        )
-                        .toList(),
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton.icon(
+                      onPressed: () => showAuditLogSheet(context, session),
+                      icon: const Icon(Icons.history),
+                      label: const Text('View Audit Log'),
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                      ),
+                    ),
                   ),
                 ],
                 const Gap(32),
@@ -656,7 +627,10 @@ class _BillDetailsScreenState extends ConsumerState<BillDetailsScreen> {
       title: 'Admin Authorization',
       subtitle: 'Enter administrator passcode to edit player names.',
     );
-    if (verified != true || !context.mounted) return;
+      if (verified != true || !context.mounted) return;
+
+    final staff = ref.read(currentStaffProvider).value;
+    final employeeName = staff?.name ?? 'Admin';
 
     final playerControllers = session.players
         .map((name) => TextEditingController(text: name))
@@ -724,7 +698,7 @@ class _BillDetailsScreenState extends ConsumerState<BillDetailsScreen> {
               session: session,
               newPlayers: newPlayers,
               newPaidBy: newPaidBy,
-              employeeName: 'Admin',
+              employeeName: employeeName,
             );
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -763,6 +737,9 @@ class _BillDetailsScreenState extends ConsumerState<BillDetailsScreen> {
       subtitle: 'Enter administrator passcode to edit payment method.',
     );
     if (verified != true || !context.mounted) return;
+
+    final staff = ref.read(currentStaffProvider).value;
+    final employeeName = staff?.name ?? 'Admin';
 
     final isSplit =
         session.playerPaymentSplits != null &&
@@ -884,7 +861,7 @@ class _BillDetailsScreenState extends ConsumerState<BillDetailsScreen> {
               .updateGameSplitPaymentMethods(
                 session: session,
                 updatedMethods: updatedMethods,
-                employeeName: 'Admin',
+                employeeName: employeeName,
               );
           if (context.mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
@@ -984,17 +961,17 @@ class _BillDetailsScreenState extends ConsumerState<BillDetailsScreen> {
       );
 
       if (result == true && context.mounted) {
-        try {
-          await ref
-              .read(gamesRepositoryProvider)
-              .updateGamePaymentMethods(
-                session: session,
-                newPaymentMethod: selectedMethod,
-                newPaidBy: selectedMethod == PaymentMethod.credit
-                    ? payerController.text.trim()
-                    : null,
-                employeeName: 'Admin',
-              );
+          try {
+            await ref
+                .read(gamesRepositoryProvider)
+                .updateGamePaymentMethods(
+                  session: session,
+                  newPaymentMethod: selectedMethod,
+                  newPaidBy: selectedMethod == PaymentMethod.credit
+                      ? payerController.text.trim()
+                      : null,
+                  employeeName: employeeName,
+                );
           if (context.mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(

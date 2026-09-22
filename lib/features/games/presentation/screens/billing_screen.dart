@@ -10,6 +10,7 @@ import 'package:snooker_club/features/games/domain/config/pricing_config.dart';
 import 'package:snooker_club/core/utils/billing_utils.dart';
 
 import 'package:snooker_club/core/models/audit_log.dart';
+import 'package:snooker_club/features/team/providers/team_providers.dart';
 import 'package:snooker_club/features/authentication/providers/auth_providers.dart';
 import 'package:snooker_club/features/settings/providers/settings_providers.dart';
 import 'package:snooker_club/features/games/domain/models/game_models.dart';
@@ -18,6 +19,7 @@ import 'package:snooker_club/features/games/presentation/widgets/payer_selection
 import 'package:snooker_club/features/games/presentation/widgets/player_split_payment_sheet.dart';
 import 'package:snooker_club/features/credit/presentation/widgets/player_search_field.dart';
 import 'package:snooker_club/features/games/presentation/widgets/upi_qr_dialog.dart';
+import 'package:snooker_club/features/games/presentation/widgets/audit_log_sheet.dart';
 
 class BillingScreen extends ConsumerStatefulWidget {
   final GameSession session;
@@ -570,7 +572,18 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
         }
       },
       child: Scaffold(
-        appBar: AppBar(title: const Text('Bill'), centerTitle: false),
+        appBar: AppBar(
+          title: const Text('Bill'),
+          centerTitle: false,
+          actions: [
+            if (_session.auditLogs.isNotEmpty)
+              IconButton(
+                icon: const Icon(Icons.history),
+                tooltip: 'Audit Log',
+                onPressed: () => showAuditLogSheet(context, _session),
+              ),
+          ],
+        ),
         body: SingleChildScrollView(
           padding: const EdgeInsets.all(20),
           child: Column(
@@ -1750,9 +1763,12 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
     final finalDate = DateFormat('yyyy-MM-dd').format(finalEndTime);
 
     final List<AuditLog> updatedLogs = List.from(_session.auditLogs);
+    final staff = ref.read(currentStaffProvider).value;
+    final staffId = staff?.id ?? 'admin';
+    final staffName = staff?.name ?? 'Admin';
+
     if (_isTimeManuallyEdited) {
-      final user = ref.read(authStateProvider).value;
-      final editorName = user?.displayName ?? user?.email ?? 'Staff';
+      final editorName = staffName;
       
       final oldStart = widget.session.startTime;
       final newStart = _session.startTime;
@@ -1781,10 +1797,25 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
       }
     }
 
+    final paymentMethodLabel = isSplit 
+        ? 'Split' 
+        : _paymentMethod?.displayName ?? 'Paid';
+        
+    updatedLogs.add(AuditLog(
+      id: '${DateTime.now().millisecondsSinceEpoch}_payment',
+      editedBy: staffName,
+      timestamp: DateTime.now(),
+      field: 'Payment Processed',
+      previousValue: '-',
+      newValue: '₹${_roundedTotal.toStringAsFixed(2)} — $paymentMethodLabel',
+    ));
+
     final finalSession = _session.copyWith(
       endTime: finalEndTime,
       auditLogs: updatedLogs,
       status: TableStatus.available,
+      processedByUserId: staffId,
+      processedByName: staffName,
       teamA: finalTeamA,
       teamB: finalTeamB,
       playerIds: finalPlayerIds,
@@ -2055,6 +2086,11 @@ class _ExpandableSessionCardState extends State<_ExpandableSessionCard> {
                             label: 'Players',
                             value: s.allPlayers.join(', '),
                           ),
+                          if (s.createdByName != null)
+                            _InfoRow(
+                              label: 'Started By',
+                              value: s.createdByName!,
+                            ),
                           _InfoRow(
                             label: 'Start Time',
                             value: widget.dtFmt.format(s.startTime),

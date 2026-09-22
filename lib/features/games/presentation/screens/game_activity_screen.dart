@@ -130,7 +130,6 @@ class GameActivityScreen extends ConsumerWidget {
             child: Column(
               children: [
                 TabBar(
-                  isScrollable: true,
                   indicatorColor: theme.colorScheme.primary,
                   labelColor: theme.colorScheme.primary,
                   unselectedLabelColor: theme.colorScheme.onSurfaceVariant,
@@ -357,27 +356,11 @@ void _showTablesList(
                         // Close the bottom sheet
                         Navigator.pop(sheetContext);
 
-                        // Navigate to the correct tab
-                        if (existingTypes != null) {
-                          String? targetTab;
-                          if (snookerTables != null && snookerTables.any((t) => t.id == table.id)) {
-                            targetTab = 'Snooker';
-                          } else if (poolTables != null && poolTables.any((t) => t.id == table.id)) {
-                            targetTab = 'Pool';
-                          } else if (consoleTables != null && consoleTables.any((t) => t.id == table.id)) {
-                            targetTab = 'Console & PC';
-                          } else if (otherTables != null && otherTables.any((t) => t.id == table.id)) {
-                            targetTab = 'Other';
-                          }
-
-                          if (targetTab != null) {
-                            final tabIndex = existingTypes.indexOf(targetTab);
-                            if (tabIndex >= 0) {
-                              final tabController = DefaultTabController.of(context);
-                              tabController.animateTo(tabIndex);
-                            }
-                          }
-                        }
+                        // Show the game activity dialog
+                        showDialog(
+                          context: context,
+                          builder: (ctx) => _TableDialogWrapper(table),
+                        );
                       },
                     );
                   },
@@ -436,6 +419,71 @@ class _StatusBadge extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _TableDialogWrapper extends ConsumerStatefulWidget {
+  final TableModel initialTable;
+  const _TableDialogWrapper(this.initialTable);
+  @override
+  ConsumerState<_TableDialogWrapper> createState() => _TableDialogWrapperState();
+}
+
+class _TableDialogWrapperState extends ConsumerState<_TableDialogWrapper> {
+  @override
+  Widget build(BuildContext context) {
+    final tables = ref.watch(resolvedTablesProvider);
+    final currentTable = tables.firstWhere(
+      (t) => t.id == widget.initialTable.id,
+      orElse: () => widget.initialTable,
+    );
+
+    ref.listen(resolvedTablesProvider, (prev, next) {
+      if (next != null) {
+        final prevTable = prev?.firstWhere(
+          (t) => t.id == widget.initialTable.id,
+          orElse: () => widget.initialTable,
+        ) ?? widget.initialTable;
+        final currTable = next.firstWhere(
+          (t) => t.id == widget.initialTable.id,
+          orElse: () => widget.initialTable,
+        );
+        if (prevTable.status != TableStatus.available && currTable.status == TableStatus.available) {
+          if (mounted) {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (mounted) {
+                final route = ModalRoute.of(context);
+                if (route != null) {
+                  if (route.isCurrent) {
+                    Navigator.of(context).pop();
+                  } else {
+                    Navigator.of(context).removeRoute(route);
+                  }
+                }
+              }
+            });
+          }
+        }
+      }
+    });
+
+    return Dialog(
+      backgroundColor: Colors.transparent,
+      insetPadding: const EdgeInsets.all(16),
+      child: Stack(
+        children: [
+          GameActivityCard(table: currentTable),
+          Positioned(
+            top: 0,
+            right: 0,
+            child: IconButton(
+              icon: const Icon(Icons.close, color: Colors.white, size: 28),
+              onPressed: () => Navigator.of(context).pop(),
+            ),
+          ),
+        ],
       ),
     );
   }

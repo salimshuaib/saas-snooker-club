@@ -83,7 +83,8 @@ enum TableStatus {
   available,
   running,
   paused,
-  billing;
+  billing,
+  cancelled;
 
   String get displayName {
     switch (this) {
@@ -95,6 +96,8 @@ enum TableStatus {
         return 'Paused';
       case TableStatus.billing:
         return 'Billing';
+      case TableStatus.cancelled:
+        return 'Cancelled';
     }
   }
 }
@@ -492,6 +495,12 @@ class GameSession {
   final String? createdByName;
   final String? updatedByUserId;
   final String? updatedByName;
+  final String? endedByUserId;
+  final String? endedByName;
+  final String? processedByUserId;
+  final String? processedByName;
+  final String? cancelledByUserId;
+  final String? cancelledByName;
   final String id;
   final String tableId;
   final String tableName;
@@ -554,6 +563,12 @@ class GameSession {
     this.createdByName,
     this.updatedByUserId,
     this.updatedByName,
+    this.endedByUserId,
+    this.endedByName,
+    this.processedByUserId,
+    this.processedByName,
+    this.cancelledByUserId,
+    this.cancelledByName,
     required this.id,
     required this.tableId,
     required this.tableName,
@@ -665,6 +680,12 @@ class GameSession {
     String? createdByName,
     String? updatedByUserId,
     String? updatedByName,
+    String? endedByUserId,
+    String? endedByName,
+    String? processedByUserId,
+    String? processedByName,
+    String? cancelledByUserId,
+    String? cancelledByName,
     String? id,
     String? tableId,
     String? tableName,
@@ -726,6 +747,12 @@ class GameSession {
       createdByName: createdByName ?? this.createdByName,
       updatedByUserId: updatedByUserId ?? this.updatedByUserId,
       updatedByName: updatedByName ?? this.updatedByName,
+      endedByUserId: endedByUserId ?? this.endedByUserId,
+      endedByName: endedByName ?? this.endedByName,
+      processedByUserId: processedByUserId ?? this.processedByUserId,
+      processedByName: processedByName ?? this.processedByName,
+      cancelledByUserId: cancelledByUserId ?? this.cancelledByUserId,
+      cancelledByName: cancelledByName ?? this.cancelledByName,
       id: id ?? this.id,
       tableId: tableId ?? this.tableId,
       tableName: tableName ?? this.tableName,
@@ -790,6 +817,12 @@ class GameSession {
       'createdByName': createdByName,
       'updatedByUserId': updatedByUserId,
       'updatedByName': updatedByName,
+      'endedByUserId': endedByUserId,
+      'endedByName': endedByName,
+      'processedByUserId': processedByUserId,
+      'processedByName': processedByName,
+      'cancelledByUserId': cancelledByUserId,
+      'cancelledByName': cancelledByName,
       'id': id,
       'tableId': tableId,
       'tableName': tableName,
@@ -839,6 +872,7 @@ class GameSession {
       'date': date,
       'auditLogs': auditLogs.map((a) => a.toMap()).toList(),
       'isManualEntry': isManualEntry,
+      'isCancelled': isCancelled,
       'recordedTime': recordedTime != null
           ? Timestamp.fromDate(recordedTime!)
           : null,
@@ -863,6 +897,12 @@ class GameSession {
       createdByName: map['createdByName'] as String?,
       updatedByUserId: map['updatedByUserId'] as String?,
       updatedByName: map['updatedByName'] as String?,
+      endedByUserId: map['endedByUserId'] as String?,
+      endedByName: map['endedByName'] as String?,
+      processedByUserId: map['processedByUserId'] as String?,
+      processedByName: map['processedByName'] as String?,
+      cancelledByUserId: map['cancelledByUserId'] as String?,
+      cancelledByName: map['cancelledByName'] as String?,
       id: map['id'] as String,
       tableId: map['tableId'] as String,
       tableName: map['tableName'] as String? ?? '',
@@ -990,6 +1030,7 @@ class GameSession {
               .toList() ??
           [],
       isManualEntry: map['isManualEntry'] as bool? ?? false,
+      isCancelled: map['isCancelled'] as bool? ?? false,
       recordedTime: map['recordedTime'] != null
           ? (map['recordedTime'] is Timestamp
                 ? (map['recordedTime'] as Timestamp).toDate()
