@@ -61,15 +61,21 @@ class AuditLog {
       return DateTime.tryParse(raw.toString()) ?? DateTime.now();
     }
 
+    // Legacy support for older deletion logs
+    final String editedBy = map['editedBy'] as String? ?? map['userName'] as String? ?? 'Admin';
+    final String field = map['field'] as String? ?? map['action'] as String? ?? 'Unknown';
+    final String previousValue = map['previousValue'] as String? ?? '-';
+    final String newValue = map['newValue'] as String? ?? (map['recordId'] != null ? 'Game ID: ${map['recordId']}' : '-');
+
     return AuditLog(
       id:
           map['id'] as String? ??
           DateTime.now().millisecondsSinceEpoch.toString(),
-      editedBy: map['editedBy'] as String? ?? 'Admin',
+      editedBy: editedBy,
       timestamp: parseDate(map['timestamp']),
-      field: map['field'] as String? ?? 'Unknown',
-      previousValue: map['previousValue'] as String? ?? '-',
-      newValue: map['newValue'] as String? ?? '-',
+      field: field,
+      previousValue: previousValue,
+      newValue: newValue,
     );
   }
 }
