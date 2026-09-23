@@ -7,7 +7,7 @@ import 'package:snooker_club/core/theme/app_colors.dart';
 import 'package:snooker_club/features/games/domain/models/game_models.dart';
 import 'package:snooker_club/features/games/presentation/screens/bill_details_screen.dart';
 import 'package:snooker_club/features/games/providers/games_providers.dart';
-
+import 'package:snooker_club/features/games/presentation/widgets/admin_passcode_dialog.dart';
 import 'package:snooker_club/features/quick_sales/domain/models/quick_sale_models.dart';
 import 'package:snooker_club/core/widgets/loading/skeleton_loader.dart';
 import 'package:snooker_club/features/quick_sales/presentation/screens/quick_sale_details_screen.dart';
@@ -280,13 +280,13 @@ class _SummarySubitem extends StatelessWidget {
   }
 }
 
-class _GameTransactionTile extends StatelessWidget {
+class _GameTransactionTile extends ConsumerWidget {
   final GameSession session;
 
   const _GameTransactionTile({required this.session});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final endTime = session.endTime ?? DateTime.now();
     final timeStr = DateFormat('hh:mm a').format(endTime);
@@ -307,7 +307,79 @@ class _GameTransactionTile extends StatelessWidget {
         ),
         clipBehavior: Clip.antiAlias,
         child: InkWell(
+          onLongPress: (session.isCancelled || session.status == TableStatus.cancelled)
+              ? () async {
+                  final passcodeVerified = await showDialog<bool>(
+                    context: context,
+                    barrierDismissible: false,
+                    builder: (_) => const AdminPasscodeDialog(
+                        actionLabel: 'Delete', isDestructive: true),
+                  );
 
+                  if (passcodeVerified != true || !context.mounted) return;
+
+                  final confirm = await showDialog<bool>(
+                    context: context,
+                    builder: (ctx) => AlertDialog(
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16)),
+                      title: const Text('Delete Cancelled Game?'),
+                      content: const Text(
+                        'This action cannot be undone. Inventory stock will be restored if applicable.',
+                      ),
+                      actions: [
+                        TextButton(
+                          onPressed: () => Navigator.of(ctx).pop(false),
+                          child: const Text(
+                            'Cancel',
+                            style: TextStyle(fontWeight: FontWeight.w600),
+                          ),
+                        ),
+                        ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.error,
+                            foregroundColor: Colors.white,
+                            elevation: 0,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                          ),
+                          onPressed: () => Navigator.of(ctx).pop(true),
+                          child: const Text(
+                            'Delete Permanently',
+                            style: TextStyle(fontWeight: FontWeight.w700),
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+
+                  if (confirm != true || !context.mounted) return;
+
+                  try {
+                    await ref
+                        .read(gameSessionControllerProvider.notifier)
+                        .deleteGames([session]);
+                    if (!context.mounted) return;
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Cancelled game deleted permanently.'),
+                        backgroundColor: AppColors.success,
+                        behavior: SnackBarBehavior.floating,
+                      ),
+                    );
+                  } catch (e) {
+                    if (!context.mounted) return;
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('Error deleting game: $e'),
+                        backgroundColor: AppColors.error,
+                        behavior: SnackBarBehavior.floating,
+                      ),
+                    );
+                  }
+                }
+              : null,
           onTap: () {
             Navigator.push(
               context,
