@@ -1,3 +1,5 @@
+import 'dart:ui';
+
 import 'package:gap/gap.dart';
 import 'package:snooker_club/features/games/presentation/screens/billing_screen.dart';
 import 'package:snooker_club/features/games/presentation/screens/manual_game_setup_screen.dart';
@@ -12,6 +14,7 @@ import 'package:snooker_club/features/games/presentation/widgets/active_game_car
 import 'package:snooker_club/core/services/table_alarm_service.dart';
 import 'package:snooker_club/features/games/presentation/widgets/alarm_setup_sheet.dart';
 import 'package:snooker_club/features/team/providers/team_providers.dart';
+import 'package:snooker_club/core/widgets/modals/app_modal.dart';
 
 class GameActivityCard extends ConsumerWidget {
   final TableModel table;
@@ -137,8 +140,10 @@ class GameActivityCard extends ConsumerWidget {
                     onPressed: () async {
                       final employeeId =
                           ref.read(currentStaffProvider).value?.id ?? '';
-                      final result = await showDialog<GameSession>(
+                      final result = await AppModal.showDialog<GameSession>(
                         context: context,
+                        barrierDismissible: true,
+                        barrierColor: Colors.black.withValues(alpha: 0.35),
                         builder: (_) => GameSetupDialog(
                           table: table,
                           employeeId: employeeId,
@@ -176,14 +181,9 @@ class GameActivityCard extends ConsumerWidget {
                       Expanded(
                         child: OutlinedButton.icon(
                           onPressed: () {
-                            showModalBottomSheet(
+                            AppModal.showBottomSheet(
                               context: context,
                               isScrollControlled: true,
-                              shape: const RoundedRectangleBorder(
-                                borderRadius: BorderRadius.vertical(
-                                  top: Radius.circular(16),
-                                ),
-                              ),
                               builder: (_) => TableHistorySheet(table: table),
                             );
                           },

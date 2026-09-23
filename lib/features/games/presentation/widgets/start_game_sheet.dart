@@ -2,6 +2,7 @@ import 'package:snooker_club/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:snooker_club/core/theme/app_colors.dart';
+import 'package:snooker_club/core/widgets/modals/app_modal.dart';
 import 'package:snooker_club/features/games/domain/models/game_models.dart';
 import 'package:snooker_club/features/games/providers/games_providers.dart';
 import 'package:snooker_club/features/games/presentation/widgets/game_setup_dialog.dart';
@@ -74,7 +75,7 @@ class StartGameSheet extends ConsumerWidget {
 
             Expanded(
               child: availableTables.isEmpty
-                  ? const Center(child: Text("No available tables right now."))
+                  ? const Center(child: Text('No available tables right now.'))
                   : TabBarView(
                       children: [
                         // Tables Tab
@@ -236,8 +237,9 @@ class StartGameSheet extends ConsumerWidget {
           // Close this sheet, open the setup sheet
           final navigator = Navigator.of(context);
           navigator.pop();
-          final result = await showDialog<GameSession>(
+          final result = await AppModal.showDialog<GameSession>(
             context: context,
+            barrierColor: Colors.black.withValues(alpha: 0.35),
             builder: (_) =>
                 GameSetupDialog(table: table, employeeId: employeeId),
           );

@@ -5,6 +5,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:snooker_club/core/theme/app_colors.dart';
 import 'package:snooker_club/core/widgets/buttons/app_primary_button.dart';
 import 'package:snooker_club/core/widgets/inputs/app_text_field.dart';
+import 'package:snooker_club/core/widgets/modals/app_modal.dart';
 import 'package:snooker_club/features/authentication/providers/auth_providers.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
@@ -58,12 +59,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   }
 
   void _showHelpOptions(BuildContext context) {
-    showModalBottomSheet(
+    AppModal.showBottomSheet(
       useRootNavigator: true,
       context: context,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
+      isScrollControlled: true,
       builder: (context) {
         return SafeArea(
           child: Padding(

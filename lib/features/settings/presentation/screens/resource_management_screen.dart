@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:snooker_club/core/theme/app_colors.dart';
+import 'package:snooker_club/core/widgets/modals/app_modal.dart';
 import 'package:snooker_club/features/games/domain/models/game_models.dart';
 import 'package:snooker_club/features/games/providers/games_providers.dart';
 
@@ -14,7 +15,7 @@ class ResourceManagementScreen extends ConsumerStatefulWidget {
 class _ResourceManagementScreenState
     extends ConsumerState<ResourceManagementScreen> {
   void _showResourceDialog([TableModel? table]) {
-    showDialog(
+    AppModal.showDialog(
       context: context,
       builder: (context) => _ResourceDialog(tableToEdit: table),
     );

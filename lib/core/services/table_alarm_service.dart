@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_tts/flutter_tts.dart';
@@ -55,7 +56,28 @@ class TableAlarmService {
   Stream<void> get onAlarmsChanged => _alarmsChangedController.stream;
 
   final FlutterTts _flutterTts = FlutterTts();
+  final AudioPlayer _secondaryAlarmPlayer = AudioPlayer();
   Timer? _ttsLoopTimer;
+
+  Future<void> _startSecondaryAlarmLoop() async {
+    try {
+      await _secondaryAlarmPlayer.setPlayerMode(PlayerMode.mediaPlayer);
+      await _secondaryAlarmPlayer.setVolume(0.35);
+      await _secondaryAlarmPlayer.setReleaseMode(ReleaseMode.loop);
+      await _secondaryAlarmPlayer.setSourceAsset('sounds/alarm-sren.mp3');
+      await _secondaryAlarmPlayer.resume();
+    } catch (e) {
+      AppLogger.error('Failed to start secondary reminder audio: $e');
+    }
+  }
+
+  Future<void> _stopSecondaryAlarmLoop() async {
+    try {
+      await _secondaryAlarmPlayer.stop();
+    } catch (e) {
+      AppLogger.error('Failed to stop secondary reminder audio: $e');
+    }
+  }
 
   Future<void> initialize() async {
     tz.initializeTimeZones();
@@ -143,7 +165,7 @@ class TableAlarmService {
     await _saveAlarms();
 
     if (!kIsWeb) {
-      final androidDetails = AndroidNotificationDetails(
+      const androidDetails = AndroidNotificationDetails(
         'table_alarm_channel_v3',
         'Table Alarms',
         channelDescription: 'Loud alarm notifications when table time is over',
@@ -151,7 +173,7 @@ class TableAlarmService {
         priority: Priority.max,
         fullScreenIntent: true,
         playSound: true,
-        sound: const RawResourceAndroidNotificationSound('table_alarm'),
+        sound: RawResourceAndroidNotificationSound('table_alarm'),
       );
 
       final notificationId = gameId.hashCode;
@@ -160,7 +182,7 @@ class TableAlarmService {
         title: tableName,
         body: 'Time Over!',
         scheduledDate: tz.TZDateTime.from(fireAt, tz.local),
-        notificationDetails: NotificationDetails(android: androidDetails),
+        notificationDetails: const NotificationDetails(android: androidDetails),
         androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
         payload: jsonEncode(alarm.toJson()),
       );
@@ -200,18 +222,21 @@ class TableAlarmService {
 
     try {
       // Configure TTS for maximum clarity
-      await _flutterTts.setLanguage("en-IN");
+      await _flutterTts.setLanguage('en-IN');
       await _flutterTts.setSpeechRate(0.45);
       await _flutterTts.setPitch(1.0);
       await _flutterTts.setVolume(1.0);
 
       final textToSpeak = '${alarm.tableName} time over';
-      
-      // Wait for the loud background alarm to finish playing before speaking
-      await Future.delayed(const Duration(seconds: 4));
-      
+
+      // First reminder is the TTS voice.
       await _flutterTts.speak(textToSpeak);
-      
+
+      // Start the secondary asset audio shortly after so both can overlap.
+      Timer(const Duration(milliseconds: 800), () async {
+        await _startSecondaryAlarmLoop();
+      });
+
       int speakCount = 0;
       _ttsLoopTimer?.cancel();
       _ttsLoopTimer = Timer.periodic(const Duration(seconds: 5), (timer) async {
@@ -231,6 +256,7 @@ class TableAlarmService {
     try {
       _ttsLoopTimer?.cancel();
       await _flutterTts.stop();
+      await _stopSecondaryAlarmLoop();
     } catch (e) {
       AppLogger.error('Failed to stop TTS: $e');
     }

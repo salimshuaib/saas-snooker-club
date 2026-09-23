@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gap/gap.dart';
 import 'package:snooker_club/core/theme/app_colors.dart';
+import 'package:snooker_club/core/widgets/modals/app_modal.dart';
 import 'package:snooker_club/features/team/domain/models/staff_member.dart';
 import 'package:snooker_club/features/team/presentation/widgets/staff_form_dialog.dart';
 import 'package:snooker_club/features/team/providers/team_providers.dart';
@@ -44,7 +45,10 @@ class TeamScreen extends ConsumerWidget {
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () {
-          showDialog(context: context, builder: (_) => const StaffFormDialog());
+          AppModal.showDialog(
+            context: context,
+            builder: (_) => const StaffFormDialog(),
+          );
         },
         icon: const Icon(Icons.add),
         label: const Text('Add Staff'),
@@ -160,7 +164,7 @@ class _TeamMemberCard extends ConsumerWidget {
                           );
                           return;
                         }
-                        showDialog(
+                        AppModal.showDialog(
                           context: context,
                           builder: (_) =>
                               StaffFormDialog(existingMember: member),

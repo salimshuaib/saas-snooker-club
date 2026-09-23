@@ -7,6 +7,7 @@ import 'package:snooker_club/features/games/domain/models/game_models.dart';
 import 'package:snooker_club/features/games/presentation/widgets/table_card.dart';
 import 'package:snooker_club/features/games/providers/games_providers.dart';
 import 'package:snooker_club/features/games/presentation/screens/manual_game_setup_screen.dart';
+import 'package:snooker_club/core/widgets/modals/app_modal.dart';
 import 'package:snooker_club/core/widgets/shared/date_navigation_header.dart';
 
 class GamesScreen extends ConsumerStatefulWidget {
@@ -65,9 +66,10 @@ class _GamesScreenState extends ConsumerState<GamesScreen> {
       floatingActionButton: isToday
           ? FloatingActionButton.extended(
               onPressed: () {
-                showModalBottomSheet(
+                AppModal.showBottomSheet(
                   useRootNavigator: true,
                   context: context,
+                  isScrollControlled: true,
                   builder: (context) => SafeArea(
                     child: Column(
                       mainAxisSize: MainAxisSize.min,

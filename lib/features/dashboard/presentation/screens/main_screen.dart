@@ -10,6 +10,7 @@ import 'package:snooker_club/features/settings/providers/settings_providers.dart
 import 'package:snooker_club/features/quick_sales/providers/quick_sales_providers.dart';
 import 'package:snooker_club/features/team/providers/team_providers.dart';
 import 'package:snooker_club/core/providers/update_provider.dart';
+import 'package:snooker_club/core/widgets/modals/app_modal.dart';
 
 class MainScreen extends ConsumerStatefulWidget {
   final StatefulNavigationShell navigationShell;
@@ -98,11 +99,10 @@ class _MainScreenState extends ConsumerState<MainScreen> {
   }
 
   void _showStartGameFlow() {
-    showModalBottomSheet(
+    AppModal.showBottomSheet(
       useRootNavigator: true,
       context: context,
       isScrollControlled: true,
-      backgroundColor: Colors.transparent,
       builder: (context) => const StartGameSheet(),
     );
   }

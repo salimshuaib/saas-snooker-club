@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gap/gap.dart';
 import 'package:snooker_club/core/providers/app_providers.dart';
 import 'package:snooker_club/core/theme/app_colors.dart';
+import 'package:snooker_club/core/widgets/modals/app_modal.dart';
 
 import 'package:snooker_club/features/games/providers/games_providers.dart';
 import 'package:snooker_club/features/settings/presentation/widgets/business_edit_sheet.dart';
@@ -61,7 +62,7 @@ class AdministrativeSettingsScreen extends ConsumerWidget {
   }
 
   void _confirmClearCache(BuildContext context, WidgetRef ref) {
-    showDialog(
+    AppModal.showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Clear Local Cache?'),
@@ -139,7 +140,7 @@ class AdministrativeSettingsScreen extends ConsumerWidget {
                   'Change the active PIN required for high-security actions',
                 ),
                 trailing: ElevatedButton.icon(
-                  onPressed: () => showDialog(
+                  onPressed: () => AppModal.showDialog(
                     context: context,
                     builder: (_) => const ChangePasscodeDialog(),
                   ),
@@ -157,15 +158,10 @@ class AdministrativeSettingsScreen extends ConsumerWidget {
             iconColor: AppColors.primary,
             trailing: OutlinedButton.icon(
               onPressed: () {
-                showModalBottomSheet(
+                AppModal.showBottomSheet(
                   useRootNavigator: true,
                   context: context,
                   isScrollControlled: true,
-                  shape: const RoundedRectangleBorder(
-                    borderRadius: BorderRadius.vertical(
-                      top: Radius.circular(20),
-                    ),
-                  ),
                   builder: (context) =>
                       BusinessEditSheet(initialSettings: settings.business),
                 );
