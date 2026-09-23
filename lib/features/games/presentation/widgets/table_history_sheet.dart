@@ -6,7 +6,7 @@ import 'package:gap/gap.dart';
 import 'package:snooker_club/core/theme/app_colors.dart';
 import 'package:snooker_club/features/games/domain/models/game_models.dart';
 import 'package:snooker_club/features/games/providers/games_providers.dart';
-import 'package:snooker_club/features/games/presentation/widgets/repeat_game_sheet.dart';
+
 
 class TableHistorySheet extends ConsumerWidget {
   final TableModel table;
@@ -214,24 +214,7 @@ class _HistoryListTile extends StatelessWidget {
               ],
             ),
           ),
-          // Repeat Action
-          IconButton(
-            icon: const Icon(
-              Icons.replay_circle_filled,
-              color: AppColors.primary,
-              size: 28,
-            ),
-            onPressed: () {
-              Navigator.pop(context); // close sheet
-              showModalBottomSheet(
-                context: context,
-                isScrollControlled: true,
-                backgroundColor: Colors.transparent,
-                builder: (_) => RepeatGameSheet(originalSession: game),
-              );
-            },
-            tooltip: 'Repeat Game',
-          ),
+
         ],
       ),
     );

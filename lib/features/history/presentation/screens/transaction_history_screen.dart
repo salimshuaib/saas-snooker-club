@@ -7,7 +7,7 @@ import 'package:snooker_club/core/theme/app_colors.dart';
 import 'package:snooker_club/features/games/domain/models/game_models.dart';
 import 'package:snooker_club/features/games/presentation/screens/bill_details_screen.dart';
 import 'package:snooker_club/features/games/providers/games_providers.dart';
-import 'package:snooker_club/features/games/presentation/widgets/repeat_game_sheet.dart';
+
 import 'package:snooker_club/features/quick_sales/domain/models/quick_sale_models.dart';
 import 'package:snooker_club/core/widgets/loading/skeleton_loader.dart';
 import 'package:snooker_club/features/quick_sales/presentation/screens/quick_sale_details_screen.dart';
@@ -307,15 +307,7 @@ class _GameTransactionTile extends StatelessWidget {
         ),
         clipBehavior: Clip.antiAlias,
         child: InkWell(
-          onLongPress: () {
-            showModalBottomSheet(
-              useRootNavigator: true,
-              context: context,
-              isScrollControlled: true,
-              backgroundColor: Colors.transparent,
-              builder: (context) => RepeatGameSheet(originalSession: session),
-            );
-          },
+
           onTap: () {
             Navigator.push(
               context,
