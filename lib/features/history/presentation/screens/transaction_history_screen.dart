@@ -175,7 +175,7 @@ class _TransactionHistoryScreenState extends ConsumerState<TransactionHistoryScr
           if (_isSelectionMode)
             IconButton(
               icon: const Icon(Icons.delete, color: AppColors.error),
-              onPressed: () => _onDeleteSelected(gamesListAsync.valueOrNull ?? []),
+              onPressed: () => _onDeleteSelected(gamesListAsync.asData?.value ?? []),
             ),
         ],
       ),
