@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:gap/gap.dart';
+import 'package:intl/intl.dart';
 import 'package:snooker_club/core/services/table_alarm_service.dart';
 
 class AlarmSetupSheet extends StatefulWidget {
@@ -95,7 +96,7 @@ class _AlarmSetupSheetState extends State<AlarmSetupSheet> {
                   const Gap(12),
                   Expanded(
                     child: Text(
-                      'Alarm active for ${_activeAlarm!.fireAt.hour.toString().padLeft(2, '0')}:${_activeAlarm!.fireAt.minute.toString().padLeft(2, '0')}',
+                      'Alarm active for ${DateFormat('hh:mm a').format(_activeAlarm!.fireAt)}',
                       style: const TextStyle(fontWeight: FontWeight.w600),
                     ),
                   ),
