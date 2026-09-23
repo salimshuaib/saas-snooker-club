@@ -386,9 +386,11 @@ class _GameTransactionTile extends StatelessWidget {
                         children: [
                           Expanded(
                             child: Text(
-                              session.processedByName != null
-                                  ? 'Processed by ${session.processedByName}'
-                                  : (session.endedByName != null ? 'Ended by ${session.endedByName}' : ''),
+                              session.isCancelled
+                                  ? (session.endedByName != null ? 'Cancelled by ${session.endedByName}' : (session.processedByName != null ? 'Cancelled by ${session.processedByName}' : ''))
+                                  : (session.processedByName != null
+                                      ? 'Processed by ${session.processedByName}'
+                                      : (session.endedByName != null ? 'Ended by ${session.endedByName}' : '')),
                               style: theme.textTheme.bodySmall?.copyWith(
                                 color: theme.colorScheme.onSurface,
                                 fontWeight: FontWeight.w500,

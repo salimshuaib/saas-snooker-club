@@ -518,6 +518,7 @@ class GamesRepository {
       'isCancelled': true,
       'endTime': FieldValue.serverTimestamp(),
       'paymentStatus': 'Cancelled',
+      'endedByName': currentUserName,
       'gameCharge': 0.0,
       'grandTotal': 0.0,
       'ordersTotal': 0.0,
