@@ -751,15 +751,19 @@ class GamesRepository {
 
       // Audit Log for Deletion
       final auditRef = _clubRef.collection('audit_logs').doc();
-      batch.set(auditRef, {
-        'id': auditRef.id,
-        'action': 'Game Deleted',
-        'recordId': session.id,
-        'module': 'Games',
-        'userId': currentUserId,
-        'userName': currentUserName,
-        'timestamp': FieldValue.serverTimestamp(),
-      });
+      final durationMins = (session.activeSeconds / 60).floor();
+      final details = '${session.tableName} | ${session.billingType.name} | Total: ₹${(session.finalAmount ?? session.grandTotal ?? 0).toStringAsFixed(0)} | Players: ${session.allPlayers.isEmpty ? "None" : session.allPlayers.join(", ")}';
+      final log = AuditLog(
+        id: auditRef.id,
+        editedBy: currentUserName,
+        timestamp: DateTime.now(),
+        field: session.isCancelled ? 'Cancelled Game Deleted' : 'Completed Game Deleted',
+        previousValue: '${durationMins}m played',
+        newValue: details,
+      );
+      final logData = log.toMap();
+      logData['timestamp'] = FieldValue.serverTimestamp();
+      batch.set(auditRef, logData);
 
       // Aggregate inventory restoration if items were ordered
       for (final order in session.orders) {
@@ -1317,6 +1321,17 @@ class GamesRepository {
         }
       }
     }
+  }
+
+  /// Gets a stream of all audit logs
+  Stream<List<AuditLog>> get auditLogsStream {
+    return _clubRef
+        .collection('audit_logs')
+        .orderBy('timestamp', descending: true)
+        .snapshots()
+        .map((snapshot) {
+      return snapshot.docs.map((doc) => AuditLog.fromMap(doc.data())).toList();
+    });
   }
 }
 

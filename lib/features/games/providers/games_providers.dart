@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import 'package:snooker_club/features/games/data/games_repository.dart';
 import 'package:snooker_club/features/games/domain/config/tables_config.dart';
 import 'package:snooker_club/features/games/domain/models/game_models.dart';
+import 'package:snooker_club/core/models/audit_log.dart';
 import 'package:snooker_club/core/services/table_alarm_service.dart';
 import 'package:snooker_club/core/providers/app_providers.dart';
 import 'package:snooker_club/features/quick_sales/providers/quick_sales_providers.dart';
@@ -322,6 +323,10 @@ final selectedDateCompletedPaidGamesProvider = StreamProvider<List<GameSession>>
   return repo.watchAllGamesByDate(dateStr).map((games) {
     return games.where((g) => g.status == TableStatus.available || g.status == TableStatus.cancelled).toList();
   });
+});
+
+final auditLogsProvider = StreamProvider<List<AuditLog>>((ref) {
+  return ref.watch(gamesRepositoryProvider).auditLogsStream;
 });
 
 /// Provider for calculating today's total combined business revenue (Games + Quick Sales)

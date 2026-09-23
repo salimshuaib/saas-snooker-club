@@ -13,6 +13,7 @@ import 'package:snooker_club/core/widgets/loading/skeleton_loader.dart';
 import 'package:snooker_club/features/quick_sales/presentation/screens/quick_sale_details_screen.dart';
 import 'package:snooker_club/features/quick_sales/providers/quick_sales_providers.dart';
 import 'package:snooker_club/core/widgets/shared/date_navigation_header.dart';
+import 'package:snooker_club/features/history/presentation/widgets/audit_log_sheet.dart';
 
 import 'package:snooker_club/core/theme/app_shadows.dart';
 import 'package:snooker_club/core/providers/app_providers.dart';
@@ -176,6 +177,18 @@ class _TransactionHistoryScreenState extends ConsumerState<TransactionHistoryScr
             IconButton(
               icon: const Icon(Icons.delete, color: AppColors.error),
               onPressed: () => _onDeleteSelected(gamesListAsync.asData?.value ?? []),
+            )
+          else
+            IconButton(
+              icon: const Icon(Icons.history),
+              onPressed: () {
+                showModalBottomSheet(
+                  context: context,
+                  isScrollControlled: true,
+                  backgroundColor: Colors.transparent,
+                  builder: (context) => const AuditLogSheet(),
+                );
+              },
             ),
         ],
       ),
