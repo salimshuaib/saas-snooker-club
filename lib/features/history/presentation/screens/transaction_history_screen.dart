@@ -17,11 +17,131 @@ import 'package:snooker_club/core/widgets/shared/date_navigation_header.dart';
 import 'package:snooker_club/core/theme/app_shadows.dart';
 import 'package:snooker_club/core/providers/app_providers.dart';
 
-class TransactionHistoryScreen extends ConsumerWidget {
+class TransactionHistoryScreen extends ConsumerStatefulWidget {
   const TransactionHistoryScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<TransactionHistoryScreen> createState() => _TransactionHistoryScreenState();
+}
+
+class _TransactionHistoryScreenState extends ConsumerState<TransactionHistoryScreen> {
+  bool _isSelectionMode = false;
+  final Set<String> _selectedGameIds = {};
+
+  void _toggleSelection(String gameId) {
+    setState(() {
+      if (_selectedGameIds.contains(gameId)) {
+        _selectedGameIds.remove(gameId);
+        if (_selectedGameIds.isEmpty) {
+          _isSelectionMode = false;
+        }
+      } else {
+        _selectedGameIds.add(gameId);
+      }
+    });
+  }
+
+  void _enterSelectionMode(String gameId) {
+    setState(() {
+      _isSelectionMode = true;
+      _selectedGameIds.add(gameId);
+    });
+  }
+
+  void _exitSelectionMode() {
+    setState(() {
+      _isSelectionMode = false;
+      _selectedGameIds.clear();
+    });
+  }
+
+  Future<void> _onDeleteSelected(List<GameSession> allCompletedGames) async {
+    if (_selectedGameIds.isEmpty) return;
+
+    // Show administrator passcode dialog
+    final passcodeVerified = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) =>
+          const AdminPasscodeDialog(actionLabel: 'Delete', isDestructive: true),
+    );
+
+    if (passcodeVerified != true || !mounted) return;
+
+    final selectedCount = _selectedGameIds.length;
+    // Final confirmation dialog
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Text(
+          'Delete $selectedCount selected game${selectedCount > 1 ? 's' : ''}?',
+        ),
+        content: const Text(
+          'This action cannot be undone. Inventory stock will be restored and revenue recalculated automatically.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text(
+              'Cancel',
+              style: TextStyle(fontWeight: FontWeight.w600),
+            ),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.error,
+              foregroundColor: Colors.white,
+              elevation: 0,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+            ),
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text(
+              'Delete Permanently',
+              style: TextStyle(fontWeight: FontWeight.w700),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true || !mounted) return;
+
+    final gamesToDelete = allCompletedGames
+        .where((g) => _selectedGameIds.contains(g.id))
+        .toList();
+
+    try {
+      await ref
+          .read(gameSessionControllerProvider.notifier)
+          .deleteGames(gamesToDelete);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Successfully deleted $selectedCount game${selectedCount > 1 ? 's' : ''}.',
+          ),
+          backgroundColor: AppColors.success,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      _exitSelectionMode();
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to delete games: $e'),
+          backgroundColor: AppColors.error,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final selectedDate = ref.watch(revenueDetailsDateProvider);
     final now = DateTime.now();
@@ -38,12 +158,26 @@ class TransactionHistoryScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () => context.go('/dashboard'),
-        ),
-        title: const Text("Transaction History"),
+        leading: _isSelectionMode
+            ? IconButton(
+                icon: const Icon(Icons.close),
+                onPressed: _exitSelectionMode,
+              )
+            : IconButton(
+                icon: const Icon(Icons.arrow_back),
+                onPressed: () => context.go('/dashboard'),
+              ),
+        title: Text(_isSelectionMode
+            ? "${_selectedGameIds.length} Selected"
+            : "Transaction History"),
         centerTitle: false,
+        actions: [
+          if (_isSelectionMode)
+            IconButton(
+              icon: const Icon(Icons.delete, color: AppColors.error),
+              onPressed: () => _onDeleteSelected(gamesListAsync.valueOrNull ?? []),
+            ),
+        ],
       ),
       body: Column(
         children: [
@@ -119,7 +253,17 @@ class TransactionHistoryScreen extends ConsumerWidget {
                     return SliverList(
                       delegate: SliverChildBuilderDelegate((context, index) {
                         final session = games[index];
-                        return _GameTransactionTile(session: session);
+                        return _GameTransactionTile(
+                          session: session,
+                          isSelectionMode: _isSelectionMode,
+                          isSelected: _selectedGameIds.contains(session.id),
+                          onSelect: () => _toggleSelection(session.id),
+                          onLongPress: () {
+                            if (!_isSelectionMode) {
+                              _enterSelectionMode(session.id);
+                            }
+                          },
+                        );
                       }, childCount: games.length),
                     );
                   },
@@ -282,8 +426,18 @@ class _SummarySubitem extends StatelessWidget {
 
 class _GameTransactionTile extends ConsumerWidget {
   final GameSession session;
+  final bool isSelectionMode;
+  final bool isSelected;
+  final VoidCallback onSelect;
+  final VoidCallback onLongPress;
 
-  const _GameTransactionTile({required this.session});
+  const _GameTransactionTile({
+    required this.session,
+    required this.isSelectionMode,
+    required this.isSelected,
+    required this.onSelect,
+    required this.onLongPress,
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -298,100 +452,47 @@ class _GameTransactionTile extends ConsumerWidget {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
       child: Material(
-        color: theme.colorScheme.surface,
+        color: isSelected
+            ? AppColors.primary.withValues(alpha: 0.15)
+            : theme.colorScheme.surface,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
           side: BorderSide(
-            color: theme.colorScheme.outlineVariant.withValues(alpha: 0.6),
+            color: isSelected
+                ? AppColors.primary
+                : theme.colorScheme.outlineVariant.withValues(alpha: 0.6),
+            width: isSelected ? 2.0 : 1.0,
           ),
         ),
         clipBehavior: Clip.antiAlias,
         child: InkWell(
-          onLongPress: (session.isCancelled || session.status == TableStatus.cancelled)
-              ? () async {
-                  final passcodeVerified = await showDialog<bool>(
-                    context: context,
-                    barrierDismissible: false,
-                    builder: (_) => const AdminPasscodeDialog(
-                        actionLabel: 'Delete', isDestructive: true),
-                  );
-
-                  if (passcodeVerified != true || !context.mounted) return;
-
-                  final confirm = await showDialog<bool>(
-                    context: context,
-                    builder: (ctx) => AlertDialog(
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16)),
-                      title: const Text('Delete Cancelled Game?'),
-                      content: const Text(
-                        'This action cannot be undone. Inventory stock will be restored if applicable.',
-                      ),
-                      actions: [
-                        TextButton(
-                          onPressed: () => Navigator.of(ctx).pop(false),
-                          child: const Text(
-                            'Cancel',
-                            style: TextStyle(fontWeight: FontWeight.w600),
-                          ),
-                        ),
-                        ElevatedButton(
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: AppColors.error,
-                            foregroundColor: Colors.white,
-                            elevation: 0,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                          ),
-                          onPressed: () => Navigator.of(ctx).pop(true),
-                          child: const Text(
-                            'Delete Permanently',
-                            style: TextStyle(fontWeight: FontWeight.w700),
-                          ),
-                        ),
-                      ],
-                    ),
-                  );
-
-                  if (confirm != true || !context.mounted) return;
-
-                  try {
-                    await ref
-                        .read(gameSessionControllerProvider.notifier)
-                        .deleteGames([session]);
-                    if (!context.mounted) return;
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Cancelled game deleted permanently.'),
-                        backgroundColor: AppColors.success,
-                        behavior: SnackBarBehavior.floating,
-                      ),
-                    );
-                  } catch (e) {
-                    if (!context.mounted) return;
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('Error deleting game: $e'),
-                        backgroundColor: AppColors.error,
-                        behavior: SnackBarBehavior.floating,
-                      ),
-                    );
-                  }
-                }
-              : null,
+          onLongPress: onLongPress,
           onTap: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => BillDetailsScreen(session: session),
-              ),
-            );
+            if (isSelectionMode) {
+              onSelect();
+            } else {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => BillDetailsScreen(session: session),
+                ),
+              );
+            }
           },
           child: Padding(
             padding: const EdgeInsets.all(16),
             child: Row(
               children: [
+                if (isSelectionMode) ...[
+                  Icon(
+                    isSelected ? Icons.check_circle : Icons.radio_button_unchecked,
+                    color: isSelected
+                        ? AppColors.primary
+                        : theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
+                    size: 22,
+                  ),
+                  const Gap(12),
+                ],
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
