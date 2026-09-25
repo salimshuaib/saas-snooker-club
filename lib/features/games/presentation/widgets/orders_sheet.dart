@@ -61,6 +61,9 @@ class _OrdersSheetState extends ConsumerState<OrdersSheet> {
           if (categories.isEmpty) {
             categories = ['All'];
           }
+          if (widget.enableGamesTab) {
+            categories.insert(0, 'Games');
+          }
 
           return DefaultTabController(
             length: categories.length,

@@ -203,6 +203,8 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
       builder: (_) => OrdersSheet(
         players: _session.allPlayers,
         currentOrders: _session.orders,
+        currentManualGameCharges: _session.manualGameCharges,
+        enableGamesTab: true,
       ),
     );
 
