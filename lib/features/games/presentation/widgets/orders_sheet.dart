@@ -5,17 +5,22 @@ import 'package:snooker_club/core/theme/app_colors.dart';
 import 'package:snooker_club/features/games/domain/models/game_models.dart';
 import 'package:snooker_club/features/inventory/domain/models/inventory_models.dart';
 import 'package:snooker_club/features/inventory/providers/inventory_providers.dart';
+import 'package:snooker_club/features/games/presentation/widgets/manual_game_charge_setup.dart';
 
 /// Bottom sheet to add items (Drinks or Cigarettes) to a running game.
 /// Returns the list of new/updated [GameOrder]s to be merged into the session.
 class OrdersSheet extends ConsumerStatefulWidget {
   final List<String> players;
   final List<GameOrder> currentOrders;
+  final List<ManualGameCharge>? currentManualGameCharges;
+  final bool enableGamesTab;
 
   const OrdersSheet({
     super.key,
     required this.players,
     required this.currentOrders,
+    this.currentManualGameCharges,
+    this.enableGamesTab = false,
   });
 
   @override
@@ -24,12 +29,14 @@ class OrdersSheet extends ConsumerStatefulWidget {
 
 class _OrdersSheetState extends ConsumerState<OrdersSheet> {
   late List<GameOrder> _orders;
+  late List<ManualGameCharge> _manualGameCharges;
   String? _selectedPlayer;
 
   @override
   void initState() {
     super.initState();
     _orders = List.from(widget.currentOrders);
+    _manualGameCharges = List.from(widget.currentManualGameCharges ?? []);
     if (widget.players.isNotEmpty) _selectedPlayer = widget.players.first;
   }
 
@@ -77,7 +84,7 @@ class _OrdersSheetState extends ConsumerState<OrdersSheet> {
                     children: [
                       Text('Add Orders', style: theme.textTheme.titleLarge),
                       TextButton(
-                        onPressed: () => Navigator.of(context).pop(_orders),
+                        onPressed: () => Navigator.of(context).pop(AddItemsResult(_orders, _manualGameCharges)),
                         child: const Text(
                           'Done',
                           style: TextStyle(
@@ -123,6 +130,9 @@ class _OrdersSheetState extends ConsumerState<OrdersSheet> {
                 Expanded(
                   child: TabBarView(
                     children: categories.map((category) {
+                      if (category == 'Games') {
+                        return ManualGamesListTab(onChargeAdded: (charge) { setState(() => _manualGameCharges.add(charge)); });
+                      }
                       final products = activeProducts
                           .where((p) => p.category == category)
                           .toList();
@@ -151,7 +161,7 @@ class _OrdersSheetState extends ConsumerState<OrdersSheet> {
                 ),
 
                 // Current Orders Summary
-                if (_orders.isNotEmpty)
+                if (_orders.isNotEmpty || _manualGameCharges.isNotEmpty)
                   Container(
                     padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
                     decoration: BoxDecoration(
@@ -213,7 +223,7 @@ class _OrdersSheetState extends ConsumerState<OrdersSheet> {
                               ),
                             ),
                             Text(
-                              '₹${_orders.fold<double>(0, (s, o) => s + o.total).toStringAsFixed(0)}',
+                              '₹${(_orders.fold<double>(0, (s, o) => s + o.total) + _manualGameCharges.fold<double>(0, (s, g) => s + g.calculatedAmount)).toStringAsFixed(0)}',
                               style: theme.textTheme.labelLarge?.copyWith(
                                 fontWeight: FontWeight.w700,
                                 color: AppColors.primary,

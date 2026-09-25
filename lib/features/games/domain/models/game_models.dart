@@ -369,6 +369,79 @@ class GameOrder {
 }
 
 // ─────────────────────────────────────────────
+// ManualGameCharge
+// ─────────────────────────────────────────────
+
+class ManualGameCharge {
+  final String id;
+  final String tableId;
+  final String tableName;
+  final TableType tableType;
+  final GameType gameType;
+  final BillingType billingType;
+  final int? durationSeconds;
+  final int? frames;
+  final int? playersCount;
+  final int? coins;
+  final double calculatedAmount;
+
+  const ManualGameCharge({
+    required this.id,
+    required this.tableId,
+    required this.tableName,
+    required this.tableType,
+    required this.gameType,
+    required this.billingType,
+    this.durationSeconds,
+    this.frames,
+    this.playersCount,
+    this.coins,
+    required this.calculatedAmount,
+  });
+
+  Map<String, dynamic> toMap() {
+    return {
+      'id': id,
+      'tableId': tableId,
+      'tableName': tableName,
+      'tableType': tableType.name,
+      'gameType': gameType.name,
+      'billingType': billingType.name,
+      if (durationSeconds != null) 'durationSeconds': durationSeconds,
+      if (frames != null) 'frames': frames,
+      if (playersCount != null) 'playersCount': playersCount,
+      if (coins != null) 'coins': coins,
+      'calculatedAmount': calculatedAmount,
+    };
+  }
+
+  factory ManualGameCharge.fromMap(Map<String, dynamic> map) {
+    return ManualGameCharge(
+      id: map['id'] ?? '',
+      tableId: map['tableId'] ?? '',
+      tableName: map['tableName'] ?? '',
+      tableType: TableType.values.firstWhere(
+        (e) => e.name == map['tableType'],
+        orElse: () => TableType.snooker,
+      ),
+      gameType: GameType.values.firstWhere(
+        (e) => e.name == map['gameType'],
+        orElse: () => GameType.standard,
+      ),
+      billingType: BillingType.values.firstWhere(
+        (e) => e.name == map['billingType'],
+        orElse: () => BillingType.perMinute,
+      ),
+      durationSeconds: map['durationSeconds']?.toInt(),
+      frames: map['frames']?.toInt(),
+      playersCount: map['playersCount']?.toInt(),
+      coins: map['coins']?.toInt(),
+      calculatedAmount: (map['calculatedAmount'] ?? 0).toDouble(),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────
 // GameChargeBreakdown
 // ─────────────────────────────────────────────
 
@@ -524,6 +597,7 @@ class GameSession {
   final int totalFrames;
   final int framesPlayed;
   final List<GameOrder> orders;
+  final List<ManualGameCharge> manualGameCharges;
   final List<GameRound> rounds;
   final Map<String, Map<PaymentMethod, double>>? playerPaymentSplits;
   final Map<String, double>? playerLiabilities;
@@ -591,6 +665,7 @@ class GameSession {
     this.totalFrames = 1,
     this.framesPlayed = 0,
     this.orders = const [],
+    this.manualGameCharges = const [],
     this.rounds = const [],
     this.playerPaymentSplits,
     this.playerLiabilities,
@@ -708,6 +783,7 @@ class GameSession {
     int? totalFrames,
     int? framesPlayed,
     List<GameOrder>? orders,
+    List<ManualGameCharge>? manualGameCharges,
     List<GameRound>? rounds,
     Map<String, Map<PaymentMethod, double>>? playerPaymentSplits,
     Map<String, double>? playerLiabilities,
@@ -775,6 +851,7 @@ class GameSession {
       totalFrames: totalFrames ?? this.totalFrames,
       framesPlayed: framesPlayed ?? this.framesPlayed,
       orders: orders ?? this.orders,
+      manualGameCharges: manualGameCharges ?? this.manualGameCharges,
       rounds: rounds ?? this.rounds,
       playerPaymentSplits: playerPaymentSplits ?? this.playerPaymentSplits,
       playerLiabilities: playerLiabilities ?? this.playerLiabilities,
@@ -1076,3 +1153,4 @@ class OtherGameResource {
     );
   }
 }
+class AddItemsResult { final List<GameOrder> orders; final List<ManualGameCharge> manualGameCharges; AddItemsResult(this.orders, this.manualGameCharges); }

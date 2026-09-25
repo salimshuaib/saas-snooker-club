@@ -197,7 +197,7 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
   }
 
   Future<void> _showAddOrderSheet() async {
-    final updated = await showModalBottomSheet<List<GameOrder>>(
+    final updated = await showModalBottomSheet<AddItemsResult>(
       context: context,
       isScrollControlled: true,
       builder: (_) => OrdersSheet(
@@ -217,7 +217,7 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
       }
       final newMap = <String, int>{};
       final nameMap = <String, String>{};
-      for (final o in updated) {
+      for (final o in updated.orders) {
         final key = '${o.productId}_${o.playerName ?? ""}';
         newMap[key] = (newMap[key] ?? 0) + o.quantity;
         nameMap[key] = o.productName;
@@ -263,7 +263,41 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
       }
 
       setState(() {
-        _session = _session.copyWith(orders: updated, auditLogs: newLogs);
+              final oldGames = <String, ManualGameCharge>{};
+      for (final g in _session.manualGameCharges) {
+        oldGames[g.id] = g;
+      }
+      final newGames = <String, ManualGameCharge>{};
+      for (final g in updated.manualGameCharges) {
+        newGames[g.id] = g;
+      }
+
+      for (final g in newGames.values) {
+        if (!oldGames.containsKey(g.id)) {
+          newLogs.add(AuditLog(
+            id: '_add_',
+            editedBy: staffName,
+            timestamp: DateTime.now(),
+            field: 'Game Added',
+            previousValue: '-',
+            newValue: ' - ',
+          ));
+        }
+      }
+      for (final g in oldGames.values) {
+        if (!newGames.containsKey(g.id)) {
+          newLogs.add(AuditLog(
+            id: '_rem_',
+            editedBy: staffName,
+            timestamp: DateTime.now(),
+            field: 'Game Removed',
+            previousValue: '-',
+            newValue: ' - ',
+          ));
+        }
+      }
+
+      _session = _session.copyWith(orders: updated.orders, manualGameCharges: updated.manualGameCharges, auditLogs: newLogs);
         _initializeLiabilities();
       });
     }
@@ -516,14 +550,16 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
   int get _overtimeMinutes => _breakdown.overtimeMinutes;
   double get _overtimeCharge => _breakdown.overtimeCharge;
 
+  double get _manualGamesTotal => _session.manualGameCharges.fold<double>(0, (s, g) => s + g.calculatedAmount);
+    
   double get _ordersTotal =>
       _session.orders.fold<double>(0, (s, o) => s + o.total);
 
   double get _discountedGameCharge => _gameCharge - _discountAmount;
 
-  double get _grandTotal => _gameCharge + _ordersTotal;
+  double get _grandTotal => _gameCharge + _ordersTotal + _manualGamesTotal;
 
-  double get _finalTotal => _discountedGameCharge + _ordersTotal;
+  double get _finalTotal => _discountedGameCharge + _ordersTotal + _manualGamesTotal;
 
   double get _roundedTotal {
     if (_session.tableType == TableType.arcade) {
@@ -544,7 +580,7 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
         roundedShare += 5.0;
       }
       
-      return (roundedShare * _selectedPayers.length) + _ordersTotal;
+      return (roundedShare * _selectedPayers.length) + _ordersTotal + _manualGamesTotal;
     }
     
     // Single payer: Round the discounted game charge, then add exact orders
@@ -555,7 +591,7 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
       roundedGame += 5.0;
     }
     
-    return roundedGame + _ordersTotal;
+    return roundedGame + _ordersTotal + _manualGamesTotal;
   }
 
   String _formatDuration(int seconds) {
@@ -725,6 +761,39 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
                 },
               ),
               const Gap(16),
+
+              // ── Additional Games ──
+              if (_session.manualGameCharges.isNotEmpty) ...[
+                Text('Additional Games', style: theme.textTheme.titleMedium),
+                const Gap(8),
+                _SectionCard(
+                  children: [
+                    ..._session.manualGameCharges.map(
+                      (g) => Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 4),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Expanded(
+                              child: Text(
+                                '${g.tableName} - ${g.gameType.name}',
+                                style: theme.textTheme.bodyMedium,
+                              ),
+                            ),
+                            Text(
+                              '\u20B9${g.calculatedAmount.toStringAsFixed(0)}',
+                              style: theme.textTheme.bodyMedium?.copyWith(
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const Gap(16),
+              ],
 
               // ── Orders ──
               Row(
