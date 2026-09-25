@@ -20,6 +20,7 @@ import 'package:snooker_club/features/games/presentation/widgets/player_split_pa
 import 'package:snooker_club/features/credit/presentation/widgets/player_search_field.dart';
 import 'package:snooker_club/features/games/presentation/widgets/upi_qr_dialog.dart';
 import 'package:snooker_club/features/games/presentation/widgets/audit_log_sheet.dart';
+import 'package:snooker_club/features/games/presentation/widgets/orders_sheet.dart';
 
 class BillingScreen extends ConsumerStatefulWidget {
   final GameSession session;
@@ -193,6 +194,24 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
         });
       }
     });
+  }
+
+  Future<void> _showAddOrderSheet() async {
+    final updated = await showModalBottomSheet<List<GameOrder>>(
+      context: context,
+      isScrollControlled: true,
+      builder: (_) => OrdersSheet(
+        players: _session.allPlayers,
+        currentOrders: _session.orders,
+      ),
+    );
+
+    if (updated != null && mounted) {
+      setState(() {
+        _session = _session.copyWith(orders: updated);
+        _initializeLiabilities();
+      });
+    }
   }
 
   void _removePlayer(String player) {
@@ -653,9 +672,19 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
               const Gap(16),
 
               // ── Orders ──
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text('Orders', style: theme.textTheme.titleMedium),
+                  TextButton.icon(
+                    onPressed: _showAddOrderSheet,
+                    icon: const Icon(Icons.add, size: 18),
+                    label: const Text('Add Item'),
+                  ),
+                ],
+              ),
+              const Gap(8),
               if (_session.orders.isNotEmpty) ...[
-                Text('Orders', style: theme.textTheme.titleMedium),
-                const Gap(8),
                 _SectionCard(
                   children: [
                     ..._session.orders.map(
@@ -682,8 +711,8 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
                     ),
                   ],
                 ),
-                const Gap(16),
               ],
+              const Gap(16),
 
               // ── Bill Summary ──
               Row(
