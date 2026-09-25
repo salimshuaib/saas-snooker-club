@@ -489,6 +489,13 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
       }
     }
 
+    for (final g in _session.manualGameCharges) {
+      final split = g.calculatedAmount / _session.allPlayers.length;
+      for (final p in _session.allPlayers) {
+        liabilities[p] = (liabilities[p] ?? 0.0) + split;
+      }
+    }
+
     for (final p in _session.allPlayers) {
       final amount = liabilities[p] ?? 0.0;
       final textValue = amount == 0
