@@ -87,6 +87,20 @@ class GameActivityCard extends ConsumerWidget {
                                 );
                               },
                             ),
+                          const SizedBox(width: 4),
+                          IconButton(
+                            onPressed: () {
+                              AppModal.showBottomSheet(
+                                context: context,
+                                isScrollControlled: true,
+                                builder: (_) => TableHistorySheet(table: table),
+                              );
+                            },
+                            icon: const Icon(Icons.history, size: 22),
+                            padding: EdgeInsets.zero,
+                            constraints: const BoxConstraints(),
+                            tooltip: 'History',
+                          ),
                         ],
                       ),
                       const SizedBox(height: 4),
@@ -123,19 +137,6 @@ class GameActivityCard extends ConsumerWidget {
                       ),
                     ],
                   ),
-                ),
-                IconButton(
-                  onPressed: () {
-                    AppModal.showBottomSheet(
-                      context: context,
-                      isScrollControlled: true,
-                      builder: (_) => TableHistorySheet(table: table),
-                    );
-                  },
-                  icon: const Icon(Icons.history, size: 22),
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(),
-                  tooltip: 'History',
                 ),
               ],
             ),
