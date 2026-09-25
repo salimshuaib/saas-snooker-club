@@ -68,15 +68,16 @@ class _ManualGameChargeSetupSheetState extends ConsumerState<ManualGameChargeSet
   void initState() {
     super.initState();
     _gameType = GameType.standard;
-    _availableBillingTypes = TablePricingConfig.getAvailableBillingTypes(widget.table.type);
+    _availableBillingTypes = TablePricingConfig.supportedBillingTypes(widget.table, _gameType);
     _billingType = _availableBillingTypes.isNotEmpty ? _availableBillingTypes.first : BillingType.perMinute;
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final pricingConfig = ref.watch(pricingSettingsProvider).value;
-    final gameSettings = ref.watch(gameSettingsProvider).value;
+    final appSettings = ref.watch(appSettingsProvider);
+    final pricingConfig = appSettings.pricing;
+    final gameSettings = appSettings.game;
 
     return Padding(
       padding: EdgeInsets.only(
@@ -101,7 +102,15 @@ class _ManualGameChargeSetupSheetState extends ConsumerState<ManualGameChargeSet
                 label: 'Game',
                 value: _gameType,
                 items: GameType.values,
-                onChanged: (v) => setState(() => _gameType = v!),
+                onChanged: (v) {
+                  setState(() {
+                    _gameType = v!;
+                    _availableBillingTypes = TablePricingConfig.supportedBillingTypes(widget.table, _gameType);
+                    if (!_availableBillingTypes.contains(_billingType) && _availableBillingTypes.isNotEmpty) {
+                      _billingType = _availableBillingTypes.first;
+                    }
+                  });
+                },
               ),
             
             const Gap(12),
@@ -136,7 +145,7 @@ class _ManualGameChargeSetupSheetState extends ConsumerState<ManualGameChargeSet
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                 ),
                 onPressed: () {
-                  if (pricingConfig == null || gameSettings == null) return;
+                  // Configurations are non-null
                   
                   int activeSeconds = 0;
                   if (_billingType == BillingType.perMinute) {
