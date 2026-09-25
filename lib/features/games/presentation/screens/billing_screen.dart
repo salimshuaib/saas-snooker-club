@@ -207,8 +207,63 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
     );
 
     if (updated != null && mounted) {
+      final staffName = ref.read(currentStaffProvider).value?.name ?? 'Admin';
+      final List<AuditLog> newLogs = List.from(_session.auditLogs);
+
+      final oldMap = <String, int>{};
+      for (final o in _session.orders) {
+        final key = '${o.productId}_${o.playerName ?? ""}';
+        oldMap[key] = (oldMap[key] ?? 0) + o.quantity;
+      }
+      final newMap = <String, int>{};
+      final nameMap = <String, String>{};
+      for (final o in updated) {
+        final key = '${o.productId}_${o.playerName ?? ""}';
+        newMap[key] = (newMap[key] ?? 0) + o.quantity;
+        nameMap[key] = o.productName;
+      }
+
+      for (final key in newMap.keys) {
+        final oldQty = oldMap[key] ?? 0;
+        final newQty = newMap[key]!;
+        if (newQty > oldQty) {
+          final diff = newQty - oldQty;
+          newLogs.add(AuditLog(
+            id: '${DateTime.now().millisecondsSinceEpoch}_add_$key',
+            editedBy: staffName,
+            timestamp: DateTime.now(),
+            field: 'Order Added',
+            previousValue: '-',
+            newValue: '$diff x ${nameMap[key]}',
+          ));
+        } else if (newQty < oldQty) {
+          final diff = oldQty - newQty;
+          newLogs.add(AuditLog(
+            id: '${DateTime.now().millisecondsSinceEpoch}_rem_$key',
+            editedBy: staffName,
+            timestamp: DateTime.now(),
+            field: 'Order Removed',
+            previousValue: '-',
+            newValue: '$diff x ${nameMap[key]}',
+          ));
+        }
+      }
+      for (final key in oldMap.keys) {
+        if (!newMap.containsKey(key)) {
+          final productName = _session.orders.firstWhere((o) => '${o.productId}_${o.playerName ?? ""}' == key).productName;
+          newLogs.add(AuditLog(
+            id: '${DateTime.now().millisecondsSinceEpoch}_rem_$key',
+            editedBy: staffName,
+            timestamp: DateTime.now(),
+            field: 'Order Removed',
+            previousValue: '-',
+            newValue: '${oldMap[key]} x $productName',
+          ));
+        }
+      }
+
       setState(() {
-        _session = _session.copyWith(orders: updated);
+        _session = _session.copyWith(orders: updated, auditLogs: newLogs);
         _initializeLiabilities();
       });
     }
