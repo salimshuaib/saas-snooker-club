@@ -223,35 +223,38 @@ class _OrdersSheetState extends ConsumerState<OrdersSheet> {
                                     ),
                                   ),
                                 )),
-                                ...(_manualGameCharges.map(
-                                  (g) => Padding(
-                                    padding: const EdgeInsets.only(bottom: 4),
-                                    child: Row(
-                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                      children: [
-                                        Expanded(
-                                          child: Text(
-                                            '1x ${g.tableName} - ${g.gameType.displayName}',
-                                            style: theme.textTheme.bodySmall,
+                                ...(_manualGameCharges.grouped().map(
+                                  (group) {
+                                    final g = group.charge;
+                                    return Padding(
+                                      padding: const EdgeInsets.only(bottom: 4),
+                                      child: Row(
+                                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                        children: [
+                                          Expanded(
+                                            child: Text(
+                                              '${group.quantity}x ${g.tableName} - ${g.gameType.displayName}',
+                                              style: theme.textTheme.bodySmall,
+                                            ),
                                           ),
-                                        ),
-                                        Text(
-                                          '₹${g.calculatedAmount.toStringAsFixed(0)}',
-                                          style: theme.textTheme.bodySmall?.copyWith(
-                                            fontWeight: FontWeight.w600,
+                                          Text(
+                                            '₹${group.totalAmount.toStringAsFixed(0)}',
+                                            style: theme.textTheme.bodySmall?.copyWith(
+                                              fontWeight: FontWeight.w600,
+                                            ),
                                           ),
-                                        ),
-                                        IconButton(
-                                          icon: const Icon(Icons.close, size: 16),
-                                          onPressed: () {
-                                            setState(() => _manualGameCharges.remove(g));
-                                          },
-                                          padding: EdgeInsets.zero,
-                                          constraints: const BoxConstraints(),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
+                                          IconButton(
+                                            icon: const Icon(Icons.close, size: 16),
+                                            onPressed: () {
+                                              setState(() => _manualGameCharges.remove(group.originalCharges.last));
+                                            },
+                                            padding: EdgeInsets.zero,
+                                            constraints: const BoxConstraints(),
+                                          ),
+                                        ],
+                                      ),
+                                    );
+                                  }
                                 )),
                               ],
                             ),

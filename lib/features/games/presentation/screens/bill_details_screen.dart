@@ -277,27 +277,30 @@ class _BillDetailsScreenState extends ConsumerState<BillDetailsScreen> {
                   const Gap(8),
                   _SectionCard(
                     children: [
-                      ...session.manualGameCharges.map(
-                        (g) => Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 4),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Expanded(
-                                child: Text(
-                                  '${g.tableName} - ${g.gameType.displayName}',
-                                  style: theme.textTheme.bodyMedium,
+                      ...session.manualGameCharges.grouped().map(
+                        (group) {
+                          final g = group.charge;
+                          return Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 4),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    '${group.quantity}x ${g.tableName} - ${g.gameType.displayName}',
+                                    style: theme.textTheme.bodyMedium,
+                                  ),
                                 ),
-                              ),
-                              Text(
-                                '\u20B9${g.calculatedAmount.toStringAsFixed(0)}',
-                                style: theme.textTheme.bodyMedium?.copyWith(
-                                  fontWeight: FontWeight.w600,
+                                Text(
+                                  '\u20B9${group.totalAmount.toStringAsFixed(0)}',
+                                  style: theme.textTheme.bodyMedium?.copyWith(
+                                    fontWeight: FontWeight.w600,
+                                  ),
                                 ),
-                              ),
-                            ],
-                          ),
-                        ),
+                              ],
+                            ),
+                          );
+                        }
                       ),
                     ],
                   ),

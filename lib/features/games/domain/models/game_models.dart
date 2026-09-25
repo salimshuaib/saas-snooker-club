@@ -372,6 +372,36 @@ class GameOrder {
 // ManualGameCharge
 // ─────────────────────────────────────────────
 
+class ManualGameChargeGroup {
+  final ManualGameCharge charge;
+  final int quantity;
+  final double totalAmount;
+  final List<ManualGameCharge> originalCharges;
+
+  const ManualGameChargeGroup({
+    required this.charge,
+    required this.quantity,
+    required this.totalAmount,
+    required this.originalCharges,
+  });
+}
+
+extension ManualGameChargeListExtension on List<ManualGameCharge> {
+  List<ManualGameChargeGroup> grouped() {
+    final Map<String, List<ManualGameCharge>> map = {};
+    for (final g in this) {
+      final key = '${g.tableId}_${g.gameType.name}_${g.billingType.name}_${g.durationSeconds}_${g.frames}_${g.coins}_${g.calculatedAmount}';
+      map.putIfAbsent(key, () => []).add(g);
+    }
+    return map.values.map((list) => ManualGameChargeGroup(
+      charge: list.first,
+      quantity: list.length,
+      totalAmount: list.fold<double>(0, (s, e) => s + e.calculatedAmount),
+      originalCharges: list,
+    )).toList();
+  }
+}
+
 class ManualGameCharge {
   final String id;
   final String tableId;

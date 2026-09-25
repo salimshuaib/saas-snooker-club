@@ -770,27 +770,30 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
                 const Gap(8),
                 _SectionCard(
                   children: [
-                    ..._session.manualGameCharges.map(
-                      (g) => Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 4),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Expanded(
-                              child: Text(
-                                '${g.tableName} - ${g.gameType.displayName}',
-                                style: theme.textTheme.bodyMedium,
+                    ..._session.manualGameCharges.grouped().map(
+                      (group) {
+                        final g = group.charge;
+                        return Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 4),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  '${group.quantity}x ${g.tableName} - ${g.gameType.displayName}',
+                                  style: theme.textTheme.bodyMedium,
+                                ),
                               ),
-                            ),
-                            Text(
-                              '\u20B9${g.calculatedAmount.toStringAsFixed(0)}',
-                              style: theme.textTheme.bodyMedium?.copyWith(
-                                fontWeight: FontWeight.w600,
+                              Text(
+                                '\u20B9${group.totalAmount.toStringAsFixed(0)}',
+                                style: theme.textTheme.bodyMedium?.copyWith(
+                                  fontWeight: FontWeight.w600,
+                                ),
                               ),
-                            ),
-                          ],
-                        ),
-                      ),
+                            ],
+                          ),
+                        );
+                      }
                     ),
                   ],
                 ),
