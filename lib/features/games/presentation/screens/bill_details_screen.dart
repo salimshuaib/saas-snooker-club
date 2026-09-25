@@ -164,43 +164,44 @@ class _BillDetailsScreenState extends ConsumerState<BillDetailsScreen> {
                     const Gap(24),
                   ],
                 // ── General Information ──
-                Text('General Information', style: theme.textTheme.titleMedium),
-                const Gap(8),
-                _SectionCard(
-                  children: [
-                    _InfoRow(label: 'Table Name', value: session.tableName),
-                    _InfoRow(
-                      label: 'Game Type',
-                      value: session.billingType.displayName,
-                    ),
-                    _InfoRow(
-                      label: 'Start Time',
-                      value: dtFmt.format(session.startTime),
-                    ),
-                    if (session.endTime != null)
+                _ExpandableSection(
+                  title: 'General Information',
+                  child: _SectionCard(
+                    children: [
+                      _InfoRow(label: 'Table Name', value: session.tableName),
                       _InfoRow(
-                        label: 'End Time',
-                        value: dtFmt.format(session.endTime!),
+                        label: 'Game Type',
+                        value: session.billingType.displayName,
                       ),
-                    _InfoRow(
-                      label: 'Total Duration',
-                      value: _formatDuration(session.activeSeconds),
-                    ),
-                    if (session.billingType == BillingType.perFrame)
                       _InfoRow(
-                        label: 'Frames Played',
-                        value:
-                            '${session.framesPlayed > 0 ? session.framesPlayed : session.totalFrames}',
+                        label: 'Start Time',
+                        value: dtFmt.format(session.startTime),
                       ),
-                    if (session.createdByName != null)
-                      _InfoRow(label: 'Started by', value: session.createdByName!),
-                    if (session.endedByName != null)
-                      _InfoRow(label: 'Ended by', value: session.endedByName!),
-                    if (session.processedByName != null)
-                      _InfoRow(label: 'Processed by', value: session.processedByName!),
-                    if (session.cancelledByName != null)
-                      _InfoRow(label: 'Cancelled by', value: session.cancelledByName!),
-                  ],
+                      if (session.endTime != null)
+                        _InfoRow(
+                          label: 'End Time',
+                          value: dtFmt.format(session.endTime!),
+                        ),
+                      _InfoRow(
+                        label: 'Total Duration',
+                        value: _formatDuration(session.activeSeconds),
+                      ),
+                      if (session.billingType == BillingType.perFrame)
+                        _InfoRow(
+                          label: 'Frames Played',
+                          value:
+                              '${session.framesPlayed > 0 ? session.framesPlayed : session.totalFrames}',
+                        ),
+                      if (session.createdByName != null)
+                        _InfoRow(label: 'Started by', value: session.createdByName!),
+                      if (session.endedByName != null)
+                        _InfoRow(label: 'Ended by', value: session.endedByName!),
+                      if (session.processedByName != null)
+                        _InfoRow(label: 'Processed by', value: session.processedByName!),
+                      if (session.cancelledByName != null)
+                        _InfoRow(label: 'Cancelled by', value: session.cancelledByName!),
+                    ],
+                  ),
                 ),
                 const Gap(24),
 
@@ -1033,6 +1034,49 @@ class _BillDetailsScreenState extends ConsumerState<BillDetailsScreen> {
       }
       payerController.dispose();
     }
+  }
+}
+
+class _ExpandableSection extends StatefulWidget {
+  final String title;
+  final Widget child;
+
+  const _ExpandableSection({required this.title, required this.child});
+
+  @override
+  State<_ExpandableSection> createState() => _ExpandableSectionState();
+}
+
+class _ExpandableSectionState extends State<_ExpandableSection> {
+  bool _isExpanded = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        InkWell(
+          onTap: () => setState(() => _isExpanded = !_isExpanded),
+          borderRadius: BorderRadius.circular(8),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 4.0),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(widget.title, style: theme.textTheme.titleMedium),
+                Icon(
+                  _isExpanded ? Icons.expand_less : Icons.expand_more,
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ],
+            ),
+          ),
+        ),
+        const Gap(4),
+        if (_isExpanded) widget.child,
+      ],
+    );
   }
 }
 
