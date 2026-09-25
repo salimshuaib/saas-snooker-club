@@ -169,15 +169,18 @@ class GameActivityScreen extends ConsumerWidget {
                               ),
                               child: Row(
                                 children: [
-                                  Text(
-                                    sortedKeys[i].displayName,
-                                    style: theme.textTheme.titleMedium?.copyWith(
-                                      fontWeight: FontWeight.bold,
-                                      color: theme.colorScheme.onSurface,
+                                  Expanded(
+                                    child: Text(
+                                      sortedKeys[i].displayName,
+                                      style: theme.textTheme.titleMedium?.copyWith(
+                                        fontWeight: FontWeight.bold,
+                                        color: theme.colorScheme.onSurface,
+                                      ),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
                                     ),
                                   ),
                                   if (i == 0) ...[
-                                    const Spacer(),
                                     Builder(
                                       builder: (innerContext) => _StatusBadge(
                                         label: 'Running',

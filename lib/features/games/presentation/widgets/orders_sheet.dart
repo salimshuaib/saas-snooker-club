@@ -306,9 +306,11 @@ class _ProductTile extends StatelessWidget {
         .toList();
     final currentQty = existing.isEmpty ? 0 : existing.first.quantity;
 
-    return ListTile(
-      title: Text(
-        product.name,
+    return Material(
+      color: Colors.transparent,
+      child: ListTile(
+        title: Text(
+          product.name,
         style: theme.textTheme.bodyMedium?.copyWith(
           fontWeight: FontWeight.w600,
         ),
@@ -389,6 +391,7 @@ class _ProductTile extends StatelessWidget {
                 ),
               ],
             ),
+      ),
     );
   }
 

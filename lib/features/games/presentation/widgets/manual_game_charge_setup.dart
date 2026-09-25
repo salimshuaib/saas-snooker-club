@@ -25,8 +25,10 @@ class ManualGamesListTab extends ConsumerWidget {
       itemCount: tables.length,
       itemBuilder: (context, index) {
         final table = tables[index];
-        return ListTile(
-          title: Text(table.name),
+        return Material(
+          color: Colors.transparent,
+          child: ListTile(
+            title: Text(table.name),
           subtitle: Text(table.type.displayName),
           trailing: const Icon(Icons.add_circle_outline),
           onTap: () async {
@@ -39,6 +41,7 @@ class ManualGamesListTab extends ConsumerWidget {
               onChargeAdded(charge);
             }
           },
+          ),
         );
       },
     );
