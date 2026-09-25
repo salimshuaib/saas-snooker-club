@@ -584,6 +584,7 @@ class GamesRepository {
       'startTime': Timestamp.fromDate(session.startTime),
       'endTime': Timestamp.fromDate(session.endTime!),
       'orders': session.orders.map((o) => o.toMap()).toList(),
+      'manualGameCharges': session.manualGameCharges.map((g) => g.toMap()).toList(),
       'rounds': session.rounds.map((r) => r.toMap()).toList(),
       'playerPaymentSplits': session.playerPaymentSplits?.map(
         (k, v) => MapEntry(k, v.map((km, vm) => MapEntry(km.name, vm))),

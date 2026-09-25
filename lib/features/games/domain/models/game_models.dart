@@ -923,6 +923,7 @@ class GameSession {
       'totalFrames': totalFrames,
       'framesPlayed': framesPlayed,
       'orders': orders.map((o) => o.toMap()).toList(),
+      'manualGameCharges': manualGameCharges.map((g) => g.toMap()).toList(),
       'rounds': rounds.map((r) => r.toMap()).toList(),
       'playerPaymentSplits': playerPaymentSplits?.map(
         (k, v) => MapEntry(k, v.map((k2, v2) => MapEntry(k2.name, v2))),
@@ -1028,6 +1029,11 @@ class GameSession {
       orders:
           (map['orders'] as List<dynamic>?)
               ?.map((o) => GameOrder.fromMap(o as Map<String, dynamic>))
+              .toList() ??
+          [],
+      manualGameCharges:
+          (map['manualGameCharges'] as List<dynamic>?)
+              ?.map((g) => ManualGameCharge.fromMap(g as Map<String, dynamic>))
               .toList() ??
           [],
       rounds:
