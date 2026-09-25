@@ -277,24 +277,24 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
       for (final g in newGames.values) {
         if (!oldGames.containsKey(g.id)) {
           newLogs.add(AuditLog(
-            id: '_add_',
+            id: '${DateTime.now().millisecondsSinceEpoch}_add_${g.id}',
             editedBy: staffName,
             timestamp: DateTime.now(),
             field: 'Game Added',
             previousValue: '-',
-            newValue: ' - ',
+            newValue: '${g.tableName} - ${g.gameType.displayName}',
           ));
         }
       }
       for (final g in oldGames.values) {
         if (!newGames.containsKey(g.id)) {
           newLogs.add(AuditLog(
-            id: '_rem_',
+            id: '${DateTime.now().millisecondsSinceEpoch}_rem_${g.id}',
             editedBy: staffName,
             timestamp: DateTime.now(),
             field: 'Game Removed',
             previousValue: '-',
-            newValue: ' - ',
+            newValue: '${g.tableName} - ${g.gameType.displayName}',
           ));
         }
       }
