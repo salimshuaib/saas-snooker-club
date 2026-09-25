@@ -27,7 +27,7 @@ class ManualGamesListTab extends ConsumerWidget {
         final table = tables[index];
         return ListTile(
           title: Text(table.name),
-          subtitle: Text(table.type.name),
+          subtitle: Text(table.type.displayName),
           trailing: const Icon(Icons.add_circle_outline),
           onTap: () async {
             final charge = await showModalBottomSheet<ManualGameCharge>(
@@ -213,10 +213,20 @@ class _ManualGameChargeSetupSheetState extends ConsumerState<ManualGameChargeSet
             child: DropdownButton<T>(
               value: value,
               isExpanded: true,
-              items: items.map((e) => DropdownMenuItem(
-                value: e,
-                child: Text((e as Enum).name),
-              )).toList(),
+              items: items.map((e) {
+                String label;
+                if (e is BillingType) {
+                  label = e.displayName;
+                } else if (e is GameType) {
+                  label = e.displayName;
+                } else {
+                  label = (e as Enum).name;
+                }
+                return DropdownMenuItem(
+                  value: e,
+                  child: Text(label),
+                );
+              }).toList(),
               onChanged: onChanged,
             ),
           ),

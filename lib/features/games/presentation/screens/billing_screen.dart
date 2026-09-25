@@ -778,7 +778,7 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
                           children: [
                             Expanded(
                               child: Text(
-                                '${g.tableName} - ${g.gameType.name}',
+                                '${g.tableName} - ${g.gameType.displayName}',
                                 style: theme.textTheme.bodyMedium,
                               ),
                             ),
