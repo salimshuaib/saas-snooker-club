@@ -270,6 +270,39 @@ class _BillDetailsScreenState extends ConsumerState<BillDetailsScreen> {
                   const Gap(24),
                 ],
 
+                // ── Additional Games ──
+                if (session.manualGameCharges.isNotEmpty) ...[
+                  Text('Additional Games', style: theme.textTheme.titleMedium),
+                  const Gap(8),
+                  _SectionCard(
+                    children: [
+                      ...session.manualGameCharges.map(
+                        (g) => Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 4),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  '${g.tableName} - ${g.gameType.displayName}',
+                                  style: theme.textTheme.bodyMedium,
+                                ),
+                              ),
+                              Text(
+                                '\u20B9${g.calculatedAmount.toStringAsFixed(0)}',
+                                style: theme.textTheme.bodyMedium?.copyWith(
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const Gap(16),
+                ],
+
                 // ── Ordered Items ──
                 if (session.orders.isNotEmpty) ...[
                   Text('Ordered Items', style: theme.textTheme.titleMedium),
@@ -365,6 +398,11 @@ class _BillDetailsScreenState extends ConsumerState<BillDetailsScreen> {
                             '₹${(session.gameCharge ?? 0).toStringAsFixed(2)}',
                       ),
                     ],
+                    if (session.manualGameCharges.isNotEmpty)
+                      _InfoRow(
+                        label: 'Additional Games',
+                        value: '₹${session.manualGameCharges.fold<double>(0, (s, g) => s + g.calculatedAmount).toStringAsFixed(2)}',
+                      ),
                     if ((session.ordersTotal ?? 0) > 0)
                       _InfoRow(
                         label: 'Orders Total',
