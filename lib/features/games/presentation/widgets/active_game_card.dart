@@ -552,7 +552,7 @@ class _ActiveGameCardState extends ConsumerState<ActiveGameCard> {
   }
 
   Future<void> _showOrdersSheet(GameSession game, BuildContext context) async {
-    final updated = await showModalBottomSheet<List<GameOrder>>(
+    final updated = await showModalBottomSheet<AddItemsResult>(
       useRootNavigator: true,
       context: context,
       isScrollControlled: true,
@@ -563,7 +563,7 @@ class _ActiveGameCardState extends ConsumerState<ActiveGameCard> {
     if (updated != null && mounted) {
       await ref
           .read(gameSessionControllerProvider.notifier)
-          .updateOrders(game.id, game.orders, updated);
+          .updateOrders(game.id, game.orders, updated.orders);
     }
   }
 
