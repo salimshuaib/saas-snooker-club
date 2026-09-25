@@ -185,36 +185,78 @@ class _OrdersSheetState extends ConsumerState<OrdersSheet> {
                           ),
                         ),
                         const Gap(8),
-                        ...(_orders.map(
-                          (o) => Padding(
-                            padding: const EdgeInsets.only(bottom: 4),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        ConstrainedBox(
+                          constraints: BoxConstraints(
+                            maxHeight: MediaQuery.of(context).size.height * 0.25,
+                          ),
+                          child: SingleChildScrollView(
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
                               children: [
-                                Expanded(
-                                  child: Text(
-                                    '${o.quantity}x ${o.productName}${o.playerName != null ? ' (${o.playerName})' : ''}',
-                                    style: theme.textTheme.bodySmall,
+                                ...(_orders.map(
+                                  (o) => Padding(
+                                    padding: const EdgeInsets.only(bottom: 4),
+                                    child: Row(
+                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        Expanded(
+                                          child: Text(
+                                            '${o.quantity}x ${o.productName}${o.playerName != null ? ' (${o.playerName})' : ''}',
+                                            style: theme.textTheme.bodySmall,
+                                          ),
+                                        ),
+                                        Text(
+                                          '₹${o.total.toStringAsFixed(0)}',
+                                          style: theme.textTheme.bodySmall?.copyWith(
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        ),
+                                        IconButton(
+                                          icon: const Icon(Icons.close, size: 16),
+                                          onPressed: () {
+                                            setState(() => _orders.remove(o));
+                                          },
+                                          padding: EdgeInsets.zero,
+                                          constraints: const BoxConstraints(),
+                                        ),
+                                      ],
+                                    ),
                                   ),
-                                ),
-                                Text(
-                                  '₹${o.total.toStringAsFixed(0)}',
-                                  style: theme.textTheme.bodySmall?.copyWith(
-                                    fontWeight: FontWeight.w600,
+                                )),
+                                ...(_manualGameCharges.map(
+                                  (g) => Padding(
+                                    padding: const EdgeInsets.only(bottom: 4),
+                                    child: Row(
+                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        Expanded(
+                                          child: Text(
+                                            '1x ${g.tableName} - ${g.gameType.displayName}',
+                                            style: theme.textTheme.bodySmall,
+                                          ),
+                                        ),
+                                        Text(
+                                          '₹${g.calculatedAmount.toStringAsFixed(0)}',
+                                          style: theme.textTheme.bodySmall?.copyWith(
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        ),
+                                        IconButton(
+                                          icon: const Icon(Icons.close, size: 16),
+                                          onPressed: () {
+                                            setState(() => _manualGameCharges.remove(g));
+                                          },
+                                          padding: EdgeInsets.zero,
+                                          constraints: const BoxConstraints(),
+                                        ),
+                                      ],
+                                    ),
                                   ),
-                                ),
-                                IconButton(
-                                  icon: const Icon(Icons.close, size: 16),
-                                  onPressed: () {
-                                    setState(() => _orders.remove(o));
-                                  },
-                                  padding: EdgeInsets.zero,
-                                  constraints: const BoxConstraints(),
-                                ),
+                                )),
                               ],
                             ),
                           ),
-                        )),
+                        ),
                         const Gap(4),
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
