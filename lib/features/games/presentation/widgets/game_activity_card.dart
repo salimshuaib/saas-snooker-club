@@ -124,6 +124,19 @@ class GameActivityCard extends ConsumerWidget {
                     ],
                   ),
                 ),
+                IconButton(
+                  onPressed: () {
+                    AppModal.showBottomSheet(
+                      context: context,
+                      isScrollControlled: true,
+                      builder: (_) => TableHistorySheet(table: table),
+                    );
+                  },
+                  icon: const Icon(Icons.history, size: 22),
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
+                  tooltip: 'History',
+                ),
               ],
             ),
           ),
@@ -176,53 +189,27 @@ class GameActivityCard extends ConsumerWidget {
                     ),
                   ),
                   const Gap(12),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: OutlinedButton.icon(
-                          onPressed: () {
-                            AppModal.showBottomSheet(
-                              context: context,
-                              isScrollControlled: true,
-                              builder: (_) => TableHistorySheet(table: table),
-                            );
-                          },
-                          icon: const Icon(Icons.history, size: 18),
-                          label: const Text('History'),
-                          style: OutlinedButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(vertical: 12),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
+                  OutlinedButton.icon(
+                    onPressed: () {
+                      final employeeId = ref.read(currentStaffProvider).value?.id ?? '';
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => ManualGameSetupScreen(
+                            employeeId: employeeId,
+                            isCompletedGame: false,
+                            initialTable: table,
                           ),
                         ),
+                      );
+                    },
+                    icon: const Icon(Icons.edit_document, size: 18),
+                    label: const Text('Manual'),
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
                       ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: OutlinedButton.icon(
-                          onPressed: () {
-                            final employeeId = ref.read(currentStaffProvider).value?.id ?? '';
-                            Navigator.of(context).push(
-                              MaterialPageRoute(
-                                builder: (_) => ManualGameSetupScreen(
-                                  employeeId: employeeId,
-                                  isCompletedGame: false,
-                                  initialTable: table,
-                                ),
-                              ),
-                            );
-                          },
-                          icon: const Icon(Icons.edit_document, size: 18),
-                          label: const Text('Manual'),
-                          style: OutlinedButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(vertical: 12),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
+                    ),
                   ),
                 ],
               ),
