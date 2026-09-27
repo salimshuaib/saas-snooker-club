@@ -1,4 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:snooker_club/features/credit/domain/models/credit_models.dart';
+import 'package:snooker_club/features/credit/providers/credit_providers.dart';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gap/gap.dart';
 import 'dart:math' as math;
@@ -16,6 +20,9 @@ import 'package:snooker_club/features/games/presentation/widgets/table_history_s
 import 'package:snooker_club/features/team/providers/team_providers.dart';
 import 'package:snooker_club/core/services/table_alarm_service.dart';
 import 'package:snooker_club/features/games/presentation/widgets/alarm_setup_sheet.dart';
+import 'package:snooker_club/core/utils/billing_utils.dart';
+import 'package:snooker_club/features/games/presentation/widgets/mark_pending_dialog.dart';
+import 'package:snooker_club/features/credit/presentation/widgets/player_search_field.dart';
 
 class ActiveGameCard extends ConsumerStatefulWidget {
   final GameSession game;
@@ -41,6 +48,8 @@ class _ActiveGameCardState extends ConsumerState<ActiveGameCard> {
     final theme = Theme.of(context);
     final game = widget.game;
     final ordersTotal = game.orders.fold<double>(0, (s, o) => s + o.total);
+    final manualGamesTotal = game.manualGameCharges.fold<double>(0, (s, g) => s + g.calculatedAmount);
+    final totalExtras = ordersTotal + manualGamesTotal;
 
     return Container(
       decoration: BoxDecoration(
@@ -87,6 +96,8 @@ class _ActiveGameCardState extends ConsumerState<ActiveGameCard> {
                   customExtraCharge: game.customExtraCharge,
                   playersCount: game.allPlayers.length,
                   coinQuantity: game.coinQuantity,
+        customMinutes: game.customMinutes,
+                  customMinutes: game.customMinutes,
                   isMinimumBillEnabled: game.isMinimumBillEnabled,
                   minimumBillAmount: game.minimumBillAmount,
                 );
@@ -148,6 +159,7 @@ class _ActiveGameCardState extends ConsumerState<ActiveGameCard> {
                                     letterSpacing: 0.5,
                                   ),
                                 ),
+
                               ],
                             ),
                           ),
@@ -373,10 +385,10 @@ class _ActiveGameCardState extends ConsumerState<ActiveGameCard> {
                         color: theme.colorScheme.onSurfaceVariant,
                       ),
                     ),
-                  if (ordersTotal > 0) ...[
+                  if (totalExtras > 0) ...[
                     const Gap(4),
                     Text(
-                      'Orders total: \u20B9${ordersTotal.toStringAsFixed(0)}',
+                      'Extras total: \u20B9${totalExtras.toStringAsFixed(0)}',
                       style: theme.textTheme.labelSmall?.copyWith(
                         color: AppColors.primary,
                       ),
@@ -482,7 +494,7 @@ class _ActiveGameCardState extends ConsumerState<ActiveGameCard> {
                 icon: const Icon(Icons.edit_document, size: 16),
                 label: const Text(
                   'Manual Entry',
-                  style: TextStyle(fontWeight: FontWeight.bold),
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
                 ),
                 onPressed: () {
                   final employeeId = ref.read(currentStaffProvider).value?.id ?? '';
@@ -496,6 +508,23 @@ class _ActiveGameCardState extends ConsumerState<ActiveGameCard> {
                     ),
                   );
                 },
+              ),
+            ),
+            const Gap(8),
+            Expanded(
+              child: FilledButton.tonalIcon(
+                style: FilledButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 0),
+                  minimumSize: const Size(0, 36),
+                  backgroundColor: Colors.orange.withValues(alpha: 0.15),
+                  foregroundColor: Colors.orange.shade700,
+                ),
+                icon: const Icon(Icons.shopping_basket, size: 16),
+                label: const Text(
+                  'Mark as Pending',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                ),
+                onPressed: () => _handleMarkAsPending(game, context),
               ),
             ),
           ],
@@ -547,14 +576,18 @@ class _ActiveGameCardState extends ConsumerState<ActiveGameCard> {
       useRootNavigator: true,
       context: context,
       isScrollControlled: true,
-      builder: (_) =>
-          OrdersSheet(players: game.allPlayers, currentOrders: game.orders),
+      builder: (_) => OrdersSheet(
+        players: game.allPlayers,
+        currentOrders: game.orders,
+        currentManualGameCharges: game.manualGameCharges,
+        enableGamesTab: true,
+      ),
     );
 
     if (updated != null && mounted) {
       await ref
           .read(gameSessionControllerProvider.notifier)
-          .updateOrders(game.id, game.orders, updated.orders);
+          .updateOrders(game.id, game.orders, updated.orders, game.manualGameCharges, updated.manualGameCharges);
     }
   }
 
@@ -581,6 +614,7 @@ class _ActiveGameCardState extends ConsumerState<ActiveGameCard> {
       customExtraCharge: game.customExtraCharge,
       playersCount: game.allPlayers.length,
       coinQuantity: game.coinQuantity,
+        customMinutes: game.customMinutes,
       isMinimumBillEnabled: game.isMinimumBillEnabled,
       minimumBillAmount: game.minimumBillAmount,
     );
@@ -675,6 +709,107 @@ class _ActiveGameCardState extends ConsumerState<ActiveGameCard> {
       ).push(MaterialPageRoute(builder: (_) => BillingScreen(session: game)));
     }
   }
+
+  Future<void> _handleMarkAsPending(GameSession game, BuildContext context) async {
+    final selectedPlayers = await showDialog<List<PlayerSelection>?>(
+      context: context,
+      builder: (ctx) => const MarkPendingDialog(),
+    );
+
+    if (selectedPlayers == null || selectedPlayers.isEmpty) return;
+
+    if (!context.mounted) return;
+
+    // Wait slightly to let dialog close
+    await Future.delayed(const Duration(milliseconds: 100));
+
+    final appSettings = ref.read(appSettingsProvider);
+
+    final charge = TablePricingConfig.calculateCharge(
+      table: widget.table,
+      gameType: game.gameType,
+      billingType: game.billingType,
+      activeSeconds: game.activeSeconds,
+      framesPlayed: math.max(game.framesPlayed, game.totalFrames),
+      pricingConfig: game.pricingSnapshot ?? appSettings.pricing,
+      gameConfig: game.gameSettingsSnapshot ?? appSettings.game,
+      completedRounds: game.rounds,
+      customPrice: game.customPrice,
+      customExtraCharge: game.customExtraCharge,
+      playersCount: game.allPlayers.length,
+      coinQuantity: game.coinQuantity,
+        customMinutes: game.customMinutes,
+      isMinimumBillEnabled: game.isMinimumBillEnabled,
+      minimumBillAmount: game.minimumBillAmount,
+    );
+
+    final gameCharge = charge.totalCharge;
+    final manualGamesTotal = game.manualGameCharges.fold<double>(0, (s, g) => s + g.calculatedAmount);
+    final ordersTotal = game.orders.fold<double>(0, (s, o) => s + o.total);
+    final manualGamesTotal = game.manualGameCharges.fold<double>(0, (s, g) => s + g.calculatedAmount);
+    final totalExtras = ordersTotal + manualGamesTotal;
+    final grandTotal = gameCharge + ordersTotal + manualGamesTotal;
+    final finalTotal = math.max(0.0, grandTotal - (game.discountAmount ?? 0.0));
+
+    // For pending bills, we take games as is without rounding off. 
+    // Rounding is applied during final combined settlement.
+    final roundedTotal = finalTotal;
+
+    final finalSession = game.copyWith(
+      endTime: DateTime.now(),
+      gameCharge: gameCharge,
+      baseGameCharge: charge.baseCharge,
+      overtimeMinutes: charge.overtimeMinutes,
+      overtimeCharge: charge.overtimeCharge,
+      ordersTotal: ordersTotal,
+      grandTotal: finalTotal,
+      roundedAmount: roundedTotal,
+      finalAmount: roundedTotal,
+    );
+
+    final repo = ref.read(gamesRepositoryProvider);
+    final creditRepo = ref.read(creditRepositoryProvider);
+    final allProfiles = ref.read(allCustomersProvider).value ?? [];
+    final now = DateTime.now();
+
+    final List<Map<String, String>> resolvedPlayers = [];
+
+    for (final p in selectedPlayers) {
+      if (p.id != null) {
+        resolvedPlayers.add({'id': p.id!, 'name': p.name});
+      } else {
+        // Find existing match just in case
+        final existingMatch = allProfiles.cast<PlayerProfile?>().firstWhere(
+            (profile) => profile?.name.toLowerCase() == p.name.trim().toLowerCase(),
+            orElse: () => null);
+
+        if (existingMatch != null) {
+          resolvedPlayers.add({'id': existingMatch.id, 'name': existingMatch.name});
+        } else {
+          // Create new profile
+          final newId = FirebaseFirestore.instance.collection('dummy').doc().id;
+          final newProfile = PlayerProfile(
+            id: newId,
+            name: p.name.trim(),
+            lastTransactionDate: now,
+          );
+          await creditRepo.savePlayerProfile(newProfile);
+          resolvedPlayers.add({'id': newId, 'name': newProfile.name});
+        }
+      }
+    }
+
+    if (resolvedPlayers.length == 1) {
+      await repo.markAsPendingBill(
+        finalSession,
+        customerId: resolvedPlayers[0]['id']!,
+        customerName: resolvedPlayers[0]['name']!,
+      );
+    } else {
+      await repo.markAsPendingBillWithSplits(finalSession, resolvedPlayers);
+    }
+  }
+
 }
 
 class _RoundCompletionDialog extends StatefulWidget {
@@ -819,3 +954,8 @@ class _BellIconState extends State<_BellIcon> {
     );
   }
 }
+
+
+
+
+

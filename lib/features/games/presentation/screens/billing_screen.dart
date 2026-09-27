@@ -17,6 +17,7 @@ import 'package:snooker_club/features/games/domain/models/game_models.dart';
 import 'package:snooker_club/features/games/providers/games_providers.dart';
 import 'package:snooker_club/features/games/presentation/widgets/payer_selection_widget.dart';
 import 'package:snooker_club/features/games/presentation/widgets/player_split_payment_sheet.dart';
+import 'package:snooker_club/features/games/presentation/widgets/pending_bill_customer_sheet.dart';
 import 'package:snooker_club/features/credit/presentation/widgets/player_search_field.dart';
 import 'package:snooker_club/features/games/presentation/widgets/upi_qr_dialog.dart';
 import 'package:snooker_club/features/games/presentation/widgets/audit_log_sheet.dart';
@@ -477,21 +478,23 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
       }
     }
 
+    final splitGroup = _selectedPayers.isNotEmpty ? _selectedPayers.toList() : _session.allPlayers.toList();
+
     for (final o in _session.orders) {
       if (o.playerName != null && liabilities.containsKey(o.playerName)) {
         liabilities[o.playerName!] =
             (liabilities[o.playerName!] ?? 0.0) + o.total;
       } else {
-        final split = o.total / _session.allPlayers.length;
-        for (final p in _session.allPlayers) {
+        final split = o.total / splitGroup.length;
+        for (final p in splitGroup) {
           liabilities[p] = (liabilities[p] ?? 0.0) + split;
         }
       }
     }
 
     for (final g in _session.manualGameCharges) {
-      final split = g.calculatedAmount / _session.allPlayers.length;
-      for (final p in _session.allPlayers) {
+      final split = g.calculatedAmount / splitGroup.length;
+      for (final p in splitGroup) {
         liabilities[p] = (liabilities[p] ?? 0.0) + split;
       }
     }
@@ -549,6 +552,7 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
       customExtraCharge: _session.customExtraCharge,
       playersCount: _session.playerIds.length,
       coinQuantity: _session.coinQuantity,
+      customMinutes: _session.customMinutes,
       isMinimumBillEnabled: _session.isMinimumBillEnabled,
       minimumBillAmount: _session.minimumBillAmount,
     );
@@ -1776,6 +1780,83 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
             child: Text(autoConfirm ? 'Record Payment' : 'Save'),
           ),
         ],
+      ),
+    );
+  }
+
+  
+  Future<void> _markAsPending(String customerId, String customerName) async {
+    if (_isProcessing) return;
+
+    setState(() {
+      _isProcessing = true;
+    });
+
+    try {
+      final finalEndTime = _isTimeManuallyEdited
+          ? _session.endTime ?? DateTime.now()
+          : DateTime.now();
+      
+      final finalSession = _session.copyWith(
+        endTime: finalEndTime,
+        gameCharge: _gameCharge,
+        baseGameCharge: _baseGameCharge,
+        overtimeMinutes: _overtimeMinutes,
+        overtimeCharge: _overtimeCharge,
+        ordersTotal: _ordersTotal,
+        
+        grandTotal: _finalTotal,
+        roundedAmount: _roundedTotal,
+        finalAmount: _roundedTotal,
+        discountAmount: _discountAmount,
+        playerPaymentSplits: _playerPaymentSplits,
+        playerLiabilities: _customLiabilities,
+      );
+
+      await ref
+          .read(gamesRepositoryProvider)
+          .markAsPendingBill(finalSession, customerId: customerId, customerName: customerName);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Bill marked as pending for ' + customerName + '.'),
+            backgroundColor: Colors.orange,
+          ),
+        );
+        Navigator.of(context).pop();
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to mark as pending: ' + e.toString()),
+            backgroundColor: AppColors.error,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isProcessing = false;
+        });
+      }
+    }
+  }
+
+  void _showPendingBillCustomerSheet() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      builder: (context) => SizedBox(
+        height: MediaQuery.of(context).size.height * 0.7,
+        child: PendingBillCustomerSheet(
+          onCustomerSelected: (id, name) {
+            Navigator.of(context).pop();
+            _markAsPending(id, name);
+          },
+        ),
       ),
     );
   }

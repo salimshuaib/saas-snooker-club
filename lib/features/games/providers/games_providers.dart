@@ -179,9 +179,9 @@ class GameSessionController extends Notifier<AsyncValue<void>> {
     }
   }
 
-  Future<void> updateOrders(String gameId, List<GameOrder> oldOrders, List<GameOrder> orders) async {
+  Future<void> updateOrders(String gameId, List<GameOrder> oldOrders, List<GameOrder> orders, [List<ManualGameCharge>? oldManualGames, List<ManualGameCharge>? manualGames]) async {
     try {
-      await _repo.updateOrders(gameId, oldOrders, orders);
+      await _repo.updateOrders(gameId, oldOrders, orders, oldManualGames, manualGames);
     } catch (e, st) {
       state = AsyncValue.error(e, st);
       rethrow;
@@ -354,8 +354,8 @@ final availableTablesCountProvider = Provider<int>((ref) {
   return tables.where((t) => t.status == TableStatus.available).length;
 });
 
-/// Provider for calculating pending credits (games closed with credit payment method)
-final pendingCreditsProvider = StreamProvider<double>((ref) {
+/// Provider for calculating outstanding credits (games closed with credit payment method)
+final outstandingCreditsProvider = StreamProvider<double>((ref) {
   final now = DateTime.now();
   final dateStr =
       '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
@@ -375,3 +375,22 @@ final pendingCreditsProvider = StreamProvider<double>((ref) {
 final resolvedOtherGamesProvider = Provider<List<OtherGameResource>>((ref) {
   return [];
 });
+
+
+/// Stream of all pending bills
+final pendingBillsProvider = StreamProvider.autoDispose<List<GameSession>>((ref) {
+  final repo = ref.watch(gamesRepositoryProvider);
+  return repo.watchPendingBills();
+});
+
+/// Count of pending bills
+final pendingBillsCountProvider = Provider.autoDispose<int>((ref) {
+  return ref.watch(pendingBillsProvider).asData?.value.length ?? 0;
+});
+
+/// Total amount in pending bills
+final pendingBillsTotalProvider = Provider.autoDispose<double>((ref) {
+  final bills = ref.watch(pendingBillsProvider).asData?.value ?? [];
+  return bills.fold(0.0, (sum, g) => sum + (g.finalAmount ?? g.grandTotal ?? 0.0));
+});
+

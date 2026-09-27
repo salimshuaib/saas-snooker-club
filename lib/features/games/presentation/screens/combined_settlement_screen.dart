@@ -1,0 +1,482 @@
+import 'package:flutter/material.dart';
+import 'package:snooker_club/features/games/presentation/widgets/orders_sheet.dart';
+import 'package:snooker_club/core/utils/billing_utils.dart';
+import 'dart:math' as math;
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:gap/gap.dart';
+import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart';
+import 'package:snooker_club/core/theme/app_colors.dart';
+import 'package:snooker_club/features/games/domain/models/game_models.dart';
+import 'package:snooker_club/features/games/providers/games_providers.dart';
+import 'package:snooker_club/features/games/presentation/widgets/player_split_payment_sheet.dart';
+import 'package:snooker_club/features/settings/providers/settings_providers.dart';
+import 'package:snooker_club/features/games/presentation/widgets/upi_qr_dialog.dart';
+
+class CombinedSettlementScreen extends ConsumerStatefulWidget {
+  final String customerId;
+  final String customerName;
+  final List<GameSession> initialBills;
+
+  const CombinedSettlementScreen({
+    Key? key,
+    required this.customerId,
+    required this.customerName,
+    required this.initialBills,
+  }) : super(key: key);
+
+  @override
+  ConsumerState<CombinedSettlementScreen> createState() => _CombinedSettlementScreenState();
+}
+
+class _CombinedSettlementScreenState extends ConsumerState<CombinedSettlementScreen> {
+  final Set<String> _selectedBillIds = {};
+  PaymentMethod _paymentMethod = PaymentMethod.cash;
+  bool _isProcessing = false;
+  Map<PaymentMethod, double> _playerPaymentSplits = {};
+
+  late List<GameSession> _localBills;
+
+  @override
+  void initState() {
+    super.initState();
+    _localBills = List.from(widget.initialBills);
+    // Default to all selected
+    for (final bill in _localBills) {
+      _selectedBillIds.add(bill.id);
+    }
+  }
+
+  double get _totalSelectedAmount {
+    final unrounded = _localBills
+        .where((b) => _selectedBillIds.contains(b.id))
+        .fold(0.0, (sum, b) => sum + (b.finalAmount ?? b.grandTotal ?? 0.0));
+    return BillingUtils.roundAmount(unrounded);
+  }
+
+  double get _totalGameCharges {
+    return _localBills
+        .where((b) => _selectedBillIds.contains(b.id))
+        .fold(0.0, (sum, b) => sum + (b.gameCharge ?? 0.0));
+  }
+
+  double get _totalOrders {
+    return _localBills
+        .where((b) => _selectedBillIds.contains(b.id))
+        .fold(0.0, (sum, b) => sum + (b.ordersTotal ?? 0.0));
+  }
+
+  double get _totalManualGames {
+    return _localBills
+        .where((b) => _selectedBillIds.contains(b.id))
+        .fold(0.0, (sum, b) => sum + b.manualGameCharges.fold<double>(0.0, (s, g) => s + g.calculatedAmount));
+  }
+
+  double get _totalDiscount {
+    return _localBills
+        .where((b) => _selectedBillIds.contains(b.id))
+        .fold(0.0, (sum, b) => sum + (b.discountAmount ?? 0.0));
+  }
+
+    Future<void> _confirmSettlement() async {
+    if (_selectedBillIds.isEmpty || _isProcessing) return;
+
+    setState(() => _isProcessing = true);
+
+    try {
+      final billsToSettle = _localBills
+          .where((b) => _selectedBillIds.contains(b.id))
+          .toList();
+
+      final repo = ref.read(gamesRepositoryProvider);
+
+      final unroundedTotal = billsToSettle.fold(0.0, (sum, b) => sum + (b.finalAmount ?? b.grandTotal ?? 0.0));
+      final roundedTotal = BillingUtils.roundAmount(unroundedTotal);
+
+      PaymentMethod methodToUse = _paymentMethod;
+      if (_playerPaymentSplits.isNotEmpty && _playerPaymentSplits.length == 1) {
+        methodToUse = _playerPaymentSplits.keys.first;
+      }
+      
+      final isSplit = _playerPaymentSplits.length > 1;
+
+      await repo.settlePendingBillsCombined(
+        billsToSettle,
+        paymentMethod: methodToUse,
+        paidBy: widget.customerName,
+        customerName: widget.customerName,
+        roundedTotal: roundedTotal,
+        playerPaymentSplits: isSplit ? {widget.customerName: _playerPaymentSplits} : null,
+      );
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Successfully settled ${billsToSettle.length} bill(s).'),
+            backgroundColor: AppColors.success,
+          ),
+        );
+        Navigator.of(context).pop();
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to settle bills: $e'),
+            backgroundColor: AppColors.error,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isProcessing = false);
+      }
+    }
+  }
+
+
+  Future<void> _showAddOrderSheet() async {
+    final selectedBills = _localBills.where((b) => _selectedBillIds.contains(b.id)).toList();
+    if (selectedBills.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please select at least one bill to add items to.')),
+      );
+      return;
+    }
+    final targetBill = selectedBills.first;
+
+    final updated = await showModalBottomSheet<AddItemsResult>(
+      context: context,
+      isScrollControlled: true,
+      builder: (_) => OrdersSheet(
+        players: [widget.customerName],
+        currentOrders: targetBill.orders,
+        currentManualGameCharges: targetBill.manualGameCharges,
+        enableGamesTab: true,
+      ),
+    );
+
+    if (updated != null && mounted) {
+      final newOrders = updated.orders;
+      final newManualGames = updated.manualGameCharges;
+      
+      double ordersTotal = newOrders.fold(0, (sum, item) => sum + item.total);
+      double manualGamesTotal = newManualGames.fold<double>(0, (s, g) => s + g.calculatedAmount);
+      double grandTotal = (targetBill.gameCharge ?? 0) + ordersTotal + manualGamesTotal;
+      double unroundedFinalAmount = math.max(0.0, grandTotal - (targetBill.discountAmount ?? 0.0));
+      double finalAmount = BillingUtils.roundAmount(unroundedFinalAmount);
+      
+      try {
+        await ref.read(gamesRepositoryProvider).updatePendingBillOrders(
+          targetBill, 
+          newOrders,
+          newManualGames,
+          ordersTotal,
+          manualGamesTotal,
+          grandTotal,
+          finalAmount
+        );
+        setState(() {
+          final index = _localBills.indexWhere((b) => b.id == targetBill.id);
+          if (index != -1) {
+            _localBills[index] = targetBill.copyWith(
+              orders: newOrders,
+              manualGameCharges: newManualGames,
+              ordersTotal: ordersTotal,
+              grandTotal: grandTotal,
+              roundedAmount: finalAmount,
+              finalAmount: finalAmount,
+            );
+          }
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Item added!'), backgroundColor: Colors.green),
+        );
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to add item: '), backgroundColor: Colors.red),
+        );
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final total = _totalSelectedAmount;
+    final totalGameCharges = _totalGameCharges;
+    final totalOrders = _totalOrders;
+    final totalManualGames = _totalManualGames;
+    final totalDiscount = _totalDiscount;
+    final unroundedTotal = totalGameCharges + totalOrders + totalManualGames - totalDiscount;
+    final totalRounding = total - unroundedTotal;
+    final appSettings = ref.watch(appSettingsProvider);
+
+
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('Settle Bills: ${widget.customerName}'),
+      ),
+      body: Column(
+        children: [
+          Expanded(
+            child: ListView.builder(
+              padding: const EdgeInsets.all(16),
+              itemCount: _localBills.length,
+              itemBuilder: (context, index) {
+                final bill = _localBills[index];
+                final isSelected = _selectedBillIds.contains(bill.id);
+                final amount = bill.finalAmount ?? bill.grandTotal ?? 0.0;
+
+                return CheckboxListTile(
+                  value: isSelected,
+                  onChanged: (val) {
+                    setState(() {
+                      if (val == true) {
+                        _selectedBillIds.add(bill.id);
+                      } else {
+                        _selectedBillIds.remove(bill.id);
+                      }
+                    });
+                  },
+                  title: Text(bill.tableName),
+                  subtitle: Text(DateFormat('dd MMM hh:mm a')
+                      .format(bill.endTime ?? DateTime.now())),
+                  secondary: Text(
+                    '₹${amount.toStringAsFixed(0)}',
+                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                  ),
+                );
+              },
+            ),
+          ),
+          Container(
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: theme.colorScheme.surface,
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.05),
+                  blurRadius: 10,
+                  offset: const Offset(0, -5),
+                ),
+              ],
+            ),
+            child: SafeArea(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text('Payment Breakdown', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                      TextButton.icon(
+                        onPressed: _showAddOrderSheet,
+                        icon: const Icon(Icons.add, size: 18),
+                        label: const Text('Add Item'),
+                      ),
+                    ],
+                  ),
+                  const Gap(12),
+                  if (totalGameCharges > 0)
+                    _InfoRow(label: 'Total Game Charges', value: '₹${totalGameCharges.toStringAsFixed(2)}'),
+                  if (totalManualGames > 0)
+                    _InfoRow(label: 'Manual Games', value: '₹${totalManualGames.toStringAsFixed(2)}'),
+                  if (totalOrders > 0)
+                    _InfoRow(label: 'Orders Total', value: '₹${totalOrders.toStringAsFixed(2)}'),
+                  if (totalDiscount > 0)
+                    _InfoRow(
+                      label: 'Discount',
+                      value: '-₹${totalDiscount.toStringAsFixed(2)}',
+                      style: const TextStyle(color: AppColors.success, fontWeight: FontWeight.w500),
+                    ),
+                  if (totalRounding.abs() > 0.01)
+                    _InfoRow(
+                      label: 'Rounding',
+                      value: '${totalRounding > 0 ? '+' : '-'}₹${totalRounding.abs().toStringAsFixed(2)}',
+                    ),
+                  const Divider(height: 24),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'Total to Pay',
+                        style: theme.textTheme.titleMedium,
+                      ),
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            '₹${total.toStringAsFixed(0)}',
+                            style: theme.textTheme.headlineSmall?.copyWith(
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.primary,
+                            ),
+                          ),
+                          const Gap(8),
+                          TextButton.icon(
+                            onPressed: () {
+                              showModalBottomSheet(
+                                context: context,
+                                isScrollControlled: true,
+                                builder: (ctx) => PlayerSplitPaymentSheet(
+                                  playerName: widget.customerName,
+                                  totalLiability: total,
+                                  initialSplits: _playerPaymentSplits.isNotEmpty 
+                                    ? _playerPaymentSplits 
+                                    : {_paymentMethod: total},
+                                  onSplitsSaved: (newSplits) {
+                                    setState(() {
+                                      _playerPaymentSplits = newSplits;
+                                    });
+                                  },
+                                ),
+                              );
+                            },
+                            style: TextButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                              minimumSize: Size.zero,
+                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                            ),
+                            icon: const Icon(Icons.call_split, size: 16),
+                            label: const Text('Payment Breakdown', style: TextStyle(fontSize: 12)),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                  const Gap(24),
+                  Builder(
+                    builder: (context) {
+                      final isSplit = _playerPaymentSplits.keys.length > 1;
+                      if (isSplit) {
+                        return Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                          decoration: BoxDecoration(
+                            color: theme.colorScheme.surfaceContainerHighest,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Text(
+                            _playerPaymentSplits.entries
+                                .map((e) => '${e.value.toStringAsFixed(e.value.truncateToDouble() == e.value ? 0 : 2)} ${e.key.displayName}')
+                                .join(' + '),
+                            style: theme.textTheme.bodyMedium?.copyWith(
+                              color: AppColors.primary,
+                              fontWeight: FontWeight.bold,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                        );
+                      }
+                      
+                      return SegmentedButton<PaymentMethod>(
+                        segments: const [
+                          ButtonSegment(value: PaymentMethod.cash, label: Text('Cash'), icon: Icon(Icons.money)),
+                          ButtonSegment(value: PaymentMethod.upi, label: Text('UPI / QR'), icon: Icon(Icons.qr_code)),
+                          ButtonSegment(value: PaymentMethod.credit, label: Text('Credit / Khata'), icon: Icon(Icons.account_balance_wallet)),
+                        ],
+                        selected: _playerPaymentSplits.isNotEmpty ? {_playerPaymentSplits.keys.first} : {_paymentMethod},
+                        onSelectionChanged: (Set<PaymentMethod> newSelection) {
+                          setState(() {
+                            _paymentMethod = newSelection.first;
+                            _playerPaymentSplits = { newSelection.first: total };
+                          });
+                        },
+                        style: const ButtonStyle(
+                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          visualDensity: VisualDensity.standard,
+                        ),
+                      );
+                    }
+                  ),
+
+                  const Gap(24),
+                  if ((_playerPaymentSplits.containsKey(PaymentMethod.upi) || _paymentMethod == PaymentMethod.upi) &&
+                      appSettings != null &&
+                      appSettings.business.upiId != null &&
+                      appSettings.business.upiId!.isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 16.0),
+                      child: SizedBox(
+                        width: double.infinity,
+                        child: OutlinedButton.icon(
+                          onPressed: () {
+                            showDialog(
+                              context: context,
+                              builder: (ctx) => UpiQrDialog(
+                                upiId: appSettings.business.upiId!,
+                                payeeName: appSettings.business.clubName,
+                                amount: _playerPaymentSplits.containsKey(PaymentMethod.upi) ? _playerPaymentSplits[PaymentMethod.upi]! : total,
+                              ),
+                            );
+                          },
+                          icon: const Icon(Icons.qr_code_2),
+                          label: const Text('Generate QR'),
+                          style: OutlinedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                          ),
+                        ),
+                      ),
+                    ),
+                  SizedBox(
+                    width: double.infinity,
+                    child: FilledButton(
+                      onPressed: (_selectedBillIds.isEmpty || _isProcessing)
+                          ? null
+                          : _confirmSettlement,
+                      style: FilledButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 18),
+                      ),
+                      child: _isProcessing
+                          ? const SizedBox(
+                              width: 22,
+                              height: 22,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : const Text(
+                              'Confirm & Settle',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 18,
+                              ),
+                            ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _InfoRow extends StatelessWidget {
+  final String label;
+  final String value;
+  final TextStyle? style;
+
+  const _InfoRow({
+    required this.label,
+    required this.value,
+    this.style,
+  });
+
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(label, style: const TextStyle(color: Colors.grey)),
+          Text(value, style: style ?? const TextStyle(fontWeight: FontWeight.w500)),
+        ],
+      ),
+    );
+  }
+}
+
