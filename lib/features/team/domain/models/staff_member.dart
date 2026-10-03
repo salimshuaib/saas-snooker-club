@@ -8,6 +8,8 @@ class StaffMember {
   final String email;
   final StaffRole role;
   final bool isActive;
+  final bool isCheckedIn;
+  final DateTime? lastCheckInTime;
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -17,6 +19,8 @@ class StaffMember {
     required this.email,
     required this.role,
     this.isActive = true,
+    this.isCheckedIn = false,
+    this.lastCheckInTime,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -31,6 +35,8 @@ class StaffMember {
         orElse: () => StaffRole.staff,
       ),
       isActive: map['isActive'] as bool? ?? true,
+      isCheckedIn: map['isCheckedIn'] as bool? ?? false,
+      lastCheckInTime: (map['lastCheckInTime'] as Timestamp?)?.toDate(),
       createdAt: (map['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
       updatedAt: (map['updatedAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
     );
@@ -42,6 +48,8 @@ class StaffMember {
       'email': email,
       'role': role.name,
       'isActive': isActive,
+      'isCheckedIn': isCheckedIn,
+      if (lastCheckInTime != null) 'lastCheckInTime': Timestamp.fromDate(lastCheckInTime!),
       'createdAt': Timestamp.fromDate(createdAt),
       'updatedAt': Timestamp.fromDate(updatedAt),
     };
@@ -52,6 +60,8 @@ class StaffMember {
     String? email,
     StaffRole? role,
     bool? isActive,
+    bool? isCheckedIn,
+    DateTime? lastCheckInTime,
     DateTime? updatedAt,
   }) {
     return StaffMember(
@@ -60,6 +70,8 @@ class StaffMember {
       email: email ?? this.email,
       role: role ?? this.role,
       isActive: isActive ?? this.isActive,
+      isCheckedIn: isCheckedIn ?? this.isCheckedIn,
+      lastCheckInTime: lastCheckInTime ?? this.lastCheckInTime,
       createdAt: createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );

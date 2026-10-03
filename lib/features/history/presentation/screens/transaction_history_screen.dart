@@ -14,6 +14,7 @@ import 'package:snooker_club/features/quick_sales/presentation/screens/quick_sal
 import 'package:snooker_club/features/quick_sales/providers/quick_sales_providers.dart';
 import 'package:snooker_club/core/widgets/shared/date_navigation_header.dart';
 import 'package:snooker_club/features/history/presentation/widgets/audit_log_sheet.dart';
+import 'package:snooker_club/features/games/presentation/widgets/pending_bills_icon_badge.dart';
 
 import 'package:snooker_club/core/theme/app_shadows.dart';
 import 'package:snooker_club/core/providers/app_providers.dart';
@@ -178,7 +179,8 @@ class _TransactionHistoryScreenState extends ConsumerState<TransactionHistoryScr
               icon: const Icon(Icons.delete, color: AppColors.error),
               onPressed: () => _onDeleteSelected(gamesListAsync.asData?.value ?? []),
             )
-          else
+          else ...[
+            const PendingBillsIconBadge(),
             IconButton(
               icon: const Icon(Icons.history),
               onPressed: () {
@@ -190,6 +192,7 @@ class _TransactionHistoryScreenState extends ConsumerState<TransactionHistoryScr
                 );
               },
             ),
+          ],
         ],
       ),
       body: Column(

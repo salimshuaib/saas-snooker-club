@@ -45,8 +45,8 @@ class AppModal {
           MaterialLocalizations.of(context).modalBarrierDismissLabel,
       barrierColor: barrierColor,
       transitionDuration: transitionDuration,
-      pageBuilder: (_, __, ___) {
-        final child = builder(context);
+      pageBuilder: (dialogContext, __, ___) {
+        final child = builder(dialogContext);
         if (backgroundColor == null && shape == null) {
           return child;
         }
@@ -84,8 +84,8 @@ class AppModal {
           MaterialLocalizations.of(context).modalBarrierDismissLabel,
       barrierColor: barrierColor,
       transitionDuration: const Duration(milliseconds: 220),
-      pageBuilder: (_, __, ___) {
-        final bottomSheetContent = builder(context);
+      pageBuilder: (dialogContext, __, ___) {
+        final bottomSheetContent = builder(dialogContext);
         final child = Material(
           color: backgroundColor ?? Colors.transparent,
           shape: shape,

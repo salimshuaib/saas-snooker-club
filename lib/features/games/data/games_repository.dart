@@ -59,6 +59,13 @@ class GamesRepository {
     return 'Unknown';
   }
 
+  Future<void> updateGameAlarm(String gameId, DateTime? alarmTime) async {
+    final Map<String, dynamic> updateData = {
+      'alarmTime': alarmTime != null ? Timestamp.fromDate(alarmTime) : null,
+    };
+    await _gamesRef.doc(gameId).update(updateData);
+  }
+
   DocumentReference get _clubRef {
     if (clubId == null)
       throw Exception('clubId cannot be null for GamesRepository');
@@ -244,6 +251,18 @@ class GamesRepository {
           .map((doc) => GameSession.fromMap(doc.data() as Map<String, dynamic>))
           .toList(),
     );
+  }
+
+  /// Real-time stream of only active/paused games to save Firebase reads
+  Stream<List<GameSession>> watchRunningGames() {
+    return _gamesRef
+        .where('status', whereIn: [TableStatus.running.name, TableStatus.paused.name])
+        .snapshots()
+        .map(
+          (snap) => snap.docs
+              .map((doc) => GameSession.fromMap(doc.data() as Map<String, dynamic>))
+              .toList(),
+        );
   }
 
   /// Real-time stream of game sessions within a specific date range to reduce Firebase reads.
@@ -437,9 +456,10 @@ class GamesRepository {
     if (manualGames != null) {
       updateMap['manualGameCharges'] = manualGames.map((m) => m.toMap()).toList();
     }
+    if (newLogs.isNotEmpty) {
+      updateMap['auditLogs'] = FieldValue.arrayUnion(newLogs.map((l) => l.toMap()).toList());
+    }
     batch.update(_gamesRef.doc(gameId), updateMap);
-      if (newLogs.isNotEmpty) 'auditLogs': FieldValue.arrayUnion(newLogs.map((l) => l.toMap()).toList()),
-    });
     await batch.commit();
   }
 
@@ -486,7 +506,7 @@ class GamesRepository {
         timestamp: DateTime.now(),
         field: 'Game Added (Pending)',
         previousValue: '-',
-        newValue: '${added.name}',
+        newValue: '${added.tableName}',
       ));
     } else if (gameDiff < 0) {
       newLogs.add(AuditLog(
@@ -595,6 +615,7 @@ class GamesRepository {
       'finalAmount': 0.0,
       'cancelledByUserId': currentUserId == 'Unknown' ? null : currentUserId,
       'cancelledByName': currentUserName,
+      'alarmTime': null,
       'auditLogs': FieldValue.arrayUnion([newAuditLog.toMap()]),
     });
 
@@ -650,6 +671,7 @@ class GamesRepository {
       'status': TableStatus.available.name,
       'endedByUserId': currentUserId == 'Unknown' ? null : currentUserId,
       'endedByName': currentUserName,
+      'alarmTime': null,
       'auditLogs': auditLogsData,
       'startTime': Timestamp.fromDate(session.startTime),
       'endTime': Timestamp.fromDate(session.endTime!),
@@ -673,6 +695,7 @@ class GamesRepository {
       'grandTotal': session.grandTotal,
       'roundedAmount': session.roundedAmount,
       'finalAmount': session.finalAmount,
+      'manualSelectedFinalAmount': session.manualSelectedFinalAmount,
       'paymentStatus': session.paymentStatus,
       'processedByUserId': session.processedByUserId ?? (currentUserId == 'Unknown' ? null : currentUserId),
       'processedByName': session.processedByName ?? currentUserName,
@@ -697,17 +720,40 @@ class GamesRepository {
       updateMap['paymentStatus'] = 'Paid';
       updateMap['paidAmount'] = amountToPay;
       updateMap['remainingAmount'] = 0.0;
+    } else if (session.paymentMethod == PaymentMethod.credit) {
+      updateMap['paymentStatus'] = 'Outstanding';
+      updateMap['paidAmount'] = 0.0;
+      updateMap['remainingAmount'] = amountToPay;
+    } else if (session.paymentMethod == null &&
+        session.playerPaymentSplits != null &&
+        session.playerPaymentSplits!.isNotEmpty) {
+      double totalCredit = 0.0;
+      double totalPaid = 0.0;
+      for (final splits in session.playerPaymentSplits!.values) {
+        totalCredit += splits[PaymentMethod.credit] ?? 0.0;
+        totalPaid += splits[PaymentMethod.cash] ?? 0.0;
+        totalPaid += splits[PaymentMethod.upi] ?? 0.0;
+      }
+      updateMap['paidAmount'] = totalPaid;
+      updateMap['remainingAmount'] = totalCredit;
+      
+      if (totalCredit >= amountToPay - 0.5) {
+        updateMap['paymentStatus'] = 'Outstanding';
+      } else if (totalPaid == 0) {
+        updateMap['paymentStatus'] = 'Outstanding';
+      } else if (totalCredit == 0) {
+        updateMap['paymentStatus'] = 'Paid';
+      } else {
+        updateMap['paymentStatus'] = 'Partially Paid';
+      }
     }
 
     if (session.isManualEntry || session.tableType == TableType.arcade) {
       final fullMap = session.toMap();
       fullMap['status'] = TableStatus.available.name;
-      if (session.paymentMethod == PaymentMethod.cash ||
-          session.paymentMethod == PaymentMethod.upi) {
-        fullMap['paymentStatus'] = 'Paid';
-        fullMap['paidAmount'] = amountToPay;
-        fullMap['remainingAmount'] = 0.0;
-      }
+      fullMap['paymentStatus'] = updateMap['paymentStatus'] ?? session.paymentStatus;
+      fullMap['paidAmount'] = updateMap['paidAmount'] ?? session.paidAmount;
+      fullMap['remainingAmount'] = updateMap['remainingAmount'] ?? session.remainingAmount;
       batch.set(_gamesRef.doc(session.id), fullMap);
     } else {
       batch.update(_gamesRef.doc(session.id), updateMap);
@@ -1434,7 +1480,7 @@ class GamesRepository {
       'grandTotal': session.grandTotal,
       'roundedAmount': session.roundedAmount,
       'finalAmount': session.finalAmount,
-      'discountAmount': session.discountAmount,
+      'manualSelectedFinalAmount': session.manualSelectedFinalAmount,
       'discountAmount': session.discountAmount,
       'playerPaymentSplits': session.playerPaymentSplits?.map(
             (k, v) => MapEntry(k, v.map((mk, mv) => MapEntry(mk.name, mv)))),

@@ -50,7 +50,7 @@ final selectedDateQuickSalesStreamProvider = StreamProvider<List<QuickSale>>((
   return repo.watchQuickSales(selectedDate);
 });
 
-/// Provider for Today's Quick Sales collected revenue (Cash & UPI only, Credit goes to pending accounts).
+/// Provider for Today's Quick Sales collected revenue (Cash & UPI only, Credit goes to unpaid accounts).
 final todaysQuickSalesRevenueProvider = Provider<double>((ref) {
   final salesAsync = ref.watch(todaysQuickSalesStreamProvider);
   return salesAsync.maybeWhen(

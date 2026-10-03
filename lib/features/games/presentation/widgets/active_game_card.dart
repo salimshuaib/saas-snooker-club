@@ -96,7 +96,7 @@ class _ActiveGameCardState extends ConsumerState<ActiveGameCard> {
                   customExtraCharge: game.customExtraCharge,
                   playersCount: game.allPlayers.length,
                   coinQuantity: game.coinQuantity,
-        customMinutes: game.customMinutes,
+
                   customMinutes: game.customMinutes,
                   isMinimumBillEnabled: game.isMinimumBillEnabled,
                   minimumBillAmount: game.minimumBillAmount,
@@ -214,7 +214,10 @@ class _ActiveGameCardState extends ConsumerState<ActiveGameCard> {
                                 builder: (context) {
                                   String displayStr =
                                       game.billingType.displayName;
-                                  if (game.billingType == BillingType.perMinute) {
+                                  if (game.billingType == BillingType.customMinute && game.customMinutes != null) {
+                                    displayStr += ' (${game.customMinutes}m)';
+                                  }
+                                  if (game.billingType == BillingType.perMinute || game.billingType == BillingType.customMinute) {
                                     final rate =
                                         game.customPrice ??
                                         TablePricingConfig.getPerMinutePrice(
@@ -746,7 +749,7 @@ class _ActiveGameCardState extends ConsumerState<ActiveGameCard> {
     final gameCharge = charge.totalCharge;
     final manualGamesTotal = game.manualGameCharges.fold<double>(0, (s, g) => s + g.calculatedAmount);
     final ordersTotal = game.orders.fold<double>(0, (s, o) => s + o.total);
-    final manualGamesTotal = game.manualGameCharges.fold<double>(0, (s, g) => s + g.calculatedAmount);
+
     final totalExtras = ordersTotal + manualGamesTotal;
     final grandTotal = gameCharge + ordersTotal + manualGamesTotal;
     final finalTotal = math.max(0.0, grandTotal - (game.discountAmount ?? 0.0));

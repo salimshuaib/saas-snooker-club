@@ -19,6 +19,8 @@ class RouteNames {
   static const String settings = '/more/settings';
   static const String team = '/team';
   static const String history = '/history';
+  static const String pendingBills = '/pending-bills';
+  static const String combinedSettlement = '/combined-settlement';
   static const String bookings = '/bookings';
 
   static const String more = '/more';

@@ -256,7 +256,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
 
                               const Gap(24),
 
-                              // Additional Information (Pending Credits recorded on selected date)
+                              // Additional Information (Outstanding Credits recorded on selected date)
                               if (gamesCredit > 0 || quickSalesCredit > 0)
                                 Container(
                                   padding: const EdgeInsets.all(16),

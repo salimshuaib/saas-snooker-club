@@ -36,7 +36,7 @@ class _PlayerSearchFieldState extends ConsumerState<PlayerSearchField> {
       initialValue: TextEditingValue(text: widget.initialSelection?.name ?? ''),
       optionsBuilder: (TextEditingValue textEditingValue) {
         if (textEditingValue.text.isEmpty) {
-          return const Iterable<PlayerProfile>.empty();
+          return allProfiles;
         }
         final query = textEditingValue.text.toLowerCase();
         return allProfiles.where((PlayerProfile profile) {

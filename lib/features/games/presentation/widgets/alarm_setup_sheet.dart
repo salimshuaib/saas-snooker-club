@@ -4,7 +4,10 @@ import 'package:gap/gap.dart';
 import 'package:intl/intl.dart';
 import 'package:snooker_club/core/services/table_alarm_service.dart';
 
-class AlarmSetupSheet extends StatefulWidget {
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:snooker_club/features/games/providers/games_providers.dart';
+
+class AlarmSetupSheet extends ConsumerStatefulWidget {
   final String gameId;
   final String tableName;
 
@@ -24,20 +27,17 @@ class AlarmSetupSheet extends StatefulWidget {
   }
 
   @override
-  State<AlarmSetupSheet> createState() => _AlarmSetupSheetState();
+  ConsumerState<AlarmSetupSheet> createState() => _AlarmSetupSheetState();
 }
 
-class _AlarmSetupSheetState extends State<AlarmSetupSheet> {
+class _AlarmSetupSheetState extends ConsumerState<AlarmSetupSheet> {
   int _selectedMinutes = 5;
   bool _isCustom = false;
   final _customController = TextEditingController();
   
-  AlarmInfo? _activeAlarm;
-  
   @override
   void initState() {
     super.initState();
-    _activeAlarm = TableAlarmService().getAlarmInfo(widget.gameId);
   }
 
   @override
@@ -50,6 +50,11 @@ class _AlarmSetupSheetState extends State<AlarmSetupSheet> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final insets = MediaQuery.viewInsetsOf(context);
+    
+    final gamesState = ref.watch(runningGamesProvider);
+    final games = gamesState.value ?? [];
+    final session = games.where((g) => g.id == widget.gameId).firstOrNull;
+    final alarmTime = session?.alarmTime;
 
     return Padding(
       padding: EdgeInsets.only(
@@ -82,7 +87,7 @@ class _AlarmSetupSheetState extends State<AlarmSetupSheet> {
           ),
           const Gap(16),
           
-          if (_activeAlarm != null) ...[
+          if (alarmTime != null) ...[
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
@@ -96,13 +101,13 @@ class _AlarmSetupSheetState extends State<AlarmSetupSheet> {
                   const Gap(12),
                   Expanded(
                     child: Text(
-                      'Alarm active for ${DateFormat('hh:mm a').format(_activeAlarm!.fireAt)}',
+                      'Alarm active for ${DateFormat('hh:mm a').format(alarmTime)}',
                       style: const TextStyle(fontWeight: FontWeight.w600),
                     ),
                   ),
                   OutlinedButton(
                     onPressed: () {
-                      TableAlarmService().cancelAlarm(widget.gameId);
+                      ref.read(gamesRepositoryProvider).updateGameAlarm(widget.gameId, null);
                       Navigator.pop(context);
                     },
                     style: OutlinedButton.styleFrom(
@@ -175,15 +180,12 @@ class _AlarmSetupSheetState extends State<AlarmSetupSheet> {
             child: FilledButton(
               onPressed: () {
                 if (_selectedMinutes <= 0) return;
-                TableAlarmService().setAlarm(
-                  gameId: widget.gameId,
-                  tableName: widget.tableName,
-                  durationMinutes: _selectedMinutes,
-                );
+                final newAlarmTime = DateTime.now().add(Duration(minutes: _selectedMinutes));
+                ref.read(gamesRepositoryProvider).updateGameAlarm(widget.gameId, newAlarmTime);
                 Navigator.pop(context);
               },
               child: Text(
-                _activeAlarm != null ? 'Update Reminder' : 'Start Timer',
+                alarmTime != null ? 'Update Reminder' : 'Start Timer',
                 style: const TextStyle(fontWeight: FontWeight.bold),
               ),
             ),

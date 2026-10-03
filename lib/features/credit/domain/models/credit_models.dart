@@ -3,14 +3,14 @@ import 'package:snooker_club/features/games/domain/models/game_models.dart';
 
 enum CreditTransactionType { game, quickSale, manual }
 
-enum CreditTransactionStatus { pending, partiallyPaid, paid }
+enum CreditTransactionStatus { unpaid, partiallyPaid, paid }
 
 class PlayerProfile {
   final String id;
   final String name;
   final String? mobileNumber;
   final double outstandingAmount;
-  final int totalPendingTransactions;
+  final int totalUnpaidTransactions;
   final DateTime lastTransactionDate;
   final DateTime? lastPaymentDate;
 
@@ -19,7 +19,7 @@ class PlayerProfile {
     required this.name,
     this.mobileNumber,
     this.outstandingAmount = 0.0,
-    this.totalPendingTransactions = 0,
+    this.totalUnpaidTransactions = 0,
     required this.lastTransactionDate,
     this.lastPaymentDate,
   });
@@ -29,7 +29,7 @@ class PlayerProfile {
     String? name,
     String? mobileNumber,
     double? outstandingAmount,
-    int? totalPendingTransactions,
+    int? totalUnpaidTransactions,
     DateTime? lastTransactionDate,
     DateTime? lastPaymentDate,
   }) {
@@ -38,8 +38,8 @@ class PlayerProfile {
       name: name ?? this.name,
       mobileNumber: mobileNumber ?? this.mobileNumber,
       outstandingAmount: outstandingAmount ?? this.outstandingAmount,
-      totalPendingTransactions:
-          totalPendingTransactions ?? this.totalPendingTransactions,
+      totalUnpaidTransactions:
+          totalUnpaidTransactions ?? this.totalUnpaidTransactions,
       lastTransactionDate: lastTransactionDate ?? this.lastTransactionDate,
       lastPaymentDate: lastPaymentDate ?? this.lastPaymentDate,
     );
@@ -50,7 +50,7 @@ class PlayerProfile {
       'name': name,
       'mobileNumber': mobileNumber,
       'outstandingAmount': outstandingAmount,
-      'totalPendingTransactions': totalPendingTransactions,
+      'totalUnpaidTransactions': totalUnpaidTransactions,
       'lastTransactionDate': Timestamp.fromDate(lastTransactionDate),
       'lastPaymentDate': lastPaymentDate != null
           ? Timestamp.fromDate(lastPaymentDate!)
@@ -64,8 +64,8 @@ class PlayerProfile {
       name: map['name'] as String? ?? '',
       mobileNumber: map['mobileNumber'] as String?,
       outstandingAmount: (map['outstandingAmount'] as num?)?.toDouble() ?? 0.0,
-      totalPendingTransactions:
-          (map['totalPendingTransactions'] as num?)?.toInt() ?? 0,
+      totalUnpaidTransactions:
+          (map['totalUnpaidTransactions'] as num?)?.toInt() ?? 0,
       lastTransactionDate:
           (map['lastTransactionDate'] as Timestamp?)?.toDate() ??
           DateTime.now(),
@@ -173,7 +173,7 @@ class CreditTransaction {
           0.0,
       status: CreditTransactionStatus.values.firstWhere(
         (e) => e.name == map['status'],
-        orElse: () => CreditTransactionStatus.pending,
+        orElse: () => CreditTransactionStatus.unpaid,
       ),
       date: (map['date'] as Timestamp?)?.toDate() ?? DateTime.now(),
       paymentMethod: map['paymentMethod'] != null

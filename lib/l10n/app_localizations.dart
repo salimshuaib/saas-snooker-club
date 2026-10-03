@@ -206,11 +206,11 @@ abstract class AppLocalizations {
   /// **'Running Tables'**
   String get runningTables;
 
-  /// No description provided for @pendingCredits.
+  /// No description provided for @outstandingCredits.
   ///
   /// In en, this message translates to:
-  /// **'Pending Credits'**
-  String get pendingCredits;
+  /// **'Outstanding Credits'**
+  String get outstandingCredits;
 
   /// No description provided for @lowStockAlert.
   ///

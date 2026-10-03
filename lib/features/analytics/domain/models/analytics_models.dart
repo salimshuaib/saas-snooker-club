@@ -59,6 +59,7 @@ class RevenueOverviewData {
   final double creditCreated;
   final double creditCollected;
   final double outstandingCredit;
+  final double pendingBillsAmount;
   final double totalGameBilled;
   final double totalQuickSaleBilled;
 
@@ -69,6 +70,7 @@ class RevenueOverviewData {
     required this.creditCreated,
     required this.creditCollected,
     required this.outstandingCredit,
+    required this.pendingBillsAmount,
     required this.totalGameBilled,
     required this.totalQuickSaleBilled,
   });
@@ -216,7 +218,7 @@ class CreditAnalyticsData {
   final double creditCollected;
   final double currentOutstanding;
   final int numberOfCreditTransactions;
-  final int pendingCustomersCount;
+  final int unpaidCustomersCount;
   final double averageCreditAmount;
 
   const CreditAnalyticsData({
@@ -224,7 +226,7 @@ class CreditAnalyticsData {
     required this.creditCollected,
     required this.currentOutstanding,
     required this.numberOfCreditTransactions,
-    required this.pendingCustomersCount,
+    required this.unpaidCustomersCount,
     required this.averageCreditAmount,
   });
 }

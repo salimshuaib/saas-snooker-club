@@ -128,7 +128,7 @@ class _ManualGameChargeSetupSheetState extends ConsumerState<ManualGameChargeSet
             const Gap(16),
 
             // Conditional Inputs
-            if (_billingType == BillingType.perMinute)
+            if (_billingType == BillingType.perMinute || _billingType == BillingType.customMinute)
               _buildNumberInput('Duration (Minutes)', _durationMinutes, (v) => setState(() => _durationMinutes = v)),
             if (_billingType == BillingType.perFrame)
               _buildNumberInput('Total Frames', _frames, (v) => setState(() => _frames = v)),
@@ -151,7 +151,7 @@ class _ManualGameChargeSetupSheetState extends ConsumerState<ManualGameChargeSet
                   // Configurations are non-null
                   
                   int activeSeconds = 0;
-                  if (_billingType == BillingType.perMinute) {
+                  if (_billingType == BillingType.perMinute || _billingType == BillingType.customMinute) {
                     activeSeconds = _durationMinutes * 60;
                   } else if (_billingType == BillingType.halfHour) {
                     activeSeconds = 30 * 60;
@@ -169,6 +169,7 @@ class _ManualGameChargeSetupSheetState extends ConsumerState<ManualGameChargeSet
                     gameConfig: gameSettings,
                     coinQuantity: _coins,
                     playersCount: _controllers,
+                    customMinutes: _billingType == BillingType.customMinute ? _durationMinutes : null,
                   );
 
                   final charge = ManualGameCharge(

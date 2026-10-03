@@ -62,12 +62,12 @@ class BookingsRepository {
         });
   }
 
-  /// Watch all pending bookings
-  Stream<List<BookingModel>> watchPendingBookings() {
+  /// Watch all unconfirmed bookings
+  Stream<List<BookingModel>> watchUnconfirmedBookings() {
     if (clubId == null) return Stream.value([]);
 
     return _bookingsRef
-        .where('status', isEqualTo: BookingStatus.pending.name)
+        .where('status', isEqualTo: BookingStatus.unconfirmed.name)
         .orderBy('createdAt', descending: true)
         .snapshots()
         .map((snapshot) {

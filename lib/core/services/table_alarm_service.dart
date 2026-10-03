@@ -1,12 +1,10 @@
 import 'dart:async';
 import 'dart:convert';
-import 'package:audioplayers/audioplayers.dart';
+import 'package:alarm/alarm.dart';
 import 'package:flutter/foundation.dart';
-import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_tts/flutter_tts.dart';
+import 'package:audioplayers/audioplayers.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:timezone/data/latest_all.dart' as tz;
-import 'package:timezone/timezone.dart' as tz;
 
 import 'package:snooker_club/core/utils/logger.dart';
 import 'package:snooker_club/core/routes/app_router.dart';
@@ -43,11 +41,8 @@ class TableAlarmService {
   factory TableAlarmService() => _instance;
   TableAlarmService._internal();
 
-  final FlutterLocalNotificationsPlugin _localNotifications =
-      FlutterLocalNotificationsPlugin();
-
   final Map<String, AlarmInfo> _activeAlarms = {};
-  final Map<String, Timer> _activeTimers = {};
+  final Map<String, Timer> _fallbackTimers = {};
 
   final _alarmFiredController = StreamController<AlarmInfo>.broadcast();
   Stream<AlarmInfo> get onAlarmFired => _alarmFiredController.stream;
@@ -56,69 +51,29 @@ class TableAlarmService {
   Stream<void> get onAlarmsChanged => _alarmsChangedController.stream;
 
   final FlutterTts _flutterTts = FlutterTts();
-  final AudioPlayer _secondaryAlarmPlayer = AudioPlayer();
+  final AudioPlayer _sirenPlayer = AudioPlayer();
   Timer? _ttsLoopTimer;
-
-  Future<void> _startSecondaryAlarmLoop() async {
-    try {
-      await _secondaryAlarmPlayer.setPlayerMode(PlayerMode.mediaPlayer);
-      await _secondaryAlarmPlayer.setVolume(0.35);
-      await _secondaryAlarmPlayer.setReleaseMode(ReleaseMode.loop);
-      await _secondaryAlarmPlayer.setSourceAsset('sounds/alarm-sren.mp3');
-      await _secondaryAlarmPlayer.resume();
-    } catch (e) {
-      AppLogger.error('Failed to start secondary reminder audio: $e');
-    }
-  }
-
-  Future<void> _stopSecondaryAlarmLoop() async {
-    try {
-      await _secondaryAlarmPlayer.stop();
-    } catch (e) {
-      AppLogger.error('Failed to stop secondary reminder audio: $e');
-    }
-  }
+  StreamSubscription<AlarmSettings>? _ringSubscription;
+  int? _currentlyRingingId;
 
   Future<void> initialize() async {
-    tz.initializeTimeZones();
     await _flutterTts.setVolume(1.0);
     await _flutterTts.setSpeechRate(0.5);
     await _flutterTts.setPitch(1.0);
 
     if (!kIsWeb) {
-      const AndroidNotificationChannel alarmChannel = AndroidNotificationChannel(
-        'table_alarm_channel_v3',
-        'Table Alarms',
-        description: 'Loud alarm notifications when table time is over',
-        importance: Importance.max,
-        playSound: true,
-        sound: RawResourceAndroidNotificationSound('table_alarm'),
-      );
-
-      final androidPlugin = _localNotifications.resolvePlatformSpecificImplementation<
-          AndroidFlutterLocalNotificationsPlugin>();
-      await androidPlugin?.createNotificationChannel(alarmChannel);
-      await androidPlugin?.requestExactAlarmsPermission();
-
-      const initializationSettings = InitializationSettings(
-        android: AndroidInitializationSettings('@mipmap/ic_launcher'),
-        iOS: DarwinInitializationSettings(),
-      );
-
-      await _localNotifications.initialize(
-        settings: initializationSettings,
-        onDidReceiveNotificationResponse: (details) {
-          if (details.payload != null) {
-            try {
-              final alarm = AlarmInfo.fromJson(jsonDecode(details.payload!));
-              _onAlarmFired(alarm);
-            } catch (e) {
-              AppLogger.error('Failed to parse alarm payload: $e');
-            }
-          }
-        },
-      );
+      _ringSubscription = Alarm.ringStream.stream.listen((alarmSettings) {
+        final alarm = _activeAlarms.values.cast<AlarmInfo?>().firstWhere(
+            (a) => a?.gameId.hashCode == alarmSettings.id, orElse: () => null);
+        if (alarm != null) {
+          _onAlarmFired(alarm);
+        } else {
+          // If the alarm is not in our active list but rang, stop it
+          Alarm.stop(alarmSettings.id);
+        }
+      });
     }
+    
     await _loadPersistedAlarms();
   }
 
@@ -127,17 +82,24 @@ class TableAlarmService {
     final alarmsList = prefs.getStringList('active_table_alarms') ?? [];
 
     final now = DateTime.now();
+    bool needsSave = false;
 
     for (final alarmStr in alarmsList) {
       try {
         final alarm = AlarmInfo.fromJson(jsonDecode(alarmStr));
         if (alarm.fireAt.isAfter(now)) {
           _activeAlarms[alarm.gameId] = alarm;
-          _scheduleInMemoryTimer(alarm);
+        } else {
+           // Cleanup stale alarms
+           needsSave = true;
+           if (!kIsWeb) await Alarm.stop(alarm.gameId.hashCode);
         }
       } catch (e) {
         AppLogger.error('Failed to parse persisted alarm: $e');
       }
+    }
+    if (needsSave) {
+      await _saveAlarms();
     }
     _alarmsChangedController.add(null);
   }
@@ -153,66 +115,79 @@ class TableAlarmService {
   Future<void> setAlarm({
     required String gameId,
     required String tableName,
-    required int durationMinutes,
+    required DateTime fireAt,
   }) async {
-    cancelAlarm(gameId); // cancel existing
+    await cancelAlarm(gameId); // cancel existing
 
-    final fireAt = DateTime.now().add(Duration(minutes: durationMinutes));
     final alarm = AlarmInfo(gameId: gameId, tableName: tableName, fireAt: fireAt);
 
     _activeAlarms[gameId] = alarm;
-    _scheduleInMemoryTimer(alarm);
     await _saveAlarms();
 
     if (!kIsWeb) {
-      const androidDetails = AndroidNotificationDetails(
-        'table_alarm_channel_v3',
-        'Table Alarms',
-        channelDescription: 'Loud alarm notifications when table time is over',
-        importance: Importance.max,
-        priority: Priority.max,
-        fullScreenIntent: true,
-        playSound: true,
-        sound: RawResourceAndroidNotificationSound('table_alarm'),
+      final alarmSettings = AlarmSettings(
+        id: gameId.hashCode,
+        dateTime: fireAt,
+        assetAudioPath: 'assets/sounds/alarm-sren.mp3',
+        loopAudio: true,
+        vibrate: true,
+        volumeSettings: VolumeSettings.fade(
+          volume: 1.0,
+          fadeDuration: const Duration(seconds: 3),
+        ),
+        notificationSettings: NotificationSettings(
+          title: tableName,
+          body: 'Time Over!',
+          stopButton: 'Stop',
+        ),
       );
-
-      final notificationId = gameId.hashCode;
-      await _localNotifications.zonedSchedule(
-        id: notificationId,
-        title: tableName,
-        body: 'Time Over!',
-        scheduledDate: tz.TZDateTime.from(fireAt, tz.local),
-        notificationDetails: const NotificationDetails(android: androidDetails),
-        androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-        payload: jsonEncode(alarm.toJson()),
-      );
+      
+      try {
+        await Alarm.set(alarmSettings: alarmSettings);
+      } catch (e) {
+        AppLogger.error('Failed to schedule exact alarm: $e');
+      }
+    } else {
+      // Fallback timer only for Web/Desktop where the native alarm package is unavailable
+      final duration = fireAt.difference(DateTime.now());
+      _fallbackTimers[gameId] = Timer(duration.isNegative ? Duration.zero : duration, () {
+        final active = _activeAlarms[gameId];
+        if (active != null) {
+          _onAlarmFired(active);
+        }
+      });
     }
   }
 
-  void _scheduleInMemoryTimer(AlarmInfo alarm) {
-    final delay = alarm.fireAt.difference(DateTime.now());
-    _activeTimers[alarm.gameId] = Timer(delay, () {
-      _onAlarmFired(alarm);
-    });
-  }
-
   Future<void> cancelAlarm(String gameId) async {
+    _fallbackTimers[gameId]?.cancel();
+    _fallbackTimers.remove(gameId);
+    
+    // Stop manual siren if it happens to be ringing for this game
+    if (_currentlyRingingId == gameId.hashCode) {
+      await _sirenPlayer.stop();
+      _currentlyRingingId = null;
+    }
+
     if (_activeAlarms.containsKey(gameId)) {
       _activeAlarms.remove(gameId);
-      _activeTimers[gameId]?.cancel();
-      _activeTimers.remove(gameId);
       await _saveAlarms();
 
       if (!kIsWeb) {
-        final notificationId = gameId.hashCode;
-        await _localNotifications.cancel(id: notificationId);
+        await Alarm.stop(gameId.hashCode);
       }
     }
   }
 
   Future<void> _onAlarmFired(AlarmInfo alarm) async {
+    // Guard: prevent double-fire if alarm was already handled
+    if (!_activeAlarms.containsKey(alarm.gameId)) return;
+
+    _fallbackTimers[alarm.gameId]?.cancel();
+    _fallbackTimers.remove(alarm.gameId);
+
+    _currentlyRingingId = alarm.gameId.hashCode;
     _activeAlarms.remove(alarm.gameId);
-    _activeTimers.remove(alarm.gameId);
     _saveAlarms();
     _alarmFiredController.add(alarm);
 
@@ -220,8 +195,17 @@ class TableAlarmService {
       AlarmOverlay.show(rootNavigatorKey.currentContext!, alarm);
     }
 
+    if (kIsWeb || (defaultTargetPlatform != TargetPlatform.android && defaultTargetPlatform != TargetPlatform.iOS)) {
+      try {
+        await _sirenPlayer.setVolume(1.0);
+        await _sirenPlayer.setReleaseMode(ReleaseMode.loop);
+        await _sirenPlayer.play(AssetSource('sounds/table_alarm.wav'));
+      } catch (e) {
+        AppLogger.error('Failed to play manual siren: $e');
+      }
+    }
+
     try {
-      // Configure TTS for maximum clarity
       await _flutterTts.setLanguage('en-IN');
       await _flutterTts.setSpeechRate(0.45);
       await _flutterTts.setPitch(1.0);
@@ -229,13 +213,8 @@ class TableAlarmService {
 
       final textToSpeak = '${alarm.tableName} time over';
 
-      // First reminder is the TTS voice.
+      // The alarm package natively loops the siren on mobile. For desktop/web, we just triggered it above.
       await _flutterTts.speak(textToSpeak);
-
-      // Start the secondary asset audio shortly after so both can overlap.
-      Timer(const Duration(milliseconds: 800), () async {
-        await _startSecondaryAlarmLoop();
-      });
 
       int speakCount = 0;
       _ttsLoopTimer?.cancel();
@@ -256,7 +235,22 @@ class TableAlarmService {
     try {
       _ttsLoopTimer?.cancel();
       await _flutterTts.stop();
-      await _stopSecondaryAlarmLoop();
+      await _sirenPlayer.stop();
+      
+      if (!kIsWeb && _currentlyRingingId != null) {
+        await Alarm.stop(_currentlyRingingId!);
+        _currentlyRingingId = null;
+      }
+      
+      // Catch-all to stop any active alarms playing via alarm package
+      if (!kIsWeb) {
+        try {
+           final hasAlarm = await Alarm.hasAlarm();
+           if (hasAlarm) {
+               await Alarm.stopAll();
+           }
+        } catch (_) {}
+      }
     } catch (e) {
       AppLogger.error('Failed to stop TTS: $e');
     }

@@ -19,6 +19,7 @@ import 'package:snooker_club/features/dashboard/presentation/screens/inventory_s
 import 'package:snooker_club/features/games/providers/games_providers.dart';
 import 'package:snooker_club/features/quick_sales/providers/quick_sales_providers.dart';
 import 'package:snooker_club/features/dashboard/presentation/screens/dashboard_screen.dart';
+import 'package:snooker_club/features/team/providers/team_providers.dart';
 
 class DesktopDashboardLayout extends ConsumerWidget {
   final String employeeName;
@@ -58,6 +59,8 @@ class DesktopDashboardLayout extends ConsumerWidget {
   Widget _buildHeader(BuildContext context, WidgetRef ref) {
     final now = ref.watch(realTimeClockProvider).value ?? DateTime.now();
     final dateStr = DateFormat('MMM d, yyyy - h:mm a').format(now);
+    
+    final currentStaff = ref.watch(currentStaffProvider).value;
 
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -83,6 +86,58 @@ class DesktopDashboardLayout extends ConsumerWidget {
             ),
           ],
         ),
+        if (currentStaff != null)
+          Row(
+            children: [
+              Text(
+                'Welcome, $employeeName',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const Gap(16),
+              ActionChip(
+                backgroundColor: currentStaff.isCheckedIn 
+                    ? Colors.green.withValues(alpha: 0.1) 
+                    : Colors.grey.withValues(alpha: 0.1),
+                side: BorderSide(
+                  color: currentStaff.isCheckedIn ? Colors.green : Colors.grey,
+                  width: 1,
+                ),
+                label: Text(
+                  currentStaff.isCheckedIn ? 'Checked In' : 'Check In',
+                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                    color: currentStaff.isCheckedIn ? Colors.green : Colors.grey,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                avatar: Icon(
+                  currentStaff.isCheckedIn ? Icons.check_circle : Icons.power_settings_new,
+                  size: 16,
+                  color: currentStaff.isCheckedIn ? Colors.green : Colors.grey,
+                ),
+                onPressed: () async {
+                  final repo = ref.read(teamRepositoryProvider);
+                  if (currentStaff.isCheckedIn) {
+                    await repo.checkOutStaff(currentStaff.id);
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Checked out successfully. Alarms paused.')),
+                      );
+                    }
+                  } else {
+                    await repo.checkInStaff(currentStaff.id);
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Checked in successfully. You will now receive table alarms.')),
+                      );
+                    }
+                  }
+                },
+              ),
+            ],
+          )
       ],
     );
   }

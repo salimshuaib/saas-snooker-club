@@ -202,6 +202,8 @@ class TablePricingConfig {
       } else if (gameType == GameType.rummy &&
           billingType == BillingType.perMinute) {
         key = 'rummyPerMinute';
+      } else if (billingType == BillingType.customMinute) {
+        key = 'perMinute';
       } else {
         key =
             billingType.name; // 'perMinute', 'halfHour', 'oneHour', 'perFrame'
@@ -248,6 +250,7 @@ class TablePricingConfig {
       case TableType.snooker:
         switch (billingType) {
           case BillingType.perMinute:
+          case BillingType.customMinute:
             return fallbackConfig.snookerPerMinute;
 
           case BillingType.halfHour:
@@ -266,6 +269,7 @@ class TablePricingConfig {
             return fallbackConfig.indianPoolPerFrame;
 
           case BillingType.perMinute:
+          case BillingType.customMinute:
             return fallbackConfig.indianPoolPerMinute;
 
           case BillingType.halfHour:
@@ -284,6 +288,7 @@ class TablePricingConfig {
             return fallbackConfig.americanPoolPerFrame;
 
           case BillingType.perMinute:
+          case BillingType.customMinute:
             return fallbackConfig.americanPoolPerMinute;
 
           case BillingType.halfHour:
@@ -405,6 +410,7 @@ class TablePricingConfig {
       default:
         switch (billingType) {
           case BillingType.perMinute:
+          case BillingType.customMinute:
             return fallbackConfig.snookerPerMinute;
 
           case BillingType.halfHour:
@@ -422,6 +428,23 @@ class TablePricingConfig {
   /// Returns all billing types supported by a given table type and game type.
 
   static List<BillingType> supportedBillingTypes(
+    TableModel table,
+    GameType gameType,
+  ) {
+    final types = _supportedBillingTypesInternal(table, gameType);
+    final isConsole = table.type == TableType.ps4 || table.type == TableType.ps5;
+    
+    // Convert to modifiable list if it isn't
+    final List<BillingType> result = List.from(types);
+    
+    if (!isConsole && !result.contains(BillingType.customMinute)) {
+      result.add(BillingType.customMinute);
+    }
+    
+    return result;
+  }
+
+  static List<BillingType> _supportedBillingTypesInternal(
     TableModel table,
     GameType gameType,
   ) {
@@ -537,6 +560,7 @@ class TablePricingConfig {
     double? customExtraCharge,
     int? coinQuantity,
     int? playersCount,
+    int? customMinutes,
     bool isMinimumBillEnabled = false,
     double minimumBillAmount = 0.0,
   }) {
@@ -603,10 +627,31 @@ class TablePricingConfig {
       case BillingType.perMinute:
         rawBreakdown = GameChargeBreakdown(
           baseCharge: activeSeconds * perSecondRate,
-
           overtimeMinutes: 0,
-
           overtimeCharge: 0,
+        );
+
+      case BillingType.customMinute:
+        final int targetMinutes = customMinutes ?? 0;
+        final int targetSeconds = targetMinutes * 60;
+        final double customBaseCharge = targetMinutes * perSecondRate * 60.0;
+        
+        final int overtimeSeconds = overtimeEnabled
+            ? (activeSeconds - targetSeconds)
+            : 0;
+            
+        final double overtimeCharge = overtimeSeconds > 0
+            ? overtimeSeconds * perSecondRate
+            : 0;
+            
+        final int overtimeMins = overtimeSeconds > 0
+            ? (overtimeSeconds / 60.0).ceil()
+            : 0;
+            
+        rawBreakdown = GameChargeBreakdown(
+          baseCharge: customBaseCharge,
+          overtimeMinutes: overtimeMins,
+          overtimeCharge: overtimeCharge,
         );
 
       case BillingType.perFrame:

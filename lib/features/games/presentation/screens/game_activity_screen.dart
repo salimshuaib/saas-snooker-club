@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:snooker_club/features/games/presentation/widgets/pending_bills_icon_badge.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:snooker_club/core/routes/route_names.dart';
@@ -9,6 +10,7 @@ import 'package:snooker_club/features/team/domain/models/staff_member.dart';
 import 'package:snooker_club/features/games/domain/models/game_models.dart';
 import 'package:snooker_club/features/games/providers/games_providers.dart';
 import 'package:snooker_club/features/games/presentation/widgets/game_activity_card.dart';
+import 'package:snooker_club/core/widgets/modals/app_modal.dart';
 
 class GameActivityScreen extends ConsumerWidget {
   const GameActivityScreen({super.key});
@@ -77,6 +79,7 @@ class GameActivityScreen extends ConsumerWidget {
           ),
         ],
       ),
+      floatingActionButton: const PendingBillsIconBadge(isFab: true),
       body: Builder(
         builder: (context) {
           if (tablesAsync.isEmpty) {
@@ -182,6 +185,32 @@ class GameActivityScreen extends ConsumerWidget {
                                   ),
                                   if (i == 0) ...[
                                     Builder(
+                                      builder: (innerContext) {
+                                        final notSureCount = tables.where((t) => (t.status == TableStatus.running || t.status == TableStatus.paused) && t.isTimeNotSure).length;
+                                        if (notSureCount == 0) return const SizedBox.shrink();
+                                        return Padding(
+                                          padding: const EdgeInsets.only(right: 8.0),
+                                          child: _StatusBadge(
+                                            label: 'Not Sure',
+                                            count: notSureCount,
+                                            color: Colors.red,
+                                            onTap: () => _showTablesList(
+                                              innerContext,
+                                              'All Tables',
+                                              'Not Sure Games',
+                                              tables.where((t) => (t.status == TableStatus.running || t.status == TableStatus.paused) && t.isTimeNotSure).toList(),
+                                              allTables: tables,
+                                              existingTypes: existingTypes,
+                                              snookerTables: snookerTables,
+                                              poolTables: poolTables,
+                                              consoleTables: consoleTables,
+                                              otherTables: otherTables,
+                                            ),
+                                          ),
+                                        );
+                                      },
+                                    ),
+                                    Builder(
                                       builder: (innerContext) => _StatusBadge(
                                         label: 'Running',
                                         count: tables.where((t) => t.status == TableStatus.running || t.status == TableStatus.paused).length,
@@ -284,7 +313,7 @@ void _showTablesList(
   List<TableModel>? otherTables,
 }) {
   final theme = Theme.of(context);
-  showModalBottomSheet(
+  AppModal.showBottomSheet(
     context: context,
     backgroundColor: theme.scaffoldBackgroundColor,
     shape: const RoundedRectangleBorder(
@@ -339,11 +368,17 @@ void _showTablesList(
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Text(
-                            table.status.displayName.toUpperCase(),
+                            table.isTimeNotSure 
+                                ? 'NOT SURE' 
+                                : table.status.displayName.toUpperCase(),
                             style: theme.textTheme.labelSmall?.copyWith(
-                              color: table.status == TableStatus.available
-                                  ? AppColors.available
-                                  : AppColors.running,
+                              color: table.isTimeNotSure
+                                  ? Colors.red
+                                  : (table.status == TableStatus.available
+                                      ? AppColors.available
+                                      : (table.status == TableStatus.paused 
+                                          ? AppColors.paused 
+                                          : AppColors.running)),
                               fontWeight: FontWeight.bold,
                             ),
                           ),
@@ -360,7 +395,7 @@ void _showTablesList(
                         Navigator.pop(sheetContext);
 
                         // Show the game activity dialog
-                        showDialog(
+                        AppModal.showDialog(
                           context: context,
                           builder: (ctx) => _TableDialogWrapper(table),
                         );
@@ -475,15 +510,20 @@ class _TableDialogWrapperState extends ConsumerState<_TableDialogWrapper> {
     return Dialog(
       backgroundColor: Colors.transparent,
       insetPadding: const EdgeInsets.all(16),
-      child: Stack(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.end,
         children: [
-          GameActivityCard(table: currentTable),
-          Positioned(
-            top: 0,
-            right: 0,
+          Padding(
+            padding: const EdgeInsets.only(bottom: 8.0),
             child: IconButton(
               icon: const Icon(Icons.close, color: Colors.white, size: 28),
               onPressed: () => Navigator.of(context).pop(),
+            ),
+          ),
+          Flexible(
+            child: SingleChildScrollView(
+              child: GameActivityCard(table: currentTable),
             ),
           ),
         ],

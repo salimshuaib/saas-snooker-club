@@ -119,24 +119,46 @@ class GameActivityCard extends ConsumerWidget {
                               fontWeight: FontWeight.w600,
                             ),
                           ),
+                          if (!isAvailable && gameAsync.value != null) ...[
+                            const SizedBox(width: 8),
+                            GestureDetector(
+                              behavior: HitTestBehavior.opaque,
+                              onTap: () async {
+                                await ref.read(gamesRepositoryProvider).toggleTimeNotSure(
+                                  table.id,
+                                  gameAsync.value?.id,
+                                  !table.isTimeNotSure,
+                                );
+                              },
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 4.0, vertical: 2.0),
+                                child: Icon(
+                                  table.isTimeNotSure ? Icons.sentiment_dissatisfied : Icons.sentiment_neutral,
+                                  size: 18,
+                                  color: table.isTimeNotSure ? Colors.red : theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
+                                ),
+                              ),
+                            ),
+                          ],
                         ],
                       ),
                     ],
                   ),
                 ),
-                IconButton(
-                  onPressed: () {
-                    AppModal.showBottomSheet(
-                      context: context,
-                      isScrollControlled: true,
-                      builder: (_) => TableHistorySheet(table: table),
-                    );
-                  },
-                  icon: const Icon(Icons.history, size: 22),
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(),
-                  tooltip: 'History',
-                ),
+                if (!isAvailable)
+                  IconButton(
+                    onPressed: () {
+                      AppModal.showBottomSheet(
+                        context: context,
+                        isScrollControlled: true,
+                        builder: (_) => TableHistorySheet(table: table),
+                      );
+                    },
+                    icon: const Icon(Icons.history, size: 22),
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
+                    tooltip: 'History',
+                  ),
               ],
             ),
           ),
@@ -189,27 +211,53 @@ class GameActivityCard extends ConsumerWidget {
                     ),
                   ),
                   const Gap(12),
-                  OutlinedButton.icon(
-                    onPressed: () {
-                      final employeeId = ref.read(currentStaffProvider).value?.id ?? '';
-                      Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (_) => ManualGameSetupScreen(
-                            employeeId: employeeId,
-                            isCompletedGame: false,
-                            initialTable: table,
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: () {
+                            final employeeId = ref.read(currentStaffProvider).value?.id ?? '';
+                            Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (_) => ManualGameSetupScreen(
+                                  employeeId: employeeId,
+                                  isCompletedGame: false,
+                                  initialTable: table,
+                                ),
+                              ),
+                            );
+                          },
+                          icon: const Icon(Icons.edit_document, size: 18),
+                          label: const Text('Manual', overflow: TextOverflow.ellipsis, maxLines: 1),
+                          style: OutlinedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
                           ),
                         ),
-                      );
-                    },
-                    icon: const Icon(Icons.edit_document, size: 18),
-                    label: const Text('Manual'),
-                    style: OutlinedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
                       ),
-                    ),
+                      const Gap(12),
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: () {
+                            AppModal.showBottomSheet(
+                              context: context,
+                              isScrollControlled: true,
+                              builder: (_) => TableHistorySheet(table: table),
+                            );
+                          },
+                          icon: const Icon(Icons.history, size: 18),
+                          label: const Text('History', overflow: TextOverflow.ellipsis, maxLines: 1),
+                          style: OutlinedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
@@ -225,7 +273,28 @@ class GameActivityCard extends ConsumerWidget {
               ),
               child: gameAsync.when(
                 data: (game) {
-                  if (game == null) return const SizedBox();
+                  if (game == null) {
+                    if (!isAvailable) {
+                      return Padding(
+                        padding: const EdgeInsets.all(16.0),
+                        child: Center(
+                          child: FilledButton.icon(
+                            style: FilledButton.styleFrom(backgroundColor: Colors.orange),
+                            onPressed: () {
+                              ref.read(gamesRepositoryProvider).updateTableStatus(
+                                table.id, 
+                                TableStatus.available, 
+                                activeGameId: null,
+                              );
+                            },
+                            icon: const Icon(Icons.build),
+                            label: const Text('Fix Stuck Table'),
+                          ),
+                        ),
+                      );
+                    }
+                    return const SizedBox();
+                  }
                   return Theme(
                     data: theme.copyWith(
                       textTheme: theme.textTheme.apply(
@@ -245,9 +314,9 @@ class GameActivityCard extends ConsumerWidget {
                   padding: EdgeInsets.all(16.0),
                   child: Center(child: CircularProgressIndicator()),
                 ),
-                error: (e, _) => const Padding(
-                  padding: EdgeInsets.all(16.0),
-                  child: Text('Error', style: TextStyle(color: Colors.red)),
+                error: (e, stack) => Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Text('Error: ', style: const TextStyle(color: Colors.red)),
                 ),
               ),
             ),

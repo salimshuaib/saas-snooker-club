@@ -37,6 +37,8 @@ class _GameSetupDialogState extends ConsumerState<GameSetupDialog> {
   bool _isCustomPrice = false;
   int? _coinQuantity = 1;
   final TextEditingController _customPriceController = TextEditingController();
+  final TextEditingController _customMinutesController = TextEditingController(text: '15');
+  int _customMinutes = 15;
   final List<PlayerSelection?> _playerSelections = [
     PlayerSelection(name: 'Default 1'),
   ];
@@ -267,6 +269,34 @@ class _GameSetupDialogState extends ConsumerState<GameSetupDialog> {
             fillColor: theme.colorScheme.surfaceBright,
           ),
         ),
+        if (_billingType == BillingType.customMinute) ...[
+          const SizedBox(height: 16),
+          Text('Custom Minutes', style: theme.textTheme.labelMedium),
+          const SizedBox(height: 8),
+          TextFormField(
+            controller: _customMinutesController,
+            keyboardType: TextInputType.number,
+            onChanged: (val) {
+              setState(() {
+                _customMinutes = int.tryParse(val) ?? 15;
+              });
+            },
+            decoration: InputDecoration(
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(color: theme.dividerColor.withOpacity(0.1)),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(color: theme.dividerColor.withOpacity(0.1)),
+              ),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              filled: true,
+              fillColor: theme.colorScheme.surfaceBright,
+              suffixText: 'mins',
+            ),
+          ),
+        ],
       ],
     );
   }
@@ -530,7 +560,7 @@ class _GameSetupDialogState extends ConsumerState<GameSetupDialog> {
                   id: newId,
                   name: p.name.trim(),
                   outstandingAmount: 0.0,
-                  totalPendingTransactions: 0,
+                  totalUnpaidTransactions: 0,
                   lastTransactionDate: DateTime.now(),
                 ),
               );
@@ -548,7 +578,7 @@ class _GameSetupDialogState extends ConsumerState<GameSetupDialog> {
                 id: newId,
                 name: p.name.trim(),
                 outstandingAmount: 0.0,
-                totalPendingTransactions: 0,
+                totalUnpaidTransactions: 0,
                 lastTransactionDate: DateTime.now(),
               ),
             );
@@ -577,6 +607,15 @@ class _GameSetupDialogState extends ConsumerState<GameSetupDialog> {
         appSettings.pricing,
       );
 
+      DateTime? initialAlarmTime;
+      if (_billingType == BillingType.halfHour) {
+        initialAlarmTime = DateTime.now().add(const Duration(minutes: 30));
+      } else if (_billingType == BillingType.oneHour) {
+        initialAlarmTime = DateTime.now().add(const Duration(minutes: 60));
+      } else if (_billingType == BillingType.customMinute && _customMinutes != null) {
+        initialAlarmTime = DateTime.now().add(Duration(minutes: _customMinutes!));
+      }
+
       GameSession gameSession = GameSession(
         date: dateStr,
         id: FirebaseFirestore.instance.collection('games').doc().id,
@@ -590,6 +629,7 @@ class _GameSetupDialogState extends ConsumerState<GameSetupDialog> {
         billingType: _billingType,
         totalFrames: 1,
         framesPlayed: 0,
+        customMinutes: _billingType == BillingType.customMinute ? _customMinutes : null,
         teamA: combinedSelections.map((p) => p.name).toList(),
         teamB: const [],
         playerIds: finalPlayerIds,
@@ -604,6 +644,7 @@ class _GameSetupDialogState extends ConsumerState<GameSetupDialog> {
         isMinimumBillEnabled: widget.table.isMinimumBillEnabled,
         minimumBillAmount: widget.table.minimumBillAmount,
         gameSettingsSnapshot: appSettings.game,
+        alarmTime: initialAlarmTime,
       );
 
       if (_tableType == TableType.arcade) {
@@ -628,21 +669,6 @@ class _GameSetupDialogState extends ConsumerState<GameSetupDialog> {
           }
           if (_tableType != TableType.arcade) {
             await gamesRepo.startGame(gameSession);
-            
-            // Automatically schedule alarm for fixed duration games
-            if (gameSession.billingType == BillingType.halfHour) {
-              TableAlarmService().setAlarm(
-                gameId: gameSession.id,
-                tableName: gameSession.tableName,
-                durationMinutes: 30,
-              );
-            } else if (gameSession.billingType == BillingType.oneHour) {
-              TableAlarmService().setAlarm(
-                gameId: gameSession.id,
-                tableName: gameSession.tableName,
-                durationMinutes: 60,
-              );
-            }
           }
         } catch (e) {
           debugPrint('Failed to start game in background: $e');

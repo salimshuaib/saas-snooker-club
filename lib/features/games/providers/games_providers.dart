@@ -103,6 +103,12 @@ final activeGameProvider = StreamProvider.autoDispose
       return repo.watchActiveGame(tableId);
     });
 
+final runningGamesProvider = StreamProvider<List<GameSession>>((ref) {
+  final repo = ref.watch(gamesRepositoryProvider);
+  if (repo.clubId == null) return const Stream.empty();
+  return repo.watchRunningGames();
+});
+
 // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // Games History â€” per table and date
 // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€

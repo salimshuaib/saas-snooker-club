@@ -647,8 +647,48 @@ class BookingSettings {
       'advanceBookingDays': advanceBookingDays,
       'allowSameDayBooking': allowSameDayBooking,
       'requireApproval': requireApproval,
-      'activeDays': activeDays,
     };
+  }
+}
+
+class BillingFeatures {
+  final bool manualFinalAmountEnabled;
+  final String selectionMode; // 'two_adjacent_options'
+  final int incrementPaise;   // 1000 = ₹10
+
+  const BillingFeatures({
+    this.manualFinalAmountEnabled = false,
+    this.selectionMode = 'two_adjacent_options',
+    this.incrementPaise = 1000,
+  });
+
+  BillingFeatures copyWith({
+    bool? manualFinalAmountEnabled,
+    String? selectionMode,
+    int? incrementPaise,
+  }) {
+    return BillingFeatures(
+      manualFinalAmountEnabled: manualFinalAmountEnabled ?? this.manualFinalAmountEnabled,
+      selectionMode: selectionMode ?? this.selectionMode,
+      incrementPaise: incrementPaise ?? this.incrementPaise,
+    );
+  }
+
+  Map<String, dynamic> toMap() {
+    return {
+      'manualFinalAmountEnabled': manualFinalAmountEnabled,
+      'selectionMode': selectionMode,
+      'incrementPaise': incrementPaise,
+    };
+  }
+
+  factory BillingFeatures.fromMap(Map<String, dynamic>? map) {
+    if (map == null) return const BillingFeatures();
+    return BillingFeatures(
+      manualFinalAmountEnabled: map['manualFinalAmountEnabled'] as bool? ?? false,
+      selectionMode: map['selectionMode'] as String? ?? 'two_adjacent_options',
+      incrementPaise: (map['incrementPaise'] as num?)?.toInt() ?? 1000,
+    );
   }
 }
 
@@ -661,6 +701,7 @@ class AppSettings {
   final NotificationSettings notifications;
   final FeatureFlags features;
   final BookingSettings booking;
+  final BillingFeatures billingFeatures;
   final DateTime? lastSyncTime;
 
   const AppSettings({
@@ -672,6 +713,7 @@ class AppSettings {
     this.notifications = const NotificationSettings(),
     this.features = const FeatureFlags(),
     this.booking = const BookingSettings(),
+    this.billingFeatures = const BillingFeatures(),
     this.lastSyncTime,
   });
 
@@ -684,6 +726,7 @@ class AppSettings {
     NotificationSettings? notifications,
     FeatureFlags? features,
     BookingSettings? booking,
+    BillingFeatures? billingFeatures,
     DateTime? lastSyncTime,
   }) {
     return AppSettings(
@@ -695,6 +738,7 @@ class AppSettings {
       notifications: notifications ?? this.notifications,
       features: features ?? this.features,
       booking: booking ?? this.booking,
+      billingFeatures: billingFeatures ?? this.billingFeatures,
       lastSyncTime: lastSyncTime ?? this.lastSyncTime,
     );
   }
@@ -709,6 +753,7 @@ class AppSettings {
       'notifications': notifications.toMap(),
       'features': features.toMap(),
       'booking': booking.toMap(),
+      'billingFeatures': billingFeatures.toMap(),
       'lastSyncTime': lastSyncTime?.toIso8601String(),
     };
   }
@@ -732,6 +777,7 @@ class AppSettings {
       ),
       features: FeatureFlags.fromMap(map['features'] as Map<String, dynamic>?),
       booking: BookingSettings.fromMap(map['booking'] as Map<String, dynamic>?),
+      billingFeatures: BillingFeatures.fromMap(map['billingFeatures'] as Map<String, dynamic>?),
       lastSyncTime: map['lastSyncTime'] != null
           ? DateTime.tryParse(map['lastSyncTime'] as String)
           : null,

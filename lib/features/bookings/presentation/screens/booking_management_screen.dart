@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:gap/gap.dart';
+import 'package:intl/intl.dart';
+import 'package:snooker_club/core/providers/club_scope_provider.dart';
 import 'package:snooker_club/core/theme/app_colors.dart';
 import 'package:snooker_club/features/bookings/data/bookings_repository.dart';
 import 'package:snooker_club/features/bookings/domain/models/booking_models.dart';
+import 'package:snooker_club/features/bookings/presentation/widgets/booking_settings_sheet.dart';
 import 'package:snooker_club/features/settings/providers/settings_providers.dart';
-import 'package:snooker_club/core/providers/club_scope_provider.dart';
-import 'package:intl/intl.dart';
 
 class BookingManagementScreen extends ConsumerStatefulWidget {
   const BookingManagementScreen({super.key});
@@ -24,10 +26,25 @@ class _BookingManagementScreenState
     DateTime.now().day,
   );
 
+  void _openBookingSettings() {
+    final settings = ref.read(appSettingsProvider);
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => BookingSettingsSheet(
+        initialSettings: settings.booking,
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final bookingsAsync = ref.watch(dateBookingsStreamProvider(_selectedDate));
+    final bookingSettings = ref.watch(appSettingsProvider.select((s) => s.booking));
 
     return DefaultTabController(
       length: 3,
@@ -35,6 +52,11 @@ class _BookingManagementScreenState
         appBar: AppBar(
           title: const Text('Bookings'),
           actions: [
+            IconButton(
+              icon: const Icon(Icons.tune),
+              tooltip: 'Time Slots & Booking Controls',
+              onPressed: _openBookingSettings,
+            ),
             IconButton(
               icon: const Icon(Icons.link),
               tooltip: 'Copy Booking Link',
@@ -61,6 +83,7 @@ class _BookingManagementScreenState
             ),
             IconButton(
               icon: const Icon(Icons.calendar_today),
+              tooltip: 'Select Date',
               onPressed: () async {
                 final date = await showDatePicker(
                   context: context,
@@ -88,32 +111,97 @@ class _BookingManagementScreenState
             ],
           ),
         ),
-        body: bookingsAsync.when(
-          data: (allBookings) {
-            final upcoming = allBookings
-                .where(
-                  (b) =>
-                      b.status == BookingStatus.pending ||
-                      b.status == BookingStatus.confirmed,
-                )
-                .toList();
-            final completed = allBookings
-                .where((b) => b.status == BookingStatus.completed)
-                .toList();
-            final cancelled = allBookings
-                .where((b) => b.status == BookingStatus.cancelled)
-                .toList();
+        body: Column(
+          children: [
+            // Slot Configuration Quick Control Header Banner
+            Container(
+              margin: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              decoration: BoxDecoration(
+                color: theme.colorScheme.surfaceVariant.withOpacity(0.5),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: theme.colorScheme.outlineVariant),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    bookingSettings.isEnabled
+                        ? Icons.check_circle_rounded
+                        : Icons.pause_circle_filled_rounded,
+                    color: bookingSettings.isEnabled
+                        ? AppColors.success
+                        : Colors.orange,
+                    size: 20,
+                  ),
+                  const Gap(10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          bookingSettings.isEnabled
+                              ? 'Online Booking Active'
+                              : 'Online Booking Paused',
+                          style: theme.textTheme.labelLarge?.copyWith(
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        Text(
+                          '${bookingSettings.slotDurationMinutes} min slots • ${bookingSettings.openingTime} to ${bookingSettings.closingTime}',
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: theme.colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  OutlinedButton.icon(
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 6,
+                      ),
+                      minimumSize: Size.zero,
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    ),
+                    onPressed: _openBookingSettings,
+                    icon: const Icon(Icons.tune, size: 14),
+                    label: const Text('Configure Slots', style: TextStyle(fontSize: 12)),
+                  ),
+                ],
+              ),
+            ),
 
-            return TabBarView(
-              children: [
-                _buildList(upcoming, 'No upcoming bookings.'),
-                _buildList(completed, 'No completed bookings.'),
-                _buildList(cancelled, 'No cancelled bookings.'),
-              ],
-            );
-          },
-          loading: () => const Center(child: CircularProgressIndicator()),
-          error: (e, st) => Center(child: Text('Error: $e')),
+            Expanded(
+              child: bookingsAsync.when(
+                data: (allBookings) {
+                  final upcoming = allBookings
+                      .where(
+                        (b) =>
+                            b.status == BookingStatus.unconfirmed ||
+                            b.status == BookingStatus.confirmed,
+                      )
+                      .toList();
+                  final completed = allBookings
+                      .where((b) => b.status == BookingStatus.completed)
+                      .toList();
+                  final cancelled = allBookings
+                      .where((b) => b.status == BookingStatus.cancelled)
+                      .toList();
+
+                  return TabBarView(
+                    children: [
+                      _buildList(upcoming, 'No upcoming bookings.'),
+                      _buildList(completed, 'No completed bookings.'),
+                      _buildList(cancelled, 'No cancelled bookings.'),
+                    ],
+                  );
+                },
+                loading: () => const Center(child: CircularProgressIndicator()),
+                error: (e, st) => Center(child: Text('Error: $e')),
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -147,7 +235,7 @@ class _BookingCard extends ConsumerWidget {
 
     Color getStatusColor() {
       switch (booking.status) {
-        case BookingStatus.pending:
+        case BookingStatus.unconfirmed:
           return AppColors.error;
         case BookingStatus.confirmed:
           return AppColors.running;
@@ -223,7 +311,7 @@ class _BookingCard extends ConsumerWidget {
                 const Icon(Icons.schedule, size: 16),
                 const SizedBox(width: 8),
                 Text(
-                  '${DateFormat('h:mm a').format(booking.startTime)} - ',
+                  '${DateFormat('h:mm a').format(booking.startTime)} - ${DateFormat('h:mm a').format(booking.endTime)}',
                   style: theme.textTheme.bodyMedium,
                 ),
               ],
@@ -245,7 +333,7 @@ class _BookingCard extends ConsumerWidget {
                 ),
               ),
             ],
-            if (booking.status == BookingStatus.pending) ...[
+            if (booking.status == BookingStatus.unconfirmed) ...[
               const Divider(height: 24),
               Row(
                 mainAxisAlignment: MainAxisAlignment.end,

@@ -12,6 +12,7 @@ import 'package:snooker_club/features/games/providers/games_providers.dart';
 import 'package:snooker_club/features/games/presentation/widgets/player_split_payment_sheet.dart';
 import 'package:snooker_club/features/settings/providers/settings_providers.dart';
 import 'package:snooker_club/features/games/presentation/widgets/upi_qr_dialog.dart';
+import 'package:snooker_club/features/games/presentation/widgets/payment_complete_modal.dart';
 
 class CombinedSettlementScreen extends ConsumerStatefulWidget {
   final String customerId;

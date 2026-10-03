@@ -17,11 +17,11 @@ final allCustomersProvider = StreamProvider<List<PlayerProfile>>((ref) {
   return repo.watchAllCustomers();
 });
 
-final pendingTransactionsProvider = StreamProvider.autoDispose
+final unpaidTransactionsProvider = StreamProvider.autoDispose
     .family<List<CreditTransaction>, String>((ref, customerId) {
       final repo = ref.watch(creditRepositoryProvider);
       if (repo.clubId == null) return const Stream.empty();
-      return repo.watchPendingTransactions(customerId);
+      return repo.watchUnpaidTransactions(customerId);
     });
 
 final allTransactionsProvider = StreamProvider.autoDispose

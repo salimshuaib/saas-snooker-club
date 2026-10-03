@@ -15,6 +15,7 @@ import 'package:snooker_club/features/credit/providers/credit_providers.dart';
 import 'package:snooker_club/features/credit/domain/models/credit_models.dart';
 import 'package:flutter/services.dart';
 import 'package:snooker_club/features/games/utils/game_validation_utils.dart';
+import 'package:snooker_club/core/services/table_alarm_service.dart';
 
 class ManualGameSetupScreen extends ConsumerStatefulWidget {
   final String employeeId;
@@ -54,6 +55,8 @@ class _ManualGameSetupScreenState extends ConsumerState<ManualGameSetupScreen> {
   BillingType? _billingType;
   bool _useCustomPrice = false;
   final TextEditingController _customPriceController = TextEditingController();
+  final TextEditingController _customMinutesController = TextEditingController(text: '15');
+  int _customMinutes = 15;
 
   // Frame Setup (For Per Frame)
   int _totalFrames = 1;
@@ -305,6 +308,17 @@ class _ManualGameSetupScreenState extends ConsumerState<ManualGameSetupScreen> {
         pricingSnapshot,
       );
 
+      DateTime? initialAlarmTime;
+      if (!_isCompletedMode) {
+        if (_billingType == BillingType.halfHour) {
+          initialAlarmTime = finalStartTime!.add(const Duration(minutes: 30));
+        } else if (_billingType == BillingType.oneHour) {
+          initialAlarmTime = finalStartTime!.add(const Duration(minutes: 60));
+        } else if (_billingType == BillingType.customMinute && _customMinutes != null) {
+          initialAlarmTime = finalStartTime!.add(Duration(minutes: _customMinutes!));
+        }
+      }
+
       final session = GameSession(
         id: FirebaseFirestore.instance.collection('dummy').doc().id,
         tableId: _selectedTable!.id,
@@ -317,7 +331,8 @@ class _ManualGameSetupScreenState extends ConsumerState<ManualGameSetupScreen> {
         teamA: teamANames,
         teamB: [],
         playerIds: finalPlayerIds,
-        status: _isCompletedMode ? TableStatus.billing : TableStatus.running,
+        customMinutes: _billingType == BillingType.customMinute ? _customMinutes : null,
+          status: _isCompletedMode ? TableStatus.billing : TableStatus.running,
         startTime: finalStartTime!,
         endTime: _isCompletedMode
             ? finalStartTime.add(Duration(seconds: durationSeconds))
@@ -333,6 +348,7 @@ class _ManualGameSetupScreenState extends ConsumerState<ManualGameSetupScreen> {
         gameSettingsSnapshot: appSettings.game,
         customPrice: customPrice,
         customExtraCharge: customExtraCharge,
+        alarmTime: initialAlarmTime,
       );
 
       if (mounted) {
@@ -683,21 +699,8 @@ class _ManualGameSetupScreenState extends ConsumerState<ManualGameSetupScreen> {
                     DropdownButtonFormField<BillingType>(
                       value: _billingType,
                       hint: const Text('Select Billing Type'),
-                      items: BillingType.values
-                          .where((b) {
-                            if (b == BillingType.perCoin)
-                              return false; // Not for manual entry
-                            if (_selectedTable!.billingOptions != null) {
-                              return _selectedTable!
-                                      .billingOptions![b.name]
-                                      ?.enabled ==
-                                  true;
-                            }
-                            if (_selectedTable!.type == TableType.snooker &&
-                                b == BillingType.perFrame)
-                              return false;
-                            return true;
-                          })
+                      items: TablePricingConfig.supportedBillingTypes(_selectedTable!, GameType.standard)
+                          .where((b) => b != BillingType.perCoin) // Not for manual entry
                           .map((b) {
                             String label = '';
                             switch (b) {
@@ -713,7 +716,10 @@ class _ManualGameSetupScreenState extends ConsumerState<ManualGameSetupScreen> {
                               case BillingType.perFrame:
                                 label = 'Per Frame';
                                 break;
-                              case BillingType.perCoin:
+                              case BillingType.customMinute:
+                                  label = 'Custom Minute';
+                                  break;
+                                case BillingType.perCoin:
                                 label = 'Per Coin';
                                 break;
                             }

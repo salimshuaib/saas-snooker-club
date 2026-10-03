@@ -339,8 +339,8 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen> {
               currency: currency,
             ),
             AnalyticsStatCard(
-              title: 'Pending Customers',
-              value: data.creditAnalytics.pendingCustomersCount.toDouble(),
+              title: 'Unpaid Customers',
+              value: data.creditAnalytics.unpaidCustomersCount.toDouble(),
               icon: Icons.people_outline,
               color: AppColors.info,
               isCurrency: false,

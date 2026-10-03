@@ -25,6 +25,9 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
+  // Initialize alarm package
+  await Alarm.init();
+
   // Register background handler
   FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
 
@@ -75,3 +78,4 @@ void main() async {
     ),
   );
 }
+

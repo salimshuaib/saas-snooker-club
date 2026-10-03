@@ -61,6 +61,21 @@ class TeamRepository {
     });
   }
 
+  Future<void> checkInStaff(String uid) async {
+    await _teamRef.doc(uid).update({
+      'isCheckedIn': true,
+      'lastCheckInTime': FieldValue.serverTimestamp(),
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
+  }
+
+  Future<void> checkOutStaff(String uid) async {
+    await _teamRef.doc(uid).update({
+      'isCheckedIn': false,
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
+  }
+
   Future<void> addStaffMember({
     required String name,
     required String email,

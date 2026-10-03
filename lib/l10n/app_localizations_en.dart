@@ -63,7 +63,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get runningTables => 'Running Tables';
 
   @override
-  String get pendingCredits => 'Pending Credits';
+  String get outstandingCredits => 'Outstanding Credits';
 
   @override
   String get lowStockAlert => 'Low Stock Alert';

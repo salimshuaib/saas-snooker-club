@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
@@ -16,6 +17,7 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:snooker_club/core/services/push_notification_service.dart';
 import 'package:snooker_club/core/services/table_alarm_service.dart';
 import 'dart:ui';
+import 'package:alarm/alarm.dart';
 
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
@@ -27,6 +29,9 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
 /// Connects to real Firebase with full read/write access.
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Initialize alarm package
+  await Alarm.init();
 
   // Register background handler
   FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
@@ -87,6 +92,7 @@ void main() async {
 
   AppLogger.info('S&B Manager PRODUCTION app starting...');
 
+
   runApp(
     ProviderScope(
       overrides: [
@@ -96,3 +102,4 @@ void main() async {
     ),
   );
 }
+

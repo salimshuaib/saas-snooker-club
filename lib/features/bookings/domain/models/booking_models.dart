@@ -1,13 +1,13 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:snooker_club/features/games/domain/models/game_models.dart';
 
-enum BookingStatus { pending, confirmed, cancelled, completed }
+enum BookingStatus { unconfirmed, confirmed, cancelled, completed }
 
 extension BookingStatusExtension on BookingStatus {
   String get displayName {
     switch (this) {
-      case BookingStatus.pending:
-        return 'Pending';
+      case BookingStatus.unconfirmed:
+        return 'Unconfirmed';
       case BookingStatus.confirmed:
         return 'Confirmed';
       case BookingStatus.cancelled:
@@ -117,7 +117,7 @@ class BookingModel {
       endTime: (map['endTime'] as Timestamp?)?.toDate() ?? DateTime.now(),
       status: BookingStatus.values.firstWhere(
         (e) => e.name == (map['status'] as String?),
-        orElse: () => BookingStatus.pending,
+        orElse: () => BookingStatus.unconfirmed,
       ),
       createdAt: (map['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
       updatedAt: (map['updatedAt'] as Timestamp?)?.toDate() ?? DateTime.now(),

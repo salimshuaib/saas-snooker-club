@@ -3,10 +3,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gap/gap.dart';
 import 'package:snooker_club/core/providers/app_providers.dart';
+import 'package:snooker_club/core/providers/club_scope_provider.dart';
 import 'package:snooker_club/core/theme/app_colors.dart';
 import 'package:snooker_club/core/widgets/modals/app_modal.dart';
 
 import 'package:snooker_club/features/games/providers/games_providers.dart';
+import 'package:snooker_club/features/bookings/presentation/widgets/booking_settings_sheet.dart';
 import 'package:snooker_club/features/settings/presentation/widgets/business_edit_sheet.dart';
 import 'package:snooker_club/features/settings/presentation/widgets/change_passcode_dialog.dart';
 import 'package:snooker_club/features/settings/presentation/widgets/pricing_edit_sheet.dart';
@@ -188,6 +190,49 @@ class AdministrativeSettingsScreen extends ConsumerWidget {
                 settings.business.address.isEmpty
                     ? 'Not set'
                     : settings.business.address,
+              ),
+            ],
+          ),
+
+          // Online Booking & Time Slots
+          SettingsSectionCard(
+            title: 'Online Booking & Time Slots',
+            icon: Icons.schedule_send,
+            iconColor: AppColors.primary,
+            trailing: OutlinedButton.icon(
+              onPressed: () {
+                showModalBottomSheet(
+                  useRootNavigator: true,
+                  context: context,
+                  isScrollControlled: true,
+                  shape: const RoundedRectangleBorder(
+                    borderRadius: BorderRadius.vertical(
+                      top: Radius.circular(20),
+                    ),
+                  ),
+                  builder: (context) =>
+                      BookingSettingsSheet(initialSettings: settings.booking),
+                );
+              },
+              icon: const Icon(Icons.tune, size: 16),
+              label: const Text('Configure'),
+            ),
+            children: [
+              _buildInfoTile(
+                'Website Booking Status',
+                settings.booking.isEnabled ? 'Enabled' : 'Disabled',
+              ),
+              _buildInfoTile(
+                'Slot Duration',
+                '${settings.booking.slotDurationMinutes} Minutes',
+              ),
+              _buildInfoTile(
+                'Operating Hours',
+                '${settings.booking.openingTime} - ${settings.booking.closingTime}',
+              ),
+              _buildInfoTile(
+                'Advance Booking',
+                'Up to ${settings.booking.advanceBookingDays} Days',
               ),
             ],
           ),
@@ -480,6 +525,31 @@ class AdministrativeSettingsScreen extends ConsumerWidget {
               ),
             ],
           ),
+          if (ref.watch(clubIdProvider) == 'ObnNL7TGuMA8hr1JhBCZ') ...[
+            SettingsSectionCard(
+              title: 'Advanced Billing Options',
+              icon: Icons.calculate,
+              iconColor: Colors.deepPurple,
+              children: [
+                SwitchListTile(
+                  contentPadding: EdgeInsets.zero,
+                  title: const Text('Manual Final Amount Selection'),
+                  subtitle: const Text(
+                    'Allows the owner to manually select the final rounded bill amount before payment.',
+                  ),
+                  value: settings.billingFeatures.manualFinalAmountEnabled,
+                  onChanged: (val) {
+                    notifier.updateBillingFeatures(
+                      settings.billingFeatures.copyWith(
+                        manualFinalAmountEnabled: val,
+                      ),
+                    );
+                  },
+                ),
+              ],
+            ),
+          ],
+          
           const Gap(32),
         ],
       ),

@@ -573,7 +573,7 @@ class _TransactionsTab extends ConsumerWidget {
           itemBuilder: (context, index) {
             final tx = transactions[index];
             final isCreditGiven =
-                tx.status == CreditTransactionStatus.pending ||
+                tx.status == CreditTransactionStatus.unpaid ||
                 tx.status == CreditTransactionStatus.partiallyPaid;
 
             final icon = isCreditGiven
@@ -628,8 +628,7 @@ class _TransactionsTab extends ConsumerWidget {
                       ),
                     ),
                     if (isCreditGiven)
-                      const Text(
-                        'Pending',
+                      const Text('Unpaid',
                         style: TextStyle(color: AppColors.error, fontSize: 12),
                       )
                     else

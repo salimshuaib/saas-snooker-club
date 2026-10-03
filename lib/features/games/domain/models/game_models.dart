@@ -84,7 +84,8 @@ enum TableStatus {
   running,
   paused,
   billing,
-  cancelled;
+  cancelled,
+  pendingBill;
 
   String get displayName {
     switch (this) {
@@ -98,6 +99,8 @@ enum TableStatus {
         return 'Billing';
       case TableStatus.cancelled:
         return 'Cancelled';
+      case TableStatus.pendingBill:
+        return 'Pending Bill';
     }
   }
 }
@@ -109,6 +112,7 @@ enum BillingType {
   perFrame,
   halfHour,
   oneHour,
+  customMinute,
   perCoin;
 
   String get displayName {
@@ -121,6 +125,8 @@ enum BillingType {
         return 'Half Hour (30 min)';
       case BillingType.oneHour:
         return 'One Hour (60 min)';
+      case BillingType.customMinute:
+        return 'Custom Minute';
       case BillingType.perCoin:
         return 'Per Coin';
     }
@@ -213,6 +219,7 @@ class TableModel {
   final bool isMinimumBillEnabled;
   final double minimumBillAmount;
   final bool allowCustomPrice;
+  final bool isTimeNotSure;
 
   const TableModel({
     required this.id,
@@ -225,6 +232,7 @@ class TableModel {
     this.isMinimumBillEnabled = false,
     this.minimumBillAmount = 0.0,
     this.allowCustomPrice = false,
+    this.isTimeNotSure = false,
   });
 
   TableModel copyWith({
@@ -238,6 +246,7 @@ class TableModel {
     bool? isMinimumBillEnabled,
     double? minimumBillAmount,
     bool? allowCustomPrice,
+    bool? isTimeNotSure,
   }) {
     return TableModel(
       id: id ?? this.id,
@@ -250,6 +259,7 @@ class TableModel {
       isMinimumBillEnabled: isMinimumBillEnabled ?? this.isMinimumBillEnabled,
       minimumBillAmount: minimumBillAmount ?? this.minimumBillAmount,
       allowCustomPrice: allowCustomPrice ?? this.allowCustomPrice,
+      isTimeNotSure: isTimeNotSure ?? this.isTimeNotSure,
     );
   }
 
@@ -266,6 +276,7 @@ class TableModel {
       'isMinimumBillEnabled': isMinimumBillEnabled,
       'minimumBillAmount': minimumBillAmount,
       'allowCustomPrice': allowCustomPrice,
+      'isTimeNotSure': isTimeNotSure,
     };
   }
 
@@ -294,6 +305,7 @@ class TableModel {
       isMinimumBillEnabled: map['isMinimumBillEnabled'] as bool? ?? false,
       minimumBillAmount: (map['minimumBillAmount'] as num?)?.toDouble() ?? 0.0,
       allowCustomPrice: map['allowCustomPrice'] as bool? ?? false,
+      isTimeNotSure: map['isTimeNotSure'] as bool? ?? false,
     );
   }
 }
@@ -626,6 +638,7 @@ class GameSession {
   final List<DateTime> resumeTimes;
   final int totalFrames;
   final int framesPlayed;
+  final int? customMinutes;
   final List<GameOrder> orders;
   final List<ManualGameCharge> manualGameCharges;
   final List<GameRound> rounds;
@@ -637,7 +650,14 @@ class GameSession {
   final double? discountedGameCharge;
   final String? paidBy; // customer name paying (for credit)
   final PaymentMethod? paymentMethod;
-  final String? paymentStatus; // e.g., 'Outstanding', 'Partially Paid', 'Paid'
+  final String? paymentStatus;
+
+  final String? pendingBillCustomerId;
+  final String? pendingBillCustomerName;
+  final DateTime? markedPendingAt;
+  final String? markedPendingByUserId;
+  final String? markedPendingByName;
+ // e.g., 'Outstanding', 'Partially Paid', 'Paid'
   final double? paidAmount;
   final double? remainingAmount;
   final double? gameCharge;
@@ -661,6 +681,9 @@ class GameSession {
   final double minimumBillAmount;
   final int? coinQuantity;
   final double? customPrice;
+  final bool isTimeNotSure;
+  final double? manualSelectedFinalAmount;
+  final DateTime? alarmTime;
 
   const GameSession({
     this.createdByUserId,
@@ -694,6 +717,7 @@ class GameSession {
     this.resumeTimes = const [],
     this.totalFrames = 1,
     this.framesPlayed = 0,
+    this.customMinutes,
     this.orders = const [],
     this.manualGameCharges = const [],
     this.rounds = const [],
@@ -706,6 +730,11 @@ class GameSession {
     this.paidBy,
     this.paymentMethod,
     this.paymentStatus,
+    this.pendingBillCustomerId,
+    this.pendingBillCustomerName,
+    this.markedPendingAt,
+    this.markedPendingByUserId,
+    this.markedPendingByName,
     this.paidAmount,
     this.remainingAmount,
     this.gameCharge,
@@ -729,6 +758,9 @@ class GameSession {
     this.minimumBillAmount = 0.0,
     this.coinQuantity,
     this.customPrice,
+    this.isTimeNotSure = false,
+    this.manualSelectedFinalAmount,
+    this.alarmTime,
   });
 
   /// All players involved (team A + team B)
@@ -812,6 +844,7 @@ class GameSession {
     List<DateTime>? resumeTimes,
     int? totalFrames,
     int? framesPlayed,
+    int? customMinutes,
     List<GameOrder>? orders,
     List<ManualGameCharge>? manualGameCharges,
     List<GameRound>? rounds,
@@ -824,6 +857,11 @@ class GameSession {
     String? paidBy,
     PaymentMethod? paymentMethod,
     String? paymentStatus,
+    String? pendingBillCustomerId,
+    String? pendingBillCustomerName,
+    DateTime? markedPendingAt,
+    String? markedPendingByUserId,
+    String? markedPendingByName,
     double? paidAmount,
     double? remainingAmount,
     double? gameCharge,
@@ -847,6 +885,9 @@ class GameSession {
     double? minimumBillAmount,
     int? coinQuantity,
     double? customPrice,
+    bool? isTimeNotSure,
+    double? manualSelectedFinalAmount,
+    DateTime? alarmTime,
   }) {
     return GameSession(
       createdByUserId: createdByUserId ?? this.createdByUserId,
@@ -880,6 +921,7 @@ class GameSession {
       resumeTimes: resumeTimes ?? this.resumeTimes,
       totalFrames: totalFrames ?? this.totalFrames,
       framesPlayed: framesPlayed ?? this.framesPlayed,
+      customMinutes: customMinutes ?? this.customMinutes,
       orders: orders ?? this.orders,
       manualGameCharges: manualGameCharges ?? this.manualGameCharges,
       rounds: rounds ?? this.rounds,
@@ -892,6 +934,12 @@ class GameSession {
       paidBy: paidBy ?? this.paidBy,
       paymentMethod: paymentMethod ?? this.paymentMethod,
       paymentStatus: paymentStatus ?? this.paymentStatus,
+
+      pendingBillCustomerId: pendingBillCustomerId ?? this.pendingBillCustomerId,
+      pendingBillCustomerName: pendingBillCustomerName ?? this.pendingBillCustomerName,
+      markedPendingAt: markedPendingAt ?? this.markedPendingAt,
+      markedPendingByUserId: markedPendingByUserId ?? this.markedPendingByUserId,
+      markedPendingByName: markedPendingByName ?? this.markedPendingByName,
       paidAmount: paidAmount ?? this.paidAmount,
       remainingAmount: remainingAmount ?? this.remainingAmount,
       gameCharge: gameCharge ?? this.gameCharge,
@@ -915,6 +963,9 @@ class GameSession {
       minimumBillAmount: minimumBillAmount ?? this.minimumBillAmount,
       coinQuantity: coinQuantity ?? this.coinQuantity,
       customPrice: customPrice ?? this.customPrice,
+      isTimeNotSure: isTimeNotSure ?? this.isTimeNotSure,
+      manualSelectedFinalAmount: manualSelectedFinalAmount ?? this.manualSelectedFinalAmount,
+      alarmTime: alarmTime ?? this.alarmTime,
     );
   }
 
@@ -952,6 +1003,7 @@ class GameSession {
       'resumeTimes': resumeTimes.map((d) => Timestamp.fromDate(d)).toList(),
       'totalFrames': totalFrames,
       'framesPlayed': framesPlayed,
+      if (customMinutes != null) 'customMinutes': customMinutes,
       'orders': orders.map((o) => o.toMap()).toList(),
       'manualGameCharges': manualGameCharges.map((g) => g.toMap()).toList(),
       'rounds': rounds.map((r) => r.toMap()).toList(),
@@ -968,6 +1020,12 @@ class GameSession {
       'paidBy': paidBy,
       'paymentMethod': paymentMethod?.name,
       'paymentStatus': paymentStatus,
+
+      'pendingBillCustomerId': pendingBillCustomerId,
+      'pendingBillCustomerName': pendingBillCustomerName,
+      'markedPendingAt': markedPendingAt?.toIso8601String(),
+      'markedPendingByUserId': markedPendingByUserId,
+      'markedPendingByName': markedPendingByName,
       'paidAmount': paidAmount,
       'remainingAmount': remainingAmount,
       'gameCharge': gameCharge,
@@ -991,6 +1049,9 @@ class GameSession {
       'minimumBillAmount': minimumBillAmount,
       'coinQuantity': coinQuantity,
       'customPrice': customPrice,
+      'isTimeNotSure': isTimeNotSure,
+      'manualSelectedFinalAmount': manualSelectedFinalAmount,
+      'alarmTime': alarmTime != null ? Timestamp.fromDate(alarmTime!) : null,
     };
   }
 
@@ -1048,14 +1109,15 @@ class GameSession {
         (s) => s.name == map['status'],
         orElse: () => TableStatus.available,
       ),
-      startTime: (map['startTime'] as Timestamp).toDate(),
+      startTime: map['startTime'] is String ? DateTime.parse(map['startTime']) : (map['startTime'] as Timestamp).toDate(),
       endTime: map['endTime'] != null
-          ? (map['endTime'] as Timestamp).toDate()
+          ? (map['endTime'] is String ? DateTime.parse(map['endTime']) : (map['endTime'] as Timestamp).toDate())
           : null,
       pauseTimes: parseDateList(map['pauseTimes']),
       resumeTimes: parseDateList(map['resumeTimes']),
       totalFrames: (map['totalFrames'] as num?)?.toInt() ?? 1,
       framesPlayed: (map['framesPlayed'] as num?)?.toInt() ?? 0,
+      customMinutes: (map['customMinutes'] as num?)?.toInt(),
       orders:
           (map['orders'] as List<dynamic>?)
               ?.map((o) => GameOrder.fromMap(o as Map<String, dynamic>))
@@ -1125,6 +1187,13 @@ class GameSession {
             )
           : null,
       paymentStatus: map['paymentStatus'] as String?,
+
+      pendingBillCustomerId: map['pendingBillCustomerId'] as String?,
+      pendingBillCustomerName: map['pendingBillCustomerName'] as String?,
+      markedPendingAt: map['markedPendingAt'] != null ? DateTime.parse(map['markedPendingAt'] as String) : null,
+      markedPendingByUserId: map['markedPendingByUserId'] as String?,
+      markedPendingByName: map['markedPendingByName'] as String?,
+      alarmTime: (map['alarmTime'] as Timestamp?)?.toDate(),
       paidAmount: (map['paidAmount'] as num?)?.toDouble(),
       remainingAmount: (map['remainingAmount'] as num?)?.toDouble(),
       gameCharge: (map['gameCharge'] as num?)?.toDouble(),
@@ -1156,6 +1225,8 @@ class GameSession {
           ? GameSettings.fromMap(map['gameSettingsSnapshot'])
           : null,
       customPrice: (map['customPrice'] as num?)?.toDouble(),
+      isTimeNotSure: map['isTimeNotSure'] ?? false,
+      manualSelectedFinalAmount: (map['manualSelectedFinalAmount'] as num?)?.toDouble(),
     );
   }
 }

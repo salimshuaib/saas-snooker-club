@@ -10,6 +10,7 @@ import 'package:snooker_club/features/settings/providers/settings_providers.dart
 import 'package:snooker_club/features/quick_sales/providers/quick_sales_providers.dart';
 import 'package:snooker_club/features/team/providers/team_providers.dart';
 import 'package:snooker_club/core/providers/update_provider.dart';
+import 'package:snooker_club/core/providers/alarm_sync_controller.dart';
 import 'package:snooker_club/core/widgets/modals/app_modal.dart';
 
 class MainScreen extends ConsumerStatefulWidget {
@@ -73,13 +74,18 @@ class _MainScreenState extends ConsumerState<MainScreen> {
       _subscriptions.add(
         ref.listenManual(todaysGamesRevenueStreamProvider, (_, __) {}),
       );
-      _subscriptions.add(ref.listenManual(pendingCreditsProvider, (_, __) {}));
+      _subscriptions.add(ref.listenManual(outstandingCreditsProvider, (_, __) {}));
       _subscriptions.add(
         ref.listenManual(todaysQuickSalesCountProvider, (_, __) {}),
       );
       _subscriptions.add(ref.listenManual(inventoryItemsProvider, (_, __) {}));
       _subscriptions.add(ref.listenManual(currentStaffProvider, (_, __) {}));
       _subscriptions.add(ref.listenManual(updateStateProvider, (_, __) {}));
+      
+      // Initialize alarm sync controller
+      try {
+        ref.read(alarmSyncControllerProvider);
+      } catch (_) {}
     });
   }
 

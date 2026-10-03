@@ -1,6 +1,8 @@
 import 'package:snooker_club/l10n/app_localizations.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+import 'package:snooker_club/core/routes/route_names.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gap/gap.dart';
 import 'package:intl/intl.dart';
@@ -11,6 +13,7 @@ import 'package:snooker_club/features/games/domain/models/game_models.dart';
 import 'package:snooker_club/features/games/presentation/widgets/admin_passcode_dialog.dart';
 import 'package:snooker_club/features/games/presentation/widgets/edit_bill_sheet.dart';
 import 'package:snooker_club/features/games/presentation/widgets/audit_log_sheet.dart';
+import 'package:snooker_club/features/games/presentation/widgets/payment_complete_modal.dart';
 import 'package:snooker_club/features/games/providers/games_providers.dart';
 import 'package:snooker_club/core/providers/club_scope_provider.dart';
 import 'package:snooker_club/features/settings/providers/settings_providers.dart';
@@ -78,6 +81,20 @@ class _BillDetailsScreenState extends ConsumerState<BillDetailsScreen> {
             title: const Text('Bill Details'),
             centerTitle: false,
             actions: [
+              IconButton(
+                icon: const Icon(Icons.receipt_long),
+                tooltip: 'View & Share Receipt',
+                onPressed: () {
+                  final appSettings = ref.read(appSettingsProvider);
+                  final receiptData = ReceiptData.fromGameSession(
+                    session,
+                    clubName: appSettings.business.clubName,
+                    clubAddress: appSettings.business.address,
+                    clubPhone: appSettings.business.contactNumber,
+                  );
+                  PaymentCompleteModal.show(context, receipt: receiptData);
+                },
+              ),
               PopupMenuButton<String>(
                 icon: const Icon(Icons.edit_outlined),
                 tooltip: 'Edit Bill Details',
@@ -130,6 +147,63 @@ class _BillDetailsScreenState extends ConsumerState<BillDetailsScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+
+                  if (session.status == TableStatus.pendingBill.name) ...[
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: Colors.orange.withOpacity(0.1),
+                        border: Border.all(color: Colors.orange),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Column(
+                        children: [
+                          const Icon(Icons.receipt_long, color: Colors.orange, size: 32),
+                          const Gap(8),
+                          Text(
+                            'PENDING BILL: ${session.pendingBillCustomerName ?? ''}',
+                            style: theme.textTheme.titleMedium?.copyWith(
+                              color: Colors.orange,
+                              fontWeight: FontWeight.bold,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                          const Gap(16),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: OutlinedButton(
+                                  onPressed: () => _cancelPendingBill(context, session),
+                                  style: OutlinedButton.styleFrom(foregroundColor: AppColors.error),
+                                  child: const Text('Cancel Bill'),
+                                ),
+                              ),
+                              const Gap(12),
+                              Expanded(
+                                child: FilledButton(
+                                  onPressed: () {
+                                    
+                                    context.push(
+                                      RouteNames.combinedSettlement,
+                                      extra: {
+                                        'customerId': session.pendingBillCustomerId ?? 'unknown',
+                                        'customerName': session.pendingBillCustomerName ?? 'Unknown',
+                                        'initialBills': [session],
+                                      },
+                                    );
+                                  },
+                                  style: FilledButton.styleFrom(backgroundColor: Colors.orange),
+                                  child: const Text('Settle Bill'),
+                                ),
+                              ),
+                            ],
+                          )
+                        ],
+                      ),
+                    ),
+                    const Gap(24),
+                  ],
                   if (session.isCancelled) ...[
                     Container(
                       width: double.infinity,
@@ -636,6 +710,46 @@ class _BillDetailsScreenState extends ConsumerState<BillDetailsScreen> {
         );
       },
     );
+  }
+
+  
+  Future<void> _cancelPendingBill(BuildContext context, GameSession session) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Cancel Pending Bill?'),
+        content: const Text('This will cancel the bill completely and restore any inventory items.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('No, Keep It'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.error, foregroundColor: Colors.white),
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('Yes, Cancel'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true && context.mounted) {
+      try {
+        await ref.read(gamesRepositoryProvider).cancelPendingBill(session.id, session);
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Pending bill cancelled.'), backgroundColor: AppColors.success),
+          );
+          Navigator.of(context).pop();
+        }
+      } catch (e) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Failed: $e'), backgroundColor: AppColors.error),
+          );
+        }
+      }
+    }
   }
 
   Future<void> _showFullEditModal(

@@ -41,6 +41,8 @@ import 'package:snooker_club/features/settings/presentation/screens/settings_scr
 import 'package:snooker_club/features/team/providers/team_providers.dart';
 import 'package:snooker_club/features/team/presentation/screens/team_screen.dart';
 import 'package:snooker_club/features/history/presentation/screens/transaction_history_screen.dart';
+import 'package:snooker_club/features/games/presentation/screens/pending_bills_screen.dart';
+import 'package:snooker_club/features/games/presentation/screens/combined_settlement_screen.dart';
 
 import 'package:snooker_club/core/providers/club_scope_provider.dart';
 import 'package:snooker_club/features/subscription/presentation/screens/no_club_screen.dart';
@@ -174,6 +176,25 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: RouteNames.splash,
         builder: (context, state) =>
             const TickerMode(enabled: true, child: const SplashScreen()),
+      ),
+      GoRoute(
+        path: RouteNames.pendingBills,
+        builder: (context, state) =>
+            const TickerMode(enabled: true, child: PendingBillsScreen()),
+      ),
+      GoRoute(
+        path: RouteNames.combinedSettlement,
+        builder: (context, state) {
+          final map = state.extra as Map<String, dynamic>? ?? {};
+          return TickerMode(
+            enabled: true,
+            child: CombinedSettlementScreen(
+              customerId: map['customerId'] as String? ?? 'unknown',
+              customerName: map['customerName'] as String? ?? 'Unknown',
+              initialBills: map['initialBills'] as List<GameSession>? ?? [],
+            ),
+          );
+        },
       ),
       GoRoute(
         path: RouteNames.login,

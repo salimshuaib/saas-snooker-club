@@ -10,6 +10,7 @@ import 'package:snooker_club/core/providers/app_providers.dart';
 import 'package:snooker_club/core/providers/club_scope_provider.dart';
 import 'package:snooker_club/core/routes/route_names.dart';
 import 'package:snooker_club/core/theme/app_colors.dart';
+import 'package:snooker_club/features/games/presentation/widgets/pending_bills_icon_badge.dart';
 import 'package:snooker_club/core/widgets/cards/info_card.dart';
 import 'package:snooker_club/features/team/providers/team_providers.dart';
 import 'package:snooker_club/features/team/domain/models/staff_member.dart';
@@ -64,7 +65,8 @@ class DashboardScreen extends ConsumerWidget {
     if (isDesktopTop) {
       return Scaffold(
         backgroundColor: Colors.transparent,
-        body: DesktopDashboardLayout(employeeName: employeeName),
+        floatingActionButton: const PendingBillsIconBadge(isFab: true),
+      body: DesktopDashboardLayout(employeeName: employeeName),
       );
     }
 
@@ -82,6 +84,49 @@ class DashboardScreen extends ConsumerWidget {
           clubAsync.value?.clubName ?? AppLocalizations.of(context)!.appTitle,
         ),
         actions: [
+          if (currentStaff != null)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8.0),
+              child: ActionChip(
+                backgroundColor: currentStaff.isCheckedIn 
+                    ? Colors.green.withValues(alpha: 0.1) 
+                    : Colors.grey.withValues(alpha: 0.1),
+                side: BorderSide(
+                  color: currentStaff.isCheckedIn ? Colors.green : Colors.grey,
+                  width: 1,
+                ),
+                label: Text(
+                  currentStaff.isCheckedIn ? 'Checked In' : 'Check In',
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    color: currentStaff.isCheckedIn ? Colors.green : Colors.grey,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                avatar: Icon(
+                  currentStaff.isCheckedIn ? Icons.check_circle : Icons.power_settings_new,
+                  size: 16,
+                  color: currentStaff.isCheckedIn ? Colors.green : Colors.grey,
+                ),
+                onPressed: () async {
+                  final repo = ref.read(teamRepositoryProvider);
+                  if (currentStaff.isCheckedIn) {
+                    await repo.checkOutStaff(currentStaff.id);
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Checked out successfully. Alarms paused.')),
+                      );
+                    }
+                  } else {
+                    await repo.checkInStaff(currentStaff.id);
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Checked in successfully. You will now receive table alarms.')),
+                      );
+                    }
+                  }
+                },
+              ),
+            ),
           Center(
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 8.0),
@@ -104,6 +149,7 @@ class DashboardScreen extends ConsumerWidget {
           ),
         ],
       ),
+      floatingActionButton: const PendingBillsIconBadge(isFab: true),
       body: SafeArea(
         child: LayoutBuilder(
           builder: (context, constraints) {
@@ -135,6 +181,28 @@ class DashboardScreen extends ConsumerWidget {
                     ),
                   ),
                   const _RealTimeClockWidget(),
+                  if (clubAsync.value?.clubName == 'Only We Have A Club' || clubAsync.value?.slug == 'cuezone')
+                    IconButton(
+                      icon: const Icon(Icons.delete_forever, color: Colors.red),
+                      tooltip: 'Wipe CueZone Data',
+                      onPressed: () async {
+                        final confirm = await showDialog<bool>(
+                          context: context,
+                          builder: (ctx) => AlertDialog(
+                            title: const Text('Wipe All Data?'),
+                            content: const Text('This will permanently delete all games, tables data, players, and credit history for this club.'),
+                            actions: [
+                              TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+                              TextButton(onPressed: () => Navigator.pop(ctx, true), style: TextButton.styleFrom(foregroundColor: Colors.red), child: const Text('Yes, Wipe Data')),
+                            ],
+                          ),
+                        );
+                        if (confirm == true) {
+                          await ref.read(gamesRepositoryProvider).wipeCueZoneData();
+                          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Wipe complete!'), backgroundColor: Colors.green));
+                        }
+                      },
+                    ),
                 ],
               ),
               const Gap(16),
@@ -384,10 +452,10 @@ class _BookingsDashboardCard extends ConsumerWidget {
                   const SizedBox(height: 4),
                   activeBookingsAsync.when(
                     data: (bookings) {
-                      final pendingCount = bookings.where((b) => b.status == BookingStatus.pending).length;
-                      if (pendingCount > 0) {
+                      final unpaidCount = bookings.where((b) => b.status == BookingStatus.unconfirmed).length;
+                      if (unpaidCount > 0) {
                         return Text(
-                          '$pendingCount PENDING REQUESTS',
+                          '$unpaidCount UNCONFIRMED REQUESTS',
                           style: theme.textTheme.bodySmall?.copyWith(
                             color: AppColors.error,
                             fontWeight: FontWeight.bold,

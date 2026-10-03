@@ -82,7 +82,7 @@ class CreditRepository {
         );
   }
 
-  Stream<List<CreditTransaction>> watchPendingTransactions(String customerId) {
+  Stream<List<CreditTransaction>> watchUnpaidTransactions(String customerId) {
     return _transactionsRef(customerId)
         .orderBy('date', descending: true)
         .snapshots()
@@ -275,7 +275,7 @@ class CreditRepository {
     if (existingCustomer != null) {
       batch.update(customerRef, {
         if (isCredit) 'outstandingAmount': FieldValue.increment(amount),
-        if (isCredit) 'totalPendingTransactions': FieldValue.increment(1),
+        if (isCredit) 'totalUnpaidTransactions': FieldValue.increment(1),
         'lastTransactionDate': Timestamp.now(),
       });
     } else {
@@ -283,7 +283,7 @@ class CreditRepository {
         id: customerRef.id,
         name: customerName,
         outstandingAmount: isCredit ? amount : 0.0,
-        totalPendingTransactions: isCredit ? 1 : 0,
+        totalUnpaidTransactions: isCredit ? 1 : 0,
         lastTransactionDate: DateTime.now(),
       );
       batch.set(customerRef, newCustomer.toMap());
@@ -299,7 +299,7 @@ class CreditRepository {
       paidAmount: isCredit ? 0.0 : amount,
       remainingAmount: isCredit ? amount : 0.0,
       status: isCredit
-          ? CreditTransactionStatus.pending
+          ? CreditTransactionStatus.unpaid
           : CreditTransactionStatus.paid,
       date: DateTime.now(),
       title: title,
@@ -342,7 +342,7 @@ class CreditRepository {
     if (existingCustomerDoc != null) {
       transaction.update(customerRef, {
         if (isCredit) 'outstandingAmount': FieldValue.increment(amount),
-        if (isCredit) 'totalPendingTransactions': FieldValue.increment(1),
+        if (isCredit) 'totalUnpaidTransactions': FieldValue.increment(1),
         'lastTransactionDate': Timestamp.now(),
       });
     } else {
@@ -350,7 +350,7 @@ class CreditRepository {
         id: customerRef.id,
         name: customerName,
         outstandingAmount: isCredit ? amount : 0.0,
-        totalPendingTransactions: isCredit ? 1 : 0,
+        totalUnpaidTransactions: isCredit ? 1 : 0,
         lastTransactionDate: DateTime.now(),
       );
       transaction.set(customerRef, newCustomer.toMap());
@@ -366,7 +366,7 @@ class CreditRepository {
       paidAmount: isCredit ? 0.0 : amount,
       remainingAmount: isCredit ? amount : 0.0,
       status: isCredit
-          ? CreditTransactionStatus.pending
+          ? CreditTransactionStatus.unpaid
           : CreditTransactionStatus.paid,
       date: DateTime.now(),
       title: title,
@@ -455,15 +455,15 @@ class CreditRepository {
       final targetOutstanding =
           (targetData['outstandingAmount'] as num?)?.toDouble() ?? 0.0;
 
-      final sourcePendingCount =
-          (sourceData['totalPendingTransactions'] as num?)?.toInt() ?? 0;
-      final targetPendingCount =
-          (targetData['totalPendingTransactions'] as num?)?.toInt() ?? 0;
+      final sourceUnpaidCount =
+          (sourceData['totalUnpaidTransactions'] as num?)?.toInt() ?? 0;
+      final targetUnpaidCount =
+          (targetData['totalUnpaidTransactions'] as num?)?.toInt() ?? 0;
 
       // Update target customer
       tx.update(targetRef, {
         'outstandingAmount': targetOutstanding + sourceOutstanding,
-        'totalPendingTransactions': targetPendingCount + sourcePendingCount,
+        'totalUnpaidTransactions': targetUnpaidCount + sourceUnpaidCount,
       });
 
       // Move transactions
@@ -493,7 +493,7 @@ class CreditRepository {
 
   /// Cascade deletes credit transactions for deleted games.
   /// Executes a two-phase process: validates that no associated transaction has been settled,
-  /// then deletes pending records and recalculates customer outstanding balances.
+  /// then deletes unpaid records and recalculates customer outstanding balances.
   Future<void> cascadeDeleteGameCredits(List<GameSession> sessions) async {
     if (AppConfig.guardWrite('CreditRepository.cascadeDeleteGameCredits'))
       return;
@@ -617,7 +617,7 @@ class CreditRepository {
       double.parse((totalCharges - totalPayments).toStringAsFixed(2)),
     );
     double remainingToCover = outstanding;
-    int pendingCount = 0;
+    int unpaidCount = 0;
 
     final batch = _firestore.batch();
     final gamesCollection = _clubRef.collection(
@@ -642,15 +642,15 @@ class CreditRepository {
         if (remainingToCover >= originalAmount) {
           txRemaining = originalAmount;
           txPaid = 0.0;
-          newStatus = CreditTransactionStatus.pending.name;
+          newStatus = CreditTransactionStatus.unpaid.name;
           remainingToCover = math.max(0.0, remainingToCover - originalAmount);
-          pendingCount++;
+          unpaidCount++;
         } else if (remainingToCover > 0) {
           txRemaining = remainingToCover;
           txPaid = originalAmount - remainingToCover;
           newStatus = CreditTransactionStatus.partiallyPaid.name;
           remainingToCover = 0.0;
-          pendingCount++;
+          unpaidCount++;
         } else {
           txRemaining = 0.0;
           txPaid = originalAmount;
@@ -665,7 +665,7 @@ class CreditRepository {
 
         if (refId.isNotEmpty) {
           String displayStatus =
-              newStatus == CreditTransactionStatus.pending.name
+              newStatus == CreditTransactionStatus.unpaid.name
               ? 'Outstanding'
               : newStatus == CreditTransactionStatus.partiallyPaid.name
               ? 'Partially Paid'
@@ -700,7 +700,7 @@ class CreditRepository {
 
     batch.update(_creditsRef.doc(customerId), {
       'outstandingAmount': outstanding,
-      'totalPendingTransactions': pendingCount,
+      'totalUnpaidTransactions': unpaidCount,
     });
 
     await batch.commit();
@@ -1001,7 +1001,7 @@ class CreditRepository {
         id: customerRef.id,
         name: customerName,
         outstandingAmount: 0.0,
-        totalPendingTransactions: 0,
+        totalUnpaidTransactions: 0,
         lastTransactionDate: DateTime.now(),
       );
       await customerRef.set(newCustomer.toMap());
@@ -1016,7 +1016,7 @@ class CreditRepository {
       amount: amount,
       paidAmount: 0.0,
       remainingAmount: amount,
-      status: CreditTransactionStatus.pending,
+      status: CreditTransactionStatus.unpaid,
       date: DateTime.now(),
       title: title,
       subtitle: subtitle,
@@ -1061,7 +1061,7 @@ class CreditRepository {
       if (isCredit) {
         batch.update(_creditsRef.doc(customer.id), {
           'outstandingAmount': FieldValue.increment(-originalAmount),
-          'totalPendingTransactions': FieldValue.increment(-1),
+          'totalUnpaidTransactions': FieldValue.increment(-1),
         });
       }
     }

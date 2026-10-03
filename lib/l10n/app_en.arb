@@ -19,7 +19,7 @@
   "settings": "Settings",
   "todaysRevenue": "Today's Revenue",
   "runningTables": "Running Tables",
-  "pendingCredits": "Pending Credits",
+  "outstandingCredits": "Outstanding Credits",
   "lowStockAlert": "Low Stock Alert",
   "comingSoon": "Coming Soon",
   "cancel": "Cancel",

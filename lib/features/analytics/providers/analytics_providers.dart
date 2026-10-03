@@ -268,6 +268,7 @@ RevenueOverviewData _computeRevenue(
   List<QuickSale> quickSales,
   List<PaymentHistory> payments,
   double outstanding,
+  double pendingBillsAmount,
 ) {
   double totalBilled = 0;
   double totalGameBilled = 0;
@@ -278,7 +279,7 @@ RevenueOverviewData _computeRevenue(
   double creditCollected = 0;
 
   for (final g in games) {
-    if (g.status != TableStatus.available || g.paymentStatus == 'pending' || g.isCancelled) {
+    if (g.status != TableStatus.available || g.paymentStatus == 'Unpaid' || g.isCancelled) {
       continue;
     }
 
@@ -330,6 +331,7 @@ RevenueOverviewData _computeRevenue(
     creditCreated: creditCreated,
     creditCollected: creditCollected,
     outstandingCredit: outstanding,
+    pendingBillsAmount: pendingBillsAmount,
     totalGameBilled: totalGameBilled,
     totalQuickSaleBilled: totalQuickSaleBilled,
   );
@@ -359,6 +361,8 @@ String _getTrendLabel(DateTime date, AnalyticsTimeFilter filter) {
 CompleteAnalyticsData getCompleteAnalyticsData(dynamic ref) {
   final AnalyticsTimeRange timeRange = ref.watch(analyticsTimeRangeProvider);
   final double outstanding = ref.watch(totalOutstandingCreditProvider);
+  final pendingBillsList = ref.watch(pendingBillsProvider).value ?? [];
+  final double pendingBillsAmount = pendingBillsList.fold(0.0, (sum, bill) => sum + (bill.finalAmount ?? bill.grandTotal ?? 0.0));
 
   final List<GameSession> games =
       ref.watch(analyticsGamesStreamProvider).value ?? <GameSession>[];
@@ -384,12 +388,14 @@ CompleteAnalyticsData getCompleteAnalyticsData(dynamic ref) {
     quickSales,
     payments,
     outstanding,
+    pendingBillsAmount,
   );
   final prevOverview = _computeRevenue(
     prevGames,
     prevQuickSales,
     prevPayments,
     outstanding,
+    0.0,
   );
 
   // Constants for calculations
@@ -426,7 +432,7 @@ CompleteAnalyticsData getCompleteAnalyticsData(dynamic ref) {
   double totalCogs = 0;
 
   for (final g in games) {
-    if (g.status != TableStatus.available || g.paymentStatus == 'pending' || g.isCancelled) {
+    if (g.status != TableStatus.available || g.paymentStatus == 'Unpaid' || g.isCancelled) {
       continue;
     }
 
@@ -666,8 +672,8 @@ CompleteAnalyticsData getCompleteAnalyticsData(dynamic ref) {
   }
   int newCust = uniqueCustomers.length - repeatCust;
 
-  // Credit Pending Customers Count
-  int pendingCustCount = allCustomers
+  // Credit Unpaid Customers Count
+  int unpaidCustCount = allCustomers
       .where((c) => c.outstandingAmount > 0)
       .length;
 
@@ -752,7 +758,7 @@ CompleteAnalyticsData getCompleteAnalyticsData(dynamic ref) {
       creditCollected: revenueOverview.creditCollected,
       currentOutstanding: revenueOverview.outstandingCredit,
       numberOfCreditTransactions: payments.length,
-      pendingCustomersCount: pendingCustCount,
+      unpaidCustomersCount: unpaidCustCount,
       averageCreditAmount: payments.isNotEmpty
           ? (revenueOverview.creditCollected / payments.length)
           : 0,

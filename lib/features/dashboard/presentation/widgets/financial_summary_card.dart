@@ -124,14 +124,22 @@ class FinancialSummaryCard extends ConsumerWidget {
                     theme,
                     color: AppColors.warning,
                   ),
-                  if (!forSelectedDate)
+                  if (!forSelectedDate) ...[
                     _buildRow(
-                      "Pending Credit",
+                      "Outstanding Credit",
                       summary.outstandingCredit,
                       currency,
                       theme,
                       color: AppColors.error,
                     ),
+                                    _buildRow(
+                      'Pending Bills',
+                      summary.pendingBillsAmount,
+                      currency,
+                      theme,
+                      color: Colors.orange,
+                    ),
+                  ],
                 ],
               );
             },

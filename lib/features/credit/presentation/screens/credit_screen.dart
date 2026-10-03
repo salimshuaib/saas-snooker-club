@@ -135,7 +135,7 @@ class _KhataGlobalHeader extends ConsumerWidget {
           0.0,
           (sum, c) => sum + c.outstandingAmount,
         );
-        final pendingPlayers = allCustomers
+        final unpaidPlayers = allCustomers
             .where((c) => c.outstandingAmount > 0)
             .length;
         final todayReceived = todayReceivedAsync.value ?? 0.0;
@@ -164,8 +164,8 @@ class _KhataGlobalHeader extends ConsumerWidget {
               const Gap(8),
               Expanded(
                 child: _SummaryCard(
-                  title: 'Pending',
-                  value: '${pendingPlayers}',
+                  title: 'Unpaid',
+                  value: '${unpaidPlayers}',
                   icon: Icons.people,
                   color: AppColors.warning,
                 ),
@@ -275,7 +275,7 @@ class _CustomersBodyState extends ConsumerState<_CustomersBody> {
             _searchQuery.toLowerCase(),
           );
           final hasCredit =
-              c.outstandingAmount > 0 || c.totalPendingTransactions > 0;
+              c.outstandingAmount > 0 || c.totalUnpaidTransactions > 0;
           return matchesSearch && hasCredit;
         }).toList();
 

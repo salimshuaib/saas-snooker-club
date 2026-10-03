@@ -19,9 +19,12 @@ import 'package:snooker_club/features/games/presentation/widgets/payer_selection
 import 'package:snooker_club/features/games/presentation/widgets/player_split_payment_sheet.dart';
 import 'package:snooker_club/features/games/presentation/widgets/pending_bill_customer_sheet.dart';
 import 'package:snooker_club/features/credit/presentation/widgets/player_search_field.dart';
+import 'package:snooker_club/features/credit/domain/models/credit_models.dart';
+import 'package:snooker_club/features/credit/providers/credit_providers.dart';
 import 'package:snooker_club/features/games/presentation/widgets/upi_qr_dialog.dart';
 import 'package:snooker_club/features/games/presentation/widgets/audit_log_sheet.dart';
 import 'package:snooker_club/features/games/presentation/widgets/orders_sheet.dart';
+import 'package:snooker_club/features/games/presentation/widgets/payment_complete_modal.dart';
 
 class BillingScreen extends ConsumerStatefulWidget {
   final GameSession session;
@@ -54,6 +57,8 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
   final Map<String, TextEditingController> _liabilityControllers = {};
 
   bool _liabilitiesInitialized = false;
+  bool _applyOvertimeCharges = false;
+  double? _manualSelectedFinalAmount;
 
   @override
   void initState() {
@@ -461,20 +466,19 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
     final double discountedGame = _gameCharge - _discountAmount;
 
     if (_selectedPayers.isNotEmpty) {
-      final rawShare = discountedGame / _selectedPayers.length;
-      double roundedShare = BillingUtils.roundAmount(rawShare);
-
-      // Protect minimum bill from split rounding loss
       final expectedMinimum = _session.isMinimumBillEnabled 
           ? (_session.minimumBillAmount - _discountAmount) 
           : 0.0;
       
-      while ((roundedShare * _selectedPayers.length) < expectedMinimum) {
-        roundedShare += 5.0;
+      double roundedGame = BillingUtils.roundAmount(discountedGame);
+      if (roundedGame < expectedMinimum) {
+        roundedGame = expectedMinimum;
       }
 
+      final rawShare = roundedGame / _selectedPayers.length;
+
       for (final p in _selectedPayers) {
-        liabilities[p] = roundedShare;
+        liabilities[p] = rawShare;
       }
     }
 
@@ -496,6 +500,29 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
       final split = g.calculatedAmount / splitGroup.length;
       for (final p in splitGroup) {
         liabilities[p] = (liabilities[p] ?? 0.0) + split;
+      }
+    }
+
+    final appSettings = ref.read(appSettingsProvider);
+    final billingFeatures = appSettings.billingFeatures;
+
+    if (billingFeatures.manualFinalAmountEnabled && _manualSelectedFinalAmount != null) {
+      // Direct distribution of the selected final amount
+      final total = _manualSelectedFinalAmount!;
+      final split = total / splitGroup.length;
+      
+      // Clear previous calculations and just distribute the final amount evenly
+      for (final p in _session.allPlayers) {
+        liabilities[p] = 0.0;
+      }
+      for (final p in splitGroup) {
+        liabilities[p] = split;
+      }
+    } else {
+      if (_session.tableType != TableType.arcade && !billingFeatures.manualFinalAmountEnabled) {
+        for (final p in _session.allPlayers) {
+          liabilities[p] = BillingUtils.roundAmount(liabilities[p] ?? 0.0);
+        }
       }
     }
 
@@ -558,7 +585,16 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
     );
   }
 
-  double get _gameCharge => _breakdown.totalCharge;
+  double get _gameCharge {
+    final bool canHaveOvertime = _session.billingType == BillingType.oneHour ||
+        _session.billingType == BillingType.halfHour ||
+        _session.billingType == BillingType.customMinute;
+
+    if (canHaveOvertime && !_applyOvertimeCharges) {
+      return _breakdown.baseCharge + _breakdown.minimumBillAdjustment;
+    }
+    return _breakdown.totalCharge;
+  }
   double get _baseGameCharge => _breakdown.baseCharge;
   int get _overtimeMinutes => _breakdown.overtimeMinutes;
   double get _overtimeCharge => _breakdown.overtimeCharge;
@@ -579,29 +615,36 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
       return _finalTotal;
     }
     
+    if (_customLiabilities.isNotEmpty) {
+      return _customLiabilities.values.fold(0.0, (s, v) => s + v);
+    }
+
+    final appSettings = ref.read(appSettingsProvider);
+    final billingFeatures = appSettings.billingFeatures;
+
+    if (billingFeatures.manualFinalAmountEnabled) {
+      if (_manualSelectedFinalAmount != null) {
+        return _manualSelectedFinalAmount!;
+      }
+      // If not yet selected, the authoritative calculated amount is the unrounded total.
+      // Make sure minimum bill applies first.
+      final expectedMinimum = _session.isMinimumBillEnabled 
+          ? (_session.minimumBillAmount - _discountAmount) 
+          : 0.0;
+      double baseTotal = _discountedGameCharge;
+      if (baseTotal < expectedMinimum) {
+        baseTotal = expectedMinimum;
+      }
+      return baseTotal + _ordersTotal + _manualGamesTotal;
+    }
+
     final expectedMinimum = _session.isMinimumBillEnabled 
         ? (_session.minimumBillAmount - _discountAmount) 
         : 0.0;
 
-    if (_isMultiPayer) {
-      if (_selectedPayers.isEmpty) return _finalTotal;
-      final rawShare = _discountedGameCharge / _selectedPayers.length;
-      double roundedShare = BillingUtils.roundAmount(rawShare);
-      
-      // Protect minimum bill from split rounding loss
-      while ((roundedShare * _selectedPayers.length) < expectedMinimum) {
-        roundedShare += 5.0;
-      }
-      
-      return (roundedShare * _selectedPayers.length) + _ordersTotal + _manualGamesTotal;
-    }
-    
-    // Single payer: Round the discounted game charge, then add exact orders
     double roundedGame = BillingUtils.roundAmount(_discountedGameCharge);
-    
-    // Protect minimum bill from rounding loss
-    while (roundedGame < expectedMinimum) {
-      roundedGame += 5.0;
+    if (roundedGame < expectedMinimum) {
+      roundedGame = expectedMinimum;
     }
     
     return roundedGame + _ordersTotal + _manualGamesTotal;
@@ -932,6 +975,29 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
                       label: 'Orders Total',
                       value: '\u20B9${_ordersTotal.toStringAsFixed(2)}',
                     ),
+                    
+                  if ((_session.billingType == BillingType.oneHour ||
+                       _session.billingType == BillingType.halfHour ||
+                       _session.billingType == BillingType.customMinute) &&
+                      _overtimeMinutes > 0) ...[
+                    const Gap(16),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text('Apply Overtime Charges', style: theme.textTheme.titleSmall),
+                        Switch(
+                          value: _applyOvertimeCharges,
+                          onChanged: (val) {
+                            setState(() {
+                              _applyOvertimeCharges = val;
+                              _initializeLiabilities();
+                            });
+                          },
+                        ),
+                      ],
+                    ),
+                  ],
+
                   // ── Discount ──
                   const Gap(16),
                   Row(
@@ -1130,6 +1196,32 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
                       ),
                     ],
                   ),
+                  if (appSettings.billingFeatures.manualFinalAmountEnabled) ...[
+                    const Gap(16),
+                    Text('Select Final Amount', style: theme.textTheme.titleSmall),
+                    const Gap(8),
+                    Wrap(
+                      spacing: 8,
+                      children: BillingUtils.generateFinalAmountOptions(
+                        _finalTotal, 
+                        incrementPaise: appSettings.billingFeatures.incrementPaise
+                      ).map((opt) {
+                        final isSelected = _manualSelectedFinalAmount == opt;
+                        return ChoiceChip(
+                          label: Text('\u20B9${opt.toStringAsFixed(0)}'),
+                          selected: isSelected,
+                          onSelected: (selected) {
+                            if (selected) {
+                              setState(() {
+                                _manualSelectedFinalAmount = opt;
+                                _initializeLiabilities();
+                              });
+                            }
+                          },
+                        );
+                      }).toList(),
+                    ),
+                  ],
                 ],
               ),
               const Gap(16),
@@ -1736,50 +1828,34 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
 
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Customer Name for Credit'),
-        content: TextField(
-          controller: nameCtrl,
-          decoration: const InputDecoration(hintText: 'Enter real name'),
-          autofocus: true,
-          textCapitalization: TextCapitalization.words,
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            onPressed: () async {
-              if (nameCtrl.text.trim().isNotEmpty) {
-                setState(() {
-                  if (!_isMultiPayer) {
-                    _PlayerProfileName = nameCtrl.text.trim();
-                  } else {
-                    _renamedPlayers[defaultName] = nameCtrl.text.trim();
-                  }
-                  if (autoConfirm || setMethod) {
-                    _paymentMethod = PaymentMethod.credit;
-                    _playerPaymentSplits[defaultName] = {
-                      PaymentMethod.credit: !_isMultiPayer
-                          ? _roundedTotal
-                          : (_customLiabilities[defaultName] ?? 0.0),
-                    };
-                  }
-                });
-                Navigator.pop(ctx);
-                if (autoConfirm) {
-                  // Wait for dialog exit animation to finish before navigating away
-                  await Future.delayed(const Duration(milliseconds: 300));
-                  if (mounted) {
-                    _confirmPayment();
-                  }
-                }
+      builder: (ctx) => _CreditCustomerSearchDialog(
+        initialName: initialText,
+        autoConfirm: autoConfirm,
+        onSelected: (selectedName) async {
+          if (selectedName.isNotEmpty) {
+            setState(() {
+              if (!_isMultiPayer) {
+                _PlayerProfileName = selectedName;
+              } else {
+                _renamedPlayers[defaultName] = selectedName;
               }
-            },
-            child: Text(autoConfirm ? 'Record Payment' : 'Save'),
-          ),
-        ],
+              if (autoConfirm || setMethod) {
+                _paymentMethod = PaymentMethod.credit;
+                _playerPaymentSplits[defaultName] = {
+                  PaymentMethod.credit: !_isMultiPayer
+                      ? _roundedTotal
+                      : (_customLiabilities[defaultName] ?? 0.0),
+                };
+              }
+            });
+            if (autoConfirm) {
+              await Future.delayed(const Duration(milliseconds: 300));
+              if (mounted) {
+                _confirmPayment();
+              }
+            }
+          }
+        },
       ),
     );
   }
@@ -1808,6 +1884,7 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
         grandTotal: _finalTotal,
         roundedAmount: _roundedTotal,
         finalAmount: _roundedTotal,
+        manualSelectedFinalAmount: _manualSelectedFinalAmount,
         discountAmount: _discountAmount,
         playerPaymentSplits: _playerPaymentSplits,
         playerLiabilities: _customLiabilities,
@@ -2076,12 +2153,14 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
       grandTotal: _grandTotal,
       roundedAmount: _roundedTotal,
       finalAmount: _roundedTotal,
+      manualSelectedFinalAmount: _manualSelectedFinalAmount,
+      discountAmount: _discountAmount,
       date: finalDate,
       paidBy:
           (_paymentMethod == PaymentMethod.credit && !_isMultiPayer && !isSplit)
           ? _PlayerProfileName
           : null,
-      paymentMethod: (!isSplit) ? _paymentMethod : null,
+      paymentMethod: (!_isMultiPayer && !isSplit) ? _paymentMethod : null,
     );
 
     try {
@@ -2371,6 +2450,223 @@ class _ExpandableSessionCardState extends State<_ExpandableSessionCard> {
           ),
         ),
       ),
+    );
+  }
+}
+
+class _CreditCustomerSearchDialog extends ConsumerStatefulWidget {
+  final String initialName;
+  final bool autoConfirm;
+  final Function(String selectedName) onSelected;
+
+  const _CreditCustomerSearchDialog({
+    required this.initialName,
+    required this.autoConfirm,
+    required this.onSelected,
+  });
+
+  @override
+  ConsumerState<_CreditCustomerSearchDialog> createState() =>
+      __CreditCustomerSearchDialogState();
+}
+
+class __CreditCustomerSearchDialogState
+    extends ConsumerState<_CreditCustomerSearchDialog> {
+  late TextEditingController _searchController;
+  List<PlayerProfile> _filteredCustomers = [];
+  bool _isNewCustomer = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _searchController = TextEditingController(text: widget.initialName);
+    _searchController.addListener(_onSearchChanged);
+    _filteredCustomers = ref.read(allCustomersProvider).asData?.value ?? [];
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  void _onSearchChanged() {
+    final query = _searchController.text.trim().toLowerCase();
+    final all = ref.read(allCustomersProvider).asData?.value ?? [];
+
+    setState(() {
+      if (query.isEmpty) {
+        _filteredCustomers = all;
+        _isNewCustomer = false;
+      } else {
+        _filteredCustomers = all.where((c) {
+          final matchesName = c.name.toLowerCase().contains(query);
+          final matchesPhone =
+              c.mobileNumber != null && c.mobileNumber!.contains(query);
+          return matchesName || matchesPhone;
+        }).toList();
+
+        _isNewCustomer =
+            !_filteredCustomers.any((c) => c.name.toLowerCase() == query);
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final customersAsync = ref.watch(allCustomersProvider);
+
+    return AlertDialog(
+      title: const Text('Customer Name for Credit'),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      content: SizedBox(
+        width: 420,
+        height: 380,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            TextField(
+              controller: _searchController,
+              autofocus: true,
+              textCapitalization: TextCapitalization.words,
+              decoration: InputDecoration(
+                hintText: 'Search customer name or phone...',
+                prefixIcon: const Icon(Icons.search),
+                suffixIcon: _searchController.text.isNotEmpty
+                    ? IconButton(
+                        icon: const Icon(Icons.clear),
+                        onPressed: () => _searchController.clear(),
+                      )
+                    : null,
+                filled: true,
+                fillColor: theme.colorScheme.surfaceContainerHighest,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide.none,
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+            Expanded(
+              child: customersAsync.when(
+                data: (allCustomers) {
+                  final query = _searchController.text.trim();
+
+                  return ListView(
+                    shrinkWrap: true,
+                    children: [
+                      if (_isNewCustomer && query.isNotEmpty)
+                        ListTile(
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          tileColor: theme.colorScheme.primaryContainer
+                              .withOpacity(0.3),
+                          leading: CircleAvatar(
+                            backgroundColor: theme.colorScheme.primary,
+                            child: const Icon(
+                              Icons.person_add,
+                              color: Colors.white,
+                              size: 20,
+                            ),
+                          ),
+                          title: Text(
+                            'Use "$query"',
+                            style: TextStyle(
+                              color: theme.colorScheme.primary,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          subtitle: const Text('New Customer Profile'),
+                          onTap: () {
+                            widget.onSelected(query);
+                            Navigator.pop(context);
+                          },
+                        ),
+                      ..._filteredCustomers.map((c) {
+                        return ListTile(
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          leading: CircleAvatar(
+                            backgroundColor:
+                                theme.colorScheme.secondaryContainer,
+                            child: Text(
+                              c.name.isNotEmpty ? c.name[0].toUpperCase() : '?',
+                              style: TextStyle(
+                                color: theme.colorScheme.onSecondaryContainer,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                          title: Text(
+                            c.name,
+                            style: const TextStyle(fontWeight: FontWeight.w600),
+                          ),
+                          subtitle: Text(
+                            c.mobileNumber != null && c.mobileNumber!.isNotEmpty
+                                ? '📱 ${c.mobileNumber}'
+                                : 'Khata Account',
+                            style: TextStyle(
+                              color: theme.colorScheme.onSurfaceVariant,
+                              fontSize: 12,
+                            ),
+                          ),
+                          trailing: c.outstandingAmount > 0
+                              ? Text(
+                                  'Due: ₹${c.outstandingAmount.toStringAsFixed(0)}',
+                                  style: const TextStyle(
+                                    color: AppColors.error,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 12,
+                                  ),
+                                )
+                              : null,
+                          onTap: () {
+                            widget.onSelected(c.name);
+                            Navigator.pop(context);
+                          },
+                        );
+                      }),
+                      if (_filteredCustomers.isEmpty && !_isNewCustomer)
+                        const Padding(
+                          padding: EdgeInsets.all(24.0),
+                          child: Center(
+                            child: Text(
+                              'No existing customers found.\nType a name above to create a new customer.',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(color: Colors.grey),
+                            ),
+                          ),
+                        ),
+                    ],
+                  );
+                },
+                loading: () => const Center(child: CircularProgressIndicator()),
+                error: (err, _) =>
+                    Center(child: Text('Error loading customers: $err')),
+              ),
+            ),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Cancel'),
+        ),
+        FilledButton(
+          onPressed: () {
+            final name = _searchController.text.trim();
+            if (name.isNotEmpty) {
+              widget.onSelected(name);
+              Navigator.pop(context);
+            }
+          },
+          child: Text(widget.autoConfirm ? 'Record Payment' : 'Save'),
+        ),
+      ],
     );
   }
 }
