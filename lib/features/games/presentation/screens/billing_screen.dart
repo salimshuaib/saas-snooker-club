@@ -1901,7 +1901,7 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
             backgroundColor: Colors.orange,
           ),
         );
-        Navigator.of(context).pop();
+        Navigator.of(context).popUntil((route) => route.isFirst);
       }
     } catch (e) {
       if (mounted) {
@@ -2176,7 +2176,7 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
           ),
         );
         if (Navigator.of(context).canPop()) {
-          Navigator.of(context).pop();
+          Navigator.of(context).popUntil((route) => route.isFirst);
         } else {
           ref.read(appRouterProvider).go('/');
         }
@@ -2473,43 +2473,20 @@ class _CreditCustomerSearchDialog extends ConsumerStatefulWidget {
 class __CreditCustomerSearchDialogState
     extends ConsumerState<_CreditCustomerSearchDialog> {
   late TextEditingController _searchController;
-  List<PlayerProfile> _filteredCustomers = [];
-  bool _isNewCustomer = false;
 
   @override
   void initState() {
     super.initState();
     _searchController = TextEditingController(text: widget.initialName);
-    _searchController.addListener(_onSearchChanged);
-    _filteredCustomers = ref.read(allCustomersProvider).asData?.value ?? [];
+    _searchController.addListener(() {
+      setState(() {}); // Rebuild on typing
+    });
   }
 
   @override
   void dispose() {
     _searchController.dispose();
     super.dispose();
-  }
-
-  void _onSearchChanged() {
-    final query = _searchController.text.trim().toLowerCase();
-    final all = ref.read(allCustomersProvider).asData?.value ?? [];
-
-    setState(() {
-      if (query.isEmpty) {
-        _filteredCustomers = all;
-        _isNewCustomer = false;
-      } else {
-        _filteredCustomers = all.where((c) {
-          final matchesName = c.name.toLowerCase().contains(query);
-          final matchesPhone =
-              c.mobileNumber != null && c.mobileNumber!.contains(query);
-          return matchesName || matchesPhone;
-        }).toList();
-
-        _isNewCustomer =
-            !_filteredCustomers.any((c) => c.name.toLowerCase() == query);
-      }
-    });
   }
 
   @override
@@ -2551,12 +2528,26 @@ class __CreditCustomerSearchDialogState
             Expanded(
               child: customersAsync.when(
                 data: (allCustomers) {
-                  final query = _searchController.text.trim();
+                  final rawQuery = _searchController.text.trim();
+                  final query = rawQuery.toLowerCase();
+                  
+                  List<PlayerProfile> filteredCustomers = allCustomers;
+                  bool isNewCustomer = false;
+                  
+                  if (query.isNotEmpty) {
+                    filteredCustomers = allCustomers.where((c) {
+                      final matchesName = c.name.toLowerCase().contains(query);
+                      final matchesPhone =
+                          c.mobileNumber != null && c.mobileNumber!.contains(query);
+                      return matchesName || matchesPhone;
+                    }).toList();
+                    isNewCustomer = !filteredCustomers.any((c) => c.name.toLowerCase() == query);
+                  }
 
                   return ListView(
                     shrinkWrap: true,
                     children: [
-                      if (_isNewCustomer && query.isNotEmpty)
+                      if (isNewCustomer && rawQuery.isNotEmpty)
                         ListTile(
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(8),
@@ -2572,7 +2563,7 @@ class __CreditCustomerSearchDialogState
                             ),
                           ),
                           title: Text(
-                            'Use "$query"',
+                            'Use "$rawQuery"',
                             style: TextStyle(
                               color: theme.colorScheme.primary,
                               fontWeight: FontWeight.bold,
@@ -2580,11 +2571,11 @@ class __CreditCustomerSearchDialogState
                           ),
                           subtitle: const Text('New Customer Profile'),
                           onTap: () {
-                            widget.onSelected(query);
+                            widget.onSelected(rawQuery);
                             Navigator.pop(context);
                           },
                         ),
-                      ..._filteredCustomers.map((c) {
+                      ...filteredCustomers.map((c) {
                         return ListTile(
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(8),
@@ -2629,7 +2620,7 @@ class __CreditCustomerSearchDialogState
                           },
                         );
                       }),
-                      if (_filteredCustomers.isEmpty && !_isNewCustomer)
+                      if (filteredCustomers.isEmpty && !isNewCustomer)
                         const Padding(
                           padding: EdgeInsets.all(24.0),
                           child: Center(

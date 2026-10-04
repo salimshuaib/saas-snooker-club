@@ -243,6 +243,8 @@ class _BillDetailsScreenState extends ConsumerState<BillDetailsScreen> {
                   child: _SectionCard(
                     children: [
                       _InfoRow(label: 'Table Name', value: session.tableName),
+                      if (session.floorName != null && session.floorName!.isNotEmpty)
+                        _InfoRow(label: 'Floor', value: session.floorName!),
                       _InfoRow(
                         label: 'Game Type',
                         value: session.billingType.displayName,

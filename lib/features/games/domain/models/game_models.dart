@@ -220,6 +220,8 @@ class TableModel {
   final double minimumBillAmount;
   final bool allowCustomPrice;
   final bool isTimeNotSure;
+  final String? floorId;
+  final String? floorName;
 
   const TableModel({
     required this.id,
@@ -233,6 +235,8 @@ class TableModel {
     this.minimumBillAmount = 0.0,
     this.allowCustomPrice = false,
     this.isTimeNotSure = false,
+    this.floorId,
+    this.floorName,
   });
 
   TableModel copyWith({
@@ -247,6 +251,8 @@ class TableModel {
     double? minimumBillAmount,
     bool? allowCustomPrice,
     bool? isTimeNotSure,
+    String? floorId,
+    String? floorName,
   }) {
     return TableModel(
       id: id ?? this.id,
@@ -260,6 +266,8 @@ class TableModel {
       minimumBillAmount: minimumBillAmount ?? this.minimumBillAmount,
       allowCustomPrice: allowCustomPrice ?? this.allowCustomPrice,
       isTimeNotSure: isTimeNotSure ?? this.isTimeNotSure,
+      floorId: floorId ?? this.floorId,
+      floorName: floorName ?? this.floorName,
     );
   }
 
@@ -277,6 +285,8 @@ class TableModel {
       'minimumBillAmount': minimumBillAmount,
       'allowCustomPrice': allowCustomPrice,
       'isTimeNotSure': isTimeNotSure,
+      'floorId': floorId,
+      'floorName': floorName,
     };
   }
 
@@ -306,6 +316,8 @@ class TableModel {
       minimumBillAmount: (map['minimumBillAmount'] as num?)?.toDouble() ?? 0.0,
       allowCustomPrice: map['allowCustomPrice'] as bool? ?? false,
       isTimeNotSure: map['isTimeNotSure'] as bool? ?? false,
+      floorId: map['floorId'] as String?,
+      floorName: map['floorName'] as String?,
     );
   }
 }
@@ -620,6 +632,8 @@ class GameSession {
   final String tableId;
   final String tableName;
   final TableType tableType;
+  final String? floorId;
+  final String? floorName;
   final GameType gameType;
   final int? targetPoints;
   final Map<String, int>? playerPoints;
@@ -700,6 +714,8 @@ class GameSession {
     required this.tableId,
     required this.tableName,
     required this.tableType,
+    this.floorId,
+    this.floorName,
     this.gameType = GameType.standard,
     this.targetPoints,
     this.playerPoints,
@@ -827,6 +843,8 @@ class GameSession {
     String? tableId,
     String? tableName,
     TableType? tableType,
+    String? floorId,
+    String? floorName,
     GameType? gameType,
     int? targetPoints,
     Map<String, int>? playerPoints,
@@ -904,6 +922,8 @@ class GameSession {
       tableId: tableId ?? this.tableId,
       tableName: tableName ?? this.tableName,
       tableType: tableType ?? this.tableType,
+      floorId: floorId ?? this.floorId,
+      floorName: floorName ?? this.floorName,
       gameType: gameType ?? this.gameType,
       targetPoints: targetPoints ?? this.targetPoints,
       playerPoints: playerPoints ?? this.playerPoints,
@@ -985,6 +1005,8 @@ class GameSession {
       'tableId': tableId,
       'tableName': tableName,
       'tableType': tableType.name,
+      'floorId': floorId,
+      'floorName': floorName,
       'gameCategory': tableType.isOtherGame ? 'other_game' : 'table_game',
       'gameType': gameType.name,
       'targetPoints': targetPoints,
@@ -1087,6 +1109,8 @@ class GameSession {
         (t) => t.name == map['tableType'],
         orElse: () => TableType.snooker,
       ),
+      floorId: map['floorId'] as String?,
+      floorName: map['floorName'] as String?,
       mode: GameMode.values.firstWhere(
         (m) => m.name == map['mode'],
         orElse: () => GameMode.solo,

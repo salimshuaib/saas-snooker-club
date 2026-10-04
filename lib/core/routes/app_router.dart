@@ -21,6 +21,7 @@ import 'package:snooker_club/features/credit/presentation/screens/players_screen
 import 'package:snooker_club/features/credit/presentation/screens/player_profile_screen.dart';
 import 'package:snooker_club/features/credit/domain/models/credit_models.dart';
 import 'package:snooker_club/features/dashboard/presentation/screens/dashboard_screen.dart';
+import 'package:snooker_club/features/floors/presentation/screens/floor_management_screen.dart';
 import 'package:snooker_club/features/bookings/presentation/screens/booking_management_screen.dart';
 import 'package:snooker_club/features/dashboard/presentation/screens/financial_review_screen.dart';
 import 'package:snooker_club/features/dashboard/presentation/screens/main_screen.dart';
@@ -321,6 +322,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           path: RouteNames.bookings,
           builder: (context, state) =>
               const TickerMode(enabled: true, child: BookingManagementScreen()),
+        ),
+        GoRoute(
+          path: RouteNames.floorManagement,
+          builder: (context, state) =>
+              const TickerMode(enabled: true, child: FloorManagementScreen()),
         ),
         GoRoute(
           path: RouteNames.games,

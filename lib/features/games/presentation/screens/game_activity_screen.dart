@@ -11,6 +11,8 @@ import 'package:snooker_club/features/games/domain/models/game_models.dart';
 import 'package:snooker_club/features/games/providers/games_providers.dart';
 import 'package:snooker_club/features/games/presentation/widgets/game_activity_card.dart';
 import 'package:snooker_club/core/widgets/modals/app_modal.dart';
+import 'package:snooker_club/features/floors/presentation/widgets/floor_selector_sheet.dart';
+import 'package:snooker_club/features/floors/providers/floor_providers.dart';
 
 class GameActivityScreen extends ConsumerWidget {
   const GameActivityScreen({super.key});
@@ -18,11 +20,13 @@ class GameActivityScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
-    final tablesAsync = ref.watch(resolvedTablesProvider);
+    final tablesAsync = ref.watch(floorFilteredTablesProvider);
     final club = ref.watch(clubProfileProvider).value;
     final clubName = club?.clubName ?? 'Loading...';
 
     final currentStaff = ref.watch(currentStaffProvider).value;
+    final selectedFloor = ref.watch(selectedFloorProvider);
+    final isFloorsEnabled = ref.watch(hasFloorsProvider);
 
     String currentUserName = currentStaff?.name ?? 'Admin';
     if (currentStaff?.role == StaffRole.owner ||
@@ -32,6 +36,15 @@ class GameActivityScreen extends ConsumerWidget {
       final oName = club?.ownerName;
       if (oName != null && oName.isNotEmpty) {
         currentUserName = oName;
+      }
+    }
+
+    String headerTitle = clubName;
+    if (isFloorsEnabled) {
+      if (selectedFloor != null) {
+        headerTitle = '${selectedFloor.name}';
+      } else {
+        headerTitle = 'All Floors';
       }
     }
 
@@ -45,7 +58,7 @@ class GameActivityScreen extends ConsumerWidget {
           onPressed: () => context.push(RouteNames.more),
         ),
         title: Text(
-          clubName,
+          headerTitle,
           style: TextStyle(
             color: theme.colorScheme.onSurface,
             fontWeight: FontWeight.bold,
@@ -55,26 +68,39 @@ class GameActivityScreen extends ConsumerWidget {
         actions: [
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16.0),
-            child: Row(
-              children: [
-                Text(
-                  currentUserName,
-                  style: TextStyle(
-                    color: theme.colorScheme.primary,
-                    fontWeight: FontWeight.bold,
+            child: GestureDetector(
+              onTap: () {
+                if (isFloorsEnabled) {
+                  AppModal.showBottomSheet(
+                    context: context,
+                    builder: (_) => const FloorSelectorSheet(),
+                  );
+                } else {
+                  // If floors aren't configured, tapping could guide them to setup, but profile is fine for now
+                  context.push(RouteNames.floorManagement);
+                }
+              },
+              child: Row(
+                children: [
+                  Text(
+                    currentUserName,
+                    style: TextStyle(
+                      color: theme.colorScheme.primary,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
-                ),
-                const SizedBox(width: 8),
-                CircleAvatar(
-                  radius: 14,
-                  backgroundColor: theme.colorScheme.primary,
-                  child: Icon(
-                    Icons.person,
-                    size: 16,
-                    color: theme.colorScheme.surface,
+                  const SizedBox(width: 8),
+                  CircleAvatar(
+                    radius: 14,
+                    backgroundColor: theme.colorScheme.primary,
+                    child: Icon(
+                      Icons.person,
+                      size: 16,
+                      color: theme.colorScheme.surface,
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ],
@@ -320,6 +346,7 @@ void _showTablesList(
       borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
     ),
     builder: (sheetContext) {
+      bool isTapped = false;
       return SafeArea(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -391,6 +418,9 @@ void _showTablesList(
                         ],
                       ),
                       onTap: () {
+                        if (isTapped) return;
+                        isTapped = true;
+                        
                         // Close the bottom sheet
                         Navigator.pop(sheetContext);
 

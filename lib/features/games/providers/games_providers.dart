@@ -12,6 +12,7 @@ import 'package:snooker_club/features/quick_sales/providers/quick_sales_provider
 import 'package:snooker_club/features/team/providers/team_providers.dart';
 
 import 'package:snooker_club/core/providers/club_scope_provider.dart';
+import 'package:snooker_club/features/floors/providers/floor_providers.dart';
 
 // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // Repository Provider
@@ -102,6 +103,16 @@ final activeGameProvider = StreamProvider.autoDispose
       if (repo.clubId == null) return const Stream.empty();
       return repo.watchActiveGame(tableId);
     });
+
+/// Tables filtered by the currently selected floor
+final floorFilteredTablesProvider = Provider<List<TableModel>>((ref) {
+  final allTables = ref.watch(resolvedTablesProvider);
+  final selectedFloorId = ref.watch(selectedFloorIdProvider);
+  
+  if (selectedFloorId == null) return allTables; // "All Floors"
+  
+  return allTables.where((t) => t.floorId == selectedFloorId).toList();
+});
 
 final runningGamesProvider = StreamProvider<List<GameSession>>((ref) {
   final repo = ref.watch(gamesRepositoryProvider);

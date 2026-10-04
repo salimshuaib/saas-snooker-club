@@ -622,6 +622,8 @@ class _GameSetupDialogState extends ConsumerState<GameSetupDialog> {
         tableId: widget.table.id,
         tableName: widget.table.name,
         tableType: widget.table.type,
+        floorId: widget.table.floorId,
+        floorName: widget.table.floorName,
         startTime: DateTime.now(),
         status: TableStatus.running,
         mode: GameMode.solo,

@@ -18,6 +18,7 @@ import 'package:snooker_club/features/games/presentation/widgets/pending_bills_i
 
 import 'package:snooker_club/core/theme/app_shadows.dart';
 import 'package:snooker_club/core/providers/app_providers.dart';
+import 'package:snooker_club/features/floors/providers/floor_providers.dart';
 
 class TransactionHistoryScreen extends ConsumerStatefulWidget {
   const TransactionHistoryScreen({super.key});
@@ -158,6 +159,15 @@ class _TransactionHistoryScreenState extends ConsumerState<TransactionHistoryScr
     final gamesListAsync = ref.watch(selectedDateCompletedPaidGamesProvider);
     final quickSalesListAsync = ref.watch(selectedDateQuickSalesStreamProvider);
 
+    final selectedFloor = ref.watch(selectedFloorProvider);
+    final hasFloors = ref.watch(hasFloorsProvider);
+    final floors = ref.watch(floorsProvider).value ?? [];
+
+    final filteredGamesListAsync = gamesListAsync.whenData((games) {
+      if (!hasFloors || selectedFloor == null) return games;
+      return games.where((g) => g.floorId == selectedFloor.id).toList();
+    });
+
     return Scaffold(
       appBar: AppBar(
         leading: _isSelectionMode
@@ -225,13 +235,28 @@ class _TransactionHistoryScreenState extends ConsumerState<TransactionHistoryScr
                             fontWeight: FontWeight.w700,
                           ),
                         ),
+                        const Spacer(),
+                        if (hasFloors && floors.isNotEmpty)
+                          DropdownButton<String?>(
+                            value: selectedFloor?.id,
+                            hint: const Text('All Floors'),
+                            underline: const SizedBox(),
+                            icon: const Icon(Icons.filter_list, size: 18),
+                            items: [
+                              const DropdownMenuItem(value: null, child: Text('All Floors')),
+                              ...floors.map((f) => DropdownMenuItem(value: f.id, child: Text(f.name))),
+                            ],
+                            onChanged: (val) {
+                              ref.read(selectedFloorIdProvider.notifier).state = val;
+                            },
+                          ),
                       ],
                     ),
                   ),
                 ),
 
                 // ─── Game Transactions List ───
-                gamesListAsync.when(
+                filteredGamesListAsync.when(
                   loading: () => SliverToBoxAdapter(
                     child: Padding(
                       padding: const EdgeInsets.symmetric(

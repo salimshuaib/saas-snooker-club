@@ -9,6 +9,7 @@ import 'package:snooker_club/core/theme/app_colors.dart';
 import 'package:snooker_club/features/analytics/domain/models/analytics_models.dart';
 import 'package:snooker_club/features/credit/domain/models/credit_models.dart';
 import 'package:snooker_club/features/credit/providers/credit_providers.dart';
+import 'package:snooker_club/features/floors/providers/floor_providers.dart';
 import 'package:snooker_club/features/games/domain/models/game_models.dart';
 import 'package:snooker_club/features/games/providers/games_providers.dart';
 import 'package:snooker_club/features/inventory/domain/models/inventory_models.dart';
@@ -364,15 +365,25 @@ CompleteAnalyticsData getCompleteAnalyticsData(dynamic ref) {
   final pendingBillsList = ref.watch(pendingBillsProvider).value ?? [];
   final double pendingBillsAmount = pendingBillsList.fold(0.0, (sum, bill) => sum + (bill.finalAmount ?? bill.grandTotal ?? 0.0));
 
-  final List<GameSession> games =
+  final selectedFloorId = ref.watch(selectedFloorIdProvider);
+
+  List<GameSession> games =
       ref.watch(analyticsGamesStreamProvider).value ?? <GameSession>[];
+  if (selectedFloorId != null) {
+    games = games.where((g) => g.floorId == selectedFloorId).toList();
+  }
+  
   final List<QuickSale> quickSales =
       ref.watch(analyticsQuickSalesStreamProvider).value ?? <QuickSale>[];
   final List<PaymentHistory> payments =
       ref.watch(analyticsPaymentsStreamProvider).value ?? <PaymentHistory>[];
 
-  final List<GameSession> prevGames =
+  List<GameSession> prevGames =
       ref.watch(previousGamesStreamProvider).value ?? <GameSession>[];
+  if (selectedFloorId != null) {
+    prevGames = prevGames.where((g) => g.floorId == selectedFloorId).toList();
+  }
+  
   final List<QuickSale> prevQuickSales =
       ref.watch(previousQuickSalesStreamProvider).value ?? <QuickSale>[];
   final List<PaymentHistory> prevPayments =

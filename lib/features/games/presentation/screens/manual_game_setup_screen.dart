@@ -324,6 +324,8 @@ class _ManualGameSetupScreenState extends ConsumerState<ManualGameSetupScreen> {
         tableId: _selectedTable!.id,
         tableName: _selectedTable!.name,
         tableType: _selectedTable!.type,
+        floorId: _selectedTable!.floorId,
+        floorName: _selectedTable!.floorName,
         gameType: GameType.standard,
         matchType: MatchType.friendly,
         billingType: _billingType!,

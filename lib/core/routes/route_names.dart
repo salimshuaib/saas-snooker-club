@@ -22,6 +22,7 @@ class RouteNames {
   static const String pendingBills = '/pending-bills';
   static const String combinedSettlement = '/combined-settlement';
   static const String bookings = '/bookings';
+  static const String floorManagement = '/floor-management';
 
   static const String more = '/more';
   static const String forceUpdate = '/force-update';

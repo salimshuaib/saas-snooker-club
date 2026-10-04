@@ -4,6 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:gap/gap.dart';
 import 'package:intl/intl.dart';
+import 'package:go_router/go_router.dart';
+import 'package:snooker_club/core/routes/route_names.dart';
 import 'package:snooker_club/core/models/currency.dart';
 import 'package:snooker_club/core/providers/app_providers.dart';
 import 'package:snooker_club/core/theme/app_colors.dart';
@@ -141,6 +143,36 @@ class SettingsScreen extends ConsumerWidget {
                   },
                   icon: const Icon(Icons.settings_suggest),
                   label: const Text('Manage Games & Tables'),
+                ),
+              ),
+              const Gap(8),
+            ],
+          ),
+
+          // 3. Floors Configuration
+          SettingsSectionCard(
+            title: 'Floors Configuration',
+            icon: Icons.layers,
+            iconColor: Colors.blueAccent,
+            children: [
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 4),
+                child: Text(
+                  'Manage floors and group tables by physical location:',
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ),
+              const Gap(16),
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton.icon(
+                  onPressed: () {
+                    context.push(RouteNames.floorManagement);
+                  },
+                  icon: const Icon(Icons.layers_outlined),
+                  label: const Text('Manage Floors'),
                 ),
               ),
               const Gap(8),
