@@ -37,6 +37,7 @@ class AlarmInfo {
 }
 
 class TableAlarmService {
+  bool get _isNativeAlarmSupported => !kIsWeb && (defaultTargetPlatform == TargetPlatform.android || defaultTargetPlatform == TargetPlatform.iOS);
   static final TableAlarmService _instance = TableAlarmService._internal();
   factory TableAlarmService() => _instance;
   TableAlarmService._internal();
@@ -61,7 +62,7 @@ class TableAlarmService {
     await _flutterTts.setSpeechRate(0.5);
     await _flutterTts.setPitch(1.0);
 
-    if (!kIsWeb) {
+    if (_isNativeAlarmSupported) {
       _ringSubscription = Alarm.ringStream.stream.listen((alarmSettings) {
         final alarm = _activeAlarms.values.cast<AlarmInfo?>().firstWhere(
             (a) => a?.gameId.hashCode == alarmSettings.id, orElse: () => null);
@@ -92,7 +93,7 @@ class TableAlarmService {
         } else {
            // Cleanup stale alarms
            needsSave = true;
-           if (!kIsWeb) await Alarm.stop(alarm.gameId.hashCode);
+           if (_isNativeAlarmSupported) await Alarm.stop(alarm.gameId.hashCode);
         }
       } catch (e) {
         AppLogger.error('Failed to parse persisted alarm: $e');
@@ -124,7 +125,7 @@ class TableAlarmService {
     _activeAlarms[gameId] = alarm;
     await _saveAlarms();
 
-    if (!kIsWeb) {
+    if (_isNativeAlarmSupported) {
       final alarmSettings = AlarmSettings(
         id: gameId.hashCode,
         dateTime: fireAt,
@@ -173,7 +174,7 @@ class TableAlarmService {
       _activeAlarms.remove(gameId);
       await _saveAlarms();
 
-      if (!kIsWeb) {
+      if (_isNativeAlarmSupported) {
         await Alarm.stop(gameId.hashCode);
       }
     }
@@ -195,7 +196,7 @@ class TableAlarmService {
       AlarmOverlay.show(rootNavigatorKey.currentContext!, alarm);
     }
 
-    if (kIsWeb || (defaultTargetPlatform != TargetPlatform.android && defaultTargetPlatform != TargetPlatform.iOS)) {
+    if (!_isNativeAlarmSupported) {
       try {
         await _sirenPlayer.setVolume(1.0);
         await _sirenPlayer.setReleaseMode(ReleaseMode.loop);
@@ -237,13 +238,13 @@ class TableAlarmService {
       await _flutterTts.stop();
       await _sirenPlayer.stop();
       
-      if (!kIsWeb && _currentlyRingingId != null) {
+      if (_isNativeAlarmSupported && _currentlyRingingId != null) {
         await Alarm.stop(_currentlyRingingId!);
         _currentlyRingingId = null;
       }
       
       // Catch-all to stop any active alarms playing via alarm package
-      if (!kIsWeb) {
+      if (_isNativeAlarmSupported) {
         try {
            final hasAlarm = await Alarm.hasAlarm();
            if (hasAlarm) {
@@ -260,3 +261,4 @@ class TableAlarmService {
     return _activeAlarms[gameId];
   }
 }
+
