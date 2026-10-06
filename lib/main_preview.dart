@@ -12,11 +12,12 @@ import 'package:snooker_club/firebase_options.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:snooker_club/core/services/push_notification_service.dart';
 import 'package:snooker_club/core/services/table_alarm_service.dart';
+import 'package:alarm/alarm.dart';
 
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-  print('Handling a background message: ${message.messageId}');
+  AppLogger.info('Handling a background message: ${message.messageId}');
 }
 
 /// Preview entry point.
@@ -78,4 +79,3 @@ void main() async {
     ),
   );
 }
-

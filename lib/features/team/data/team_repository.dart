@@ -22,6 +22,17 @@ class TeamRepository {
         .collection('team_members');
   }
 
+  CollectionReference<Map<String, dynamic>> get _attendanceRef {
+    final currentClubId = clubId;
+    if (currentClubId == null) {
+      throw StateError('clubId cannot be null for TeamRepository');
+    }
+    return _db
+        .collection(FirebaseConstants.clubsCollection)
+        .doc(currentClubId)
+        .collection('attendance_logs');
+  }
+
   Stream<List<StaffMember>> watchTeamMembers() {
     return _teamRef.snapshots().map((snapshot) {
       return snapshot.docs
@@ -62,18 +73,90 @@ class TeamRepository {
   }
 
   Future<void> checkInStaff(String uid) async {
-    await _teamRef.doc(uid).update({
-      'isCheckedIn': true,
-      'lastCheckInTime': FieldValue.serverTimestamp(),
-      'updatedAt': FieldValue.serverTimestamp(),
+    final staffRef = _teamRef.doc(uid);
+    await _db.runTransaction((transaction) async {
+      final staffSnapshot = await transaction.get(staffRef);
+      if (!staffSnapshot.exists) {
+        throw StateError('Cannot check in missing staff member $uid');
+      }
+      if (staffSnapshot.data()?['isCheckedIn'] == true) return;
+
+      transaction.update(staffRef, {
+        'isCheckedIn': true,
+        'lastCheckInTime': FieldValue.serverTimestamp(),
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
     });
   }
 
   Future<void> checkOutStaff(String uid) async {
-    await _teamRef.doc(uid).update({
-      'isCheckedIn': false,
-      'updatedAt': FieldValue.serverTimestamp(),
+    final staffRef = _teamRef.doc(uid);
+    final attendanceRef = _attendanceRef.doc();
+
+    await _db.runTransaction((transaction) async {
+      final staffSnapshot = await transaction.get(staffRef);
+      if (!staffSnapshot.exists) {
+        throw StateError('Cannot check out missing staff member $uid');
+      }
+
+      final staffData = staffSnapshot.data()!;
+      if (staffData['isCheckedIn'] != true) return;
+
+      final checkOutTime = DateTime.now();
+      final checkInValue = staffData['lastCheckInTime'];
+      final DateTime? checkInTime = switch (checkInValue) {
+        Timestamp timestamp => timestamp.toDate(),
+        DateTime dateTime => dateTime,
+        _ => null,
+      };
+
+      transaction.update(staffRef, {
+        'isCheckedIn': false,
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+
+      if (checkInTime != null && !checkOutTime.isBefore(checkInTime)) {
+        final staff = StaffMember.fromMap(staffData, uid);
+        transaction.set(
+          attendanceRef,
+          _attendanceData(staff, checkInTime, checkOutTime),
+        );
+      }
     });
+  }
+
+  Future<void> logAttendance(
+    StaffMember staff,
+    DateTime checkIn,
+    DateTime checkOut,
+  ) async {
+    if (checkOut.isBefore(checkIn)) {
+      throw ArgumentError.value(
+        checkOut,
+        'checkOut',
+        'Check-out time cannot be before check-in time',
+      );
+    }
+
+    await _attendanceRef.add(_attendanceData(staff, checkIn, checkOut));
+  }
+
+  Map<String, dynamic> _attendanceData(
+    StaffMember staff,
+    DateTime checkIn,
+    DateTime checkOut,
+  ) {
+    final month = '${checkIn.year}-${checkIn.month.toString().padLeft(2, '0')}';
+    return {
+      'staffId': staff.id,
+      'staffName': staff.name,
+      'role': staff.role.name,
+      'checkInTime': Timestamp.fromDate(checkIn),
+      'checkOutTime': Timestamp.fromDate(checkOut),
+      'durationMinutes': checkOut.difference(checkIn).inMinutes,
+      'month': month,
+      'createdAt': FieldValue.serverTimestamp(),
+    };
   }
 
   Future<void> addStaffMember({

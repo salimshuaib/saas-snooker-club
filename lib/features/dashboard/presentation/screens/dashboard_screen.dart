@@ -6,7 +6,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:gap/gap.dart';
 import 'package:intl/intl.dart';
-import 'package:snooker_club/core/providers/app_providers.dart';
 import 'package:snooker_club/core/providers/club_scope_provider.dart';
 import 'package:snooker_club/core/routes/route_names.dart';
 import 'package:snooker_club/core/theme/app_colors.dart';
@@ -14,16 +13,13 @@ import 'package:snooker_club/features/games/presentation/widgets/pending_bills_i
 import 'package:snooker_club/core/widgets/cards/info_card.dart';
 import 'package:snooker_club/features/team/providers/team_providers.dart';
 import 'package:snooker_club/features/team/domain/models/staff_member.dart';
+import 'package:snooker_club/features/team/presentation/widgets/staff_attendance_action.dart';
 import 'package:snooker_club/features/games/providers/games_providers.dart';
 import 'package:snooker_club/features/quick_sales/presentation/screens/new_quick_sale_screen.dart';
 import 'package:snooker_club/features/quick_sales/providers/quick_sales_providers.dart';
 import 'package:snooker_club/features/inventory/providers/inventory_providers.dart';
-import 'package:snooker_club/features/dashboard/presentation/screens/running_tables_screen.dart';
-import 'package:snooker_club/features/dashboard/presentation/screens/available_tables_screen.dart';
 import 'package:snooker_club/features/dashboard/presentation/screens/inventory_status_screen.dart';
 import 'package:snooker_club/features/dashboard/presentation/widgets/financial_summary_card.dart';
-import 'package:snooker_club/core/routes/route_names.dart';
-import 'package:go_router/go_router.dart';
 import 'package:snooker_club/features/bookings/data/bookings_repository.dart';
 import 'package:snooker_club/features/bookings/domain/models/booking_models.dart';
 import 'package:snooker_club/core/providers/update_provider.dart';
@@ -87,45 +83,7 @@ class DashboardScreen extends ConsumerWidget {
           if (currentStaff != null)
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 8.0),
-              child: ActionChip(
-                backgroundColor: currentStaff.isCheckedIn 
-                    ? Colors.green.withValues(alpha: 0.1) 
-                    : Colors.grey.withValues(alpha: 0.1),
-                side: BorderSide(
-                  color: currentStaff.isCheckedIn ? Colors.green : Colors.grey,
-                  width: 1,
-                ),
-                label: Text(
-                  currentStaff.isCheckedIn ? 'Checked In' : 'Check In',
-                  style: theme.textTheme.labelSmall?.copyWith(
-                    color: currentStaff.isCheckedIn ? Colors.green : Colors.grey,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                avatar: Icon(
-                  currentStaff.isCheckedIn ? Icons.check_circle : Icons.power_settings_new,
-                  size: 16,
-                  color: currentStaff.isCheckedIn ? Colors.green : Colors.grey,
-                ),
-                onPressed: () async {
-                  final repo = ref.read(teamRepositoryProvider);
-                  if (currentStaff.isCheckedIn) {
-                    await repo.checkOutStaff(currentStaff.id);
-                    if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Checked out successfully. Alarms paused.')),
-                      );
-                    }
-                  } else {
-                    await repo.checkInStaff(currentStaff.id);
-                    if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Checked in successfully. You will now receive table alarms.')),
-                      );
-                    }
-                  }
-                },
-              ),
+              child: StaffAttendanceAction(staff: currentStaff),
             ),
           Center(
             child: Padding(
@@ -171,13 +129,27 @@ class DashboardScreen extends ConsumerWidget {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Expanded(
-                    child: Text(
-                      employeeName,
-                      style: theme.textTheme.headlineMedium?.copyWith(
-                        fontWeight: FontWeight.w700,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          employeeName,
+                          style: theme.textTheme.headlineMedium?.copyWith(
+                            fontWeight: FontWeight.w700,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        if (currentStaff != null)
+                          Text(
+                            staffAttendanceStatus(currentStaff),
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: currentStaff.isCheckedIn
+                                  ? Colors.green
+                                  : theme.colorScheme.onSurfaceVariant,
+                            ),
+                          ),
+                      ],
                     ),
                   ),
                   const _RealTimeClockWidget(),

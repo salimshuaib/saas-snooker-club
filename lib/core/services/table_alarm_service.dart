@@ -22,10 +22,10 @@ class AlarmInfo {
   });
 
   Map<String, dynamic> toJson() => {
-        'gameId': gameId,
-        'tableName': tableName,
-        'fireAt': fireAt.toIso8601String(),
-      };
+    'gameId': gameId,
+    'tableName': tableName,
+    'fireAt': fireAt.toIso8601String(),
+  };
 
   factory AlarmInfo.fromJson(Map<String, dynamic> json) {
     return AlarmInfo(
@@ -37,7 +37,11 @@ class AlarmInfo {
 }
 
 class TableAlarmService {
-  bool get _isNativeAlarmSupported => !kIsWeb && (defaultTargetPlatform == TargetPlatform.android || defaultTargetPlatform == TargetPlatform.iOS);
+  bool get _isNativeAlarmSupported =>
+      !kIsWeb &&
+      (defaultTargetPlatform == TargetPlatform.android ||
+          defaultTargetPlatform == TargetPlatform.iOS);
+  bool get usesFallbackAlarms => !_isNativeAlarmSupported;
   static final TableAlarmService _instance = TableAlarmService._internal();
   factory TableAlarmService() => _instance;
   TableAlarmService._internal();
@@ -53,19 +57,39 @@ class TableAlarmService {
 
   final FlutterTts _flutterTts = FlutterTts();
   final AudioPlayer _sirenPlayer = AudioPlayer();
+  bool _fallbackAudioSourceReady = false;
+  bool _fallbackAudioUnlocked = false;
   Timer? _ttsLoopTimer;
   StreamSubscription<AlarmSettings>? _ringSubscription;
   int? _currentlyRingingId;
 
   Future<void> initialize() async {
-    await _flutterTts.setVolume(1.0);
-    await _flutterTts.setSpeechRate(0.5);
-    await _flutterTts.setPitch(1.0);
+    try {
+      await _flutterTts.setVolume(1.0);
+      await _flutterTts.setSpeechRate(0.5);
+      await _flutterTts.setPitch(1.0);
+    } catch (e) {
+      AppLogger.error('Failed to initialize alarm speech: $e');
+    }
+
+    if (usesFallbackAlarms) {
+      try {
+        await _sirenPlayer.setReleaseMode(ReleaseMode.loop);
+        await _sirenPlayer.setVolume(0);
+        await _sirenPlayer.setSource(AssetSource('sounds/table_alarm.wav'));
+        _fallbackAudioSourceReady = true;
+      } catch (e) {
+        AppLogger.error('Failed to prepare fallback alarm audio: $e');
+      }
+    }
 
     if (_isNativeAlarmSupported) {
+      await _ringSubscription?.cancel();
       _ringSubscription = Alarm.ringStream.stream.listen((alarmSettings) {
         final alarm = _activeAlarms.values.cast<AlarmInfo?>().firstWhere(
-            (a) => a?.gameId.hashCode == alarmSettings.id, orElse: () => null);
+          (a) => a?.gameId.hashCode == alarmSettings.id,
+          orElse: () => null,
+        );
         if (alarm != null) {
           _onAlarmFired(alarm);
         } else {
@@ -74,7 +98,7 @@ class TableAlarmService {
         }
       });
     }
-    
+
     await _loadPersistedAlarms();
   }
 
@@ -91,9 +115,9 @@ class TableAlarmService {
         if (alarm.fireAt.isAfter(now)) {
           _activeAlarms[alarm.gameId] = alarm;
         } else {
-           // Cleanup stale alarms
-           needsSave = true;
-           if (_isNativeAlarmSupported) await Alarm.stop(alarm.gameId.hashCode);
+          // Cleanup stale alarms
+          needsSave = true;
+          if (_isNativeAlarmSupported) await Alarm.stop(alarm.gameId.hashCode);
         }
       } catch (e) {
         AppLogger.error('Failed to parse persisted alarm: $e');
@@ -107,8 +131,9 @@ class TableAlarmService {
 
   Future<void> _saveAlarms() async {
     final prefs = await SharedPreferences.getInstance();
-    final alarmsList =
-        _activeAlarms.values.map((a) => jsonEncode(a.toJson())).toList();
+    final alarmsList = _activeAlarms.values
+        .map((a) => jsonEncode(a.toJson()))
+        .toList();
     await prefs.setStringList('active_table_alarms', alarmsList);
     _alarmsChangedController.add(null);
   }
@@ -120,7 +145,11 @@ class TableAlarmService {
   }) async {
     await cancelAlarm(gameId); // cancel existing
 
-    final alarm = AlarmInfo(gameId: gameId, tableName: tableName, fireAt: fireAt);
+    final alarm = AlarmInfo(
+      gameId: gameId,
+      tableName: tableName,
+      fireAt: fireAt,
+    );
 
     _activeAlarms[gameId] = alarm;
     await _saveAlarms();
@@ -142,28 +171,57 @@ class TableAlarmService {
           stopButton: 'Stop',
         ),
       );
-      
+
       try {
         await Alarm.set(alarmSettings: alarmSettings);
       } catch (e) {
         AppLogger.error('Failed to schedule exact alarm: $e');
       }
     } else {
-      // Fallback timer only for Web/Desktop where the native alarm package is unavailable
-      final duration = fireAt.difference(DateTime.now());
-      _fallbackTimers[gameId] = Timer(duration.isNegative ? Duration.zero : duration, () {
-        final active = _activeAlarms[gameId];
+      _scheduleFallbackTimer(alarm);
+    }
+  }
+
+  void _scheduleFallbackTimer(AlarmInfo alarm) {
+    _fallbackTimers[alarm.gameId]?.cancel();
+    final duration = alarm.fireAt.difference(DateTime.now());
+    _fallbackTimers[alarm.gameId] = Timer(
+      duration.isNegative ? Duration.zero : duration,
+      () {
+        final active = _activeAlarms[alarm.gameId];
         if (active != null) {
-          _onAlarmFired(active);
+          unawaited(_onAlarmFired(active));
         }
-      });
+      },
+    );
+  }
+
+  Future<bool> prepareFallbackAudio() async {
+    if (!usesFallbackAlarms) return true;
+
+    try {
+      if (!_fallbackAudioSourceReady) {
+        await _sirenPlayer.setReleaseMode(ReleaseMode.loop);
+        await _sirenPlayer.setVolume(0);
+        await _sirenPlayer.setSource(AssetSource('sounds/table_alarm.wav'));
+        _fallbackAudioSourceReady = true;
+      }
+      await _sirenPlayer.resume();
+      await _sirenPlayer.pause();
+      await _sirenPlayer.seek(Duration.zero);
+      await _sirenPlayer.setVolume(1);
+      _fallbackAudioUnlocked = true;
+      return true;
+    } catch (e) {
+      AppLogger.error('Failed to prepare fallback alarm audio: $e');
+      return false;
     }
   }
 
   Future<void> cancelAlarm(String gameId) async {
     _fallbackTimers[gameId]?.cancel();
     _fallbackTimers.remove(gameId);
-    
+
     // Stop manual siren if it happens to be ringing for this game
     if (_currentlyRingingId == gameId.hashCode) {
       await _sirenPlayer.stop();
@@ -177,6 +235,20 @@ class TableAlarmService {
       if (_isNativeAlarmSupported) {
         await Alarm.stop(gameId.hashCode);
       }
+    }
+  }
+
+  Future<void> cancelAllAlarms() async {
+    await dismissAlarm();
+    for (final timer in _fallbackTimers.values) {
+      timer.cancel();
+    }
+    _fallbackTimers.clear();
+    _activeAlarms.clear();
+    await _saveAlarms();
+
+    if (_isNativeAlarmSupported) {
+      await Alarm.stopAll();
     }
   }
 
@@ -198,9 +270,15 @@ class TableAlarmService {
 
     if (!_isNativeAlarmSupported) {
       try {
-        await _sirenPlayer.setVolume(1.0);
-        await _sirenPlayer.setReleaseMode(ReleaseMode.loop);
-        await _sirenPlayer.play(AssetSource('sounds/table_alarm.wav'));
+        if (_fallbackAudioUnlocked && _fallbackAudioSourceReady) {
+          await _sirenPlayer.setVolume(1.0);
+          await _sirenPlayer.seek(Duration.zero);
+          await _sirenPlayer.resume();
+        } else {
+          await _sirenPlayer.setVolume(1.0);
+          await _sirenPlayer.setReleaseMode(ReleaseMode.loop);
+          await _sirenPlayer.play(AssetSource('sounds/table_alarm.wav'));
+        }
       } catch (e) {
         AppLogger.error('Failed to play manual siren: $e');
       }
@@ -233,27 +311,40 @@ class TableAlarmService {
   }
 
   Future<void> dismissAlarm() async {
+    _ttsLoopTimer?.cancel();
+    _ttsLoopTimer = null;
+
     try {
-      _ttsLoopTimer?.cancel();
       await _flutterTts.stop();
-      await _sirenPlayer.stop();
-      
-      if (_isNativeAlarmSupported && _currentlyRingingId != null) {
-        await Alarm.stop(_currentlyRingingId!);
-        _currentlyRingingId = null;
-      }
-      
-      // Catch-all to stop any active alarms playing via alarm package
-      if (_isNativeAlarmSupported) {
-        try {
-           final hasAlarm = await Alarm.hasAlarm();
-           if (hasAlarm) {
-               await Alarm.stopAll();
-           }
-        } catch (_) {}
-      }
     } catch (e) {
-      AppLogger.error('Failed to stop TTS: $e');
+      AppLogger.error('Failed to stop alarm speech: $e');
+    }
+
+    try {
+      await _sirenPlayer.stop();
+    } catch (e) {
+      AppLogger.error('Failed to stop alarm audio: $e');
+    }
+
+    final ringingId = _currentlyRingingId;
+    _currentlyRingingId = null;
+
+    if (_isNativeAlarmSupported && ringingId != null) {
+      try {
+        await Alarm.stop(ringingId);
+      } catch (e) {
+        AppLogger.error('Failed to stop ringing alarm $ringingId: $e');
+      }
+    }
+
+    if (_isNativeAlarmSupported) {
+      try {
+        if (await Alarm.hasAlarm()) {
+          await Alarm.stopAll();
+        }
+      } catch (e) {
+        AppLogger.error('Failed to stop remaining native alarms: $e');
+      }
     }
   }
 
@@ -261,4 +352,3 @@ class TableAlarmService {
     return _activeAlarms[gameId];
   }
 }
-

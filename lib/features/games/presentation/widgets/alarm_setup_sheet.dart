@@ -18,7 +18,10 @@ class AlarmSetupSheet extends ConsumerStatefulWidget {
   }) : super(key: key);
 
   static Future<void> show(
-      BuildContext context, String gameId, String tableName) async {
+    BuildContext context,
+    String gameId,
+    String tableName,
+  ) async {
     await showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -34,7 +37,7 @@ class _AlarmSetupSheetState extends ConsumerState<AlarmSetupSheet> {
   int _selectedMinutes = 5;
   bool _isCustom = false;
   final _customController = TextEditingController();
-  
+
   @override
   void initState() {
     super.initState();
@@ -50,7 +53,7 @@ class _AlarmSetupSheetState extends ConsumerState<AlarmSetupSheet> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final insets = MediaQuery.viewInsetsOf(context);
-    
+
     final gamesState = ref.watch(runningGamesProvider);
     final games = gamesState.value ?? [];
     final session = games.where((g) => g.id == widget.gameId).firstOrNull;
@@ -69,7 +72,10 @@ class _AlarmSetupSheetState extends ConsumerState<AlarmSetupSheet> {
         children: [
           Row(
             children: [
-              Icon(Icons.notifications_active, color: theme.colorScheme.primary),
+              Icon(
+                Icons.notifications_active,
+                color: theme.colorScheme.primary,
+              ),
               const Gap(12),
               Expanded(
                 child: Text(
@@ -82,16 +88,29 @@ class _AlarmSetupSheetState extends ConsumerState<AlarmSetupSheet> {
               IconButton(
                 onPressed: () => Navigator.pop(context),
                 icon: const Icon(Icons.close),
-              )
+              ),
             ],
           ),
           const Gap(16),
-          
+
+          if (TableAlarmService().usesFallbackAlarms)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 16),
+              child: Text(
+                '',
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
+            ),
+
           if (alarmTime != null) ...[
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: theme.colorScheme.primaryContainer.withValues(alpha: 0.3),
+                color: theme.colorScheme.primaryContainer.withValues(
+                  alpha: 0.3,
+                ),
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(color: theme.colorScheme.primary),
               ),
@@ -107,7 +126,9 @@ class _AlarmSetupSheetState extends ConsumerState<AlarmSetupSheet> {
                   ),
                   OutlinedButton(
                     onPressed: () {
-                      ref.read(gamesRepositoryProvider).updateGameAlarm(widget.gameId, null);
+                      ref
+                          .read(gamesRepositoryProvider)
+                          .updateGameAlarm(widget.gameId, null);
                       Navigator.pop(context);
                     },
                     style: OutlinedButton.styleFrom(
@@ -120,41 +141,44 @@ class _AlarmSetupSheetState extends ConsumerState<AlarmSetupSheet> {
               ),
             ),
             const Gap(24),
-            const Text('Change Timer:', style: TextStyle(fontWeight: FontWeight.bold)),
+            const Text(
+              'Change Timer:',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
             const Gap(12),
           ],
 
           Wrap(
             spacing: 8,
             runSpacing: 8,
-            children: [5, 10, 15, 30].map((mins) {
-              final selected = !_isCustom && _selectedMinutes == mins;
-              return ChoiceChip(
-                label: Text('$mins min'),
-                selected: selected,
-                onSelected: (val) {
-                  if (val) {
-                    setState(() {
-                      _isCustom = false;
-                      _selectedMinutes = mins;
-                    });
-                  }
-                },
-              );
-            }).toList()
-              ..add(
-                ChoiceChip(
-                  label: const Text('Custom'),
-                  selected: _isCustom,
-                  onSelected: (val) {
-                    if (val) {
-                      setState(() {
-                        _isCustom = true;
-                      });
-                    }
-                  },
+            children:
+                [5, 10, 15, 30].map((mins) {
+                  final selected = !_isCustom && _selectedMinutes == mins;
+                  return ChoiceChip(
+                    label: Text('$mins min'),
+                    selected: selected,
+                    onSelected: (val) {
+                      if (val) {
+                        setState(() {
+                          _isCustom = false;
+                          _selectedMinutes = mins;
+                        });
+                      }
+                    },
+                  );
+                }).toList()..add(
+                  ChoiceChip(
+                    label: const Text('Custom'),
+                    selected: _isCustom,
+                    onSelected: (val) {
+                      if (val) {
+                        setState(() {
+                          _isCustom = true;
+                        });
+                      }
+                    },
+                  ),
                 ),
-              ),
           ),
           if (_isCustom) ...[
             const Gap(16),
@@ -178,10 +202,27 @@ class _AlarmSetupSheetState extends ConsumerState<AlarmSetupSheet> {
             width: double.infinity,
             height: 48,
             child: FilledButton(
-              onPressed: () {
+              onPressed: () async {
                 if (_selectedMinutes <= 0) return;
-                final newAlarmTime = DateTime.now().add(Duration(minutes: _selectedMinutes));
-                ref.read(gamesRepositoryProvider).updateGameAlarm(widget.gameId, newAlarmTime);
+                final audioReady = await TableAlarmService()
+                    .prepareFallbackAudio();
+                final newAlarmTime = DateTime.now().add(
+                  Duration(minutes: _selectedMinutes),
+                );
+                await ref
+                    .read(gamesRepositoryProvider)
+                    .updateGameAlarm(widget.gameId, newAlarmTime);
+                if (!context.mounted) return;
+                if (!audioReady) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text(
+                        'Timer saved, but alarm audio could not be enabled. '
+                        'Check your system or browser sound settings.',
+                      ),
+                    ),
+                  );
+                }
                 Navigator.pop(context);
               },
               child: Text(
