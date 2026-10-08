@@ -12,23 +12,45 @@ class WaitlistDialog extends StatefulWidget {
   State<WaitlistDialog> createState() => _WaitlistDialogState();
 }
 
+class _WaitlistEntry {
+  PlayerSelection player;
+  bool isPaid;
+  DateTime addedAt;
+
+  _WaitlistEntry({required this.player, this.isPaid = false, required this.addedAt});
+}
+
 class _WaitlistDialogState extends State<WaitlistDialog> {
-  late List<PlayerSelection> _players;
+  late List<_WaitlistEntry> _entries;
 
   @override
   void initState() {
     super.initState();
-    _players = widget.players
-        .map((player) => PlayerSelection(id: player.id, name: player.name))
+    _entries = widget.players
+        .map((p) => _WaitlistEntry(
+              player: PlayerSelection(id: p.id, name: p.name),
+              isPaid: p.isPaid,
+              addedAt: p.addedAt,
+            ))
         .toList();
-    if (_players.isEmpty) _players.add(const PlayerSelection(name: ''));
+    if (_entries.isEmpty) {
+      _entries.add(_WaitlistEntry(
+        player: const PlayerSelection(name: ''),
+        addedAt: DateTime.now(),
+      ));
+    }
   }
 
   void _save() {
-    final players = _players
-        .where((player) => player.name.trim().isNotEmpty)
+    final players = _entries
+        .where((e) => e.player.name.trim().isNotEmpty)
         .map(
-          (player) => WaitlistPlayer(id: player.id, name: player.name.trim()),
+          (e) => WaitlistPlayer(
+            id: e.player.id,
+            name: e.player.name.trim(),
+            isPaid: e.isPaid,
+            addedAt: e.addedAt,
+          ),
         )
         .toList();
     final names = players.map((player) => player.name.toLowerCase()).toSet();
@@ -58,7 +80,8 @@ class _WaitlistDialogState extends State<WaitlistDialog> {
               style: theme.textTheme.bodySmall,
             ),
             const Gap(16),
-            ...List.generate(_players.length, (index) {
+            ...List.generate(_entries.length, (index) {
+              final entry = _entries[index];
               return Padding(
                 padding: const EdgeInsets.only(bottom: 10),
                 child: Row(
@@ -66,17 +89,44 @@ class _WaitlistDialogState extends State<WaitlistDialog> {
                     Expanded(
                       child: PlayerSearchField(
                         key: ValueKey('waitlist-player-$index'),
-                        initialSelection: _players[index],
+                        initialSelection: entry.player,
                         onSelected: (player) {
-                          setState(() => _players[index] = player);
+                          setState(() => _entries[index].player = player);
                         },
                         hint: 'Player Name',
+                      ),
+                    ),
+                    const Gap(8),
+                    InkWell(
+                      onTap: () {
+                        setState(() {
+                          _entries[index].isPaid = !_entries[index].isPaid;
+                        });
+                      },
+                      borderRadius: BorderRadius.circular(4),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: entry.isPaid ? Colors.green.withValues(alpha: 0.1) : Colors.orange.withValues(alpha: 0.1),
+                          border: Border.all(
+                            color: entry.isPaid ? Colors.green : Colors.orange,
+                          ),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Text(
+                          entry.isPaid ? 'PAID' : 'UNPAID',
+                          style: TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                            color: entry.isPaid ? Colors.green : Colors.orange,
+                          ),
+                        ),
                       ),
                     ),
                     IconButton(
                       tooltip: 'Remove player',
                       onPressed: () => setState(() {
-                        _players.removeAt(index);
+                        _entries.removeAt(index);
                       }),
                       icon: Icon(
                         Icons.remove_circle_outline,
@@ -87,10 +137,13 @@ class _WaitlistDialogState extends State<WaitlistDialog> {
                 ),
               );
             }),
-            if (_players.length < 3)
+            if (_entries.length < 3)
               TextButton.icon(
                 onPressed: () => setState(
-                  () => _players.add(const PlayerSelection(name: '')),
+                  () => _entries.add(_WaitlistEntry(
+                    player: const PlayerSelection(name: ''),
+                    addedAt: DateTime.now(),
+                  )),
                 ),
                 icon: const Icon(Icons.add, size: 18),
                 label: const Text('Add Player'),
@@ -108,3 +161,4 @@ class _WaitlistDialogState extends State<WaitlistDialog> {
     );
   }
 }
+

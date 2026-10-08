@@ -25,6 +25,8 @@ import 'package:snooker_club/features/games/presentation/widgets/mark_pending_di
 import 'package:snooker_club/features/credit/presentation/widgets/player_search_field.dart';
 import 'package:snooker_club/features/games/presentation/widgets/game_setup_dialog.dart';
 import 'package:snooker_club/features/games/presentation/widgets/waitlist_dialog.dart';
+import 'package:snooker_club/features/games/presentation/widgets/waitlist_details_sheet.dart';
+import 'package:snooker_club/core/widgets/modals/app_modal.dart';
 
 class ActiveGameCard extends ConsumerStatefulWidget {
   final GameSession game;
@@ -445,16 +447,30 @@ class _ActiveGameCardState extends ConsumerState<ActiveGameCard> {
                 tapTargetSize: MaterialTapTargetSize.shrinkWrap,
               ),
             ),
-            if (game.waitlistPlayers.isNotEmpty) ...[
-              const Gap(8),
-              Text(
-                '${game.waitlistPlayers.length} ${game.waitlistPlayers.length == 1 ? 'player' : 'players'} in waitlist',
-                style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                  color: AppColors.warning,
-                  fontWeight: FontWeight.w700,
+                          if (game.waitlistPlayers.isNotEmpty) ...[
+                const Gap(8),
+                InkWell(
+                  onTap: () {
+                    AppModal.showBottomSheet(
+                      context: context,
+                      builder: (_) => WaitlistDetailsSheet(game: game),
+                    );
+                  },
+                  borderRadius: BorderRadius.circular(4),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 4.0, vertical: 2.0),
+                    child: Text(
+                      '${game.waitlistPlayers.length} ${game.waitlistPlayers.length == 1 ? 'player' : 'players'} in waitlist',
+                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                        color: AppColors.warning,
+                        fontWeight: FontWeight.w700,
+                        decoration: TextDecoration.underline,
+                        decorationColor: AppColors.warning,
+                      ),
+                    ),
+                  ),
                 ),
-              ),
-            ],
+              ],
           ],
         ),
         Row(
@@ -1100,3 +1116,8 @@ class _BellIconState extends State<_BellIcon> {
     );
   }
 }
+
+
+
+
+

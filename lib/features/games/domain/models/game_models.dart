@@ -1358,3 +1358,4 @@ class OtherGameResource {
   }
 }
 class AddItemsResult { final List<GameOrder> orders; final List<ManualGameCharge> manualGameCharges; AddItemsResult(this.orders, this.manualGameCharges); }
+
