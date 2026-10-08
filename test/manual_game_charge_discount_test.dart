@@ -62,10 +62,19 @@ void main() {
       startTime: DateTime(2026, 10, 8),
       date: '2026-10-08',
       currentGameDiscountAmount: 20,
+      waitlistPlayers: const [
+        WaitlistPlayer(id: 'player-2', name: 'Next Player'),
+        WaitlistPlayer(name: 'Guest Player'),
+      ],
     );
 
     final restored = GameSession.fromMap(session.toMap());
 
     expect(restored.currentGameDiscountAmount, 20);
+    expect(restored.waitlistPlayers, hasLength(2));
+    expect(restored.waitlistPlayers.first.id, 'player-2');
+    expect(restored.waitlistPlayers.first.name, 'Next Player');
+    expect(restored.waitlistPlayers.last.id, isNull);
+    expect(restored.waitlistPlayers.last.name, 'Guest Player');
   });
 }

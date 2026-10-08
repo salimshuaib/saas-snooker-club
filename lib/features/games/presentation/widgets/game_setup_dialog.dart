@@ -21,10 +21,14 @@ import 'package:snooker_club/features/credit/domain/models/credit_models.dart';
 class GameSetupDialog extends ConsumerStatefulWidget {
   final TableModel table;
   final String employeeId;
+  final List<WaitlistPlayer> initialWaitlistPlayers;
+  final String title;
   const GameSetupDialog({
     super.key,
     required this.table,
     required this.employeeId,
+    this.initialWaitlistPlayers = const [],
+    this.title = 'Setup',
   });
 
   @override
@@ -37,11 +41,11 @@ class _GameSetupDialogState extends ConsumerState<GameSetupDialog> {
   bool _isCustomPrice = false;
   int? _coinQuantity = 1;
   final TextEditingController _customPriceController = TextEditingController();
-  final TextEditingController _customMinutesController = TextEditingController(text: '15');
+  final TextEditingController _customMinutesController = TextEditingController(
+    text: '15',
+  );
   int _customMinutes = 15;
-  final List<PlayerSelection?> _playerSelections = [
-    PlayerSelection(name: 'Default 1'),
-  ];
+  late List<PlayerSelection?> _playerSelections;
   int _nextDefaultNumber = 2;
   bool _isLoading = false;
 
@@ -54,6 +58,13 @@ class _GameSetupDialogState extends ConsumerState<GameSetupDialog> {
   @override
   void initState() {
     super.initState();
+    _playerSelections = widget.initialWaitlistPlayers.isEmpty
+        ? [const PlayerSelection(name: 'Default 1')]
+        : widget.initialWaitlistPlayers
+              .map(
+                (player) => PlayerSelection(id: player.id, name: player.name),
+              )
+              .toList();
     _tableType = widget.table.type;
     final validBilling = TablePricingConfig.supportedBillingTypes(
       widget.table,
@@ -103,7 +114,7 @@ class _GameSetupDialogState extends ConsumerState<GameSetupDialog> {
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          'Setup',
+                          widget.title,
                           style: theme.textTheme.bodyMedium?.copyWith(
                             color: theme.colorScheme.onSurfaceVariant,
                           ),
@@ -284,13 +295,20 @@ class _GameSetupDialogState extends ConsumerState<GameSetupDialog> {
             decoration: InputDecoration(
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(color: theme.dividerColor.withOpacity(0.1)),
+                borderSide: BorderSide(
+                  color: theme.dividerColor.withOpacity(0.1),
+                ),
               ),
               enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(color: theme.dividerColor.withOpacity(0.1)),
+                borderSide: BorderSide(
+                  color: theme.dividerColor.withOpacity(0.1),
+                ),
               ),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 16,
+                vertical: 14,
+              ),
               filled: true,
               fillColor: theme.colorScheme.surfaceBright,
               suffixText: 'mins',
@@ -623,8 +641,11 @@ class _GameSetupDialogState extends ConsumerState<GameSetupDialog> {
         initialAlarmTime = DateTime.now().add(const Duration(minutes: 30));
       } else if (_billingType == BillingType.oneHour) {
         initialAlarmTime = DateTime.now().add(const Duration(minutes: 60));
-      } else if (_billingType == BillingType.customMinute && _customMinutes != null) {
-        initialAlarmTime = DateTime.now().add(Duration(minutes: _customMinutes!));
+      } else if (_billingType == BillingType.customMinute &&
+          _customMinutes != null) {
+        initialAlarmTime = DateTime.now().add(
+          Duration(minutes: _customMinutes!),
+        );
       }
 
       GameSession gameSession = GameSession(
@@ -642,7 +663,9 @@ class _GameSetupDialogState extends ConsumerState<GameSetupDialog> {
         billingType: _billingType,
         totalFrames: 1,
         framesPlayed: 0,
-        customMinutes: _billingType == BillingType.customMinute ? _customMinutes : null,
+        customMinutes: _billingType == BillingType.customMinute
+            ? _customMinutes
+            : null,
         teamA: combinedSelections.map((p) => p.name).toList(),
         teamB: const [],
         playerIds: finalPlayerIds,

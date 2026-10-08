@@ -168,6 +168,19 @@ class GameSessionController extends Notifier<AsyncValue<void>> {
     }
   }
 
+  Future<void> updateWaitlistPlayers(
+    String gameId,
+    List<WaitlistPlayer> oldPlayers,
+    List<WaitlistPlayer> players,
+  ) async {
+    try {
+      await _repo.updateWaitlistPlayers(gameId, oldPlayers, players);
+    } catch (e, st) {
+      state = AsyncValue.error(e, st);
+      rethrow;
+    }
+  }
+
   Future<void> pauseGame(String gameId, String tableId) async {
     try {
       await _repo.pauseGame(gameId, tableId, DateTime.now());
@@ -414,4 +427,3 @@ final pendingBillsTotalProvider = Provider.autoDispose<double>((ref) {
   final bills = ref.watch(pendingBillsProvider).asData?.value ?? [];
   return bills.fold(0.0, (sum, g) => sum + (g.finalAmount ?? g.grandTotal ?? 0.0));
 });
-

@@ -23,6 +23,8 @@ import 'package:snooker_club/features/games/presentation/widgets/alarm_setup_she
 import 'package:snooker_club/core/utils/billing_utils.dart';
 import 'package:snooker_club/features/games/presentation/widgets/mark_pending_dialog.dart';
 import 'package:snooker_club/features/credit/presentation/widgets/player_search_field.dart';
+import 'package:snooker_club/features/games/presentation/widgets/game_setup_dialog.dart';
+import 'package:snooker_club/features/games/presentation/widgets/waitlist_dialog.dart';
 
 class ActiveGameCard extends ConsumerStatefulWidget {
   final GameSession game;
@@ -430,6 +432,33 @@ class _ActiveGameCardState extends ConsumerState<ActiveGameCard> {
       children: [
         Row(
           children: [
+            TextButton.icon(
+              onPressed: () => _showWaitlistDialog(game, context),
+              icon: const Icon(Icons.add, size: 18),
+              label: const Text(
+                'Add to waitlist',
+                style: TextStyle(fontSize: 12),
+              ),
+              style: TextButton.styleFrom(
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+                minimumSize: const Size(0, 32),
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              ),
+            ),
+            if (game.waitlistPlayers.isNotEmpty) ...[
+              const Gap(8),
+              Text(
+                '${game.waitlistPlayers.length} ${game.waitlistPlayers.length == 1 ? 'player' : 'players'} in waitlist',
+                style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                  color: AppColors.warning,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
+          ],
+        ),
+        Row(
+          children: [
             // Pause / Resume (Only shown if allowed or already paused)
             if (TablePricingConfig.allowPauseResume ||
                 game.status == TableStatus.paused) ...[
@@ -555,6 +584,32 @@ class _ActiveGameCardState extends ConsumerState<ActiveGameCard> {
     );
   }
 
+  Future<void> _showWaitlistDialog(
+    GameSession game,
+    BuildContext context,
+  ) async {
+    final players = await showDialog<List<WaitlistPlayer>>(
+      context: context,
+      builder: (_) => WaitlistDialog(players: game.waitlistPlayers),
+    );
+    if (players == null || !mounted || !context.mounted) return;
+
+    try {
+      await ref
+          .read(gameSessionControllerProvider.notifier)
+          .updateWaitlistPlayers(game.id, game.waitlistPlayers, players);
+    } catch (error) {
+      if (mounted && context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Could not update waitlist: $error'),
+            backgroundColor: AppColors.error,
+          ),
+        );
+      }
+    }
+  }
+
   Future<void> _handleCancelGame(GameSession game, BuildContext context) async {
     final confirm = await showDialog<bool>(
       context: context,
@@ -674,14 +729,21 @@ class _ActiveGameCardState extends ConsumerState<ActiveGameCard> {
     );
   }
 
-  Future<void> _handleEndGame(GameSession game, BuildContext context) async {
+  Future<bool> _handleEndGame(GameSession game, BuildContext context) async {
+    final shouldStartWaitlistedGame = game.waitlistPlayers.isNotEmpty;
+    final navigator = Navigator.of(context);
+    final table = widget.table;
+    final employeeId = shouldStartWaitlistedGame
+        ? ref.read(currentStaffProvider).value?.id ?? ''
+        : '';
+
     if (game.billingType == BillingType.perFrame) {
-      if (!context.mounted) return;
+      if (!context.mounted) return false;
       final result = await showDialog<Map<String, dynamic>>(
         context: context,
         builder: (ctx) => _RoundCompletionDialog(game: game),
       );
-      if (result == null || !mounted || !context.mounted) return;
+      if (result == null || !mounted || !context.mounted) return false;
 
       final framePayers = result['framePayers'] as List<String>;
       final continueRound = result['continue'] as bool;
@@ -712,7 +774,7 @@ class _ActiveGameCardState extends ConsumerState<ActiveGameCard> {
             ),
           );
         }
-        return;
+        return false;
       } else {
         final updatedSession = game.copyWith(
           rounds: updatedRounds,
@@ -720,22 +782,62 @@ class _ActiveGameCardState extends ConsumerState<ActiveGameCard> {
           totalFrames: updatedRounds.length,
         );
         if (mounted && context.mounted) {
-          await Navigator.of(context).push(
-            MaterialPageRoute(
-              builder: (_) => BillingScreen(session: updatedSession),
-            ),
-          );
+          final paymentCompleted =
+              await Navigator.of(context).push<bool>(
+                MaterialPageRoute(
+                  builder: (_) => BillingScreen(
+                    session: updatedSession,
+                    returnToCaller: shouldStartWaitlistedGame,
+                  ),
+                ),
+              ) ??
+              false;
+          if (paymentCompleted && shouldStartWaitlistedGame) {
+            await _showWaitlistedGameSetup(game, navigator, table, employeeId);
+          }
+          return paymentCompleted;
         }
-        return;
+        return false;
       }
     }
 
     // Non-perFrame billing (hourly/per-minute), go directly to billing
     if (mounted && context.mounted) {
-      await Navigator.of(
-        context,
-      ).push(MaterialPageRoute(builder: (_) => BillingScreen(session: game)));
+      final paymentCompleted =
+          await Navigator.of(context).push<bool>(
+            MaterialPageRoute(
+              builder: (_) => BillingScreen(
+                session: game,
+                returnToCaller: shouldStartWaitlistedGame,
+              ),
+            ),
+          ) ??
+          false;
+      if (paymentCompleted && shouldStartWaitlistedGame) {
+        await _showWaitlistedGameSetup(game, navigator, table, employeeId);
+      }
+      return paymentCompleted;
     }
+    return false;
+  }
+
+  Future<void> _showWaitlistedGameSetup(
+    GameSession game,
+    NavigatorState navigator,
+    TableModel table,
+    String employeeId,
+  ) async {
+    if (!navigator.mounted) return;
+    await showDialog<GameSession>(
+      context: navigator.context,
+      barrierDismissible: true,
+      builder: (_) => GameSetupDialog(
+        table: table,
+        employeeId: employeeId,
+        initialWaitlistPlayers: game.waitlistPlayers,
+        title: 'Start waitlist game',
+      ),
+    );
   }
 
   Future<void> _handleMarkAsPending(

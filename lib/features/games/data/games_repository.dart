@@ -455,6 +455,26 @@ class GamesRepository {
     await _gamesRef.doc(gameId).update({'playerPoints': playerPoints});
   }
 
+  Future<void> updateWaitlistPlayers(
+    String gameId,
+    List<WaitlistPlayer> oldPlayers,
+    List<WaitlistPlayer> players,
+  ) async {
+    if (AppConfig.guardWrite('GamesRepository.updateWaitlistPlayers')) return;
+    final newAuditLog = AuditLog(
+      id: '${DateTime.now().millisecondsSinceEpoch}_waitlist',
+      editedBy: currentUserName,
+      timestamp: DateTime.now(),
+      field: 'Waitlist Updated',
+      previousValue: oldPlayers.map((player) => player.name).join(', '),
+      newValue: players.map((player) => player.name).join(', '),
+    );
+    await _gamesRef.doc(gameId).update({
+      'waitlistPlayers': players.map((player) => player.toMap()).toList(),
+      'auditLogs': FieldValue.arrayUnion([newAuditLog.toMap()]),
+    });
+  }
+
   Future<void> updateOrders(
     String gameId,
     List<GameOrder> oldOrders,

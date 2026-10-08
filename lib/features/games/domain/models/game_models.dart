@@ -652,6 +652,20 @@ class GameRound {
 // GameSession
 // ─────────────────────────────────────────────
 
+class WaitlistPlayer {
+  final String? id;
+  final String name;
+
+  const WaitlistPlayer({this.id, required this.name});
+
+  Map<String, dynamic> toMap() => {'id': id, 'name': name};
+
+  factory WaitlistPlayer.fromMap(Map<String, dynamic> map) => WaitlistPlayer(
+    id: map['id'] as String?,
+    name: map['name'] as String? ?? '',
+  );
+}
+
 class GameSession {
   final String? createdByUserId;
   final String? createdByName;
@@ -735,6 +749,7 @@ class GameSession {
   final double? manualSelectedFinalAmount;
   final DateTime? alarmTime;
   final String? alarmSetByUserId;
+  final List<WaitlistPlayer> waitlistPlayers;
 
   const GameSession({
     this.createdByUserId,
@@ -816,6 +831,7 @@ class GameSession {
     this.manualSelectedFinalAmount,
     this.alarmTime,
     this.alarmSetByUserId,
+    this.waitlistPlayers = const [],
   });
 
   /// All players involved (team A + team B)
@@ -947,6 +963,7 @@ class GameSession {
     double? manualSelectedFinalAmount,
     DateTime? alarmTime,
     String? alarmSetByUserId,
+    List<WaitlistPlayer>? waitlistPlayers,
   }) {
     return GameSession(
       createdByUserId: createdByUserId ?? this.createdByUserId,
@@ -1030,6 +1047,7 @@ class GameSession {
       manualSelectedFinalAmount: manualSelectedFinalAmount ?? this.manualSelectedFinalAmount,
       alarmTime: alarmTime ?? this.alarmTime,
       alarmSetByUserId: alarmSetByUserId ?? this.alarmSetByUserId,
+      waitlistPlayers: waitlistPlayers ?? this.waitlistPlayers,
     );
   }
 
@@ -1120,6 +1138,7 @@ class GameSession {
       'manualSelectedFinalAmount': manualSelectedFinalAmount,
       'alarmTime': alarmTime != null ? Timestamp.fromDate(alarmTime!) : null,
       'alarmSetByUserId': alarmSetByUserId,
+      'waitlistPlayers': waitlistPlayers.map((p) => p.toMap()).toList(),
     };
   }
 
@@ -1300,6 +1319,11 @@ class GameSession {
       customPrice: (map['customPrice'] as num?)?.toDouble(),
       isTimeNotSure: map['isTimeNotSure'] ?? false,
       manualSelectedFinalAmount: (map['manualSelectedFinalAmount'] as num?)?.toDouble(),
+      waitlistPlayers:
+          (map['waitlistPlayers'] as List<dynamic>?)
+              ?.map((p) => WaitlistPlayer.fromMap(Map<String, dynamic>.from(p)))
+              .toList() ??
+          const [],
     );
   }
 }
