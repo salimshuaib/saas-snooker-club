@@ -170,10 +170,6 @@ class AppSettingsNotifier extends Notifier<AppSettings> {
 final clubFeatureProvider = Provider.family<bool, String>((ref, featureKey) {
   final settings = ref.watch(appSettingsProvider);
   switch (featureKey) {
-    case 'raceEnabled':
-      return settings.features.raceEnabled;
-    case 'rummyEnabled':
-      return settings.features.rummyEnabled;
     case 'inventoryEnabled':
       return settings.features.inventoryEnabled;
     case 'quickSalesEnabled':
@@ -188,3 +184,4 @@ final clubFeatureProvider = Provider.family<bool, String>((ref, featureKey) {
       return true;
   }
 });
+

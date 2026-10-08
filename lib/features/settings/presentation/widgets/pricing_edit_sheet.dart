@@ -31,6 +31,7 @@ class _PricingEditSheetState extends ConsumerState<PricingEditSheet> {
   final Map<String, bool> _minBillToggles = {};
   final Map<String, TextEditingController> _minBillControllers = {};
   final Map<String, bool> _customPriceToggles = {};
+  final Set<String> _expandedTableIds = {};
   String? _selectedFloorId;
 
   @override
@@ -134,9 +135,7 @@ class _PricingEditSheetState extends ConsumerState<PricingEditSheet> {
 
         if (key == 'oneHour') return p.snookerOneHour;
 
-        if (key == 'racePerMinute') return p.snookerRacePerMinute;
 
-        if (key == 'rummyPerMinute') return p.snookerRummyPerMinute;
 
         break;
 
@@ -149,7 +148,6 @@ class _PricingEditSheetState extends ConsumerState<PricingEditSheet> {
 
         if (key == 'oneHour') return p.indianPoolOneHour;
 
-        if (key == 'racePerMinute') return p.indianPoolRacePerMinute;
 
         break;
 
@@ -162,7 +160,6 @@ class _PricingEditSheetState extends ConsumerState<PricingEditSheet> {
 
         if (key == 'oneHour') return p.americanPoolOneHour;
 
-        if (key == 'racePerMinute') return p.americanPoolRacePerMinute;
 
         break;
 
@@ -238,12 +235,7 @@ class _PricingEditSheetState extends ConsumerState<PricingEditSheet> {
 
           {'key': 'halfHour', 'label': 'Half Hour (30m)'},
 
-          {'key': 'oneHour', 'label': 'One Hour (1h)'},
-
-          {'key': 'racePerMinute', 'label': 'Race / min'},
-
-          {'key': 'rummyPerMinute', 'label': 'Rummy / min'},
-        ];
+          {'key': 'oneHour', 'label': 'One Hour (1h)'},        ];
 
       case TableType.indianPool:
       case TableType.americanPool:
@@ -254,10 +246,7 @@ class _PricingEditSheetState extends ConsumerState<PricingEditSheet> {
 
           {'key': 'halfHour', 'label': 'Half Hour (30m)'},
 
-          {'key': 'oneHour', 'label': 'One Hour (1h)'},
-
-          {'key': 'racePerMinute', 'label': 'Race / min'},
-        ];
+          {'key': 'oneHour', 'label': 'One Hour (1h)'},        ];
 
       case TableType.arcade:
         return [
@@ -632,18 +621,15 @@ class _PricingEditSheetState extends ConsumerState<PricingEditSheet> {
 
   Widget _buildTablePricingCard(TableModel table, ThemeData theme) {
     final options = _getOptionsForTableType(table.type);
+    final isExpanded = _expandedTableIds.contains(table.id);
 
     return Card(
       margin: const EdgeInsets.only(bottom: 16),
-
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-
       child: Padding(
         padding: const EdgeInsets.all(16),
-
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
-
           children: [
             Row(
               children: [
@@ -652,28 +638,37 @@ class _PricingEditSheetState extends ConsumerState<PricingEditSheet> {
                   color: _getColorForTableType(table.type),
                   size: 20,
                 ),
-
                 const Gap(8),
-
                 Text(
                   table.name,
-
                   style: theme.textTheme.titleMedium?.copyWith(
                     fontWeight: FontWeight.w700,
                   ),
                 ),
-
                 const Spacer(),
-
                 Text(
                   table.type.displayName,
-
                   style: theme.textTheme.bodySmall?.copyWith(
                     color: theme.colorScheme.onSurfaceVariant,
                   ),
                 ),
+                const Gap(8),
+                IconButton(
+                  icon: Icon(isExpanded ? Icons.keyboard_arrow_up : Icons.edit, size: 20, color: theme.colorScheme.primary),
+                  onPressed: () {
+                    setState(() {
+                      if (isExpanded) {
+                        _expandedTableIds.remove(table.id);
+                      } else {
+                        _expandedTableIds.add(table.id);
+                      }
+                    });
+                  },
+                ),
               ],
             ),
+
+            if (isExpanded) ...[
 
             const Gap(16),
             if (table.type == TableType.snooker ||
@@ -831,6 +826,7 @@ class _PricingEditSheetState extends ConsumerState<PricingEditSheet> {
                 ),
               );
             }),
+            ],
           ],
         ),
       ),
@@ -858,6 +854,11 @@ class _PricingEditSheetState extends ConsumerState<PricingEditSheet> {
     );
   }
 }
+
+
+
+
+
 
 
 

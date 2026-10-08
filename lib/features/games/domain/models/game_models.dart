@@ -63,18 +63,12 @@ enum TableType {
 }
 
 enum GameType {
-  standard,
-  race,
-  rummy;
+  standard;
 
   String get displayName {
     switch (this) {
       case GameType.standard:
         return 'Standard';
-      case GameType.race:
-        return 'Race';
-      case GameType.rummy:
-        return 'Rummy';
     }
   }
 }
@@ -1388,4 +1382,5 @@ class OtherGameResource {
   }
 }
 class AddItemsResult { final List<GameOrder> orders; final List<ManualGameCharge> manualGameCharges; AddItemsResult(this.orders, this.manualGameCharges); }
+
 

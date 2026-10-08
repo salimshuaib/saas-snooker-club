@@ -158,12 +158,6 @@ class PricingSettings {
   final double americanPoolPerMinute;
   final double americanPoolHalfHour;
   final double americanPoolOneHour;
-
-  final double snookerRacePerMinute;
-  final double indianPoolRacePerMinute;
-  final double americanPoolRacePerMinute;
-  final double snookerRummyPerMinute;
-
   final double ps5HalfHour;
   final double ps5OneHour;
   final double pcHalfHour;
@@ -195,12 +189,7 @@ class PricingSettings {
     this.americanPoolPerFrame = 60.00,
     this.americanPoolPerMinute = 4.00,
     this.americanPoolHalfHour = 150.00,
-    this.americanPoolOneHour = 240.00,
-    this.snookerRacePerMinute = 3.00,
-    this.indianPoolRacePerMinute = 3.00,
-    this.americanPoolRacePerMinute = 4.00,
-    this.snookerRummyPerMinute = 4.00,
-    this.ps5HalfHour = 100.00,
+    this.americanPoolOneHour = 240.00,    this.ps5HalfHour = 100.00,
     this.ps5OneHour = 200.00,
     this.pcHalfHour = 80.00,
     this.pcOneHour = 150.00,
@@ -232,12 +221,7 @@ class PricingSettings {
     double? americanPoolPerFrame,
     double? americanPoolPerMinute,
     double? americanPoolHalfHour,
-    double? americanPoolOneHour,
-    double? snookerRacePerMinute,
-    double? indianPoolRacePerMinute,
-    double? americanPoolRacePerMinute,
-    double? snookerRummyPerMinute,
-    double? ps5HalfHour,
+    double? americanPoolOneHour,    double? ps5HalfHour,
     double? ps5OneHour,
     double? pcHalfHour,
     double? pcOneHour,
@@ -269,15 +253,7 @@ class PricingSettings {
       americanPoolPerMinute:
           americanPoolPerMinute ?? this.americanPoolPerMinute,
       americanPoolHalfHour: americanPoolHalfHour ?? this.americanPoolHalfHour,
-      americanPoolOneHour: americanPoolOneHour ?? this.americanPoolOneHour,
-      snookerRacePerMinute: snookerRacePerMinute ?? this.snookerRacePerMinute,
-      indianPoolRacePerMinute:
-          indianPoolRacePerMinute ?? this.indianPoolRacePerMinute,
-      americanPoolRacePerMinute:
-          americanPoolRacePerMinute ?? this.americanPoolRacePerMinute,
-      snookerRummyPerMinute:
-          snookerRummyPerMinute ?? this.snookerRummyPerMinute,
-      ps5HalfHour: ps5HalfHour ?? this.ps5HalfHour,
+      americanPoolOneHour: americanPoolOneHour ?? this.americanPoolOneHour,      ps5HalfHour: ps5HalfHour ?? this.ps5HalfHour,
       ps5OneHour: ps5OneHour ?? this.ps5OneHour,
       pcHalfHour: pcHalfHour ?? this.pcHalfHour,
       pcOneHour: pcOneHour ?? this.pcOneHour,
@@ -313,12 +289,7 @@ class PricingSettings {
       'americanPoolPerFrame': americanPoolPerFrame,
       'americanPoolPerMinute': americanPoolPerMinute,
       'americanPoolHalfHour': americanPoolHalfHour,
-      'americanPoolOneHour': americanPoolOneHour,
-      'snookerRacePerMinute': snookerRacePerMinute,
-      'indianPoolRacePerMinute': indianPoolRacePerMinute,
-      'americanPoolRacePerMinute': americanPoolRacePerMinute,
-      'snookerRummyPerMinute': snookerRummyPerMinute,
-      'ps5HalfHour': ps5HalfHour,
+      'americanPoolOneHour': americanPoolOneHour,      'ps5HalfHour': ps5HalfHour,
       'ps5OneHour': ps5OneHour,
       'pcHalfHour': pcHalfHour,
       'pcOneHour': pcOneHour,
@@ -361,16 +332,7 @@ class PricingSettings {
       americanPoolHalfHour:
           (map['americanPoolHalfHour'] as num?)?.toDouble() ?? 150.00,
       americanPoolOneHour:
-          (map['americanPoolOneHour'] as num?)?.toDouble() ?? 240.00,
-      snookerRacePerMinute:
-          (map['snookerRacePerMinute'] as num?)?.toDouble() ?? 3.00,
-      indianPoolRacePerMinute:
-          (map['indianPoolRacePerMinute'] as num?)?.toDouble() ?? 3.00,
-      americanPoolRacePerMinute:
-          (map['americanPoolRacePerMinute'] as num?)?.toDouble() ?? 4.00,
-      snookerRummyPerMinute:
-          (map['snookerRummyPerMinute'] as num?)?.toDouble() ?? 4.00,
-      ps5HalfHour: (map['ps5HalfHour'] as num?)?.toDouble() ?? 100.00,
+          (map['americanPoolOneHour'] as num?)?.toDouble() ?? 240.00,      ps5HalfHour: (map['ps5HalfHour'] as num?)?.toDouble() ?? 100.00,
       ps5OneHour: (map['ps5OneHour'] as num?)?.toDouble() ?? 200.00,
       pcHalfHour: (map['pcHalfHour'] as num?)?.toDouble() ?? 80.00,
       pcOneHour: (map['pcOneHour'] as num?)?.toDouble() ?? 150.00,
@@ -518,38 +480,26 @@ class NotificationSettings {
   }
 }
 
-class FeatureFlags {
-  final bool raceEnabled;
-  final bool rummyEnabled;
-  final bool inventoryEnabled;
+class FeatureFlags {  final bool inventoryEnabled;
   final bool quickSalesEnabled;
   final bool creditEnabled;
   final bool perMinuteEnabled;
   final bool perFrameEnabled;
 
-  const FeatureFlags({
-    this.raceEnabled = true,
-    this.rummyEnabled = true,
-    this.inventoryEnabled = true,
+  const FeatureFlags({    this.inventoryEnabled = true,
     this.quickSalesEnabled = true,
     this.creditEnabled = true,
     this.perMinuteEnabled = true,
     this.perFrameEnabled = true,
   });
 
-  FeatureFlags copyWith({
-    bool? raceEnabled,
-    bool? rummyEnabled,
-    bool? inventoryEnabled,
+  FeatureFlags copyWith({    bool? inventoryEnabled,
     bool? quickSalesEnabled,
     bool? creditEnabled,
     bool? perMinuteEnabled,
     bool? perFrameEnabled,
   }) {
-    return FeatureFlags(
-      raceEnabled: raceEnabled ?? this.raceEnabled,
-      rummyEnabled: rummyEnabled ?? this.rummyEnabled,
-      inventoryEnabled: inventoryEnabled ?? this.inventoryEnabled,
+    return FeatureFlags(      inventoryEnabled: inventoryEnabled ?? this.inventoryEnabled,
       quickSalesEnabled: quickSalesEnabled ?? this.quickSalesEnabled,
       creditEnabled: creditEnabled ?? this.creditEnabled,
       perMinuteEnabled: perMinuteEnabled ?? this.perMinuteEnabled,
@@ -558,10 +508,7 @@ class FeatureFlags {
   }
 
   Map<String, dynamic> toMap() {
-    return {
-      'raceEnabled': raceEnabled,
-      'rummyEnabled': rummyEnabled,
-      'inventoryEnabled': inventoryEnabled,
+    return {      'inventoryEnabled': inventoryEnabled,
       'quickSalesEnabled': quickSalesEnabled,
       'creditEnabled': creditEnabled,
       'perMinuteEnabled': perMinuteEnabled,
@@ -571,10 +518,7 @@ class FeatureFlags {
 
   factory FeatureFlags.fromMap(Map<String, dynamic>? map) {
     if (map == null) return const FeatureFlags();
-    return FeatureFlags(
-      raceEnabled: map['raceEnabled'] as bool? ?? true,
-      rummyEnabled: map['rummyEnabled'] as bool? ?? true,
-      inventoryEnabled: map['inventoryEnabled'] as bool? ?? true,
+    return FeatureFlags(      inventoryEnabled: map['inventoryEnabled'] as bool? ?? true,
       quickSalesEnabled: map['quickSalesEnabled'] as bool? ?? true,
       creditEnabled: map['creditEnabled'] as bool? ?? true,
       perMinuteEnabled: map['perMinuteEnabled'] as bool? ?? true,
@@ -763,3 +707,5 @@ class AppSettings {
     );
   }
 }
+
+
