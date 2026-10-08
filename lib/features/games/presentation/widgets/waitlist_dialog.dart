@@ -4,9 +4,9 @@ import 'package:snooker_club/features/credit/presentation/widgets/player_search_
 import 'package:snooker_club/features/games/domain/models/game_models.dart';
 
 class WaitlistDialog extends StatefulWidget {
-  final List<WaitlistPlayer> players;
+  final List<String> existingNames;
 
-  const WaitlistDialog({super.key, required this.players});
+  const WaitlistDialog({super.key, this.existingNames = const []});
 
   @override
   State<WaitlistDialog> createState() => _WaitlistDialogState();
@@ -26,19 +26,10 @@ class _WaitlistDialogState extends State<WaitlistDialog> {
   @override
   void initState() {
     super.initState();
-    _entries = widget.players
-        .map((p) => _WaitlistEntry(
-              player: PlayerSelection(id: p.id, name: p.name),
-              isPaid: p.isPaid,
-              addedAt: p.addedAt,
-            ))
-        .toList();
-    if (_entries.isEmpty) {
-      _entries.add(_WaitlistEntry(
-        player: const PlayerSelection(name: ''),
-        addedAt: DateTime.now(),
-      ));
-    }
+    _entries = List.generate(3, (_) => _WaitlistEntry(
+      player: const PlayerSelection(name: ''),
+      addedAt: DateTime.now(),
+    ));
   }
 
   void _save() {
@@ -56,9 +47,17 @@ class _WaitlistDialogState extends State<WaitlistDialog> {
     final names = players.map((player) => player.name.toLowerCase()).toSet();
     if (names.length != players.length) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('A player can only be added once.')),
+        const SnackBar(content: Text('A player can only be added once in this form.')),
       );
       return;
+    }
+    for (final name in names) {
+      if (widget.existingNames.map((e) => e.toLowerCase()).contains(name)) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Player $name is already in the waitlist.')),
+        );
+        return;
+      }
     }
     Navigator.of(context).pop(players);
   }
