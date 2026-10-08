@@ -95,18 +95,14 @@ class TablePricingConfig {
     final tableType = table.type;
     if (table.billingOptions != null) {
       String? key;
-      if (gameType == GameType.race) {
-        key = 'racePerMinute';
-      } else if (gameType == GameType.rummy) {
-        key = 'rummyPerMinute';
-      } else {
-        key = 'perMinute';
-      }
+      key = 'perMinute';
       final option = table.billingOptions![key];
       if (option != null && option.enabled) {
         return option.price;
       }
     }
+    
+
     switch (tableType) {
       case TableType.snooker:
         return pricingConfig.snookerPerMinute;
@@ -199,29 +195,7 @@ class TablePricingConfig {
 
     final tableType = table.type;
 
-    if (gameType == GameType.race) {
-      if (billingType != BillingType.perMinute) return null;
-
-      switch (tableType) {
-        case TableType.snooker:
-          return fallbackConfig.snookerRacePerMinute;
-
-        case TableType.indianPool:
-          return fallbackConfig.indianPoolRacePerMinute;
-
-        case TableType.americanPool:
-          return fallbackConfig.americanPoolRacePerMinute;
-
-        default:
-          return fallbackConfig.snookerRacePerMinute;
-      }
-    } else if (gameType == GameType.rummy) {
-      if (billingType != BillingType.perMinute ||
-          tableType != TableType.snooker)
-        return null;
-
-      return fallbackConfig.snookerRummyPerMinute;
-    }
+    
 
     switch (tableType) {
       case TableType.snooker:
@@ -428,19 +402,7 @@ class TablePricingConfig {
     if (table.billingOptions != null) {
       final List<BillingType> types = [];
 
-      if (gameType == GameType.race) {
-        if (table.billingOptions!['racePerMinute']?.enabled == true) {
-          types.add(BillingType.perMinute);
-        }
-
-        return types;
-      } else if (gameType == GameType.rummy) {
-        if (table.billingOptions!['rummyPerMinute']?.enabled == true) {
-          types.add(BillingType.perMinute);
-        }
-
-        return types;
-      }
+      
 
       if (table.billingOptions!['perMinute']?.enabled == true)
         types.add(BillingType.perMinute);
@@ -462,6 +424,8 @@ class TablePricingConfig {
     // Fallback logic
 
     final tableType = table.type;
+
+    
 
     switch (tableType) {
       case TableType.snooker:
