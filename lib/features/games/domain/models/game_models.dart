@@ -655,15 +655,45 @@ class GameRound {
 class WaitlistPlayer {
   final String? id;
   final String name;
+  final DateTime addedAt;
+  final bool isPaid;
 
-  const WaitlistPlayer({this.id, required this.name});
+  WaitlistPlayer({
+    this.id, 
+    required this.name, 
+    DateTime? addedAt, 
+    this.isPaid = false,
+  }) : addedAt = addedAt ?? DateTime.now();
 
-  Map<String, dynamic> toMap() => {'id': id, 'name': name};
+  Map<String, dynamic> toMap() => {
+    'id': id, 
+    'name': name,
+    'addedAt': addedAt.millisecondsSinceEpoch,
+    'isPaid': isPaid,
+  };
 
   factory WaitlistPlayer.fromMap(Map<String, dynamic> map) => WaitlistPlayer(
     id: map['id'] as String?,
     name: map['name'] as String? ?? '',
+    addedAt: map['addedAt'] != null 
+        ? DateTime.fromMillisecondsSinceEpoch(map['addedAt'] as int)
+        : DateTime.now(),
+    isPaid: map['isPaid'] as bool? ?? false,
   );
+
+  WaitlistPlayer copyWith({
+    String? id,
+    String? name,
+    DateTime? addedAt,
+    bool? isPaid,
+  }) {
+    return WaitlistPlayer(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      addedAt: addedAt ?? this.addedAt,
+      isPaid: isPaid ?? this.isPaid,
+    );
+  }
 }
 
 class GameSession {
