@@ -291,22 +291,33 @@ class GameActivityCard extends ConsumerWidget {
                 data: (game) {
                   if (game == null) {
                     if (!isAvailable) {
-                      return Padding(
-                        padding: const EdgeInsets.all(16.0),
-                        child: Center(
-                          child: FilledButton.icon(
-                            style: FilledButton.styleFrom(backgroundColor: Colors.orange),
-                            onPressed: () {
-                              ref.read(gamesRepositoryProvider).updateTableStatus(
-                                table.id, 
-                                TableStatus.available, 
-                                activeGameId: null,
-                              );
-                            },
-                            icon: const Icon(Icons.build),
-                            label: const Text('Fix Stuck Table'),
-                          ),
-                        ),
+                      return FutureBuilder(
+                        future: Future.delayed(const Duration(seconds: 2)),
+                        builder: (context, snapshot) {
+                          if (snapshot.connectionState == ConnectionState.waiting) {
+                            return const Padding(
+                              padding: EdgeInsets.all(32.0),
+                              child: Center(child: CircularProgressIndicator()),
+                            );
+                          }
+                          return Padding(
+                            padding: const EdgeInsets.all(16.0),
+                            child: Center(
+                              child: FilledButton.icon(
+                                style: FilledButton.styleFrom(backgroundColor: Colors.orange),
+                                onPressed: () {
+                                  ref.read(gamesRepositoryProvider).updateTableStatus(
+                                    table.id, 
+                                    TableStatus.available, 
+                                    activeGameId: null,
+                                  );
+                                },
+                                icon: const Icon(Icons.build),
+                                label: const Text('Fix Stuck Table'),
+                              ),
+                            ),
+                          );
+                        }
                       );
                     }
                     return const SizedBox();
@@ -341,3 +352,4 @@ class GameActivityCard extends ConsumerWidget {
     );
   }
 }
+

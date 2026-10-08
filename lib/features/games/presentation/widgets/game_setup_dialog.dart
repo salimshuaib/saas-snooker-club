@@ -46,6 +46,7 @@ class _GameSetupDialogState extends ConsumerState<GameSetupDialog> {
   );
   int _customMinutes = 15;
   late List<PlayerSelection?> _playerSelections;
+  late List<WaitlistPlayer> _remainingWaitlist;
   int _nextDefaultNumber = 2;
   bool _isLoading = false;
 
@@ -58,13 +59,16 @@ class _GameSetupDialogState extends ConsumerState<GameSetupDialog> {
   @override
   void initState() {
     super.initState();
-    _playerSelections = widget.initialWaitlistPlayers.isEmpty
-        ? [const PlayerSelection(name: 'Default 1')]
-        : widget.initialWaitlistPlayers
-              .map(
-                (player) => PlayerSelection(id: player.id, name: player.name),
-              )
-              .toList();
+    if (widget.initialWaitlistPlayers.isEmpty) {
+      _playerSelections = [const PlayerSelection(name: 'Default 1')];
+      _remainingWaitlist = [];
+    } else {
+      final sortedWaitlist = List<WaitlistPlayer>.from(widget.initialWaitlistPlayers)
+        ..sort((a, b) => a.addedAt.compareTo(b.addedAt));
+      final firstPlayer = sortedWaitlist.first;
+      _playerSelections = [PlayerSelection(id: firstPlayer.id, name: firstPlayer.name)];
+      _remainingWaitlist = sortedWaitlist.skip(1).toList();
+    }
     _tableType = widget.table.type;
     final validBilling = TablePricingConfig.supportedBillingTypes(
       widget.table,
@@ -670,6 +674,7 @@ class _GameSetupDialogState extends ConsumerState<GameSetupDialog> {
         teamB: const [],
         playerIds: finalPlayerIds,
         playerIdentities: resolvedIdentities,
+        waitlistPlayers: _remainingWaitlist,
         orders: const [],
         pauseTimes: const [],
         resumeTimes: const [],
@@ -724,4 +729,7 @@ class _GameSetupDialogState extends ConsumerState<GameSetupDialog> {
     }
   }
 }
+
+
+
 

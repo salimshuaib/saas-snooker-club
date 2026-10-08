@@ -12,156 +12,117 @@ class WaitlistDialog extends StatefulWidget {
   State<WaitlistDialog> createState() => _WaitlistDialogState();
 }
 
-class _WaitlistEntry {
-  PlayerSelection player;
-  bool isPaid;
-  DateTime addedAt;
-
-  _WaitlistEntry({required this.player, this.isPaid = false, required this.addedAt});
-}
-
 class _WaitlistDialogState extends State<WaitlistDialog> {
-  late List<_WaitlistEntry> _entries;
-
-  @override
-  void initState() {
-    super.initState();
-    _entries = List.generate(3, (_) => _WaitlistEntry(
-      player: const PlayerSelection(name: ''),
-      addedAt: DateTime.now(),
-    ));
-  }
+  PlayerSelection _player = const PlayerSelection(name: '');
+  bool _isPaid = false;
 
   void _save() {
-    final players = _entries
-        .where((e) => e.player.name.trim().isNotEmpty)
-        .map(
-          (e) => WaitlistPlayer(
-            id: e.player.id,
-            name: e.player.name.trim(),
-            isPaid: e.isPaid,
-            addedAt: e.addedAt,
-          ),
-        )
-        .toList();
-    final names = players.map((player) => player.name.toLowerCase()).toSet();
-    if (names.length != players.length) {
+    final name = _player.name.trim();
+    if (name.isEmpty) {
+      Navigator.of(context).pop(<WaitlistPlayer>[]);
+      return;
+    }
+    
+    if (widget.existingNames.map((e) => e.toLowerCase()).contains(name.toLowerCase())) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('A player can only be added once in this form.')),
+        SnackBar(content: Text('Player $name is already in the waitlist.')),
       );
       return;
     }
-    for (final name in names) {
-      if (widget.existingNames.map((e) => e.toLowerCase()).contains(name)) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Player $name is already in the waitlist.')),
-        );
-        return;
-      }
-    }
-    Navigator.of(context).pop(players);
+
+    final newPlayer = WaitlistPlayer(
+      id: _player.id,
+      name: name,
+      isPaid: _isPaid,
+      addedAt: DateTime.now(),
+    );
+
+    Navigator.of(context).pop([newPlayer]);
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    return AlertDialog(
-      title: const Text('Waitlist'),
-      content: SizedBox(
-        width: 400,
+    return Dialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: Padding(
+        padding: const EdgeInsets.all(24.0),
         child: Column(
           mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Text(
-              'Add up to 3 players for the next game.',
+              'Add to Waitlist',
+              style: theme.textTheme.titleLarge?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const Gap(8),
+            Text(
+              'Add a player to the waitlist queue.',
               style: theme.textTheme.bodySmall,
             ),
             const Gap(16),
-            ...List.generate(_entries.length, (index) {
-              final entry = _entries[index];
-              return Padding(
-                padding: const EdgeInsets.only(bottom: 10),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: PlayerSearchField(
-                        key: ValueKey('waitlist-player-$index'),
-                        initialSelection: entry.player,
-                        onSelected: (player) {
-                          setState(() => _entries[index].player = player);
-                        },
-                        hint: 'Player Name',
+            Row(
+              children: [
+                Expanded(
+                  child: PlayerSearchField(
+                    key: const ValueKey('waitlist-player-input'),
+                    initialSelection: _player,
+                    onSelected: (player) {
+                      setState(() => _player = player);
+                    },
+                    hint: 'Player Name',
+                  ),
+                ),
+                const Gap(8),
+                InkWell(
+                  onTap: () {
+                    setState(() {
+                      _isPaid = !_isPaid;
+                    });
+                  },
+                  borderRadius: BorderRadius.circular(4),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                    decoration: BoxDecoration(
+                      color: _isPaid ? Colors.green.withValues(alpha: 0.1) : Colors.orange.withValues(alpha: 0.1),
+                      border: Border.all(
+                        color: _isPaid ? Colors.green : Colors.orange,
                       ),
-                    ),
-                    const Gap(8),
-                    InkWell(
-                      onTap: () {
-                        setState(() {
-                          _entries[index].isPaid = !_entries[index].isPaid;
-                        });
-                      },
                       borderRadius: BorderRadius.circular(4),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-                        decoration: BoxDecoration(
-                          color: entry.isPaid ? Colors.green.withValues(alpha: 0.1) : Colors.orange.withValues(alpha: 0.1),
-                          border: Border.all(
-                            color: entry.isPaid ? Colors.green : Colors.orange,
-                          ),
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                        child: Text(
-                          entry.isPaid ? 'PAID' : 'UNPAID',
-                          style: TextStyle(
-                            fontSize: 10,
-                            fontWeight: FontWeight.bold,
-                            color: entry.isPaid ? Colors.green : Colors.orange,
-                          ),
-                        ),
+                    ),
+                    child: Text(
+                      _isPaid ? 'PAID' : 'UNPAID',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                        color: _isPaid ? Colors.green : Colors.orange,
                       ),
                     ),
-                    IconButton(
-                      tooltip: 'Remove player',
-                      onPressed: () => setState(() {
-                        _entries.removeAt(index);
-                      }),
-                      icon: Icon(
-                        Icons.remove_circle_outline,
-                        color: theme.colorScheme.error,
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
-              );
-            }),
-            if (_entries.length < 3)
-              TextButton.icon(
-                onPressed: () => setState(
-                  () => _entries.add(_WaitlistEntry(
-                    player: const PlayerSelection(name: ''),
-                    addedAt: DateTime.now(),
-                  )),
+              ],
+            ),
+            const Gap(24),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: const Text('Cancel'),
                 ),
-                icon: const Icon(Icons.add, size: 18),
-                label: const Text('Add Player'),
-              ),
+                const Gap(8),
+                FilledButton(
+                  onPressed: _save,
+                  child: const Text('Save'),
+                ),
+              ],
+            ),
           ],
         ),
       ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Cancel'),
-        ),
-        FilledButton(onPressed: _save, child: const Text('Save')),
-      ],
     );
   }
 }
-
-
-
-
-
