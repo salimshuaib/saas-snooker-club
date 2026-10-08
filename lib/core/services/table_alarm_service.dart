@@ -51,6 +51,10 @@ class TableAlarmService {
   final _alarmsChangedController = StreamController<void>.broadcast();
   Stream<void> get onAlarmsChanged => _alarmsChangedController.stream;
 
+  final List<AlarmInfo> ringingAlarms = [];
+  final _ringingAlarmsController = StreamController<List<AlarmInfo>>.broadcast();
+  Stream<List<AlarmInfo>> get onRingingAlarmsChanged => _ringingAlarmsController.stream;
+
   final FlutterTts _flutterTts = FlutterTts();
   final AudioPlayer _sirenPlayer = AudioPlayer();
   Timer? _ttsLoopTimer;
@@ -178,6 +182,11 @@ class TableAlarmService {
         await Alarm.stop(gameId.hashCode);
       }
     }
+    
+    // Also remove from ringing queue if it's there
+    if (ringingAlarms.any((a) => a.gameId == gameId)) {
+       await dismissAlarmForGame(gameId);
+    }
   }
 
   Future<void> _onAlarmFired(AlarmInfo alarm) async {
@@ -192,8 +201,15 @@ class TableAlarmService {
     _saveAlarms();
     _alarmFiredController.add(alarm);
 
-    if (rootNavigatorKey.currentContext != null) {
-      AlarmOverlay.show(rootNavigatorKey.currentContext!, alarm);
+    // Add to ringing queue if not already there
+    if (!ringingAlarms.any((a) => a.gameId == alarm.gameId)) {
+      ringingAlarms.add(alarm);
+      _ringingAlarmsController.add(List.unmodifiable(ringingAlarms));
+    }
+
+    if (rootNavigatorKey.currentContext != null && ringingAlarms.length == 1) {
+      // Only push the dialog if this is the FIRST alarm in the queue
+      AlarmOverlay.show(rootNavigatorKey.currentContext!);
     }
 
     if (!_isNativeAlarmSupported) {
@@ -212,28 +228,34 @@ class TableAlarmService {
       await _flutterTts.setPitch(1.0);
       await _flutterTts.setVolume(1.0);
 
-      final textToSpeak = '${alarm.tableName} time over';
+      String getTtsText() {
+         return ringingAlarms.length > 1 
+           ? '${ringingAlarms.length} tables time over' 
+           : '${ringingAlarms.first.tableName} time over';
+      }
 
-      // The alarm package natively loops the siren on mobile. For desktop/web, we just triggered it above.
-      await _flutterTts.speak(textToSpeak);
+      await _flutterTts.speak(getTtsText());
 
       int speakCount = 0;
       _ttsLoopTimer?.cancel();
       _ttsLoopTimer = Timer.periodic(const Duration(seconds: 5), (timer) async {
         speakCount++;
-        if (speakCount > 15) {
+        if (speakCount > 15 || ringingAlarms.isEmpty) {
           timer.cancel();
           return;
         }
-        await _flutterTts.speak(textToSpeak);
+        await _flutterTts.speak(getTtsText());
       });
     } catch (e) {
       AppLogger.error('Failed to play alarm TTS: $e');
     }
   }
 
-  Future<void> dismissAlarm() async {
+  Future<void> dismissAllAlarms() async {
     try {
+      ringingAlarms.clear();
+      _ringingAlarmsController.add([]);
+
       _ttsLoopTimer?.cancel();
       await _flutterTts.stop();
       await _sirenPlayer.stop();
@@ -243,7 +265,6 @@ class TableAlarmService {
         _currentlyRingingId = null;
       }
       
-      // Catch-all to stop any active alarms playing via alarm package
       if (_isNativeAlarmSupported) {
         try {
            final hasAlarm = await Alarm.hasAlarm();
@@ -253,7 +274,27 @@ class TableAlarmService {
         } catch (_) {}
       }
     } catch (e) {
-      AppLogger.error('Failed to stop TTS: $e');
+      AppLogger.error('Failed to dismiss alarms: $e');
+    }
+  }
+
+  Future<void> dismissAlarmForGame(String gameId) async {
+    try {
+      ringingAlarms.removeWhere((a) => a.gameId == gameId);
+      _ringingAlarmsController.add(List.unmodifiable(ringingAlarms));
+
+      if (_isNativeAlarmSupported) {
+        await Alarm.stop(gameId.hashCode);
+      }
+
+      if (ringingAlarms.isEmpty) {
+        // If no more ringing alarms, stop the global audio
+        _ttsLoopTimer?.cancel();
+        await _flutterTts.stop();
+        await _sirenPlayer.stop();
+      }
+    } catch (e) {
+      AppLogger.error('Failed to dismiss alarm for game $gameId: $e');
     }
   }
 

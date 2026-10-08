@@ -698,6 +698,7 @@ class GameSession {
   final bool isTimeNotSure;
   final double? manualSelectedFinalAmount;
   final DateTime? alarmTime;
+  final String? alarmSetByUserId;
 
   const GameSession({
     this.createdByUserId,
@@ -777,6 +778,7 @@ class GameSession {
     this.isTimeNotSure = false,
     this.manualSelectedFinalAmount,
     this.alarmTime,
+    this.alarmSetByUserId,
   });
 
   /// All players involved (team A + team B)
@@ -906,6 +908,7 @@ class GameSession {
     bool? isTimeNotSure,
     double? manualSelectedFinalAmount,
     DateTime? alarmTime,
+    String? alarmSetByUserId,
   }) {
     return GameSession(
       createdByUserId: createdByUserId ?? this.createdByUserId,
@@ -986,6 +989,7 @@ class GameSession {
       isTimeNotSure: isTimeNotSure ?? this.isTimeNotSure,
       manualSelectedFinalAmount: manualSelectedFinalAmount ?? this.manualSelectedFinalAmount,
       alarmTime: alarmTime ?? this.alarmTime,
+      alarmSetByUserId: alarmSetByUserId ?? this.alarmSetByUserId,
     );
   }
 
@@ -1074,6 +1078,7 @@ class GameSession {
       'isTimeNotSure': isTimeNotSure,
       'manualSelectedFinalAmount': manualSelectedFinalAmount,
       'alarmTime': alarmTime != null ? Timestamp.fromDate(alarmTime!) : null,
+      'alarmSetByUserId': alarmSetByUserId,
     };
   }
 
@@ -1218,6 +1223,7 @@ class GameSession {
       markedPendingByUserId: map['markedPendingByUserId'] as String?,
       markedPendingByName: map['markedPendingByName'] as String?,
       alarmTime: (map['alarmTime'] as Timestamp?)?.toDate(),
+      alarmSetByUserId: map['alarmSetByUserId'] as String?,
       paidAmount: (map['paidAmount'] as num?)?.toDouble(),
       remainingAmount: (map['remainingAmount'] as num?)?.toDouble(),
       gameCharge: (map['gameCharge'] as num?)?.toDouble(),

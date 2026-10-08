@@ -4,6 +4,7 @@ import 'package:snooker_club/features/games/domain/models/game_models.dart';
 import 'package:snooker_club/features/games/providers/games_providers.dart';
 import 'package:snooker_club/features/team/domain/models/staff_member.dart';
 import 'package:snooker_club/features/team/providers/team_providers.dart';
+import 'package:snooker_club/features/floors/providers/floor_providers.dart';
 
 final alarmSyncControllerProvider = Provider<AlarmSyncController>((ref) {
   return AlarmSyncController(ref);
@@ -18,17 +19,21 @@ class AlarmSyncController {
   }
 
   void _initializeSync() {
-    // Listen to changes in both running games and current staff state
+    // Listen to changes in both running games, current staff state, and selected floor
     ref.listen<AsyncValue<List<GameSession>>>(runningGamesProvider, (previous, next) {
-      _evaluateAlarms(next.value ?? [], ref.read(currentStaffProvider).value);
+      _evaluateAlarms(next.value ?? [], ref.read(currentStaffProvider).value, ref.read(selectedFloorIdProvider));
     });
 
     ref.listen<AsyncValue<StaffMember?>>(currentStaffProvider, (previous, next) {
-      _evaluateAlarms(ref.read(runningGamesProvider).value ?? [], next.value);
+      _evaluateAlarms(ref.read(runningGamesProvider).value ?? [], next.value, ref.read(selectedFloorIdProvider));
+    });
+
+    ref.listen<String?>(selectedFloorIdProvider, (previous, next) {
+      _evaluateAlarms(ref.read(runningGamesProvider).value ?? [], ref.read(currentStaffProvider).value, next);
     });
   }
 
-  void _evaluateAlarms(List<GameSession> games, StaffMember? staff) {
+  void _evaluateAlarms(List<GameSession> games, StaffMember? staff, String? selectedFloorId) {
     if (staff == null) {
       _cancelAllLocalAlarms();
       return;
@@ -41,22 +46,35 @@ class AlarmSyncController {
       if (hoursSinceCheckIn >= 24) {
         isActiveCheckIn = false;
         try {
-          ref.read(teamRepositoryProvider).checkOutStaff(staff.id);
+          ref.read(teamRepositoryProvider).checkOutStaff(staff.id, autoCheckedOut: true);
         } catch (_) {}
       }
-    }
-
-    if (!isActiveCheckIn) {
-      _cancelAllLocalAlarms();
-      return;
     }
 
     final currentValidAlarmIds = <String>{};
 
     for (final game in games) {
+      // 1. Floor filter: Always respect the currently viewed floor
+      if (selectedFloorId != null && game.floorId != selectedFloorId) {
+        continue;
+      }
+
+      // 2. Persona filter: Checked-in staff get all alarms. Off-duty staff get only their own alarms.
+      bool shouldRing = false;
+      if (isActiveCheckIn) {
+        shouldRing = true;
+      } else if (game.alarmSetByUserId == staff.id) {
+        shouldRing = true;
+      }
+
+      if (!shouldRing) {
+        continue;
+      }
+
       final alarmTime = game.alarmTime;
-      // Only process alarms that are in the future
-      if (alarmTime != null && alarmTime.isAfter(DateTime.now())) {
+      // Process alarms that are set and not extremely old (e.g. within the last 12 hours)
+      // This ensures if we switch floors, an already-ringing alarm instantly syncs and rings for us.
+      if (alarmTime != null && alarmTime.isAfter(DateTime.now().subtract(const Duration(hours: 12)))) {
         currentValidAlarmIds.add(game.id);
 
         // If this alarm is not already active, or its time has changed, update it locally

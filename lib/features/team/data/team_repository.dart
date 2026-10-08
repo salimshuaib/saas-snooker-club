@@ -22,6 +22,15 @@ class TeamRepository {
         .collection('team_members');
   }
 
+  CollectionReference<Map<String, dynamic>> get _attendanceRef {
+    if (clubId == null)
+      throw Exception('clubId cannot be null for TeamRepository');
+    return _db
+        .collection(FirebaseConstants.clubsCollection)
+        .doc(clubId)
+        .collection(FirebaseConstants.attendanceCollection);
+  }
+
   Stream<List<StaffMember>> watchTeamMembers() {
     return _teamRef.snapshots().map((snapshot) {
       return snapshot.docs
@@ -62,18 +71,60 @@ class TeamRepository {
   }
 
   Future<void> checkInStaff(String uid) async {
-    await _teamRef.doc(uid).update({
+    final staff = await getStaffMember(uid);
+    if (staff == null) return;
+    
+    final batch = _db.batch();
+    
+    // Update staff document
+    batch.update(_teamRef.doc(uid), {
       'isCheckedIn': true,
       'lastCheckInTime': FieldValue.serverTimestamp(),
       'updatedAt': FieldValue.serverTimestamp(),
     });
+
+    // Create an attendance log
+    final now = DateTime.now();
+    final logId = '${uid}_${now.millisecondsSinceEpoch}';
+    final dateString = '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
+    
+    final logRef = _attendanceRef.doc(logId);
+    batch.set(logRef, {
+      'staffId': uid,
+      'staffName': staff.name,
+      'checkInTime': FieldValue.serverTimestamp(),
+      'checkOutTime': null,
+      'dateString': dateString,
+      'autoCheckedOut': false,
+      'editedByOwner': false,
+    });
+
+    await batch.commit();
   }
 
-  Future<void> checkOutStaff(String uid) async {
-    await _teamRef.doc(uid).update({
+  Future<void> checkOutStaff(String uid, {bool autoCheckedOut = false}) async {
+    final batch = _db.batch();
+    
+    // Update staff document
+    batch.update(_teamRef.doc(uid), {
       'isCheckedIn': false,
       'updatedAt': FieldValue.serverTimestamp(),
     });
+
+    // Find the open attendance logs and close them
+    final query = await _attendanceRef
+        .where('staffId', isEqualTo: uid)
+        .where('checkOutTime', isNull: true)
+        .get();
+
+    for (var doc in query.docs) {
+      batch.update(doc.reference, {
+        'checkOutTime': FieldValue.serverTimestamp(),
+        'autoCheckedOut': autoCheckedOut,
+      });
+    }
+
+    await batch.commit();
   }
 
   Future<void> addStaffMember({

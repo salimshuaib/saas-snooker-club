@@ -15,6 +15,7 @@ import 'package:snooker_club/core/services/table_alarm_service.dart';
 import 'package:snooker_club/features/games/presentation/widgets/alarm_setup_sheet.dart';
 import 'package:snooker_club/features/team/providers/team_providers.dart';
 import 'package:snooker_club/core/widgets/modals/app_modal.dart';
+import 'package:snooker_club/features/floors/providers/floor_providers.dart';
 
 class GameActivityCard extends ConsumerWidget {
   final TableModel table;
@@ -29,6 +30,19 @@ class GameActivityCard extends ConsumerWidget {
     final isPaused = table.status == TableStatus.paused;
 
     final gameAsync = ref.watch(activeGameProvider(table.id));
+    final selectedFloor = ref.watch(selectedFloorProvider);
+    final hasFloors = ref.watch(hasFloorsProvider);
+    final floorsAsync = ref.watch(floorsProvider);
+    
+    String? resolvedFloorName = table.floorName;
+    if ((resolvedFloorName == null || resolvedFloorName.isEmpty) && table.floorId != null) {
+      final floors = floorsAsync.value ?? [];
+      try {
+        resolvedFloorName = floors.firstWhere((f) => f.id == table.floorId).name;
+      } catch (_) {}
+    }
+    
+    final shouldShowFloorName = hasFloors && selectedFloor == null && resolvedFloorName != null && resolvedFloorName.isNotEmpty;
 
     return Card(
       margin: const EdgeInsets.only(bottom: 16),
@@ -57,12 +71,14 @@ class GameActivityCard extends ConsumerWidget {
                         children: [
                           Flexible(
                             child: Text(
-                              table.name,
+                              '${table.name}${shouldShowFloorName ? ' ($resolvedFloorName)' : ''}',
                               style: TextStyle(
                                 color: theme.colorScheme.onSurface,
                                 fontSize: 16,
                                 fontWeight: FontWeight.bold,
                               ),
+                              overflow: TextOverflow.ellipsis,
+                              maxLines: 1,
                             ),
                           ),
                           const SizedBox(width: 8),

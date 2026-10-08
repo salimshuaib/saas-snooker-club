@@ -62,6 +62,7 @@ class GamesRepository {
   Future<void> updateGameAlarm(String gameId, DateTime? alarmTime) async {
     final Map<String, dynamic> updateData = {
       'alarmTime': alarmTime != null ? Timestamp.fromDate(alarmTime) : null,
+      'alarmSetByUserId': alarmTime != null ? currentUserId : null,
     };
     await _gamesRef.doc(gameId).update(updateData);
   }
@@ -325,7 +326,9 @@ class GamesRepository {
   /// Create a new game session and mark the table as running.
   Future<GameSession> startGame(GameSession session) async {
     if (AppConfig.guardWrite('GamesRepository.startGame')) return session;
-    final enrichedSession = _enrichWithStaff(session, true);
+    final enrichedSession = _enrichWithStaff(session, true).copyWith(
+      alarmSetByUserId: session.alarmTime != null ? currentUserId : null,
+    );
     
     final newAuditLog = AuditLog(
       id: '${DateTime.now().millisecondsSinceEpoch}_start',
@@ -354,7 +357,9 @@ class GamesRepository {
   /// Save a game record without marking the table as running (used for instant-bill games like Arcade).
   Future<GameSession> saveGameOnly(GameSession session) async {
     if (AppConfig.guardWrite('GamesRepository.saveGameOnly')) return session;
-    final enrichedSession = _enrichWithStaff(session, true);
+    final enrichedSession = _enrichWithStaff(session, true).copyWith(
+      alarmSetByUserId: session.alarmTime != null ? currentUserId : null,
+    );
     
     final newAuditLog = AuditLog(
       id: '${DateTime.now().millisecondsSinceEpoch}_start',
@@ -2115,4 +2120,6 @@ Future<void> settlePendingBill(GameSession session, {
 Stream<List<OtherGameResource>> watchOtherGames() {
   return const Stream.empty();
 }
+
+
 

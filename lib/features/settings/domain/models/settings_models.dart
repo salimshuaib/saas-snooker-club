@@ -6,6 +6,7 @@ class BusinessSettings {
   final String? upiId;
   final String? logoUrl;
   final String? slug;
+  final String? googleMapLink;
 
   const BusinessSettings({
     this.clubName = 'S&B Manager',
@@ -15,6 +16,7 @@ class BusinessSettings {
     this.upiId,
     this.logoUrl,
     this.slug,
+    this.googleMapLink,
   });
 
   BusinessSettings copyWith({
@@ -25,6 +27,7 @@ class BusinessSettings {
     String? upiId,
     String? logoUrl,
     String? slug,
+    String? googleMapLink,
   }) {
     return BusinessSettings(
       clubName: clubName ?? this.clubName,
@@ -34,6 +37,7 @@ class BusinessSettings {
       upiId: upiId ?? this.upiId,
       logoUrl: logoUrl ?? this.logoUrl,
       slug: slug ?? this.slug,
+      googleMapLink: googleMapLink ?? this.googleMapLink,
     );
   }
 
@@ -46,6 +50,7 @@ class BusinessSettings {
       'upiId': upiId,
       'logoUrl': logoUrl,
       'slug': slug,
+      'googleMapLink': googleMapLink,
     };
   }
 
@@ -59,6 +64,7 @@ class BusinessSettings {
       upiId: map['upiId'] as String?,
       logoUrl: map['logoUrl'] as String?,
       slug: map['slug'] as String?,
+      googleMapLink: map['googleMapLink'] as String?,
     );
   }
 }
@@ -582,20 +588,12 @@ class BookingSettings {
   final int slotDurationMinutes;
   final String openingTime;
   final String closingTime;
-  final int advanceBookingDays;
-  final bool allowSameDayBooking;
-  final bool requireApproval;
-  final List<int> activeDays;
 
   const BookingSettings({
     this.isEnabled = false,
     this.slotDurationMinutes = 30,
     this.openingTime = '10:00',
     this.closingTime = '23:00',
-    this.advanceBookingDays = 7,
-    this.allowSameDayBooking = true,
-    this.requireApproval = true,
-    this.activeDays = const [1, 2, 3, 4, 5, 6, 7], // 1=Mon, 7=Sun
   });
 
   BookingSettings copyWith({
@@ -603,20 +601,12 @@ class BookingSettings {
     int? slotDurationMinutes,
     String? openingTime,
     String? closingTime,
-    int? advanceBookingDays,
-    bool? allowSameDayBooking,
-    bool? requireApproval,
-    List<int>? activeDays,
   }) {
     return BookingSettings(
       isEnabled: isEnabled ?? this.isEnabled,
       slotDurationMinutes: slotDurationMinutes ?? this.slotDurationMinutes,
       openingTime: openingTime ?? this.openingTime,
       closingTime: closingTime ?? this.closingTime,
-      advanceBookingDays: advanceBookingDays ?? this.advanceBookingDays,
-      allowSameDayBooking: allowSameDayBooking ?? this.allowSameDayBooking,
-      requireApproval: requireApproval ?? this.requireApproval,
-      activeDays: activeDays ?? this.activeDays,
     );
   }
 
@@ -627,14 +617,6 @@ class BookingSettings {
       slotDurationMinutes: map['slotDurationMinutes'] as int? ?? 30,
       openingTime: map['openingTime'] as String? ?? '10:00',
       closingTime: map['closingTime'] as String? ?? '23:00',
-      advanceBookingDays: map['advanceBookingDays'] as int? ?? 7,
-      allowSameDayBooking: map['allowSameDayBooking'] as bool? ?? true,
-      requireApproval: map['requireApproval'] as bool? ?? true,
-      activeDays:
-          (map['activeDays'] as List<dynamic>?)
-              ?.map((e) => e as int)
-              .toList() ??
-          const [1, 2, 3, 4, 5, 6, 7],
     );
   }
 
@@ -644,9 +626,6 @@ class BookingSettings {
       'slotDurationMinutes': slotDurationMinutes,
       'openingTime': openingTime,
       'closingTime': closingTime,
-      'advanceBookingDays': advanceBookingDays,
-      'allowSameDayBooking': allowSameDayBooking,
-      'requireApproval': requireApproval,
     };
   }
 }

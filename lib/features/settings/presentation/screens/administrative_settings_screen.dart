@@ -230,10 +230,6 @@ class AdministrativeSettingsScreen extends ConsumerWidget {
                 'Operating Hours',
                 '${settings.booking.openingTime} - ${settings.booking.closingTime}',
               ),
-              _buildInfoTile(
-                'Advance Booking',
-                'Up to ${settings.booking.advanceBookingDays} Days',
-              ),
             ],
           ),
 

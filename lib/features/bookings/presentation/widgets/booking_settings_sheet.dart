@@ -23,15 +23,10 @@ class _BookingSettingsSheetState extends ConsumerState<BookingSettingsSheet> {
   late int _slotDurationMinutes;
   late String _openingTimeStr;
   late String _closingTimeStr;
-  late int _advanceBookingDays;
-  late bool _allowSameDayBooking;
-  late bool _requireApproval;
-  late List<int> _activeDays;
 
   bool _isSaving = false;
 
   final List<int> _durationOptions = [15, 30, 45, 60, 90, 120];
-  final List<int> _advanceOptions = [1, 3, 7, 14, 30];
 
   @override
   void initState() {
@@ -40,10 +35,6 @@ class _BookingSettingsSheetState extends ConsumerState<BookingSettingsSheet> {
     _slotDurationMinutes = widget.initialSettings.slotDurationMinutes;
     _openingTimeStr = widget.initialSettings.openingTime;
     _closingTimeStr = widget.initialSettings.closingTime;
-    _advanceBookingDays = widget.initialSettings.advanceBookingDays;
-    _allowSameDayBooking = widget.initialSettings.allowSameDayBooking;
-    _requireApproval = widget.initialSettings.requireApproval;
-    _activeDays = List<int>.from(widget.initialSettings.activeDays);
   }
 
   TimeOfDay _parseTime(String timeStr) {
@@ -107,10 +98,6 @@ class _BookingSettingsSheetState extends ConsumerState<BookingSettingsSheet> {
         slotDurationMinutes: _slotDurationMinutes,
         openingTime: _openingTimeStr,
         closingTime: _closingTimeStr,
-        advanceBookingDays: _advanceBookingDays,
-        allowSameDayBooking: _allowSameDayBooking,
-        requireApproval: _requireApproval,
-        activeDays: _activeDays..sort(),
       );
 
       await ref
@@ -142,15 +129,6 @@ class _BookingSettingsSheetState extends ConsumerState<BookingSettingsSheet> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final daysOfWeek = [
-      {'val': 1, 'label': 'Mon'},
-      {'val': 2, 'label': 'Tue'},
-      {'val': 3, 'label': 'Wed'},
-      {'val': 4, 'label': 'Thu'},
-      {'val': 5, 'label': 'Fri'},
-      {'val': 6, 'label': 'Sat'},
-      {'val': 7, 'label': 'Sun'},
-    ];
 
     return Container(
       padding: EdgeInsets.only(
@@ -169,39 +147,45 @@ class _BookingSettingsSheetState extends ConsumerState<BookingSettingsSheet> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: AppColors.primary.withOpacity(0.1),
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(
-                      Icons.schedule_send,
-                      color: AppColors.primary,
-                      size: 24,
-                    ),
-                  ),
-                  const Gap(12),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Time Slots & Booking Rules',
-                        style: theme.textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
+              Expanded(
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: AppColors.primary.withOpacity(0.1),
+                        shape: BoxShape.circle,
                       ),
-                      Text(
-                        'Control customer time slots for your booking website',
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.colorScheme.onSurfaceVariant,
-                        ),
+                      child: const Icon(
+                        Icons.schedule_send,
+                        color: AppColors.primary,
+                        size: 24,
                       ),
-                    ],
-                  ),
-                ],
+                    ),
+                    const Gap(12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Time Slots & Booking Rules',
+                            style: theme.textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          Text(
+                            'Control customer time slots for your booking website',
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: theme.colorScheme.onSurfaceVariant,
+                            ),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
               ),
               IconButton(
                 icon: const Icon(Icons.close),
@@ -384,119 +368,7 @@ class _BookingSettingsSheetState extends ConsumerState<BookingSettingsSheet> {
                 const Gap(16),
                 const Divider(),
 
-                // 4. Advance Booking Limit
-                const Gap(8),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Advance Booking Window',
-                          style: theme.textTheme.titleSmall?.copyWith(
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        Text(
-                          'Maximum days in advance customers can book',
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: theme.colorScheme.onSurfaceVariant,
-                          ),
-                        ),
-                      ],
-                    ),
-                    DropdownButton<int>(
-                      value: _advanceBookingDays,
-                      underline: const SizedBox(),
-                      items: _advanceOptions.map((days) {
-                        return DropdownMenuItem(
-                          value: days,
-                          child: Text('$days ${days == 1 ? 'Day' : 'Days'}'),
-                        );
-                      }).toList(),
-                      onChanged: (val) {
-                        if (val != null) setState(() => _advanceBookingDays = val);
-                      },
-                    ),
-                  ],
-                ),
-                const Gap(12),
-                const Divider(),
-
-                // 5. Booking Controls Switches
-                SwitchListTile(
-                  contentPadding: EdgeInsets.zero,
-                  activeColor: AppColors.primary,
-                  title: const Text(
-                    'Allow Same-Day Booking',
-                    style: TextStyle(fontWeight: FontWeight.w500),
-                  ),
-                  subtitle: const Text(
-                    'Permit bookings for the current day',
-                  ),
-                  value: _allowSameDayBooking,
-                  onChanged: (val) => setState(() => _allowSameDayBooking = val),
-                ),
-                SwitchListTile(
-                  contentPadding: EdgeInsets.zero,
-                  activeColor: AppColors.primary,
-                  title: const Text(
-                    'Require Manager Approval',
-                    style: TextStyle(fontWeight: FontWeight.w500),
-                  ),
-                  subtitle: const Text(
-                    'Online bookings start as unconfirmed and require approval',
-                  ),
-                  value: _requireApproval,
-                  onChanged: (val) => setState(() => _requireApproval = val),
-                ),
-                const Divider(),
-
-                // 6. Active Days
-                const Gap(8),
-                Text(
-                  'Active Operational Days',
-                  style: theme.textTheme.titleSmall?.copyWith(
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                Text(
-                  'Days when online booking website accepts slot reservations',
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant,
-                  ),
-                ),
-                const Gap(8),
-                Wrap(
-                  spacing: 6,
-                  children: daysOfWeek.map((day) {
-                    final dayVal = day['val'] as int;
-                    final isSelected = _activeDays.contains(dayVal);
-                    return FilterChip(
-                      label: Text(day['label'] as String),
-                      selected: isSelected,
-                      selectedColor: AppColors.primary,
-                      labelStyle: TextStyle(
-                        color: isSelected ? Colors.white : theme.colorScheme.onSurface,
-                        fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                      ),
-                      onSelected: (val) {
-                        setState(() {
-                          if (val) {
-                            _activeDays.add(dayVal);
-                          } else {
-                            if (_activeDays.length > 1) {
-                              _activeDays.remove(dayVal);
-                            }
-                          }
-                        });
-                      },
-                    );
-                  }).toList(),
-                ),
-                const Gap(16),
-              ],
+                ],
             ),
           ),
           const Divider(height: 20),
@@ -529,3 +401,4 @@ class _BookingSettingsSheetState extends ConsumerState<BookingSettingsSheet> {
     );
   }
 }
+

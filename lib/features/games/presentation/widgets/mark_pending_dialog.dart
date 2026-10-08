@@ -3,15 +3,16 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gap/gap.dart';
 import 'package:snooker_club/features/credit/presentation/widgets/player_search_field.dart';
 import 'package:snooker_club/core/theme/app_colors.dart';
+import 'package:snooker_club/features/games/utils/game_validation_utils.dart';
 
-class MarkPendingDialog extends StatefulWidget {
+class MarkPendingDialog extends ConsumerStatefulWidget {
   const MarkPendingDialog({Key? key}) : super(key: key);
 
   @override
-  State<MarkPendingDialog> createState() => _MarkPendingDialogState();
+  ConsumerState<MarkPendingDialog> createState() => _MarkPendingDialogState();
 }
 
-class _MarkPendingDialogState extends State<MarkPendingDialog> {
+class _MarkPendingDialogState extends ConsumerState<MarkPendingDialog> {
   final List<PlayerSelection?> _selections = [null];
 
   void _addPlayerRow() {
@@ -93,7 +94,20 @@ class _MarkPendingDialogState extends State<MarkPendingDialog> {
         FilledButton(
           onPressed: hasValidSelections ? () {
              final validPlayers = _selections.where((s) => s != null && s.name.trim().isNotEmpty).cast<PlayerSelection>().toList();
-             Navigator.pop(context, validPlayers);
+               
+               final duplicateError = GameValidationUtils.validateDuplicatePlayersWithinGame(validPlayers, []);
+               if (duplicateError != null) {
+                 ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(duplicateError)));
+                 return;
+               }
+
+               final dbNameError = GameValidationUtils.validateNameNotExistingInDatabase(validPlayers, ref);
+               if (dbNameError != null) {
+                 ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(dbNameError)));
+                 return;
+               }
+
+               Navigator.pop(context, validPlayers);
           } : null,
           style: FilledButton.styleFrom(backgroundColor: Colors.orange),
           child: const Text('Yes'),
@@ -102,3 +116,6 @@ class _MarkPendingDialogState extends State<MarkPendingDialog> {
     );
   }
 }
+
+
+

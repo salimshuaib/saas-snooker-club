@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:snooker_club/features/games/domain/models/game_models.dart';
 import 'package:snooker_club/features/games/providers/games_providers.dart';
 import 'package:snooker_club/features/credit/presentation/widgets/player_search_field.dart';
+import 'package:snooker_club/features/credit/providers/credit_providers.dart';
 
 class GameValidationUtils {
   /// Normalizes a player name by trimming spaces, removing double spaces, and lowercasing for comparison.
@@ -104,6 +105,31 @@ class GameValidationUtils {
       }
     }
 
+    return null;
+  }
+
+  /// Checks if a manually typed player name exactly matches an existing player profile in the database.
+  static String? validateNameNotExistingInDatabase(
+    List<PlayerSelection?> players,
+    WidgetRef ref,
+  ) {
+    final allCustomers = ref.read(allCustomersProvider).value ?? [];
+    if (allCustomers.isEmpty) return null;
+
+    final typedPlayers = players
+        .where((p) => p != null && p.id == null && p.name.trim().isNotEmpty)
+        .map((p) => p!)
+        .toList();
+
+    for (final typed in typedPlayers) {
+      if (typed.name.trim().toLowerCase().startsWith('default')) continue;
+      
+      final normTyped = normalizePlayerName(typed.name);
+      final exists = allCustomers.any((c) => normalizePlayerName(c.name) == normTyped);
+      if (exists) {
+        return 'The name "${typed.name}" already exists in the player list. Please select it from the dropdown or change the name to avoid duplicates.';
+      }
+    }
     return null;
   }
 }

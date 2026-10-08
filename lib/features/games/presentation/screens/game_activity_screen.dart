@@ -13,6 +13,8 @@ import 'package:snooker_club/features/games/presentation/widgets/game_activity_c
 import 'package:snooker_club/core/widgets/modals/app_modal.dart';
 import 'package:snooker_club/features/floors/presentation/widgets/floor_selector_sheet.dart';
 import 'package:snooker_club/features/floors/providers/floor_providers.dart';
+import 'package:snooker_club/features/announcements/presentation/widgets/announcements_sheet.dart';
+import 'package:snooker_club/features/dashboard/presentation/widgets/profile_popup_menu.dart';
 
 class GameActivityScreen extends ConsumerWidget {
   const GameActivityScreen({super.key});
@@ -57,51 +59,37 @@ class GameActivityScreen extends ConsumerWidget {
           icon: const Icon(Icons.menu),
           onPressed: () => context.push(RouteNames.more),
         ),
-        title: Text(
-          headerTitle,
-          style: TextStyle(
-            color: theme.colorScheme.onSurface,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-
-        actions: [
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0),
-            child: GestureDetector(
-              onTap: () {
-                if (isFloorsEnabled) {
-                  AppModal.showBottomSheet(
-                    context: context,
-                    builder: (_) => const FloorSelectorSheet(),
-                  );
-                } else {
-                  // If floors aren't configured, tapping could guide them to setup, but profile is fine for now
-                  context.push(RouteNames.floorManagement);
-                }
-              },
-              child: Row(
-                children: [
-                  Text(
-                    currentUserName,
-                    style: TextStyle(
-                      color: theme.colorScheme.primary,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  CircleAvatar(
-                    radius: 14,
-                    backgroundColor: theme.colorScheme.primary,
-                    child: Icon(
-                      Icons.person,
-                      size: 16,
-                      color: theme.colorScheme.surface,
-                    ),
-                  ),
-                ],
+        title: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Flexible(
+              child: Text(
+                headerTitle,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: theme.colorScheme.onSurface,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ),
+            const SizedBox(width: 4),
+            IconButton(
+              icon: const Icon(Icons.notifications_none),
+              tooltip: 'Notice Board',
+              onPressed: () {
+                AppModal.showBottomSheet(
+                  context: context,
+                  builder: (context) => const AnnouncementsSheet(),
+                );
+              },
+            ),
+          ],
+        ),
+
+        actions: const [
+          Padding(
+            padding: EdgeInsets.symmetric(horizontal: 16.0),
+            child: ProfilePopupMenu(),
           ),
         ],
       ),
@@ -561,3 +549,5 @@ class _TableDialogWrapperState extends ConsumerState<_TableDialogWrapper> {
     );
   }
 }
+
+

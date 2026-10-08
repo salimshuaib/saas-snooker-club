@@ -38,6 +38,12 @@ class _CombinedSettlementScreenState extends ConsumerState<CombinedSettlementScr
 
   late List<GameSession> _localBills;
 
+  bool _hasDiscount = false;
+  double _newDiscountAmount = 0.0;
+  final TextEditingController _discountPercentController = TextEditingController();
+  final TextEditingController _discountAmountController = TextEditingController();
+  final TextEditingController _discountedGameController = TextEditingController();
+
   @override
   void initState() {
     super.initState();
@@ -51,8 +57,12 @@ class _CombinedSettlementScreenState extends ConsumerState<CombinedSettlementScr
   double get _totalSelectedAmount {
     final unrounded = _localBills
         .where((b) => _selectedBillIds.contains(b.id))
-        .fold(0.0, (sum, b) => sum + (b.finalAmount ?? b.grandTotal ?? 0.0));
+        .fold(0.0, (sum, b) => sum + (b.finalAmount ?? b.grandTotal ?? 0.0)) - _newDiscountAmount;
     return BillingUtils.roundAmount(unrounded);
+  }
+
+  double get _totalDiscountableAmount {
+    return _totalGameCharges + _totalManualGames;
   }
 
   double get _totalGameCharges {
@@ -91,7 +101,7 @@ class _CombinedSettlementScreenState extends ConsumerState<CombinedSettlementScr
 
       final repo = ref.read(gamesRepositoryProvider);
 
-      final unroundedTotal = billsToSettle.fold(0.0, (sum, b) => sum + (b.finalAmount ?? b.grandTotal ?? 0.0));
+      final unroundedTotal = billsToSettle.fold(0.0, (sum, b) => sum + (b.finalAmount ?? b.grandTotal ?? 0.0)) - _newDiscountAmount;
       final roundedTotal = BillingUtils.roundAmount(unroundedTotal);
 
       PaymentMethod methodToUse = _paymentMethod;
@@ -278,6 +288,126 @@ class _CombinedSettlementScreenState extends ConsumerState<CombinedSettlementScr
                       ),
                     ],
                   ),
+                  if (totalGameCharges > 0 || totalManualGames > 0) ...[
+                    const Gap(16),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text('Discount (Games Only)', style: TextStyle(fontWeight: FontWeight.bold)),
+                        Switch(
+                          value: _hasDiscount,
+                          onChanged: (val) {
+                            setState(() {
+                              _hasDiscount = val;
+                              if (!val) {
+                                _newDiscountAmount = 0.0;
+                                _discountPercentController.text = '';
+                                _discountAmountController.text = '';
+                                _discountedGameController.text = _totalDiscountableAmount.toStringAsFixed(0);
+                              }
+                            });
+                          },
+                        ),
+                      ],
+                    ),
+                    if (_hasDiscount) ...[
+                      const Gap(8),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          child: TextFormField(
+                            controller: _discountPercentController,
+                            keyboardType: TextInputType.number,
+                            decoration: InputDecoration(
+                              labelText: '%',
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                            onChanged: (val) {
+                              final percent = double.tryParse(val) ?? 0.0;
+                              final amount = (_totalDiscountableAmount * (percent / 100));
+                              setState(() {
+                                _newDiscountAmount = amount;
+                                _discountAmountController.text = amount == 0
+                                    ? ''
+                                    : amount.toStringAsFixed(0);
+                                final finalCharge = _totalDiscountableAmount - amount;
+                                _discountedGameController.text = finalCharge == 0
+                                    ? ''
+                                    : finalCharge.toStringAsFixed(0);
+                              });
+                            },
+                          ),
+                        ),
+                        const Gap(12),
+                        Expanded(
+                          child: TextFormField(
+                            controller: _discountAmountController,
+                            keyboardType: TextInputType.number,
+                            decoration: InputDecoration(
+                              labelText: 'Amount',
+                              prefixText: '₹',
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                            onChanged: (val) {
+                              final amount = double.tryParse(val) ?? 0.0;
+                              final percent = _totalDiscountableAmount > 0
+                                  ? (amount / _totalDiscountableAmount) * 100
+                                  : 0.0;
+                              setState(() {
+                                _newDiscountAmount = amount;
+                                _discountPercentController.text = percent == 0
+                                    ? ''
+                                    : percent.toStringAsFixed(1);
+                                final finalCharge = _totalDiscountableAmount - amount;
+                                _discountedGameController.text = finalCharge == 0
+                                    ? ''
+                                    : finalCharge.toStringAsFixed(0);
+                              });
+                            },
+                          ),
+                        ),
+                        const Gap(12),
+                        Expanded(
+                          child: TextFormField(
+                            controller: _discountedGameController,
+                            keyboardType: TextInputType.number,
+                            decoration: InputDecoration(
+                              labelText: 'Final Game',
+                              prefixText: '₹',
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                            onChanged: (val) {
+                              double finalGame = double.tryParse(val) ?? _totalDiscountableAmount;
+                              final amount = _totalDiscountableAmount - finalGame;
+                              final percent = _totalDiscountableAmount > 0
+                                  ? (amount / _totalDiscountableAmount) * 100
+                                  : 0.0;
+                                  
+                              setState(() {
+                                _newDiscountAmount = amount;
+                                _discountAmountController.text = amount == 0
+                                    ? ''
+                                    : amount.toStringAsFixed(0);
+                                _discountPercentController.text = percent == 0
+                                    ? ''
+                                    : percent.toStringAsFixed(1);
+                              });
+                            },
+                          ),
+                        ),
+                      ],
+                    ),
+                    ], // Close _hasDiscount
+                    const Gap(16),
+                    const Divider(height: 1),
+                  ],
                   const Gap(12),
                   if (totalGameCharges > 0)
                     _InfoRow(label: 'Total Game Charges', value: '₹${totalGameCharges.toStringAsFixed(2)}'),
@@ -480,4 +610,11 @@ class _InfoRow extends StatelessWidget {
     );
   }
 }
+
+
+
+
+
+
+
 

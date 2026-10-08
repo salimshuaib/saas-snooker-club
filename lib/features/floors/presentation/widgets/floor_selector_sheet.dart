@@ -16,13 +16,12 @@ class FloorSelectorSheet extends ConsumerWidget {
     final selectedFloorId = ref.watch(selectedFloorIdProvider);
     final tables = ref.watch(resolvedTablesProvider);
 
-    return Container(
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      padding: const EdgeInsets.symmetric(vertical: 20),
-      child: Column(
+    return Material(
+      color: Theme.of(context).colorScheme.surface,
+      borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 20),
+        child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           Padding(
@@ -88,6 +87,7 @@ class FloorSelectorSheet extends ConsumerWidget {
           ),
         ],
       ),
+      ),
     );
   }
 
@@ -110,7 +110,7 @@ class FloorSelectorSheet extends ConsumerWidget {
         name,
         style: TextStyle(
           fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-          color: isSelected ? AppColors.primary : Colors.black87,
+          color: isSelected ? AppColors.primary : Theme.of(context).textTheme.bodyLarge?.color,
         ),
       ),
       trailing: Row(

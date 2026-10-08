@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'staff_attendance_screen.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gap/gap.dart';
 import 'package:snooker_club/core/theme/app_colors.dart';
@@ -148,11 +149,8 @@ class _TeamMemberCard extends ConsumerWidget {
                     color: theme.colorScheme.primary,
                   ),
                 ),
-                Row(
-                  children: [
-                    TextButton.icon(
-                      icon: const Icon(Icons.edit, size: 18),
-                      label: const Text('Edit'),
+                Expanded(child: Wrap(alignment: WrapAlignment.end, spacing: 4, children: [ TextButton.icon(icon: const Icon(Icons.calendar_month, size: 18), label: const Text('Attendance'), onPressed: () { Navigator.push(context, MaterialPageRoute(builder: (_) => StaffAttendanceScreen(staffMember: member))); }), 
+TextButton.icon(icon: const Icon(Icons.edit, size: 18), label: const Text('Edit'),
                       onPressed: () {
                         if (_isLastActiveOwner()) {
                           ScaffoldMessenger.of(context).showSnackBar(
@@ -203,13 +201,15 @@ class _TeamMemberCard extends ConsumerWidget {
                           }
                         },
                       ),
-                  ],
-                ),
-              ],
-            ),
+                  ],)),],),
           ],
         ),
       ),
     );
   }
 }
+
+
+
+
+

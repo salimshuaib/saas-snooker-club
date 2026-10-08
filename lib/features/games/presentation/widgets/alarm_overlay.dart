@@ -1,29 +1,61 @@
 import 'package:flutter/material.dart';
 import 'package:snooker_club/core/services/table_alarm_service.dart';
 import 'package:gap/gap.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:snooker_club/features/games/providers/games_providers.dart';
 
-class AlarmOverlay extends StatelessWidget {
-  final AlarmInfo alarm;
+class AlarmOverlay extends ConsumerStatefulWidget {
+  const AlarmOverlay({Key? key}) : super(key: key);
 
-  const AlarmOverlay({Key? key, required this.alarm}) : super(key: key);
-
-  static Future<void> show(BuildContext context, AlarmInfo alarm) async {
+  static Future<void> show(BuildContext context) async {
     return showDialog(
       context: context,
       barrierDismissible: false,
       useSafeArea: false,
-      builder: (_) => AlarmOverlay(alarm: alarm),
+      builder: (_) => const AlarmOverlay(),
     );
   }
 
   @override
+  ConsumerState<AlarmOverlay> createState() => _AlarmOverlayState();
+}
+
+class _AlarmOverlayState extends ConsumerState<AlarmOverlay> {
+  bool _isDismissing = false;
+
+  void _dismissAllAndPop() {
+    if (_isDismissing) return;
+    _isDismissing = true;
+    TableAlarmService().dismissAllAlarms();
+    if (mounted) {
+      Navigator.of(context).pop();
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
+    // Watch the ringing alarms directly from the service
+    final ringingAlarms = ref.watch(ringingAlarmsProvider).value ?? TableAlarmService().ringingAlarms;
+    
+    // Auto-close if empty (e.g. dismissed from another device or single dismissed)
+    ref.listen(ringingAlarmsProvider, (previous, next) {
+      final alarms = next.value ?? [];
+      if (alarms.isEmpty) {
+        if (!_isDismissing && mounted) {
+           _isDismissing = true;
+           Navigator.of(context).pop();
+        }
+      }
+    });
+
     final theme = Theme.of(context);
     
-    return Material(
-      color: Colors.black87,
-      child: Center(
-        child: Container(
+    return PopScope(
+      canPop: false,
+      child: Material(
+        color: Colors.black87,
+        child: Center(
+          child: Container(
           margin: const EdgeInsets.symmetric(horizontal: 32),
           padding: const EdgeInsets.all(32),
           decoration: BoxDecoration(
@@ -50,42 +82,62 @@ class AlarmOverlay extends StatelessWidget {
                     child: child,
                   );
                 },
-                onEnd: () {
-                  // Simple hack to loop animation: not easy with TweenAnimationBuilder alone without state
-                  // Since we just want a static bell, we'll keep it simple or use an Icon
-                },
                 child: Icon(
                   Icons.notifications_active,
                   size: 64,
                   color: theme.colorScheme.error,
                 ),
               ),
-              const Gap(24),
+              const Gap(16),
               Text(
-                alarm.tableName,
+                ringingAlarms.length > 1 
+                  ? 'Time Over for ${ringingAlarms.length} Tables!'
+                  : 'Time Over!',
                 style: theme.textTheme.headlineMedium?.copyWith(
                   fontWeight: FontWeight.bold,
                   color: theme.colorScheme.onSurface,
                 ),
                 textAlign: TextAlign.center,
               ),
-              const Gap(8),
-              Text(
-                'Time Over!',
-                style: theme.textTheme.titleLarge?.copyWith(
-                  color: theme.colorScheme.error,
-                  fontWeight: FontWeight.w600,
+              const Gap(24),
+              ConstrainedBox(
+                constraints: const BoxConstraints(maxHeight: 200),
+                child: ListView.builder(
+                  shrinkWrap: true,
+                  itemCount: ringingAlarms.length,
+                  itemBuilder: (context, index) {
+                    final alarm = ringingAlarms[index];
+                    return ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      title: Text(
+                        alarm.tableName,
+                        style: theme.textTheme.titleLarge?.copyWith(
+                          color: theme.colorScheme.error,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      trailing: IconButton(
+                        icon: const Icon(Icons.close),
+                        onPressed: () {
+                           TableAlarmService().dismissAlarmForGame(alarm.gameId);
+                           ref.read(gamesRepositoryProvider).updateGameAlarm(alarm.gameId, null);
+                        },
+                      ),
+                    );
+                  },
                 ),
-                textAlign: TextAlign.center,
               ),
-              const Gap(32),
+              const Gap(24),
               SizedBox(
                 width: double.infinity,
                 height: 56,
                 child: FilledButton(
                   onPressed: () {
-                    TableAlarmService().dismissAlarm();
-                    Navigator.of(context).pop();
+                    final alarmsCopy = List<AlarmInfo>.from(ringingAlarms);
+                    _dismissAllAndPop();
+                    for (final a in alarmsCopy) {
+                       ref.read(gamesRepositoryProvider).updateGameAlarm(a.gameId, null);
+                    }
                   },
                   style: FilledButton.styleFrom(
                     backgroundColor: theme.colorScheme.error,
@@ -94,9 +146,9 @@ class AlarmOverlay extends StatelessWidget {
                       borderRadius: BorderRadius.circular(16),
                     ),
                   ),
-                  child: const Text(
-                    'DISMISS',
-                    style: TextStyle(
+                  child: Text(
+                    ringingAlarms.length > 1 ? 'DISMISS ALL' : 'DISMISS',
+                    style: const TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
                       letterSpacing: 1.2,
@@ -108,6 +160,6 @@ class AlarmOverlay extends StatelessWidget {
           ),
         ),
       ),
-    );
+    ));
   }
 }

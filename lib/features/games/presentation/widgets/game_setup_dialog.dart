@@ -458,6 +458,17 @@ class _GameSetupDialogState extends ConsumerState<GameSetupDialog> {
       return;
     }
 
+    final dbNameError = GameValidationUtils.validateNameNotExistingInDatabase(
+      _playerSelections,
+      ref,
+    );
+    if (dbNameError != null) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(dbNameError)));
+      return;
+    }
+
     final activeElsewhereError =
         await GameValidationUtils.checkPlayerActiveElsewhere(
           _playerSelections,

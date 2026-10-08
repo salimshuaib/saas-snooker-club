@@ -489,6 +489,9 @@ class CreditRepository {
       // Delete source customer
       tx.delete(sourceRef);
     });
+
+    // Ensure the unified ledger is perfectly sorted and distributed (FIFO)
+    await recalculateCustomerAccount(targetId);
   }
 
   /// Cascade deletes credit transactions for deleted games.

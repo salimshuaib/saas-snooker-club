@@ -80,11 +80,12 @@ class _MainScreenState extends ConsumerState<MainScreen> {
       );
       _subscriptions.add(ref.listenManual(inventoryItemsProvider, (_, __) {}));
       _subscriptions.add(ref.listenManual(currentStaffProvider, (_, __) {}));
+      _subscriptions.add(ref.listenManual(runningGamesProvider, (_, __) {}));
       _subscriptions.add(ref.listenManual(updateStateProvider, (_, __) {}));
       
       // Initialize alarm sync controller
       try {
-        ref.read(alarmSyncControllerProvider);
+        _subscriptions.add(ref.listenManual(alarmSyncControllerProvider, (_, __) {}));
       } catch (_) {}
     });
   }

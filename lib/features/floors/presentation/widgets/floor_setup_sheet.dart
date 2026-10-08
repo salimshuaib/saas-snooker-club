@@ -19,21 +19,25 @@ class FloorSetupSheet extends ConsumerStatefulWidget {
 class _FloorSetupSheetState extends ConsumerState<FloorSetupSheet> {
   final _formKey = GlobalKey<FormState>();
   late TextEditingController _nameController;
-  Set<String> _selectedTableIds = {};
+  Map<TableType, int> _counts = {};
   bool _isLoading = false;
 
   @override
   void initState() {
     super.initState();
     _nameController = TextEditingController(text: widget.floorToEdit?.name ?? '');
+    
+    for (final type in TableType.values) {
+      _counts[type] = 0;
+    }
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (widget.floorToEdit != null) {
         final tables = ref.read(resolvedTablesProvider);
         setState(() {
-          _selectedTableIds = tables
-              .where((t) => t.floorId == widget.floorToEdit!.id)
-              .map((t) => t.id)
-              .toSet();
+          for (final t in tables.where((t) => t.floorId == widget.floorToEdit!.id)) {
+            _counts[t.type] = (_counts[t.type] ?? 0) + 1;
+          }
         });
       }
     });
@@ -50,47 +54,70 @@ class _FloorSetupSheetState extends ConsumerState<FloorSetupSheet> {
 
     setState(() => _isLoading = true);
     final repo = ref.read(floorRepositoryProvider);
+    final gamesRepo = ref.read(gamesRepositoryProvider);
+    final allTables = ref.read(resolvedTablesProvider);
     
     try {
       String floorId = widget.floorToEdit?.id ?? '';
       final name = _nameController.text.trim();
       
       if (floorId.isEmpty) {
-        // Create
+        final docRef = FirebaseFirestore.instance.collection('dummy').doc();
+        floorId = docRef.id;
         final newFloor = FloorModel(
-          id: '',
+          id: floorId,
           name: name,
           createdAt: DateTime.now(),
         );
-        // addFloor doesn't return the ID, so we'll generate it. 
-        // Wait, our repository generates it if empty, but we need it for assigning tables.
-        // Let's modify addFloor locally or use a manual ID.
-        final docRef = FirebaseFirestore.instance.collection('dummy').doc(); // Just to generate ID
-        floorId = docRef.id;
-        await repo.addFloor(newFloor.copyWith(id: floorId));
+        await repo.addFloor(newFloor);
       } else {
-        // Update
         await repo.updateFloor(widget.floorToEdit!.copyWith(name: name));
       }
 
-      // Assign tables
-      // We unassign tables that were previously in this floor but now unchecked,
-      // and assign the currently checked ones.
-      final allTables = ref.read(resolvedTablesProvider);
-      final previouslyAssigned = allTables.where((t) => t.floorId == floorId).map((t) => t.id).toSet();
+      for (final type in TableType.values) {
+        final desiredCount = _counts[type] ?? 0;
+        final currentTables = allTables.where((t) => t.floorId == floorId && t.type == type).toList();
+        
+        if (desiredCount > currentTables.length) {
+          final toAdd = desiredCount - currentTables.length;
+          final allTypeTables = allTables.where((t) => t.type == type).toList();
+          int maxNum = 0;
+          final r = RegExp(r'\d+');
+          for (final t in allTypeTables) {
+            final m = r.firstMatch(t.name);
+            if (m != null) {
+              final num = int.tryParse(m.group(0)!);
+              if (num != null && num > maxNum) maxNum = num;
+            }
+          }
+          
+          for (int i = 0; i < toAdd; i++) {
+            maxNum++;
+            final newTable = TableModel(
+              id: DateTime.now().millisecondsSinceEpoch.toString() + '_$i',
+              name: '${type.displayName} $maxNum',
+              type: type,
+              order: DateTime.now().millisecondsSinceEpoch + i,
+              floorId: floorId,
+              floorName: name,
+            );
+            await gamesRepo.addTable(newTable);
+          }
+        } else if (desiredCount < currentTables.length) {
+          final toRemove = currentTables.length - desiredCount;
+          currentTables.sort((a, b) => b.name.compareTo(a.name));
+          
+          for (int i = 0; i < toRemove; i++) {
+            await gamesRepo.deleteTable(currentTables[i].id);
+          }
+        }
+      }
       
-      final toUnassign = previouslyAssigned.difference(_selectedTableIds);
-      final toAssign = _selectedTableIds.difference(previouslyAssigned);
-
-      if (toUnassign.isNotEmpty) {
-        await repo.unassignTablesFromFloor(toUnassign.toList());
-      }
-      if (toAssign.isNotEmpty) {
-        await repo.assignTablesToFloor(floorId, name, toAssign.toList());
-      }
-      // Note: If floor name changed, we might need to update the floorName in all assigned tables.
       if (widget.floorToEdit != null && widget.floorToEdit!.name != name) {
-         await repo.assignTablesToFloor(floorId, name, _selectedTableIds.toList());
+         final updatedTables = allTables.where((t) => t.floorId == floorId).map((t) => t.id).toList();
+         if (updatedTables.isNotEmpty) {
+           await repo.assignTablesToFloor(floorId, name, updatedTables);
+         }
       }
 
       if (mounted) Navigator.pop(context);
@@ -105,8 +132,6 @@ class _FloorSetupSheetState extends ConsumerState<FloorSetupSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final tables = ref.watch(resolvedTablesProvider);
-    
     return Padding(
       padding: EdgeInsets.only(
         bottom: MediaQuery.of(context).viewInsets.bottom,
@@ -120,9 +145,18 @@ class _FloorSetupSheetState extends ConsumerState<FloorSetupSheet> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text(
-              widget.floorToEdit == null ? 'Create New Floor' : 'Edit Floor',
-              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  widget.floorToEdit == null ? 'Create New Floor' : 'Edit Floor',
+                  style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.close),
+                  onPressed: () => Navigator.pop(context),
+                ),
+              ],
             ),
             const SizedBox(height: 16),
             TextFormField(
@@ -135,7 +169,7 @@ class _FloorSetupSheetState extends ConsumerState<FloorSetupSheet> {
             ),
             const SizedBox(height: 24),
             const Text(
-              'Assign Tables',
+              'Assign Games',
               style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
@@ -143,34 +177,53 @@ class _FloorSetupSheetState extends ConsumerState<FloorSetupSheet> {
               constraints: BoxConstraints(
                 maxHeight: MediaQuery.of(context).size.height * 0.4,
               ),
-              child: tables.isEmpty
-                  ? const Text('No tables available.')
-                  : ListView.builder(
-                      shrinkWrap: true,
-                      itemCount: tables.length,
-                      itemBuilder: (context, index) {
-                        final table = tables[index];
-                        final isSelected = _selectedTableIds.contains(table.id);
-                        final isAssignedElsewhere = table.floorId != null && table.floorId != widget.floorToEdit?.id;
-                        
-                        return CheckboxListTile(
-                          title: Text(table.name),
-                          subtitle: isAssignedElsewhere 
-                              ? Text('Currently on ${table.floorName}', style: const TextStyle(color: Colors.orange, fontSize: 12)) 
-                              : null,
-                          value: isSelected,
-                          onChanged: (val) {
-                            setState(() {
-                              if (val == true) {
-                                _selectedTableIds.add(table.id);
-                              } else {
-                                _selectedTableIds.remove(table.id);
-                              }
-                            });
-                          },
-                        );
-                      },
+              child: ListView(
+                shrinkWrap: true,
+                children: TableType.values.map((type) {
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 8.0),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          type.displayName,
+                          style: const TextStyle(fontSize: 16),
+                        ),
+                        Row(
+                          children: [
+                            IconButton(
+                              icon: const Icon(Icons.remove, color: Colors.redAccent),
+                              onPressed: () {
+                                if ((_counts[type] ?? 0) > 0) {
+                                  setState(() {
+                                    _counts[type] = (_counts[type] ?? 0) - 1;
+                                  });
+                                }
+                              },
+                            ),
+                            SizedBox(
+                              width: 30,
+                              child: Text(
+                                '${_counts[type] ?? 0}',
+                                textAlign: TextAlign.center,
+                                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                              ),
+                            ),
+                            IconButton(
+                              icon: const Icon(Icons.add, color: Colors.green),
+                              onPressed: () {
+                                setState(() {
+                                  _counts[type] = (_counts[type] ?? 0) + 1;
+                                });
+                              },
+                            ),
+                          ],
+                        ),
+                      ],
                     ),
+                  );
+                }).toList(),
+              ),
             ),
             const SizedBox(height: 24),
             ElevatedButton(

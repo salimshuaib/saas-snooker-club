@@ -22,6 +22,7 @@ class _BusinessEditSheetState extends ConsumerState<BusinessEditSheet> {
   late final TextEditingController _addressController;
   late final TextEditingController _slugController;
   late final TextEditingController _upiIdController;
+  late final TextEditingController _googleMapLinkController;
   bool _isSaving = false;
 
   @override
@@ -42,6 +43,9 @@ class _BusinessEditSheetState extends ConsumerState<BusinessEditSheet> {
     _upiIdController = TextEditingController(
       text: widget.initialSettings.upiId ?? '',
     );
+    _googleMapLinkController = TextEditingController(
+      text: widget.initialSettings.googleMapLink ?? '',
+    );
   }
 
   @override
@@ -51,6 +55,7 @@ class _BusinessEditSheetState extends ConsumerState<BusinessEditSheet> {
     _addressController.dispose();
     _slugController.dispose();
     _upiIdController.dispose();
+    _googleMapLinkController.dispose();
     super.dispose();
   }
 
@@ -69,6 +74,7 @@ class _BusinessEditSheetState extends ConsumerState<BusinessEditSheet> {
         address: _addressController.text.trim(),
         slug: slugValue.isEmpty ? null : slugValue,
         upiId: _upiIdController.text.trim().isEmpty ? null : _upiIdController.text.trim(),
+        googleMapLink: _googleMapLinkController.text.trim().isEmpty ? null : _googleMapLinkController.text.trim(),
       );
 
       await ref
@@ -190,6 +196,17 @@ class _BusinessEditSheetState extends ConsumerState<BusinessEditSheet> {
                   labelText: 'Address / Location',
                   border: OutlineInputBorder(),
                   prefixIcon: Icon(Icons.location_on),
+                ),
+              ),
+              const Gap(16),
+              TextFormField(
+                controller: _googleMapLinkController,
+                keyboardType: TextInputType.url,
+                decoration: const InputDecoration(
+                  labelText: 'Google Maps URL',
+                  hintText: 'e.g., https://maps.app.goo.gl/...',
+                  border: OutlineInputBorder(),
+                  prefixIcon: Icon(Icons.map),
                 ),
               ),
               const Gap(24),

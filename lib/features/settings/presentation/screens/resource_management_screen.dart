@@ -4,6 +4,8 @@ import 'package:snooker_club/core/theme/app_colors.dart';
 import 'package:snooker_club/core/widgets/modals/app_modal.dart';
 import 'package:snooker_club/features/games/domain/models/game_models.dart';
 import 'package:snooker_club/features/games/providers/games_providers.dart';
+import 'package:snooker_club/features/floors/providers/floor_providers.dart';
+import 'package:snooker_club/features/floors/presentation/widgets/floor_selector_sheet.dart';
 
 class ResourceManagementScreen extends ConsumerStatefulWidget {
   const ResourceManagementScreen({super.key});
@@ -14,26 +16,62 @@ class ResourceManagementScreen extends ConsumerStatefulWidget {
 
 class _ResourceManagementScreenState
     extends ConsumerState<ResourceManagementScreen> {
-  void _showResourceDialog([TableModel? table]) {
+  void _showResourceDialog(String? defaultFloorId, [TableModel? table]) {
     AppModal.showDialog(
       context: context,
-      builder: (context) => _ResourceDialog(tableToEdit: table),
+      builder: (context) => _ResourceDialog(tableToEdit: table, defaultFloorId: defaultFloorId),
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    final tablesAsync = ref.watch(tablesProvider);
+    final tables = ref.watch(floorFilteredTablesProvider);
+    final selectedFloor = ref.watch(selectedFloorProvider);
+    final isFloorsEnabled = ref.watch(hasFloorsProvider);
     final theme = Theme.of(context);
 
+    String headerTitle = 'Manage Games & Tables';
+    if (isFloorsEnabled && selectedFloor != null) {
+      headerTitle = '${selectedFloor.name} Tables';
+    }
+
     return Scaffold(
-      appBar: AppBar(title: const Text('Manage Games & Tables')),
+      appBar: AppBar(
+        title: Text(headerTitle),
+        actions: [
+          if (isFloorsEnabled)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16.0),
+              child: GestureDetector(
+                onTap: () {
+                  AppModal.showBottomSheet(
+                    context: context,
+                    builder: (_) => const FloorSelectorSheet(),
+                  );
+                },
+                child: Row(
+                  children: [
+                    Text(
+                      selectedFloor?.name ?? 'All Floors',
+                      style: TextStyle(
+                        color: theme.colorScheme.primary,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+                    const Icon(Icons.arrow_drop_down),
+                  ],
+                ),
+              ),
+            ),
+        ],
+      ),
       floatingActionButton: FloatingActionButton(
-        onPressed: _showResourceDialog,
+        onPressed: () => _showResourceDialog(selectedFloor?.id),
         child: const Icon(Icons.add),
       ),
-      body: tablesAsync.when(
-        data: (tables) {
+      body: Builder(
+        builder: (context) {
           if (tables.isEmpty) {
             return const Center(child: Text('No resources found.'));
           }
@@ -73,7 +111,7 @@ class _ResourceManagementScreenState
                         children: [
                           IconButton(
                             icon: const Icon(Icons.edit, color: Colors.blue),
-                            onPressed: () => _showResourceDialog(table),
+                            onPressed: () => _showResourceDialog(selectedFloor?.id, table),
                           ),
                           IconButton(
                             icon: const Icon(Icons.delete, color: Colors.red),
@@ -118,8 +156,6 @@ class _ResourceManagementScreenState
             ],
           );
         },
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (err, stack) => Center(child: Text(err.toString())),
       ),
     );
   }
@@ -127,7 +163,8 @@ class _ResourceManagementScreenState
 
 class _ResourceDialog extends ConsumerStatefulWidget {
   final TableModel? tableToEdit;
-  const _ResourceDialog({this.tableToEdit});
+  final String? defaultFloorId;
+  const _ResourceDialog({this.tableToEdit, this.defaultFloorId});
   @override
   ConsumerState<_ResourceDialog> createState() => _ResourceDialogState();
 }
@@ -193,6 +230,7 @@ class _ResourceDialogState extends ConsumerState<_ResourceDialog> {
                       name: _nameController.text.trim(),
                       type: _type,
                       order: DateTime.now().millisecondsSinceEpoch,
+                      floorId: widget.defaultFloorId,
                     );
                     await ref.read(gamesRepositoryProvider).addTable(newTable);
                   } else {

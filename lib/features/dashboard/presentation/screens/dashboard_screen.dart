@@ -14,6 +14,10 @@ import 'package:snooker_club/features/games/presentation/widgets/pending_bills_i
 import 'package:snooker_club/core/widgets/cards/info_card.dart';
 import 'package:snooker_club/features/team/providers/team_providers.dart';
 import 'package:snooker_club/features/team/domain/models/staff_member.dart';
+import 'package:snooker_club/core/widgets/modals/app_modal.dart';
+import 'package:snooker_club/features/dashboard/presentation/widgets/profile_popup_menu.dart';
+import 'package:snooker_club/core/widgets/modals/app_modal.dart';
+import 'package:snooker_club/features/announcements/presentation/widgets/announcements_sheet.dart';
 import 'package:snooker_club/features/games/providers/games_providers.dart';
 import 'package:snooker_club/features/quick_sales/presentation/screens/new_quick_sale_screen.dart';
 import 'package:snooker_club/features/quick_sales/providers/quick_sales_providers.dart';
@@ -80,74 +84,29 @@ class DashboardScreen extends ConsumerWidget {
             context.push(RouteNames.more);
           },
         ),
-        title: Text(
-          clubAsync.value?.clubName ?? AppLocalizations.of(context)!.appTitle,
-        ),
-        actions: [
-          if (currentStaff != null)
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 8.0),
-              child: ActionChip(
-                backgroundColor: currentStaff.isCheckedIn 
-                    ? Colors.green.withValues(alpha: 0.1) 
-                    : Colors.grey.withValues(alpha: 0.1),
-                side: BorderSide(
-                  color: currentStaff.isCheckedIn ? Colors.green : Colors.grey,
-                  width: 1,
-                ),
-                label: Text(
-                  currentStaff.isCheckedIn ? 'Checked In' : 'Check In',
-                  style: theme.textTheme.labelSmall?.copyWith(
-                    color: currentStaff.isCheckedIn ? Colors.green : Colors.grey,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                avatar: Icon(
-                  currentStaff.isCheckedIn ? Icons.check_circle : Icons.power_settings_new,
-                  size: 16,
-                  color: currentStaff.isCheckedIn ? Colors.green : Colors.grey,
-                ),
-                onPressed: () async {
-                  final repo = ref.read(teamRepositoryProvider);
-                  if (currentStaff.isCheckedIn) {
-                    await repo.checkOutStaff(currentStaff.id);
-                    if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Checked out successfully. Alarms paused.')),
-                      );
-                    }
-                  } else {
-                    await repo.checkInStaff(currentStaff.id);
-                    if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Checked in successfully. You will now receive table alarms.')),
-                      );
-                    }
-                  }
-                },
-              ),
-            ),
-          Center(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 8.0),
+        title: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Flexible(
               child: Text(
-                employeeName,
-                style: theme.textTheme.labelMedium?.copyWith(
-                  color: theme.colorScheme.primary,
-                  fontWeight: FontWeight.w600,
-                ),
+                clubAsync.value?.clubName ?? AppLocalizations.of(context)!.appTitle,
+                overflow: TextOverflow.ellipsis,
               ),
             ),
-          ),
-          const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 16.0),
-            child: CircleAvatar(
-              radius: 14,
-              backgroundColor: AppColors.primary,
-              child: Icon(Icons.person, size: 16, color: Colors.white),
+            const SizedBox(width: 4),
+            IconButton(
+              icon: const Icon(Icons.notifications_none),
+              tooltip: 'Notice Board',
+              onPressed: () {
+                AppModal.showBottomSheet(
+                  context: context,
+                  builder: (context) => const AnnouncementsSheet(),
+                );
+              },
             ),
-          ),
-        ],
+          ],
+        ),
+        actions: const [Padding(padding: EdgeInsets.symmetric(horizontal: 16.0), child: ProfilePopupMenu())],
       ),
       floatingActionButton: const PendingBillsIconBadge(isFab: true),
       body: SafeArea(
@@ -582,3 +541,5 @@ class _RealTimeClockWidget extends ConsumerWidget {
     );
   }
 }
+
+

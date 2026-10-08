@@ -120,6 +120,10 @@ final runningGamesProvider = StreamProvider<List<GameSession>>((ref) {
   return repo.watchRunningGames();
 });
 
+final ringingAlarmsProvider = StreamProvider<List<AlarmInfo>>((ref) {
+  return TableAlarmService().onRingingAlarmsChanged;
+});
+
 // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // Games History â€” per table and date
 // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
