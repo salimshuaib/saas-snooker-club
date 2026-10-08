@@ -95,21 +95,18 @@ class TablePricingConfig {
     final tableType = table.type;
     if (table.billingOptions != null) {
       String? key;
-    switch (tableType) {
-        case TableType.snooker:
-          return pricingConfig.snookerRacePerMinute;
-
-        case TableType.indianPool:
-          return pricingConfig.indianPoolRacePerMinute;
-
-        case TableType.americanPool:
-          return pricingConfig.americanPoolRacePerMinute;
-
-        default:
-          return pricingConfig.snookerRacePerMinute;
+      if (gameType == GameType.race) {
+        key = 'racePerMinute';
+      } else if (gameType == GameType.rummy) {
+        key = 'rummyPerMinute';
+      } else {
+        key = 'perMinute';
+      }
+      final option = table.billingOptions![key];
+      if (option != null && option.enabled) {
+        return option.price;
       }
     }
-
     switch (tableType) {
       case TableType.snooker:
         return pricingConfig.snookerPerMinute;
@@ -181,6 +178,7 @@ class TablePricingConfig {
 
     if (table.billingOptions != null) {
       String? key;
+
       if (billingType == BillingType.customMinute) {
         key = 'perMinute';
       } else {
@@ -200,7 +198,11 @@ class TablePricingConfig {
     // Fallback to legacy global logic
 
     final tableType = table.type;
-    switch (tableType) {
+
+    if (gameType == GameType.race) {
+      if (billingType != BillingType.perMinute) return null;
+
+      switch (tableType) {
         case TableType.snooker:
           return fallbackConfig.snookerRacePerMinute;
 
@@ -425,6 +427,42 @@ class TablePricingConfig {
   ) {
     if (table.billingOptions != null) {
       final List<BillingType> types = [];
+
+      if (gameType == GameType.race) {
+        if (table.billingOptions!['racePerMinute']?.enabled == true) {
+          types.add(BillingType.perMinute);
+        }
+
+        return types;
+      } else if (gameType == GameType.rummy) {
+        if (table.billingOptions!['rummyPerMinute']?.enabled == true) {
+          types.add(BillingType.perMinute);
+        }
+
+        return types;
+      }
+
+      if (table.billingOptions!['perMinute']?.enabled == true)
+        types.add(BillingType.perMinute);
+
+      if (table.billingOptions!['perFrame']?.enabled == true)
+        types.add(BillingType.perFrame);
+
+      if (table.billingOptions!['halfHour']?.enabled == true)
+        types.add(BillingType.halfHour);
+
+      if (table.billingOptions!['oneHour']?.enabled == true)
+        types.add(BillingType.oneHour);
+      if (table.billingOptions!['perCoin']?.enabled == true)
+        types.add(BillingType.perCoin);
+
+      return types;
+    }
+
+    // Fallback logic
+
+    final tableType = table.type;
+
     switch (tableType) {
       case TableType.snooker:
         return [
@@ -707,4 +745,3 @@ class TablePricingConfig {
     return rawBreakdown;
   }
 }
-
