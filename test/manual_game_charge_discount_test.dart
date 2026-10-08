@@ -62,7 +62,7 @@ void main() {
       startTime: DateTime(2026, 10, 8),
       date: '2026-10-08',
       currentGameDiscountAmount: 20,
-      waitlistPlayers: const [
+      waitlistPlayers: [
         WaitlistPlayer(id: 'player-2', name: 'Next Player'),
         WaitlistPlayer(name: 'Guest Player'),
       ],
@@ -78,3 +78,4 @@ void main() {
     expect(restored.waitlistPlayers.last.name, 'Guest Player');
   });
 }
+
