@@ -113,65 +113,6 @@ class _BookingManagementScreenState
         ),
         body: Column(
           children: [
-            // Slot Configuration Quick Control Header Banner
-            Container(
-              margin: const EdgeInsets.fromLTRB(16, 12, 16, 4),
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-              decoration: BoxDecoration(
-                color: theme.colorScheme.surfaceVariant.withOpacity(0.5),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: theme.colorScheme.outlineVariant),
-              ),
-              child: Row(
-                children: [
-                  Icon(
-                    bookingSettings.isEnabled
-                        ? Icons.check_circle_rounded
-                        : Icons.pause_circle_filled_rounded,
-                    color: bookingSettings.isEnabled
-                        ? AppColors.success
-                        : Colors.orange,
-                    size: 20,
-                  ),
-                  const Gap(10),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          bookingSettings.isEnabled
-                              ? 'Online Booking Active'
-                              : 'Online Booking Paused',
-                          style: theme.textTheme.labelLarge?.copyWith(
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        Text(
-                          '${bookingSettings.slotDurationMinutes} min slots • ${bookingSettings.openingTime} to ${bookingSettings.closingTime}',
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: theme.colorScheme.onSurfaceVariant,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  OutlinedButton.icon(
-                    style: OutlinedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 6,
-                      ),
-                      minimumSize: Size.zero,
-                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                    ),
-                    onPressed: _openBookingSettings,
-                    icon: const Icon(Icons.tune, size: 14),
-                    label: const Text('Configure Slots', style: TextStyle(fontSize: 12)),
-                  ),
-                ],
-              ),
-            ),
-
             Expanded(
               child: bookingsAsync.when(
                 data: (allBookings) {
