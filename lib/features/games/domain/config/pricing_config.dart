@@ -95,20 +95,7 @@ class TablePricingConfig {
     final tableType = table.type;
     if (table.billingOptions != null) {
       String? key;
-      if (gameType == GameType.race) {
-        key = 'racePerMinute';
-      } else if (gameType == GameType.rummy) {
-        key = 'rummyPerMinute';
-      } else {
-        key = 'perMinute';
-      }
-      final option = table.billingOptions![key];
-      if (option != null && option.enabled) {
-        return option.price;
-      }
-    }
-    if (gameType == GameType.race) {
-      switch (tableType) {
+    switch (tableType) {
         case TableType.snooker:
           return pricingConfig.snookerRacePerMinute;
 
@@ -121,8 +108,6 @@ class TablePricingConfig {
         default:
           return pricingConfig.snookerRacePerMinute;
       }
-    } else if (gameType == GameType.rummy && tableType == TableType.snooker) {
-      return pricingConfig.snookerRummyPerMinute;
     }
 
     switch (tableType) {
@@ -196,13 +181,7 @@ class TablePricingConfig {
 
     if (table.billingOptions != null) {
       String? key;
-
-      if (gameType == GameType.race && billingType == BillingType.perMinute) {
-        key = 'racePerMinute';
-      } else if (gameType == GameType.rummy &&
-          billingType == BillingType.perMinute) {
-        key = 'rummyPerMinute';
-      } else if (billingType == BillingType.customMinute) {
+      if (billingType == BillingType.customMinute) {
         key = 'perMinute';
       } else {
         key =
@@ -221,11 +200,7 @@ class TablePricingConfig {
     // Fallback to legacy global logic
 
     final tableType = table.type;
-
-    if (gameType == GameType.race) {
-      if (billingType != BillingType.perMinute) return null;
-
-      switch (tableType) {
+    switch (tableType) {
         case TableType.snooker:
           return fallbackConfig.snookerRacePerMinute;
 
@@ -450,46 +425,6 @@ class TablePricingConfig {
   ) {
     if (table.billingOptions != null) {
       final List<BillingType> types = [];
-
-      if (gameType == GameType.race) {
-        if (table.billingOptions!['racePerMinute']?.enabled == true) {
-          types.add(BillingType.perMinute);
-        }
-
-        return types;
-      } else if (gameType == GameType.rummy) {
-        if (table.billingOptions!['rummyPerMinute']?.enabled == true) {
-          types.add(BillingType.perMinute);
-        }
-
-        return types;
-      }
-
-      if (table.billingOptions!['perMinute']?.enabled == true)
-        types.add(BillingType.perMinute);
-
-      if (table.billingOptions!['perFrame']?.enabled == true)
-        types.add(BillingType.perFrame);
-
-      if (table.billingOptions!['halfHour']?.enabled == true)
-        types.add(BillingType.halfHour);
-
-      if (table.billingOptions!['oneHour']?.enabled == true)
-        types.add(BillingType.oneHour);
-      if (table.billingOptions!['perCoin']?.enabled == true)
-        types.add(BillingType.perCoin);
-
-      return types;
-    }
-
-    // Fallback logic
-
-    final tableType = table.type;
-
-    if (gameType == GameType.race || gameType == GameType.rummy) {
-      return [BillingType.perMinute];
-    }
-
     switch (tableType) {
       case TableType.snooker:
         return [
@@ -772,3 +707,4 @@ class TablePricingConfig {
     return rawBreakdown;
   }
 }
+
