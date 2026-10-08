@@ -402,6 +402,12 @@ class ManualGameChargeGroup {
   final double totalAmount;
   final List<ManualGameCharge> originalCharges;
 
+  double get totalDiscountAmount =>
+      originalCharges.fold(0.0, (sum, charge) => sum + charge.appliedDiscountAmount);
+
+  double get finalAmount =>
+      originalCharges.fold(0.0, (sum, charge) => sum + charge.finalAmount);
+
   const ManualGameChargeGroup({
     required this.charge,
     required this.quantity,
@@ -414,7 +420,7 @@ extension ManualGameChargeListExtension on List<ManualGameCharge> {
   List<ManualGameChargeGroup> grouped() {
     final Map<String, List<ManualGameCharge>> map = {};
     for (final g in this) {
-      final key = '${g.tableId}_${g.gameType.name}_${g.billingType.name}_${g.durationSeconds}_${g.frames}_${g.coins}_${g.calculatedAmount}';
+      final key = '${g.tableId}_${g.gameType.name}_${g.billingType.name}_${g.durationSeconds}_${g.frames}_${g.coins}_${g.calculatedAmount}_${g.discountAmount}';
       map.putIfAbsent(key, () => []).add(g);
     }
     return map.values.map((list) => ManualGameChargeGroup(
@@ -438,6 +444,7 @@ class ManualGameCharge {
   final int? playersCount;
   final int? coins;
   final double calculatedAmount;
+  final double discountAmount;
 
   const ManualGameCharge({
     required this.id,
@@ -451,7 +458,33 @@ class ManualGameCharge {
     this.playersCount,
     this.coins,
     required this.calculatedAmount,
+    this.discountAmount = 0.0,
   });
+
+  double get appliedDiscountAmount =>
+      discountAmount.clamp(0.0, calculatedAmount).toDouble();
+
+  double get finalAmount => calculatedAmount - appliedDiscountAmount;
+
+  ManualGameCharge copyWith({
+    double? calculatedAmount,
+    double? discountAmount,
+  }) {
+    return ManualGameCharge(
+      id: id,
+      tableId: tableId,
+      tableName: tableName,
+      tableType: tableType,
+      gameType: gameType,
+      billingType: billingType,
+      durationSeconds: durationSeconds,
+      frames: frames,
+      playersCount: playersCount,
+      coins: coins,
+      calculatedAmount: calculatedAmount ?? this.calculatedAmount,
+      discountAmount: discountAmount ?? this.discountAmount,
+    );
+  }
 
   Map<String, dynamic> toMap() {
     return {
@@ -466,6 +499,7 @@ class ManualGameCharge {
       if (playersCount != null) 'playersCount': playersCount,
       if (coins != null) 'coins': coins,
       'calculatedAmount': calculatedAmount,
+      'discountAmount': discountAmount,
     };
   }
 
@@ -491,6 +525,7 @@ class ManualGameCharge {
       playersCount: map['playersCount']?.toInt(),
       coins: map['coins']?.toInt(),
       calculatedAmount: (map['calculatedAmount'] ?? 0).toDouble(),
+      discountAmount: (map['discountAmount'] as num?)?.toDouble() ?? 0.0,
     );
   }
 }
@@ -662,6 +697,7 @@ class GameSession {
   final List<String>? selectedPayers;
   final double? discountAmount;
   final double? discountedGameCharge;
+  final double? currentGameDiscountAmount;
   final String? paidBy; // customer name paying (for credit)
   final PaymentMethod? paymentMethod;
   final String? paymentStatus;
@@ -744,6 +780,7 @@ class GameSession {
     this.selectedPayers,
     this.discountAmount,
     this.discountedGameCharge,
+    this.currentGameDiscountAmount,
     this.paidBy,
     this.paymentMethod,
     this.paymentStatus,
@@ -874,6 +911,7 @@ class GameSession {
     List<String>? selectedPayers,
     double? discountAmount,
     double? discountedGameCharge,
+    double? currentGameDiscountAmount,
     String? paidBy,
     PaymentMethod? paymentMethod,
     String? paymentStatus,
@@ -954,6 +992,8 @@ class GameSession {
       selectedPayers: selectedPayers ?? this.selectedPayers,
       discountAmount: discountAmount ?? this.discountAmount,
       discountedGameCharge: discountedGameCharge ?? this.discountedGameCharge,
+      currentGameDiscountAmount:
+          currentGameDiscountAmount ?? this.currentGameDiscountAmount,
       paidBy: paidBy ?? this.paidBy,
       paymentMethod: paymentMethod ?? this.paymentMethod,
       paymentStatus: paymentStatus ?? this.paymentStatus,
@@ -1041,6 +1081,7 @@ class GameSession {
       'selectedPayers': selectedPayers,
       'discountAmount': discountAmount,
       'discountedGameCharge': discountedGameCharge,
+      'currentGameDiscountAmount': currentGameDiscountAmount,
       'roundedAmount': roundedAmount,
       'finalAmount': finalAmount,
       'paidBy': paidBy,
@@ -1204,6 +1245,8 @@ class GameSession {
           : null,
       discountAmount: (map['discountAmount'] as num?)?.toDouble(),
       discountedGameCharge: (map['discountedGameCharge'] as num?)?.toDouble(),
+      currentGameDiscountAmount:
+          (map['currentGameDiscountAmount'] as num?)?.toDouble(),
       customExtraCharge: (map['customExtraCharge'] as num?)?.toDouble(),
       isMinimumBillEnabled: map['isMinimumBillEnabled'] as bool? ?? false,
       minimumBillAmount: (map['minimumBillAmount'] as num?)?.toDouble() ?? 0.0,

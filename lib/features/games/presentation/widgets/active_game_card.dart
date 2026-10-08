@@ -48,7 +48,10 @@ class _ActiveGameCardState extends ConsumerState<ActiveGameCard> {
     final theme = Theme.of(context);
     final game = widget.game;
     final ordersTotal = game.orders.fold<double>(0, (s, o) => s + o.total);
-    final manualGamesTotal = game.manualGameCharges.fold<double>(0, (s, g) => s + g.calculatedAmount);
+    final manualGamesTotal = game.manualGameCharges.fold<double>(
+      0,
+      (s, g) => s + g.finalAmount,
+    );
     final totalExtras = ordersTotal + manualGamesTotal;
 
     return Container(
@@ -159,12 +162,14 @@ class _ActiveGameCardState extends ConsumerState<ActiveGameCard> {
                                     letterSpacing: 0.5,
                                   ),
                                 ),
-
                               ],
                             ),
                           ),
                           const Gap(8),
-                          _BellIcon(gameId: game.id, tableName: widget.table.name),
+                          _BellIcon(
+                            gameId: game.id,
+                            tableName: widget.table.name,
+                          ),
                           const Gap(4),
                           IconButton(
                             onPressed: () {
@@ -176,7 +181,8 @@ class _ActiveGameCardState extends ConsumerState<ActiveGameCard> {
                                     top: Radius.circular(16),
                                   ),
                                 ),
-                                builder: (_) => TableHistorySheet(table: widget.table),
+                                builder: (_) =>
+                                    TableHistorySheet(table: widget.table),
                               );
                             },
                             icon: const Icon(Icons.history),
@@ -214,10 +220,15 @@ class _ActiveGameCardState extends ConsumerState<ActiveGameCard> {
                                 builder: (context) {
                                   String displayStr =
                                       game.billingType.displayName;
-                                  if (game.billingType == BillingType.customMinute && game.customMinutes != null) {
+                                  if (game.billingType ==
+                                          BillingType.customMinute &&
+                                      game.customMinutes != null) {
                                     displayStr += ' (${game.customMinutes}m)';
                                   }
-                                  if (game.billingType == BillingType.perMinute || game.billingType == BillingType.customMinute) {
+                                  if (game.billingType ==
+                                          BillingType.perMinute ||
+                                      game.billingType ==
+                                          BillingType.customMinute) {
                                     final rate =
                                         game.customPrice ??
                                         TablePricingConfig.getPerMinutePrice(
@@ -230,7 +241,8 @@ class _ActiveGameCardState extends ConsumerState<ActiveGameCard> {
                                         ' • ₹${rate.toStringAsFixed(2)}/min';
                                   }
                                   if (game.createdByName != null) {
-                                    displayStr += '\nStarted by: ${game.createdByName}';
+                                    displayStr +=
+                                        '\nStarted by: ${game.createdByName}';
                                   }
                                   return Text(
                                     displayStr,
@@ -491,7 +503,10 @@ class _ActiveGameCardState extends ConsumerState<ActiveGameCard> {
             Expanded(
               child: FilledButton.tonalIcon(
                 style: FilledButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 0),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 0,
+                  ),
                   minimumSize: const Size(0, 36),
                 ),
                 icon: const Icon(Icons.edit_document, size: 16),
@@ -500,7 +515,8 @@ class _ActiveGameCardState extends ConsumerState<ActiveGameCard> {
                   style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
                 ),
                 onPressed: () {
-                  final employeeId = ref.read(currentStaffProvider).value?.id ?? '';
+                  final employeeId =
+                      ref.read(currentStaffProvider).value?.id ?? '';
                   Navigator.of(context).push(
                     MaterialPageRoute(
                       builder: (_) => ManualGameSetupScreen(
@@ -517,7 +533,10 @@ class _ActiveGameCardState extends ConsumerState<ActiveGameCard> {
             Expanded(
               child: FilledButton.tonalIcon(
                 style: FilledButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 0),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 0,
+                  ),
                   minimumSize: const Size(0, 36),
                   backgroundColor: Colors.orange.withValues(alpha: 0.15),
                   foregroundColor: Colors.orange.shade700,
@@ -590,7 +609,13 @@ class _ActiveGameCardState extends ConsumerState<ActiveGameCard> {
     if (updated != null && mounted) {
       await ref
           .read(gameSessionControllerProvider.notifier)
-          .updateOrders(game.id, game.orders, updated.orders, game.manualGameCharges, updated.manualGameCharges);
+          .updateOrders(
+            game.id,
+            game.orders,
+            updated.orders,
+            game.manualGameCharges,
+            updated.manualGameCharges,
+          );
     }
   }
 
@@ -617,7 +642,7 @@ class _ActiveGameCardState extends ConsumerState<ActiveGameCard> {
       customExtraCharge: game.customExtraCharge,
       playersCount: game.allPlayers.length,
       coinQuantity: game.coinQuantity,
-        customMinutes: game.customMinutes,
+      customMinutes: game.customMinutes,
       isMinimumBillEnabled: game.isMinimumBillEnabled,
       minimumBillAmount: game.minimumBillAmount,
     );
@@ -713,7 +738,10 @@ class _ActiveGameCardState extends ConsumerState<ActiveGameCard> {
     }
   }
 
-  Future<void> _handleMarkAsPending(GameSession game, BuildContext context) async {
+  Future<void> _handleMarkAsPending(
+    GameSession game,
+    BuildContext context,
+  ) async {
     final selectedPlayers = await showDialog<List<PlayerSelection>?>(
       context: context,
       builder: (ctx) => const MarkPendingDialog(),
@@ -741,20 +769,28 @@ class _ActiveGameCardState extends ConsumerState<ActiveGameCard> {
       customExtraCharge: game.customExtraCharge,
       playersCount: game.allPlayers.length,
       coinQuantity: game.coinQuantity,
-        customMinutes: game.customMinutes,
+      customMinutes: game.customMinutes,
       isMinimumBillEnabled: game.isMinimumBillEnabled,
       minimumBillAmount: game.minimumBillAmount,
     );
 
     final gameCharge = charge.totalCharge;
-    final manualGamesTotal = game.manualGameCharges.fold<double>(0, (s, g) => s + g.calculatedAmount);
+    final manualGamesTotal = game.manualGameCharges.fold<double>(
+      0,
+      (s, g) => s + g.finalAmount,
+    );
     final ordersTotal = game.orders.fold<double>(0, (s, o) => s + o.total);
 
     final totalExtras = ordersTotal + manualGamesTotal;
     final grandTotal = gameCharge + ordersTotal + manualGamesTotal;
-    final finalTotal = math.max(0.0, grandTotal - (game.discountAmount ?? 0.0));
+    final finalTotal = math.max(
+      0.0,
+      grandTotal -
+          (game.discountAmount ?? 0.0) -
+          (game.currentGameDiscountAmount ?? 0.0),
+    );
 
-    // For pending bills, we take games as is without rounding off. 
+    // For pending bills, we take games as is without rounding off.
     // Rounding is applied during final combined settlement.
     final roundedTotal = finalTotal;
 
@@ -783,11 +819,16 @@ class _ActiveGameCardState extends ConsumerState<ActiveGameCard> {
       } else {
         // Find existing match just in case
         final existingMatch = allProfiles.cast<PlayerProfile?>().firstWhere(
-            (profile) => profile?.name.toLowerCase() == p.name.trim().toLowerCase(),
-            orElse: () => null);
+          (profile) =>
+              profile?.name.toLowerCase() == p.name.trim().toLowerCase(),
+          orElse: () => null,
+        );
 
         if (existingMatch != null) {
-          resolvedPlayers.add({'id': existingMatch.id, 'name': existingMatch.name});
+          resolvedPlayers.add({
+            'id': existingMatch.id,
+            'name': existingMatch.name,
+          });
         } else {
           // Create new profile
           final newId = FirebaseFirestore.instance.collection('dummy').doc().id;
@@ -812,7 +853,6 @@ class _ActiveGameCardState extends ConsumerState<ActiveGameCard> {
       await repo.markAsPendingBillWithSplits(finalSession, resolvedPlayers);
     }
   }
-
 }
 
 class _RoundCompletionDialog extends StatefulWidget {
@@ -922,7 +962,6 @@ class _InfoChip extends StatelessWidget {
   }
 }
 
-
 class _BellIcon extends StatefulWidget {
   final String gameId;
   final String tableName;
@@ -949,7 +988,9 @@ class _BellIconState extends State<_BellIcon> {
           },
           icon: Icon(
             isActive ? Icons.notifications_active : Icons.notifications_none,
-            color: isActive ? theme.colorScheme.primary : theme.colorScheme.onSurfaceVariant,
+            color: isActive
+                ? theme.colorScheme.primary
+                : theme.colorScheme.onSurfaceVariant,
           ),
           tooltip: 'Set Reminder',
         );
@@ -957,8 +998,3 @@ class _BellIconState extends State<_BellIcon> {
     );
   }
 }
-
-
-
-
-

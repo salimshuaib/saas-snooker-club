@@ -57,7 +57,10 @@ class _OrdersSheetState extends ConsumerState<OrdersSheet> {
             Center(child: Text('Error loading products: $err')),
         data: (items) {
           final activeProducts = items.where((i) => i.isActive).toList();
-          var categories = activeProducts.map((e) => e.category).toSet().toList();
+          var categories = activeProducts
+              .map((e) => e.category)
+              .toSet()
+              .toList();
           if (categories.isEmpty) {
             categories = ['All'];
           }
@@ -87,7 +90,9 @@ class _OrdersSheetState extends ConsumerState<OrdersSheet> {
                     children: [
                       Text('Add Orders', style: theme.textTheme.titleLarge),
                       TextButton(
-                        onPressed: () => Navigator.of(context).pop(AddItemsResult(_orders, _manualGameCharges)),
+                        onPressed: () => Navigator.of(
+                          context,
+                        ).pop(AddItemsResult(_orders, _manualGameCharges)),
                         child: const Text(
                           'Done',
                           style: TextStyle(
@@ -134,7 +139,11 @@ class _OrdersSheetState extends ConsumerState<OrdersSheet> {
                   child: TabBarView(
                     children: categories.map((category) {
                       if (category == 'Games') {
-                        return ManualGamesListTab(onChargeAdded: (charge) { setState(() => _manualGameCharges.add(charge)); });
+                        return ManualGamesListTab(
+                          onChargeAdded: (charge) {
+                            setState(() => _manualGameCharges.add(charge));
+                          },
+                        );
                       }
                       final products = activeProducts
                           .where((p) => p.category == category)
@@ -187,7 +196,8 @@ class _OrdersSheetState extends ConsumerState<OrdersSheet> {
                         const Gap(8),
                         ConstrainedBox(
                           constraints: BoxConstraints(
-                            maxHeight: MediaQuery.of(context).size.height * 0.25,
+                            maxHeight:
+                                MediaQuery.of(context).size.height * 0.25,
                           ),
                           child: SingleChildScrollView(
                             child: Column(
@@ -197,7 +207,8 @@ class _OrdersSheetState extends ConsumerState<OrdersSheet> {
                                   (o) => Padding(
                                     padding: const EdgeInsets.only(bottom: 4),
                                     child: Row(
-                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.spaceBetween,
                                       children: [
                                         Expanded(
                                           child: Text(
@@ -207,12 +218,16 @@ class _OrdersSheetState extends ConsumerState<OrdersSheet> {
                                         ),
                                         Text(
                                           '₹${o.total.toStringAsFixed(0)}',
-                                          style: theme.textTheme.bodySmall?.copyWith(
-                                            fontWeight: FontWeight.w600,
-                                          ),
+                                          style: theme.textTheme.bodySmall
+                                              ?.copyWith(
+                                                fontWeight: FontWeight.w600,
+                                              ),
                                         ),
                                         IconButton(
-                                          icon: const Icon(Icons.close, size: 16),
+                                          icon: const Icon(
+                                            Icons.close,
+                                            size: 16,
+                                          ),
                                           onPressed: () {
                                             setState(() => _orders.remove(o));
                                           },
@@ -223,39 +238,46 @@ class _OrdersSheetState extends ConsumerState<OrdersSheet> {
                                     ),
                                   ),
                                 )),
-                                ...(_manualGameCharges.grouped().map(
-                                  (group) {
-                                    final g = group.charge;
-                                    return Padding(
-                                      padding: const EdgeInsets.only(bottom: 4),
-                                      child: Row(
-                                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                        children: [
-                                          Expanded(
-                                            child: Text(
-                                              '${group.quantity}x ${g.tableName} - ${g.gameType.displayName}',
-                                              style: theme.textTheme.bodySmall,
-                                            ),
+                                ...(_manualGameCharges.grouped().map((group) {
+                                  final g = group.charge;
+                                  return Padding(
+                                    padding: const EdgeInsets.only(bottom: 4),
+                                    child: Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        Expanded(
+                                          child: Text(
+                                            '${group.quantity}x ${g.tableName} - ${g.gameType.displayName}',
+                                            style: theme.textTheme.bodySmall,
                                           ),
-                                          Text(
-                                            '₹${group.totalAmount.toStringAsFixed(0)}',
-                                            style: theme.textTheme.bodySmall?.copyWith(
-                                              fontWeight: FontWeight.w600,
-                                            ),
+                                        ),
+                                        Text(
+                                          '₹${group.finalAmount.toStringAsFixed(0)}',
+                                          style: theme.textTheme.bodySmall
+                                              ?.copyWith(
+                                                fontWeight: FontWeight.w600,
+                                              ),
+                                        ),
+                                        IconButton(
+                                          icon: const Icon(
+                                            Icons.close,
+                                            size: 16,
                                           ),
-                                          IconButton(
-                                            icon: const Icon(Icons.close, size: 16),
-                                            onPressed: () {
-                                              setState(() => _manualGameCharges.remove(group.originalCharges.last));
-                                            },
-                                            padding: EdgeInsets.zero,
-                                            constraints: const BoxConstraints(),
-                                          ),
-                                        ],
-                                      ),
-                                    );
-                                  }
-                                )),
+                                          onPressed: () {
+                                            setState(
+                                              () => _manualGameCharges.remove(
+                                                group.originalCharges.last,
+                                              ),
+                                            );
+                                          },
+                                          padding: EdgeInsets.zero,
+                                          constraints: const BoxConstraints(),
+                                        ),
+                                      ],
+                                    ),
+                                  );
+                                })),
                               ],
                             ),
                           ),
@@ -271,7 +293,7 @@ class _OrdersSheetState extends ConsumerState<OrdersSheet> {
                               ),
                             ),
                             Text(
-                              '₹${(_orders.fold<double>(0, (s, o) => s + o.total) + _manualGameCharges.fold<double>(0, (s, g) => s + g.calculatedAmount)).toStringAsFixed(0)}',
+                              '₹${(_orders.fold<double>(0, (s, o) => s + o.total) + _manualGameCharges.fold<double>(0, (s, g) => s + g.finalAmount)).toStringAsFixed(0)}',
                               style: theme.textTheme.labelLarge?.copyWith(
                                 fontWeight: FontWeight.w700,
                                 color: AppColors.primary,
@@ -356,86 +378,86 @@ class _ProductTile extends StatelessWidget {
       child: ListTile(
         title: Text(
           product.name,
-        style: theme.textTheme.bodyMedium?.copyWith(
-          fontWeight: FontWeight.w600,
-        ),
-      ),
-      subtitle: Row(
-        children: [
-          Text(
-            '₹${product.sellingPrice.toStringAsFixed(0)}',
-            style: theme.textTheme.labelSmall?.copyWith(
-              color: theme.colorScheme.onSurfaceVariant,
-              fontWeight: FontWeight.w700,
-            ),
+          style: theme.textTheme.bodyMedium?.copyWith(
+            fontWeight: FontWeight.w600,
           ),
-          const Gap(8),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-            decoration: BoxDecoration(
-              color:
-                  (product.currentStock > 5
-                          ? AppColors.available
-                          : AppColors.warning)
-                      .withValues(alpha: 0.15),
-              borderRadius: BorderRadius.circular(6),
-            ),
-            child: Text(
-              'Stock: ${product.currentStock}',
-              style: TextStyle(
-                color: product.currentStock > 5
-                    ? AppColors.available
-                    : AppColors.warning,
-                fontSize: 11,
+        ),
+        subtitle: Row(
+          children: [
+            Text(
+              '₹${product.sellingPrice.toStringAsFixed(0)}',
+              style: theme.textTheme.labelSmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
                 fontWeight: FontWeight.w700,
               ),
             ),
-          ),
-        ],
-      ),
-      trailing: currentQty == 0
-          ? FilledButton.tonal(
-              onPressed: () => _addItem(context, 1),
-              style: FilledButton.styleFrom(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 14,
-                  vertical: 6,
-                ),
-                minimumSize: Size.zero,
-                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            const Gap(8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+              decoration: BoxDecoration(
+                color:
+                    (product.currentStock > 5
+                            ? AppColors.available
+                            : AppColors.warning)
+                        .withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(6),
               ),
-              child: const Text(
-                'Add',
-                style: TextStyle(fontWeight: FontWeight.bold),
-              ),
-            )
-          : Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                IconButton(
-                  icon: const Icon(Icons.remove),
-                  onPressed: () => _addItem(context, -1),
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(),
+              child: Text(
+                'Stock: ${product.currentStock}',
+                style: TextStyle(
+                  color: product.currentStock > 5
+                      ? AppColors.available
+                      : AppColors.warning,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
                 ),
-                Container(
-                  width: 32,
-                  alignment: Alignment.center,
-                  child: Text(
-                    '$currentQty',
-                    style: theme.textTheme.titleSmall?.copyWith(
-                      fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
+        ),
+        trailing: currentQty == 0
+            ? FilledButton.tonal(
+                onPressed: () => _addItem(context, 1),
+                style: FilledButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 6,
+                  ),
+                  minimumSize: Size.zero,
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                ),
+                child: const Text(
+                  'Add',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+              )
+            : Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.remove),
+                    onPressed: () => _addItem(context, -1),
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
+                  ),
+                  Container(
+                    width: 32,
+                    alignment: Alignment.center,
+                    child: Text(
+                      '$currentQty',
+                      style: theme.textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
-                ),
-                IconButton(
-                  icon: const Icon(Icons.add),
-                  onPressed: () => _addItem(context, 1),
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(),
-                ),
-              ],
-            ),
+                  IconButton(
+                    icon: const Icon(Icons.add),
+                    onPressed: () => _addItem(context, 1),
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
+                  ),
+                ],
+              ),
       ),
     );
   }
