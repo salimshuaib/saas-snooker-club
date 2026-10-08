@@ -28,8 +28,13 @@ import 'package:snooker_club/features/games/presentation/widgets/payment_complet
 
 class BillingScreen extends ConsumerStatefulWidget {
   final GameSession session;
+  final bool returnToCaller;
 
-  const BillingScreen({super.key, required this.session});
+  const BillingScreen({
+    super.key,
+    required this.session,
+    this.returnToCaller = false,
+  });
 
   @override
   ConsumerState<BillingScreen> createState() => _BillingScreenState();
@@ -2253,7 +2258,11 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
             backgroundColor: Colors.orange,
           ),
         );
-        Navigator.of(context).popUntil((route) => route.isFirst);
+        if (widget.returnToCaller) {
+          Navigator.of(context).pop(true);
+        } else {
+          Navigator.of(context).popUntil((route) => route.isFirst);
+        }
       }
     } catch (e) {
       if (mounted) {
@@ -2536,7 +2545,9 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
             backgroundColor: AppColors.success,
           ),
         );
-        if (Navigator.of(context).canPop()) {
+        if (widget.returnToCaller) {
+          Navigator.of(context).pop(true);
+        } else if (Navigator.of(context).canPop()) {
           Navigator.of(context).popUntil((route) => route.isFirst);
         } else {
           ref.read(appRouterProvider).go('/');
