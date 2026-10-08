@@ -600,20 +600,21 @@ class _ActiveGameCardState extends ConsumerState<ActiveGameCard> {
     );
   }
 
-  Future<void> _showWaitlistDialog(
+    Future<void> _showWaitlistDialog(
     GameSession game,
     BuildContext context,
   ) async {
-    final players = await showDialog<List<WaitlistPlayer>>(
+    final newPlayers = await showDialog<List<WaitlistPlayer>>(
       context: context,
-      builder: (_) => WaitlistDialog(players: game.waitlistPlayers),
+      builder: (_) => WaitlistDialog(existingNames: game.waitlistPlayers.map((e) => e.name).toList()),
     );
-    if (players == null || !mounted || !context.mounted) return;
+    if (newPlayers == null || newPlayers.isEmpty || !mounted || !context.mounted) return;
 
     try {
+      final updatedList = [...game.waitlistPlayers, ...newPlayers];
       await ref
           .read(gameSessionControllerProvider.notifier)
-          .updateWaitlistPlayers(game.id, game.waitlistPlayers, players);
+          .updateWaitlistPlayers(game.id, game.waitlistPlayers, updatedList);
     } catch (error) {
       if (mounted && context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -1116,6 +1117,8 @@ class _BellIconState extends State<_BellIcon> {
     );
   }
 }
+
+
 
 
 
