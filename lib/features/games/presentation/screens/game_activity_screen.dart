@@ -74,7 +74,7 @@ class GameActivityScreen extends ConsumerWidget {
             ),
             const SizedBox(width: 4),
             IconButton(
-              icon: const Icon(Icons.notifications_none),
+              icon: const Icon(Icons.assignment_outlined),
               tooltip: 'Notice Board',
               onPressed: () {
                 AppModal.showBottomSheet(
