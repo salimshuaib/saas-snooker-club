@@ -147,103 +147,119 @@ class _BillDetailsScreenState extends ConsumerState<BillDetailsScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-
-                  if (session.status == TableStatus.pendingBill.name) ...[
-                    Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: Colors.orange.withOpacity(0.1),
-                        border: Border.all(color: Colors.orange),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Column(
-                        children: [
-                          const Icon(Icons.receipt_long, color: Colors.orange, size: 32),
-                          const Gap(8),
-                          Text(
-                            'PENDING BILL: ${session.pendingBillCustomerName ?? ''}',
-                            style: theme.textTheme.titleMedium?.copyWith(
-                              color: Colors.orange,
-                              fontWeight: FontWeight.bold,
-                            ),
-                            textAlign: TextAlign.center,
-                          ),
-                          const Gap(16),
-                          Row(
-                            children: [
-                              Expanded(
-                                child: OutlinedButton(
-                                  onPressed: () => _cancelPendingBill(context, session),
-                                  style: OutlinedButton.styleFrom(foregroundColor: AppColors.error),
-                                  child: const Text('Cancel Bill'),
-                                ),
-                              ),
-                              const Gap(12),
-                              Expanded(
-                                child: FilledButton(
-                                  onPressed: () {
-                                    
-                                    context.push(
-                                      RouteNames.combinedSettlement,
-                                      extra: {
-                                        'customerId': session.pendingBillCustomerId ?? 'unknown',
-                                        'customerName': session.pendingBillCustomerName ?? 'Unknown',
-                                        'initialBills': [session],
-                                      },
-                                    );
-                                  },
-                                  style: FilledButton.styleFrom(backgroundColor: Colors.orange),
-                                  child: const Text('Settle Bill'),
-                                ),
-                              ),
-                            ],
-                          )
-                        ],
-                      ),
+                if (session.status == TableStatus.pendingBill.name) ...[
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.orange.withOpacity(0.1),
+                      border: Border.all(color: Colors.orange),
+                      borderRadius: BorderRadius.circular(12),
                     ),
-                    const Gap(24),
-                  ],
-                  if (session.isCancelled) ...[
-                    Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: AppColors.error.withValues(alpha: 0.1),
-                        border: Border.all(color: AppColors.error),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Column(
-                        children: [
-                          const Icon(Icons.cancel_outlined, color: AppColors.error, size: 32),
-                          const Gap(8),
-                          Text(
-                            'THIS GAME WAS CANCELLED',
-                            style: theme.textTheme.titleMedium?.copyWith(
-                              color: AppColors.error,
-                              fontWeight: FontWeight.bold,
-                            ),
+                    child: Column(
+                      children: [
+                        const Icon(
+                          Icons.receipt_long,
+                          color: Colors.orange,
+                          size: 32,
+                        ),
+                        const Gap(8),
+                        Text(
+                          'PENDING BILL: ${session.pendingBillCustomerName ?? ''}',
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            color: Colors.orange,
+                            fontWeight: FontWeight.bold,
                           ),
-                          const Gap(4),
-                          Text(
-                            'The inventory was restored and no charges were billed.',
-                            style: theme.textTheme.bodyMedium?.copyWith(
-                              color: AppColors.error,
+                          textAlign: TextAlign.center,
+                        ),
+                        const Gap(16),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: OutlinedButton(
+                                onPressed: () =>
+                                    _cancelPendingBill(context, session),
+                                style: OutlinedButton.styleFrom(
+                                  foregroundColor: AppColors.error,
+                                ),
+                                child: const Text('Cancel Bill'),
+                              ),
                             ),
-                            textAlign: TextAlign.center,
-                          ),
-                        ],
-                      ),
+                            const Gap(12),
+                            Expanded(
+                              child: FilledButton(
+                                onPressed: () {
+                                  context.push(
+                                    RouteNames.combinedSettlement,
+                                    extra: {
+                                      'customerId':
+                                          session.pendingBillCustomerId ??
+                                          'unknown',
+                                      'customerName':
+                                          session.pendingBillCustomerName ??
+                                          'Unknown',
+                                      'initialBills': [session],
+                                    },
+                                  );
+                                },
+                                style: FilledButton.styleFrom(
+                                  backgroundColor: Colors.orange,
+                                ),
+                                child: const Text('Settle Bill'),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
                     ),
-                    const Gap(24),
-                  ],
+                  ),
+                  const Gap(24),
+                ],
+                if (session.isCancelled) ...[
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: AppColors.error.withValues(alpha: 0.1),
+                      border: Border.all(color: AppColors.error),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Column(
+                      children: [
+                        const Icon(
+                          Icons.cancel_outlined,
+                          color: AppColors.error,
+                          size: 32,
+                        ),
+                        const Gap(8),
+                        Text(
+                          'THIS GAME WAS CANCELLED',
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            color: AppColors.error,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const Gap(4),
+                        Text(
+                          'The inventory was restored and no charges were billed.',
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            color: AppColors.error,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ],
+                    ),
+                  ),
+                  const Gap(24),
+                ],
                 // ── General Information ──
                 _ExpandableSection(
                   title: 'General Information',
                   child: _SectionCard(
                     children: [
                       _InfoRow(label: 'Table Name', value: session.tableName),
-                      if (session.floorName != null && session.floorName!.isNotEmpty)
+                      if (session.floorName != null &&
+                          session.floorName!.isNotEmpty)
                         _InfoRow(label: 'Floor', value: session.floorName!),
                       _InfoRow(
                         label: 'Game Type',
@@ -269,13 +285,25 @@ class _BillDetailsScreenState extends ConsumerState<BillDetailsScreen> {
                               '${session.framesPlayed > 0 ? session.framesPlayed : session.totalFrames}',
                         ),
                       if (session.createdByName != null)
-                        _InfoRow(label: 'Started by', value: session.createdByName!),
+                        _InfoRow(
+                          label: 'Started by',
+                          value: session.createdByName!,
+                        ),
                       if (session.endedByName != null)
-                        _InfoRow(label: 'Ended by', value: session.endedByName!),
+                        _InfoRow(
+                          label: 'Ended by',
+                          value: session.endedByName!,
+                        ),
                       if (session.processedByName != null)
-                        _InfoRow(label: 'Processed by', value: session.processedByName!),
+                        _InfoRow(
+                          label: 'Processed by',
+                          value: session.processedByName!,
+                        ),
                       if (session.cancelledByName != null)
-                        _InfoRow(label: 'Cancelled by', value: session.cancelledByName!),
+                        _InfoRow(
+                          label: 'Cancelled by',
+                          value: session.cancelledByName!,
+                        ),
                     ],
                   ),
                 ),
@@ -353,31 +381,63 @@ class _BillDetailsScreenState extends ConsumerState<BillDetailsScreen> {
                   const Gap(8),
                   _SectionCard(
                     children: [
-                      ...session.manualGameCharges.grouped().map(
-                        (group) {
-                          final g = group.charge;
-                          return Padding(
-                            padding: const EdgeInsets.symmetric(vertical: 4),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Expanded(
+                      ...session.manualGameCharges.grouped().map((group) {
+                        final g = group.charge;
+                        return Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 4),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Expanded(
+                                    child: Text(
+                                      '${group.quantity}x ${g.tableName} - ${g.gameType.displayName}',
+                                      style: theme.textTheme.bodyMedium,
+                                    ),
+                                  ),
+                                  Column(
+                                    crossAxisAlignment: CrossAxisAlignment.end,
+                                    children: [
+                                      Text(
+                                        '\u20B9${group.finalAmount.toStringAsFixed(2)}',
+                                        style: theme.textTheme.bodyMedium
+                                            ?.copyWith(
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                      ),
+                                      if (group.totalDiscountAmount > 0)
+                                        Text(
+                                          '\u20B9${group.totalAmount.toStringAsFixed(2)} before discount',
+                                          style: theme.textTheme.bodySmall
+                                              ?.copyWith(
+                                                color: theme
+                                                    .colorScheme
+                                                    .onSurfaceVariant,
+                                                decoration:
+                                                    TextDecoration.lineThrough,
+                                              ),
+                                        ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                              if (group.totalDiscountAmount > 0)
+                                Align(
+                                  alignment: Alignment.centerRight,
                                   child: Text(
-                                    '${group.quantity}x ${g.tableName} - ${g.gameType.displayName}',
-                                    style: theme.textTheme.bodyMedium,
+                                    'Discount: -\u20B9${group.totalDiscountAmount.toStringAsFixed(2)}',
+                                    style: theme.textTheme.bodySmall?.copyWith(
+                                      color: AppColors.success,
+                                    ),
                                   ),
                                 ),
-                                Text(
-                                  '\u20B9${group.totalAmount.toStringAsFixed(0)}',
-                                  style: theme.textTheme.bodyMedium?.copyWith(
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          );
-                        }
-                      ),
+                            ],
+                          ),
+                        );
+                      }),
                     ],
                   ),
                   const Gap(16),
@@ -478,10 +538,37 @@ class _BillDetailsScreenState extends ConsumerState<BillDetailsScreen> {
                             '₹${(session.gameCharge ?? 0).toStringAsFixed(2)}',
                       ),
                     ],
+                    if ((session.discountAmount ?? 0) > 0)
+                      _InfoRow(
+                        label: 'Bill Discount',
+                        value:
+                            '-\u20B9${session.discountAmount!.toStringAsFixed(2)}',
+                      ),
+                    if ((session.currentGameDiscountAmount ?? 0) > 0)
+                      _InfoRow(
+                        label: 'Current Game Discount',
+                        value:
+                            '-\u20B9${session.currentGameDiscountAmount!.toStringAsFixed(2)}',
+                      ),
+                    if ((session.currentGameDiscountAmount ?? 0) > 0)
+                      _InfoRow(
+                        label: 'Current Game After Discount',
+                        value:
+                            '\u20B9${((session.gameCharge ?? 0) - (session.currentGameDiscountAmount ?? 0)).clamp(0.0, double.infinity).toStringAsFixed(2)}',
+                      ),
                     if (session.manualGameCharges.isNotEmpty)
                       _InfoRow(
                         label: 'Additional Games',
-                        value: '₹${session.manualGameCharges.fold<double>(0, (s, g) => s + g.calculatedAmount).toStringAsFixed(2)}',
+                        value:
+                            '₹${session.manualGameCharges.fold<double>(0, (s, g) => s + g.finalAmount).toStringAsFixed(2)}',
+                      ),
+                    if (session.manualGameCharges.any(
+                      (charge) => charge.appliedDiscountAmount > 0,
+                    ))
+                      _InfoRow(
+                        label: 'Additional Game Discounts',
+                        value:
+                            '-\u20B9${session.manualGameCharges.fold<double>(0, (sum, charge) => sum + charge.appliedDiscountAmount).toStringAsFixed(2)}',
                       ),
                     if ((session.ordersTotal ?? 0) > 0)
                       _InfoRow(
@@ -714,20 +801,27 @@ class _BillDetailsScreenState extends ConsumerState<BillDetailsScreen> {
     );
   }
 
-  
-  Future<void> _cancelPendingBill(BuildContext context, GameSession session) async {
+  Future<void> _cancelPendingBill(
+    BuildContext context,
+    GameSession session,
+  ) async {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Cancel Pending Bill?'),
-        content: const Text('This will cancel the bill completely and restore any inventory items.'),
+        content: const Text(
+          'This will cancel the bill completely and restore any inventory items.',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(false),
             child: const Text('No, Keep It'),
           ),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: AppColors.error, foregroundColor: Colors.white),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.error,
+              foregroundColor: Colors.white,
+            ),
             onPressed: () => Navigator.of(ctx).pop(true),
             child: const Text('Yes, Cancel'),
           ),
@@ -737,17 +831,25 @@ class _BillDetailsScreenState extends ConsumerState<BillDetailsScreen> {
 
     if (confirm == true && context.mounted) {
       try {
-        await ref.read(gamesRepositoryProvider).cancelPendingBill(session.id, session);
+        await ref
+            .read(gamesRepositoryProvider)
+            .cancelPendingBill(session.id, session);
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Pending bill cancelled.'), backgroundColor: AppColors.success),
+            const SnackBar(
+              content: Text('Pending bill cancelled.'),
+              backgroundColor: AppColors.success,
+            ),
           );
           Navigator.of(context).pop();
         }
       } catch (e) {
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Failed: $e'), backgroundColor: AppColors.error),
+            SnackBar(
+              content: Text('Failed: $e'),
+              backgroundColor: AppColors.error,
+            ),
           );
         }
       }
@@ -785,7 +887,7 @@ class _BillDetailsScreenState extends ConsumerState<BillDetailsScreen> {
       title: 'Admin Authorization',
       subtitle: 'Enter administrator passcode to edit player names.',
     );
-      if (verified != true || !context.mounted) return;
+    if (verified != true || !context.mounted) return;
 
     final staff = ref.read(currentStaffProvider).value;
     final employeeName = staff?.name ?? 'Admin';
@@ -1119,17 +1221,17 @@ class _BillDetailsScreenState extends ConsumerState<BillDetailsScreen> {
       );
 
       if (result == true && context.mounted) {
-          try {
-            await ref
-                .read(gamesRepositoryProvider)
-                .updateGamePaymentMethods(
-                  session: session,
-                  newPaymentMethod: selectedMethod,
-                  newPaidBy: selectedMethod == PaymentMethod.credit
-                      ? payerController.text.trim()
-                      : null,
-                  employeeName: employeeName,
-                );
+        try {
+          await ref
+              .read(gamesRepositoryProvider)
+              .updateGamePaymentMethods(
+                session: session,
+                newPaymentMethod: selectedMethod,
+                newPaidBy: selectedMethod == PaymentMethod.credit
+                    ? payerController.text.trim()
+                    : null,
+                employeeName: employeeName,
+              );
           if (context.mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(

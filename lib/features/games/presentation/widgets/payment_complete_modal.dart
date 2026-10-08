@@ -74,7 +74,7 @@ class ReceiptData {
     final List<ReceiptLineItem> items = [];
 
     // Main Table Time Charge
-    final double baseGame = session.gameCharge ?? session.baseGameCharge ?? 0.0;
+    final double baseGame = session.baseGameCharge ?? session.gameCharge ?? 0.0;
     final int minutes = (session.activeSeconds / 60).ceil();
     final String durationLabel = minutes >= 60
         ? '${(minutes / 60).toStringAsFixed(1)}h'
@@ -104,13 +104,38 @@ class ReceiptData {
     // Manual Game Charges if any
     for (final mg in session.manualGameCharges) {
       items.add(ReceiptLineItem(
-        description: 'Manual: ${mg.tableName}',
-        amount: mg.calculatedAmount,
+        description:
+            'Manual: ${mg.tableName}${mg.appliedDiscountAmount > 0 ? ' (discount -\u20B9${mg.appliedDiscountAmount.toStringAsFixed(2)})' : ''}',
+        amount: mg.finalAmount,
+      ));
+    }
+
+    final manualGameDiscounts = session.manualGameCharges.fold<double>(
+      0.0,
+      (sum, charge) => sum + charge.appliedDiscountAmount,
+    );
+    final totalDiscounts =
+        (session.discountAmount ?? 0.0) +
+        (session.currentGameDiscountAmount ?? 0.0) +
+        manualGameDiscounts;
+    if ((session.discountAmount ?? 0.0) > 0) {
+      items.add(ReceiptLineItem(
+        description: 'Bill discount',
+        amount: -(session.discountAmount ?? 0.0),
+      ));
+    }
+    if ((session.currentGameDiscountAmount ?? 0.0) > 0) {
+      items.add(ReceiptLineItem(
+        description: 'Current game discount',
+        amount: -(session.currentGameDiscountAmount ?? 0.0),
       ));
     }
 
     final double sub = items.fold(0.0, (sum, i) => sum + i.amount);
-    final double grand = session.grandTotal ?? sub;
+    final double grand = ((session.grandTotal ?? (sub + totalDiscounts)) -
+            totalDiscounts)
+        .clamp(0.0, double.infinity)
+        .toDouble();
     final double finalAmt = session.finalAmount ?? session.roundedAmount ?? grand;
     final double roundDiff = finalAmt - grand;
 
@@ -168,7 +193,7 @@ class ReceiptData {
     double finalAmt = 0.0;
 
     for (final s in sessions) {
-      final double baseGame = s.gameCharge ?? s.baseGameCharge ?? 0.0;
+      final double baseGame = s.baseGameCharge ?? s.gameCharge ?? 0.0;
       final int minutes = (s.activeSeconds / 60).ceil();
       final String durationLabel = minutes >= 60
           ? '${(minutes / 60).toStringAsFixed(1)}h'
@@ -195,13 +220,36 @@ class ReceiptData {
 
       for (final mg in s.manualGameCharges) {
         items.add(ReceiptLineItem(
-          description: 'Manual: ${mg.tableName}',
-          amount: mg.calculatedAmount,
+          description:
+              'Manual: ${mg.tableName}${mg.appliedDiscountAmount > 0 ? ' (discount -\u20B9${mg.appliedDiscountAmount.toStringAsFixed(2)})' : ''}',
+          amount: mg.finalAmount,
+        ));
+      }
+
+      final discounts = (s.discountAmount ?? 0.0) +
+          (s.currentGameDiscountAmount ?? 0.0) +
+          s.manualGameCharges.fold<double>(
+            0.0,
+            (sum, charge) => sum + charge.appliedDiscountAmount,
+          );
+      if ((s.discountAmount ?? 0.0) > 0) {
+        items.add(ReceiptLineItem(
+          description: '${s.tableName} bill discount',
+          amount: -(s.discountAmount ?? 0.0),
+        ));
+      }
+      if ((s.currentGameDiscountAmount ?? 0.0) > 0) {
+        items.add(ReceiptLineItem(
+          description: '${s.tableName} game discount',
+          amount: -(s.currentGameDiscountAmount ?? 0.0),
         ));
       }
 
       sub += s.gameCharge ?? s.grandTotal ?? 0.0;
-      grand += s.grandTotal ?? s.finalAmount ?? 0.0;
+      grand += ((s.grandTotal ?? (s.finalAmount ?? 0.0) + discounts) -
+              discounts)
+          .clamp(0.0, double.infinity)
+          .toDouble();
       finalAmt += s.finalAmount ?? s.roundedAmount ?? s.grandTotal ?? 0.0;
     }
 

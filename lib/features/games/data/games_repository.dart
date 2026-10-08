@@ -257,11 +257,17 @@ class GamesRepository {
   /// Real-time stream of only active/paused games to save Firebase reads
   Stream<List<GameSession>> watchRunningGames() {
     return _gamesRef
-        .where('status', whereIn: [TableStatus.running.name, TableStatus.paused.name])
+        .where(
+          'status',
+          whereIn: [TableStatus.running.name, TableStatus.paused.name],
+        )
         .snapshots()
         .map(
           (snap) => snap.docs
-              .map((doc) => GameSession.fromMap(doc.data() as Map<String, dynamic>))
+              .map(
+                (doc) =>
+                    GameSession.fromMap(doc.data() as Map<String, dynamic>),
+              )
               .toList(),
         );
   }
@@ -329,7 +335,7 @@ class GamesRepository {
     final enrichedSession = _enrichWithStaff(session, true).copyWith(
       alarmSetByUserId: session.alarmTime != null ? currentUserId : null,
     );
-    
+
     final newAuditLog = AuditLog(
       id: '${DateTime.now().millisecondsSinceEpoch}_start',
       editedBy: currentUserName,
@@ -339,7 +345,7 @@ class GamesRepository {
       newValue: session.tableName,
     );
     final finalSession = enrichedSession.copyWith(
-      auditLogs: [...enrichedSession.auditLogs, newAuditLog]
+      auditLogs: [...enrichedSession.auditLogs, newAuditLog],
     );
 
     final docRef = _gamesRef.doc(finalSession.id);
@@ -360,7 +366,7 @@ class GamesRepository {
     final enrichedSession = _enrichWithStaff(session, true).copyWith(
       alarmSetByUserId: session.alarmTime != null ? currentUserId : null,
     );
-    
+
     final newAuditLog = AuditLog(
       id: '${DateTime.now().millisecondsSinceEpoch}_start',
       editedBy: currentUserName,
@@ -370,7 +376,7 @@ class GamesRepository {
       newValue: session.tableName,
     );
     final finalSession = enrichedSession.copyWith(
-      auditLogs: [...enrichedSession.auditLogs, newAuditLog]
+      auditLogs: [...enrichedSession.auditLogs, newAuditLog],
     );
 
     final docRef = _gamesRef.doc(finalSession.id);
@@ -393,7 +399,7 @@ class GamesRepository {
     DateTime pausedAt,
   ) async {
     if (AppConfig.guardWrite('GamesRepository.pauseGame')) return;
-    
+
     final newAuditLog = AuditLog(
       id: '${DateTime.now().millisecondsSinceEpoch}_pause',
       editedBy: currentUserName,
@@ -420,7 +426,7 @@ class GamesRepository {
     DateTime resumedAt,
   ) async {
     if (AppConfig.guardWrite('GamesRepository.resumeGame')) return;
-    
+
     final newAuditLog = AuditLog(
       id: '${DateTime.now().millisecondsSinceEpoch}_resume',
       editedBy: currentUserName,
@@ -449,9 +455,15 @@ class GamesRepository {
     await _gamesRef.doc(gameId).update({'playerPoints': playerPoints});
   }
 
-  Future<void> updateOrders(String gameId, List<GameOrder> oldOrders, List<GameOrder> orders, [List<ManualGameCharge>? oldManualGames, List<ManualGameCharge>? manualGames]) async {
+  Future<void> updateOrders(
+    String gameId,
+    List<GameOrder> oldOrders,
+    List<GameOrder> orders, [
+    List<ManualGameCharge>? oldManualGames,
+    List<ManualGameCharge>? manualGames,
+  ]) async {
     if (AppConfig.guardWrite('GamesRepository.updateOrders')) return;
-    
+
     final List<AuditLog> newLogs = [];
     // Note: audit log logic simplified for brevity
     final batch = _db.batch();
@@ -459,23 +471,27 @@ class GamesRepository {
       'orders': orders.map((o) => o.toMap()).toList(),
     };
     if (manualGames != null) {
-      updateMap['manualGameCharges'] = manualGames.map((m) => m.toMap()).toList();
+      updateMap['manualGameCharges'] = manualGames
+          .map((m) => m.toMap())
+          .toList();
     }
     if (newLogs.isNotEmpty) {
-      updateMap['auditLogs'] = FieldValue.arrayUnion(newLogs.map((l) => l.toMap()).toList());
+      updateMap['auditLogs'] = FieldValue.arrayUnion(
+        newLogs.map((l) => l.toMap()).toList(),
+      );
     }
     batch.update(_gamesRef.doc(gameId), updateMap);
     await batch.commit();
   }
 
   Future<void> updatePendingBillOrders(
-    GameSession session, 
-    List<GameOrder> orders, 
+    GameSession session,
+    List<GameOrder> orders,
     List<ManualGameCharge> manualGameCharges,
-    double ordersTotal, 
+    double ordersTotal,
     double manualGamesTotal,
-    double grandTotal, 
-    double finalAmount
+    double grandTotal,
+    double finalAmount,
   ) async {
     if (AppConfig.guardWrite('GamesRepository.updatePendingBillOrders')) return;
 
@@ -483,45 +499,54 @@ class GamesRepository {
     final diff = orders.length - session.orders.length;
     if (diff > 0) {
       final added = orders.last;
-      newLogs.add(AuditLog(
-        id: '${DateTime.now().millisecondsSinceEpoch}_order_add',
-        editedBy: currentUserName,
-        timestamp: DateTime.now(),
-        field: 'Order Added (Pending)',
-        previousValue: '-',
-        newValue: '${added.quantity} x ${added.productName}',
-      ));
+      newLogs.add(
+        AuditLog(
+          id: '${DateTime.now().millisecondsSinceEpoch}_order_add',
+          editedBy: currentUserName,
+          timestamp: DateTime.now(),
+          field: 'Order Added (Pending)',
+          previousValue: '-',
+          newValue: '${added.quantity} x ${added.productName}',
+        ),
+      );
     } else if (diff < 0) {
-      newLogs.add(AuditLog(
-        id: '${DateTime.now().millisecondsSinceEpoch}_order_remove',
-        editedBy: currentUserName,
-        timestamp: DateTime.now(),
-        field: 'Order Removed (Pending)',
-        previousValue: '${session.orders.length} orders',
-        newValue: '${orders.length} orders',
-      ));
+      newLogs.add(
+        AuditLog(
+          id: '${DateTime.now().millisecondsSinceEpoch}_order_remove',
+          editedBy: currentUserName,
+          timestamp: DateTime.now(),
+          field: 'Order Removed (Pending)',
+          previousValue: '${session.orders.length} orders',
+          newValue: '${orders.length} orders',
+        ),
+      );
     }
 
-    final gameDiff = manualGameCharges.length - session.manualGameCharges.length;
+    final gameDiff =
+        manualGameCharges.length - session.manualGameCharges.length;
     if (gameDiff > 0) {
       final added = manualGameCharges.last;
-      newLogs.add(AuditLog(
-        id: '${DateTime.now().millisecondsSinceEpoch}_game_add',
-        editedBy: currentUserName,
-        timestamp: DateTime.now(),
-        field: 'Game Added (Pending)',
-        previousValue: '-',
-        newValue: '${added.tableName}',
-      ));
+      newLogs.add(
+        AuditLog(
+          id: '${DateTime.now().millisecondsSinceEpoch}_game_add',
+          editedBy: currentUserName,
+          timestamp: DateTime.now(),
+          field: 'Game Added (Pending)',
+          previousValue: '-',
+          newValue: '${added.tableName}',
+        ),
+      );
     } else if (gameDiff < 0) {
-      newLogs.add(AuditLog(
-        id: '${DateTime.now().millisecondsSinceEpoch}_game_remove',
-        editedBy: currentUserName,
-        timestamp: DateTime.now(),
-        field: 'Game Removed (Pending)',
-        previousValue: '${session.manualGameCharges.length} games',
-        newValue: '${manualGameCharges.length} games',
-      ));
+      newLogs.add(
+        AuditLog(
+          id: '${DateTime.now().millisecondsSinceEpoch}_game_remove',
+          editedBy: currentUserName,
+          timestamp: DateTime.now(),
+          field: 'Game Removed (Pending)',
+          previousValue: '${session.manualGameCharges.length} games',
+          newValue: '${manualGameCharges.length} games',
+        ),
+      );
     }
 
     final batch = _db.batch();
@@ -532,9 +557,12 @@ class GamesRepository {
       'grandTotal': grandTotal,
       'roundedAmount': finalAmount,
       'finalAmount': finalAmount,
-      if (newLogs.isNotEmpty) 'auditLogs': FieldValue.arrayUnion(newLogs.map((l) => l.toMap()).toList()),
+      if (newLogs.isNotEmpty)
+        'auditLogs': FieldValue.arrayUnion(
+          newLogs.map((l) => l.toMap()).toList(),
+        ),
     });
-    
+
     // Process inventory
     if (diff > 0) {
       final added = orders.last;
@@ -658,7 +686,7 @@ class GamesRepository {
   /// Finalize the game: record payment and free the table.
   Future<void> endGame(GameSession session) async {
     if (AppConfig.guardWrite('GamesRepository.endGame')) return;
-    
+
     final newAuditLog = AuditLog(
       id: '${DateTime.now().millisecondsSinceEpoch}_end',
       editedBy: currentUserName,
@@ -681,7 +709,9 @@ class GamesRepository {
       'startTime': Timestamp.fromDate(session.startTime),
       'endTime': Timestamp.fromDate(session.endTime!),
       'orders': session.orders.map((o) => o.toMap()).toList(),
-      'manualGameCharges': session.manualGameCharges.map((g) => g.toMap()).toList(),
+      'manualGameCharges': session.manualGameCharges
+          .map((g) => g.toMap())
+          .toList(),
       'rounds': session.rounds.map((r) => r.toMap()).toList(),
       'playerPaymentSplits': session.playerPaymentSplits?.map(
         (k, v) => MapEntry(k, v.map((km, vm) => MapEntry(km.name, vm))),
@@ -702,7 +732,9 @@ class GamesRepository {
       'finalAmount': session.finalAmount,
       'manualSelectedFinalAmount': session.manualSelectedFinalAmount,
       'paymentStatus': session.paymentStatus,
-      'processedByUserId': session.processedByUserId ?? (currentUserId == 'Unknown' ? null : currentUserId),
+      'processedByUserId':
+          session.processedByUserId ??
+          (currentUserId == 'Unknown' ? null : currentUserId),
       'processedByName': session.processedByName ?? currentUserName,
       'totalFrames': session.totalFrames,
       'framesPlayed': session.framesPlayed,
@@ -741,7 +773,7 @@ class GamesRepository {
       }
       updateMap['paidAmount'] = totalPaid;
       updateMap['remainingAmount'] = totalCredit;
-      
+
       if (totalCredit >= amountToPay - 0.5) {
         updateMap['paymentStatus'] = 'Outstanding';
       } else if (totalPaid == 0) {
@@ -756,9 +788,11 @@ class GamesRepository {
     if (session.isManualEntry || session.tableType == TableType.arcade) {
       final fullMap = session.toMap();
       fullMap['status'] = TableStatus.available.name;
-      fullMap['paymentStatus'] = updateMap['paymentStatus'] ?? session.paymentStatus;
+      fullMap['paymentStatus'] =
+          updateMap['paymentStatus'] ?? session.paymentStatus;
       fullMap['paidAmount'] = updateMap['paidAmount'] ?? session.paidAmount;
-      fullMap['remainingAmount'] = updateMap['remainingAmount'] ?? session.remainingAmount;
+      fullMap['remainingAmount'] =
+          updateMap['remainingAmount'] ?? session.remainingAmount;
       batch.set(_gamesRef.doc(session.id), fullMap);
     } else {
       batch.update(_gamesRef.doc(session.id), updateMap);
@@ -874,12 +908,15 @@ class GamesRepository {
       // Audit Log for Deletion
       final auditRef = _clubRef.collection('audit_logs').doc();
       final durationMins = (session.activeSeconds / 60).floor();
-      final details = '${session.tableName} | ${session.billingType.name} | Total: ₹${(session.finalAmount ?? session.grandTotal ?? 0).toStringAsFixed(0)} | Players: ${session.allPlayers.isEmpty ? "None" : session.allPlayers.join(", ")}';
+      final details =
+          '${session.tableName} | ${session.billingType.name} | Total: ₹${(session.finalAmount ?? session.grandTotal ?? 0).toStringAsFixed(0)} | Players: ${session.allPlayers.isEmpty ? "None" : session.allPlayers.join(", ")}';
       final log = AuditLog(
         id: auditRef.id,
         editedBy: currentUserName,
         timestamp: DateTime.now(),
-        field: session.isCancelled ? 'Cancelled Game Deleted' : 'Completed Game Deleted',
+        field: session.isCancelled
+            ? 'Cancelled Game Deleted'
+            : 'Completed Game Deleted',
         previousValue: '${durationMins}m played',
         newValue: details,
       );
@@ -1329,7 +1366,8 @@ class GamesRepository {
           referenceId: session.id,
           title: '${session.tableName} - Game',
           subtitle: session.date,
-          isTransfer: true, // bypass duplicate check since we just removed old ones
+          isTransfer:
+              true, // bypass duplicate check since we just removed old ones
         );
       }
     }
@@ -1345,7 +1383,9 @@ class GamesRepository {
     updateMap['selectedPayers'] = newSelectedPayers;
 
     // Bill total
-    if ((newBillTotal - (session.finalAmount ?? session.grandTotal ?? 0.0)).abs() > 0.01) {
+    if ((newBillTotal - (session.finalAmount ?? session.grandTotal ?? 0.0))
+            .abs() >
+        0.01) {
       updateMap['finalAmount'] = newBillTotal;
       updateMap['roundedAmount'] = newBillTotal;
     }
@@ -1366,7 +1406,10 @@ class GamesRepository {
     // Payment status
     if (newCreditAmounts.isNotEmpty) {
       // Has some credit
-      final totalCredit = newCreditAmounts.values.fold<double>(0, (s, v) => s + v);
+      final totalCredit = newCreditAmounts.values.fold<double>(
+        0,
+        (s, v) => s + v,
+      );
       if (totalCredit >= newBillTotal - 0.5) {
         updateMap['paymentStatus'] = 'Outstanding';
         updateMap['paidAmount'] = 0.0;
@@ -1387,40 +1430,55 @@ class GamesRepository {
     String oldSummary = '';
     if (session.playerPaymentSplits != null &&
         session.playerPaymentSplits!.isNotEmpty) {
-      oldSummary = session.playerPaymentSplits!.entries.map((e) {
-        final methods = e.value.entries.map((m) => '₹${m.value.toStringAsFixed(0)} ${m.key.displayName}').join('+');
-        return '${e.key}: $methods';
-      }).join(', ');
+      oldSummary = session.playerPaymentSplits!.entries
+          .map((e) {
+            final methods = e.value.entries
+                .map(
+                  (m) => '₹${m.value.toStringAsFixed(0)} ${m.key.displayName}',
+                )
+                .join('+');
+            return '${e.key}: $methods';
+          })
+          .join(', ');
     } else {
-      oldSummary = '${session.paidBy ?? 'Unknown'}: ₹${(session.finalAmount ?? session.grandTotal ?? 0).toStringAsFixed(0)} ${session.paymentMethod?.displayName ?? 'Unknown'}';
+      oldSummary =
+          '${session.paidBy ?? 'Unknown'}: ₹${(session.finalAmount ?? session.grandTotal ?? 0).toStringAsFixed(0)} ${session.paymentMethod?.displayName ?? 'Unknown'}';
     }
 
     // Summarize new state
-    final newSummary = newPlayerPaymentSplits.entries.map((e) {
-      final methods = e.value.entries.map((m) => '₹${m.value.toStringAsFixed(0)} ${m.key.displayName}').join('+');
-      return '${e.key}: $methods';
-    }).join(', ');
+    final newSummary = newPlayerPaymentSplits.entries
+        .map((e) {
+          final methods = e.value.entries
+              .map((m) => '₹${m.value.toStringAsFixed(0)} ${m.key.displayName}')
+              .join('+');
+          return '${e.key}: $methods';
+        })
+        .join(', ');
 
-    newLogs.add(AuditLog(
-      id: DateTime.now().millisecondsSinceEpoch.toString(),
-      editedBy: editor,
-      timestamp: DateTime.now(),
-      field: 'Bill Edit (Full)',
-      previousValue: oldSummary,
-      newValue: newSummary,
-    ));
+    newLogs.add(
+      AuditLog(
+        id: DateTime.now().millisecondsSinceEpoch.toString(),
+        editedBy: editor,
+        timestamp: DateTime.now(),
+        field: 'Bill Edit (Full)',
+        previousValue: oldSummary,
+        newValue: newSummary,
+      ),
+    );
 
     // If bill total changed
     final oldTotal = session.finalAmount ?? session.grandTotal ?? 0.0;
     if ((newBillTotal - oldTotal).abs() > 0.01) {
-      newLogs.add(AuditLog(
-        id: '${DateTime.now().millisecondsSinceEpoch}_total',
-        editedBy: editor,
-        timestamp: DateTime.now(),
-        field: 'Bill Total',
-        previousValue: '₹${oldTotal.toStringAsFixed(0)}',
-        newValue: '₹${newBillTotal.toStringAsFixed(0)}',
-      ));
+      newLogs.add(
+        AuditLog(
+          id: '${DateTime.now().millisecondsSinceEpoch}_total',
+          editedBy: editor,
+          timestamp: DateTime.now(),
+          field: 'Bill Total',
+          previousValue: '₹${oldTotal.toStringAsFixed(0)}',
+          newValue: '₹${newBillTotal.toStringAsFixed(0)}',
+        ),
+      );
     }
 
     final updatedAuditLogs = [...session.auditLogs, ...newLogs];
@@ -1452,8 +1510,10 @@ class GamesRepository {
         .orderBy('timestamp', descending: true)
         .snapshots()
         .map((snapshot) {
-      return snapshot.docs.map((doc) => AuditLog.fromMap(doc.data())).toList();
-    });
+          return snapshot.docs
+              .map((doc) => AuditLog.fromMap(doc.data()))
+              .toList();
+        });
   }
 
   Future<void> markAsPendingBill(
@@ -1464,7 +1524,7 @@ class GamesRepository {
     AppConfig.guardWrite('GamesRepository.markAsPendingBill');
     final staff = <String, dynamic>{};
     final now = DateTime.now();
-    
+
     final updateMap = {
       ...staff,
       'status': TableStatus.pendingBill.name,
@@ -1474,24 +1534,30 @@ class GamesRepository {
       'markedPendingAt': now.toIso8601String(),
       'markedPendingByUserId': currentUserId,
       'markedPendingByName': currentUserName,
-      
+
       'endTime': session.endTime?.toIso8601String() ?? now.toIso8601String(),
       'gameCharge': session.gameCharge,
       'baseGameCharge': session.baseGameCharge,
       'overtimeMinutes': session.overtimeMinutes,
       'overtimeCharge': session.overtimeCharge,
       'ordersTotal': session.ordersTotal,
-      
+      'orders': session.orders.map((order) => order.toMap()).toList(),
+      'manualGameCharges': session.manualGameCharges
+          .map((charge) => charge.toMap())
+          .toList(),
+
       'grandTotal': session.grandTotal,
       'roundedAmount': session.roundedAmount,
       'finalAmount': session.finalAmount,
       'manualSelectedFinalAmount': session.manualSelectedFinalAmount,
       'discountAmount': session.discountAmount,
+      'currentGameDiscountAmount': session.currentGameDiscountAmount,
       'playerPaymentSplits': session.playerPaymentSplits?.map(
-            (k, v) => MapEntry(k, v.map((mk, mv) => MapEntry(mk.name, mv)))),
+        (k, v) => MapEntry(k, v.map((mk, mv) => MapEntry(mk.name, mv))),
+      ),
       'playerLiabilities': session.playerLiabilities,
     };
-    
+
     final auditLog = AuditLog(
       id: DateTime.now().millisecondsSinceEpoch.toString(),
       editedBy: currentUserName ?? 'Unknown',
@@ -1501,20 +1567,20 @@ class GamesRepository {
       newValue: customerName,
     );
     final logMap = auditLog.toMap();
-    
+
     final batch = _db.batch();
-    
+
     final gameRef = _db
         .collection(FirebaseConstants.clubsCollection)
         .doc(clubId)
         .collection(FirebaseConstants.gamesCollection)
         .doc(session.id);
-        
+
     batch.update(gameRef, {
       ...updateMap,
       'auditLogs': FieldValue.arrayUnion([logMap]),
     });
-    
+
     // Clear the activeGameId from the table so it becomes available immediately
     if (session.tableId != null) {
       final tableRef = _db
@@ -1522,9 +1588,12 @@ class GamesRepository {
           .doc(clubId)
           .collection(FirebaseConstants.tablesCollection)
           .doc(session.tableId);
-      batch.update(tableRef, {'status': TableStatus.available.name, 'activeGameId': FieldValue.delete()});
+      batch.update(tableRef, {
+        'status': TableStatus.available.name,
+        'activeGameId': FieldValue.delete(),
+      });
     }
-    
+
     // Deduct inventory stock for orders
     if (session.orders.isNotEmpty) {
       for (final order in session.orders) {
@@ -1534,7 +1603,7 @@ class GamesRepository {
               .doc(clubId)
               .collection('inventory')
               .doc(order.productId);
-              
+
           batch.update(productRef, {
             'currentStock': FieldValue.increment(-order.quantity),
             'totalSold': FieldValue.increment(order.quantity),
@@ -1542,21 +1611,21 @@ class GamesRepository {
         }
       }
     }
-    
+
     // Global audit log
     final globalLogRef = _db
         .collection(FirebaseConstants.clubsCollection)
         .doc(clubId)
         .collection('audit_logs')
         .doc();
-        
+
     batch.set(globalLogRef, {
       ...logMap,
       'recordId': session.id,
       'recordType': 'Game',
       'action': 'Pending Bill',
     });
-    
+
     await batch.commit();
   }
 
@@ -1578,7 +1647,7 @@ class GamesRepository {
         .doc(clubId)
         .collection(FirebaseConstants.gamesCollection)
         .doc(session.id);
-        
+
     // Delete the original session so it doesn't show up in history
     batch.delete(gameRef);
 
@@ -1589,16 +1658,19 @@ class GamesRepository {
           .doc(clubId)
           .collection(FirebaseConstants.tablesCollection)
           .doc(session.tableId);
-      batch.update(tableRef, {'status': TableStatus.available.name, 'activeGameId': FieldValue.delete()});
+      batch.update(tableRef, {
+        'status': TableStatus.available.name,
+        'activeGameId': FieldValue.delete(),
+      });
     }
 
     // Now loop and create new split sessions
     for (int i = 0; i < splitCount; i++) {
       final pId = players[i]['id']!;
       final pName = players[i]['name']!;
-      
+
       final splitId = '${session.id}_split_$i';
-      
+
       final auditLog = AuditLog(
         id: '${DateTime.now().millisecondsSinceEpoch}_split_$i',
         editedBy: staffName,
@@ -1618,17 +1690,29 @@ class GamesRepository {
         markedPendingByUserId: staffId,
         markedPendingByName: staffName,
         endTime: session.endTime ?? now,
-        
+
         // Divide all charges by the number of splits
         gameCharge: (session.gameCharge ?? 0) / splitCount,
         baseGameCharge: (session.baseGameCharge ?? 0) / splitCount,
         overtimeCharge: (session.overtimeCharge ?? 0) / splitCount,
         ordersTotal: (session.ordersTotal ?? 0) / splitCount,
         discountAmount: (session.discountAmount ?? 0) / splitCount,
+        currentGameDiscountAmount:
+            (session.currentGameDiscountAmount ?? 0) / splitCount,
+        manualGameCharges: session.manualGameCharges
+            .map(
+              (charge) => charge.copyWith(
+                calculatedAmount: charge.calculatedAmount / splitCount,
+                discountAmount: charge.discountAmount / splitCount,
+              ),
+            )
+            .toList(),
         grandTotal: (session.grandTotal ?? 0) / splitCount,
         roundedAmount: (session.roundedAmount ?? 0) / splitCount,
         finalAmount: (session.finalAmount ?? 0) / splitCount,
-        customPrice: (session.gameCharge ?? 0) / splitCount, // Set custom price so recalculations don't break it
+        customPrice:
+            (session.gameCharge ?? 0) /
+            splitCount, // Set custom price so recalculations don't break it
         isMinimumBillEnabled: false,
         auditLogs: [...session.auditLogs, auditLog],
       );
@@ -1638,17 +1722,21 @@ class GamesRepository {
           .doc(clubId)
           .collection(FirebaseConstants.gamesCollection)
           .doc(splitId);
-          
+
       batch.set(newGameRef, _enrichWithStaff(splitSession, true).toMap());
     }
 
     await batch.commit();
   }
 
-  Future<void> toggleTimeNotSure(String tableId, String? gameId, bool isNotSure) async {
+  Future<void> toggleTimeNotSure(
+    String tableId,
+    String? gameId,
+    bool isNotSure,
+  ) async {
     AppConfig.guardWrite('GamesRepository.toggleTimeNotSure');
     final batch = _db.batch();
-    
+
     final tableRef = _db
         .collection(FirebaseConstants.clubsCollection)
         .doc(clubId)
@@ -1664,17 +1752,18 @@ class GamesRepository {
           .doc(gameId);
       batch.update(gameRef, {'isTimeNotSure': isNotSure});
     }
-    
+
     await batch.commit();
   }
 
-    Future<void> settlePendingBillsCombined(
+  Future<void> settlePendingBillsCombined(
     List<GameSession> bills, {
     required PaymentMethod? paymentMethod,
     required String? paidBy,
     required String customerName,
     required double roundedTotal,
     required Map<String, Map<PaymentMethod, double>>? playerPaymentSplits,
+    double additionalDiscountAmount = 0.0,
   }) async {
     AppConfig.guardWrite('GamesRepository.settlePendingBillsCombined');
 
@@ -1688,10 +1777,11 @@ class GamesRepository {
     double totalBaseGameCharge = 0;
     double totalOvertimeCharge = 0;
     double totalOrdersTotal = 0;
-    double totalDiscountAmount = 0;
+    double totalDiscountAmount = additionalDiscountAmount;
+    double totalCurrentGameDiscountAmount = 0;
     double totalGrandTotal = 0;
     int totalActiveSeconds = 0;
-    
+
     DateTime? earliestStartTime;
     List<String> tableNames = [];
     List<GameOrder> allOrders = [];
@@ -1705,17 +1795,26 @@ class GamesRepository {
       totalOvertimeCharge += (bill.overtimeCharge ?? 0);
       totalOrdersTotal += (bill.ordersTotal ?? 0);
       totalDiscountAmount += (bill.discountAmount ?? 0);
-      totalGrandTotal += (bill.grandTotal ?? 0);
+      totalCurrentGameDiscountAmount += (bill.currentGameDiscountAmount ?? 0);
+      totalGrandTotal +=
+          (bill.gameCharge ?? 0) +
+          (bill.ordersTotal ?? 0) +
+          bill.manualGameCharges.fold<double>(
+            0,
+            (sum, charge) => sum + charge.calculatedAmount,
+          );
       totalActiveSeconds += bill.activeSeconds;
 
-      if (earliestStartTime == null || (bill.startTime != null && bill.startTime!.isBefore(earliestStartTime))) {
+      if (earliestStartTime == null ||
+          (bill.startTime != null &&
+              bill.startTime!.isBefore(earliestStartTime))) {
         earliestStartTime = bill.startTime;
       }
-      
+
       if (!tableNames.contains(bill.tableName)) {
         tableNames.add(bill.tableName);
       }
-      
+
       allOrders.addAll(bill.orders);
       allManualGames.addAll(bill.manualGameCharges);
       allAuditLogs.addAll(bill.auditLogs);
@@ -1732,7 +1831,8 @@ class GamesRepository {
       batch.delete(originalRef);
     }
 
-    final isSplit = playerPaymentSplits != null && playerPaymentSplits.isNotEmpty;
+    final isSplit =
+        playerPaymentSplits != null && playerPaymentSplits.isNotEmpty;
     String newPaymentStatus = 'Paid';
     double paidAmount = roundedTotal;
     double remainingAmount = 0.0;
@@ -1776,7 +1876,7 @@ class GamesRepository {
       newPaymentStatus = 'Outstanding';
       paidAmount = 0.0;
       remainingAmount = roundedTotal;
-      
+
       final creditRepo = _ref!.read(creditRepositoryProvider);
       await creditRepo.appendCreditToBatch(
         batch: batch,
@@ -1819,33 +1919,38 @@ class GamesRepository {
       'paidBy': paidBy ?? customerName,
       'paidAmount': paidAmount,
       'remainingAmount': remainingAmount,
-      'startTime': earliestStartTime != null ? Timestamp.fromDate(earliestStartTime) : Timestamp.fromDate(now),
+      'startTime': earliestStartTime != null
+          ? Timestamp.fromDate(earliestStartTime)
+          : Timestamp.fromDate(now),
       'endTime': Timestamp.fromDate(now),
       'activeSeconds': totalActiveSeconds,
       'players': bills.first.players,
-      
+
       'gameCharge': totalGameCharge,
       'baseGameCharge': totalBaseGameCharge,
       'overtimeCharge': totalOvertimeCharge,
       'ordersTotal': totalOrdersTotal,
       'discountAmount': totalDiscountAmount,
+      'currentGameDiscountAmount': totalCurrentGameDiscountAmount,
       'grandTotal': totalGrandTotal,
       'roundedAmount': roundedTotal,
       'finalAmount': roundedTotal,
-      
+
       'orders': allOrders.map((o) => o.toMap()).toList(),
       'manualGameCharges': allManualGames.map((m) => m.toMap()).toList(),
       'rounds': allRounds.map((r) => r.toMap()).toList(),
       'auditLogs': allAuditLogs.map((l) => l.toMap()).toList(),
-      
+
       'createdByUserId': staffId,
       'createdByName': staffName,
       'updatedByUserId': staffId,
       'updatedByName': staffName,
       'date': DateFormat('yyyy-MM-dd').format(now),
-      
-      if (isSplit) 'playerPaymentSplits': playerPaymentSplits.map(
-            (k, v) => MapEntry(k, v.map((mk, mv) => MapEntry(mk.name, mv)))),
+
+      if (isSplit)
+        'playerPaymentSplits': playerPaymentSplits.map(
+          (k, v) => MapEntry(k, v.map((mk, mv) => MapEntry(mk.name, mv))),
+        ),
     };
 
     final newGameRef = _db
@@ -1853,7 +1958,7 @@ class GamesRepository {
         .doc(clubId)
         .collection(FirebaseConstants.gamesCollection)
         .doc(consolidatedId);
-        
+
     batch.set(newGameRef, updateMap);
 
     // Global audit log
@@ -1862,7 +1967,7 @@ class GamesRepository {
         .doc(clubId)
         .collection('audit_logs')
         .doc();
-        
+
     batch.set(globalLogRef, {
       ...summaryLog.toMap(),
       'recordId': consolidatedId,
@@ -1873,36 +1978,44 @@ class GamesRepository {
     await batch.commit();
   }
 
-Future<void> settlePendingBill(GameSession session, {
+  Future<void> settlePendingBill(
+    GameSession session, {
     required PaymentMethod? paymentMethod,
     required String? paidBy,
     required Map<String, Map<PaymentMethod, double>>? playerPaymentSplits,
   }) async {
     AppConfig.guardWrite('GamesRepository.settlePendingBill');
-    
+
     final doc = await _db
         .collection(FirebaseConstants.clubsCollection)
         .doc(clubId)
         .collection(FirebaseConstants.gamesCollection)
         .doc(session.id)
         .get();
-        
+
     if (!doc.exists || doc.data()?['status'] != TableStatus.pendingBill.name) {
-      throw Exception('This bill is no longer pending or has already been settled.');
+      throw Exception(
+        'This bill is no longer pending or has already been settled.',
+      );
     }
-    
+
     final staff = <String, dynamic>{};
     final now = DateTime.now();
-    
-    final isSplit = playerPaymentSplits != null && playerPaymentSplits.isNotEmpty;
-    final totalAmount = session.roundedAmount ?? session.finalAmount ?? session.grandTotal ?? 0.0;
-    
+
+    final isSplit =
+        playerPaymentSplits != null && playerPaymentSplits.isNotEmpty;
+    final totalAmount =
+        session.roundedAmount ??
+        session.finalAmount ??
+        session.grandTotal ??
+        0.0;
+
     String newPaymentStatus = 'Paid';
     double paidAmount = totalAmount;
     double remainingAmount = 0.0;
-    
+
     final batch = _db.batch();
-    
+
     if (isSplit) {
       double totalCredit = 0.0;
       double totalPaid = 0.0;
@@ -1940,21 +2053,21 @@ Future<void> settlePendingBill(GameSession session, {
       newPaymentStatus = 'Outstanding';
       paidAmount = 0.0;
       remainingAmount = totalAmount;
-      
+
       final customerName = paidBy ?? session.pendingBillCustomerName;
-      
+
       final creditRepo = _ref!.read(creditRepositoryProvider);
       await creditRepo.appendCreditToBatch(
-              batch: batch,
-              customerName: customerName ?? 'Unknown',
-              amount: totalAmount,
-              type: CreditTransactionType.game,
-              referenceId: session.id,
-              title: 'Pending Bill',
-              paymentMethod: PaymentMethod.credit,
-            );
+        batch: batch,
+        customerName: customerName ?? 'Unknown',
+        amount: totalAmount,
+        type: CreditTransactionType.game,
+        referenceId: session.id,
+        title: 'Pending Bill',
+        paymentMethod: PaymentMethod.credit,
+      );
     }
-    
+
     final updateMap = {
       ...staff,
       'status': TableStatus.available.name,
@@ -1964,10 +2077,12 @@ Future<void> settlePendingBill(GameSession session, {
       'paidAmount': paidAmount,
       'remainingAmount': remainingAmount,
       'endTime': now.toIso8601String(),
-      if (isSplit) 'playerPaymentSplits': playerPaymentSplits.map(
-            (k, v) => MapEntry(k, v.map((mk, mv) => MapEntry(mk.name, mv)))),
+      if (isSplit)
+        'playerPaymentSplits': playerPaymentSplits.map(
+          (k, v) => MapEntry(k, v.map((mk, mv) => MapEntry(mk.name, mv))),
+        ),
     };
-    
+
     final auditLog = AuditLog(
       id: DateTime.now().millisecondsSinceEpoch.toString(),
       editedBy: currentUserName ?? 'Unknown',
@@ -1977,40 +2092,40 @@ Future<void> settlePendingBill(GameSession session, {
       newValue: '₹$totalAmount',
     );
     final logMap = auditLog.toMap();
-    
+
     final gameRef = _db
         .collection(FirebaseConstants.clubsCollection)
         .doc(clubId)
         .collection(FirebaseConstants.gamesCollection)
         .doc(session.id);
-        
+
     batch.update(gameRef, {
       ...updateMap,
       'auditLogs': FieldValue.arrayUnion([logMap]),
     });
-    
+
     final globalLogRef = _db
         .collection(FirebaseConstants.clubsCollection)
         .doc(clubId)
         .collection('audit_logs')
         .doc();
-        
+
     batch.set(globalLogRef, {
       ...logMap,
       'recordId': session.id,
       'recordType': 'Game',
       'action': 'Settled Pending Bill',
     });
-    
+
     await batch.commit();
   }
 
   Future<void> cancelPendingBill(String gameId, GameSession session) async {
     AppConfig.guardWrite('GamesRepository.cancelPendingBill');
-    
+
     final staff = <String, dynamic>{};
     final now = DateTime.now();
-    
+
     final updateMap = {
       ...staff,
       'status': TableStatus.cancelled.name,
@@ -2025,7 +2140,7 @@ Future<void> settlePendingBill(GameSession session, {
       'manualGamesTotal': 0.0,
       'roundedAmount': 0.0,
     };
-    
+
     final auditLog = AuditLog(
       id: DateTime.now().millisecondsSinceEpoch.toString(),
       editedBy: currentUserName ?? 'Unknown',
@@ -2035,20 +2150,20 @@ Future<void> settlePendingBill(GameSession session, {
       newValue: 'Cancelled',
     );
     final logMap = auditLog.toMap();
-    
+
     final batch = _db.batch();
-    
+
     final gameRef = _db
         .collection(FirebaseConstants.clubsCollection)
         .doc(clubId)
         .collection(FirebaseConstants.gamesCollection)
         .doc(gameId);
-        
+
     batch.update(gameRef, {
       ...updateMap,
       'auditLogs': FieldValue.arrayUnion([logMap]),
     });
-    
+
     if (session.orders.isNotEmpty) {
       for (final order in session.orders) {
         if (order.productId != null) {
@@ -2057,7 +2172,7 @@ Future<void> settlePendingBill(GameSession session, {
               .doc(clubId)
               .collection('inventory')
               .doc(order.productId);
-              
+
           batch.update(productRef, {
             'currentStock': FieldValue.increment(order.quantity),
             'totalSold': FieldValue.increment(-order.quantity),
@@ -2065,20 +2180,20 @@ Future<void> settlePendingBill(GameSession session, {
         }
       }
     }
-    
+
     final globalLogRef = _db
         .collection(FirebaseConstants.clubsCollection)
         .doc(clubId)
         .collection('audit_logs')
         .doc();
-        
+
     batch.set(globalLogRef, {
       ...logMap,
       'recordId': session.id,
       'recordType': 'Game',
       'action': 'Cancel Pending Bill',
     });
-    
+
     await batch.commit();
   }
 
@@ -2090,29 +2205,71 @@ Future<void> settlePendingBill(GameSession session, {
         .where('status', isEqualTo: TableStatus.pendingBill.name)
         .snapshots()
         .map((snapshot) {
-      final list = snapshot.docs
-          .map((doc) => (() {
-            final data = doc.data();
-            data['id'] = doc.id;
-            return GameSession.fromMap(data);
-          })())
-          .toList();
-      list.sort((a, b) => (b.markedPendingAt ?? b.endTime ?? b.startTime ?? DateTime.now()).compareTo(a.markedPendingAt ?? a.endTime ?? a.startTime ?? DateTime.now()));
-      return list;
-    });  }
-
+          final list = snapshot.docs
+              .map(
+                (doc) => (() {
+                  final data = doc.data();
+                  data['id'] = doc.id;
+                  return GameSession.fromMap(data);
+                })(),
+              )
+              .toList();
+          list.sort(
+            (a, b) =>
+                (b.markedPendingAt ??
+                        b.endTime ??
+                        b.startTime ??
+                        DateTime.now())
+                    .compareTo(
+                      a.markedPendingAt ??
+                          a.endTime ??
+                          a.startTime ??
+                          DateTime.now(),
+                    ),
+          );
+          return list;
+        });
+  }
 
   Future<void> wipeCueZoneData() async {
     print('Starting wipe of CueZone data for club: ');
     final batch = _db.batch();
-    final gamesSnap = await _db.collection('clubs').doc(clubId).collection('games').get();
-    for (var doc in gamesSnap.docs) { batch.delete(doc.reference); }
-    final tablesSnap = await _db.collection('clubs').doc(clubId).collection('tables').get();
-    for (var doc in tablesSnap.docs) { batch.update(doc.reference, {'status': 'available', 'activeGameId': null, 'isTimeNotSure': false}); }
-    final playersSnap = await _db.collection('clubs').doc(clubId).collection('customers').get();
-    for (var doc in playersSnap.docs) { batch.delete(doc.reference); }
-    final creditSnap = await _db.collection('clubs').doc(clubId).collection('credit_history').get();
-    for (var doc in creditSnap.docs) { batch.delete(doc.reference); }
+    final gamesSnap = await _db
+        .collection('clubs')
+        .doc(clubId)
+        .collection('games')
+        .get();
+    for (var doc in gamesSnap.docs) {
+      batch.delete(doc.reference);
+    }
+    final tablesSnap = await _db
+        .collection('clubs')
+        .doc(clubId)
+        .collection('tables')
+        .get();
+    for (var doc in tablesSnap.docs) {
+      batch.update(doc.reference, {
+        'status': 'available',
+        'activeGameId': null,
+        'isTimeNotSure': false,
+      });
+    }
+    final playersSnap = await _db
+        .collection('clubs')
+        .doc(clubId)
+        .collection('customers')
+        .get();
+    for (var doc in playersSnap.docs) {
+      batch.delete(doc.reference);
+    }
+    final creditSnap = await _db
+        .collection('clubs')
+        .doc(clubId)
+        .collection('credit_history')
+        .get();
+    for (var doc in creditSnap.docs) {
+      batch.delete(doc.reference);
+    }
     await batch.commit();
   }
 }
@@ -2120,6 +2277,3 @@ Future<void> settlePendingBill(GameSession session, {
 Stream<List<OtherGameResource>> watchOtherGames() {
   return const Stream.empty();
 }
-
-
-

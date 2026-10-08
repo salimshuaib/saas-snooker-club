@@ -48,6 +48,7 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
 
   late List<String> _selectedPayers;
   double _discountAmount = 0.0;
+  double _currentGameDiscountAmount = 0.0;
   bool _hasDiscount = false;
 
   late TextEditingController _discountController;
@@ -63,11 +64,12 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
   @override
   void initState() {
     super.initState();
-    _session = widget.session.endTime == null 
-        ? widget.session.copyWith(endTime: DateTime.now()) 
+    _session = widget.session.endTime == null
+        ? widget.session.copyWith(endTime: DateTime.now())
         : widget.session;
     _selectedPayers = List.from(_session.selectedPayers ?? _session.allPlayers);
     _discountAmount = _session.discountAmount ?? 0.0;
+    _currentGameDiscountAmount = _session.currentGameDiscountAmount ?? 0.0;
     _hasDiscount = _discountAmount > 0;
 
     _discountController = TextEditingController(
@@ -106,7 +108,7 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
     if (picked != null) {
       setState(() {
         _isTimeManuallyEdited = true;
-        
+
         // Zero out seconds to ensure clean exact minutes duration math
         final cleanStart = DateTime(
           _session.startTime.year,
@@ -116,14 +118,16 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
           _session.startTime.minute,
           0,
         );
-        final cleanEnd = _session.endTime != null ? DateTime(
-          _session.endTime!.year,
-          _session.endTime!.month,
-          _session.endTime!.day,
-          _session.endTime!.hour,
-          _session.endTime!.minute,
-          0,
-        ) : null;
+        final cleanEnd = _session.endTime != null
+            ? DateTime(
+                _session.endTime!.year,
+                _session.endTime!.month,
+                _session.endTime!.day,
+                _session.endTime!.hour,
+                _session.endTime!.minute,
+                0,
+              )
+            : null;
 
         final newDt = DateTime(
           currentDt.year,
@@ -141,6 +145,147 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
         _initializeLiabilities();
       });
     }
+  }
+
+  Future<double?> _showItemDiscountDialog({
+    required String itemName,
+    required double baseAmount,
+    required double initialDiscount,
+  }) async {
+    final amountController = TextEditingController(
+      text: initialDiscount == 0 ? '' : initialDiscount.toStringAsFixed(2),
+    );
+    final percentController = TextEditingController(
+      text: baseAmount > 0 && initialDiscount > 0
+          ? (initialDiscount / baseAmount * 100).toStringAsFixed(1)
+          : '',
+    );
+    var discountAmount = initialDiscount.clamp(0.0, baseAmount).toDouble();
+
+    final result = await showDialog<double>(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: Text('Discount - $itemName'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text('Charge: \u20B9${baseAmount.toStringAsFixed(2)}'),
+              const Gap(12),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: percentController,
+                      keyboardType: const TextInputType.numberWithOptions(
+                        decimal: true,
+                      ),
+                      decoration: const InputDecoration(
+                        labelText: 'Discount %',
+                        border: OutlineInputBorder(),
+                      ),
+                      onChanged: (value) {
+                        final percent = double.tryParse(value) ?? 0;
+                        setDialogState(() {
+                          discountAmount = (baseAmount * percent / 100)
+                              .clamp(0.0, baseAmount)
+                              .toDouble();
+                          amountController.text = discountAmount == 0
+                              ? ''
+                              : discountAmount.toStringAsFixed(2);
+                        });
+                      },
+                    ),
+                  ),
+                  const Gap(12),
+                  Expanded(
+                    child: TextField(
+                      controller: amountController,
+                      keyboardType: const TextInputType.numberWithOptions(
+                        decimal: true,
+                      ),
+                      decoration: const InputDecoration(
+                        labelText: 'Amount',
+                        prefixText: '\u20B9',
+                        border: OutlineInputBorder(),
+                      ),
+                      onChanged: (value) {
+                        final amount = double.tryParse(value) ?? 0;
+                        setDialogState(() {
+                          discountAmount = amount
+                              .clamp(0.0, baseAmount)
+                              .toDouble();
+                          percentController.text =
+                              baseAmount > 0 && discountAmount > 0
+                              ? (discountAmount / baseAmount * 100)
+                                    .toStringAsFixed(1)
+                              : '';
+                        });
+                      },
+                    ),
+                  ),
+                ],
+              ),
+              const Gap(12),
+              Text(
+                'Final charge: \u20B9${(baseAmount - discountAmount).toStringAsFixed(2)}',
+              ),
+            ],
+          ),
+          actions: [
+            if (initialDiscount > 0)
+              TextButton(
+                onPressed: () => Navigator.pop(dialogContext, 0.0),
+                child: const Text('Remove Discount'),
+              ),
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(dialogContext, discountAmount),
+              child: const Text('Apply'),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    amountController.dispose();
+    percentController.dispose();
+    return result;
+  }
+
+  Future<void> _editCurrentGameDiscount() async {
+    final discount = await _showItemDiscountDialog(
+      itemName: 'Current Game',
+      baseAmount: _gameCharge,
+      initialDiscount: _appliedCurrentGameDiscountAmount,
+    );
+    if (discount == null || !mounted) return;
+
+    setState(() => _currentGameDiscountAmount = discount);
+    _initializeLiabilities();
+  }
+
+  Future<void> _editManualGameDiscount(ManualGameCharge manualCharge) async {
+    final discount = await _showItemDiscountDialog(
+      itemName:
+          '${manualCharge.tableName} - ${manualCharge.gameType.displayName}',
+      baseAmount: manualCharge.calculatedAmount,
+      initialDiscount: manualCharge.appliedDiscountAmount,
+    );
+    if (discount == null || !mounted) return;
+
+    final charges = _session.manualGameCharges.map((charge) {
+      if (charge.id != manualCharge.id) return charge;
+      return charge.copyWith(discountAmount: discount);
+    }).toList();
+
+    setState(() {
+      _session = _session.copyWith(manualGameCharges: charges);
+    });
+    _initializeLiabilities();
   }
 
   @override
@@ -236,76 +381,92 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
         final newQty = newMap[key]!;
         if (newQty > oldQty) {
           final diff = newQty - oldQty;
-          newLogs.add(AuditLog(
-            id: '${DateTime.now().millisecondsSinceEpoch}_add_$key',
-            editedBy: staffName,
-            timestamp: DateTime.now(),
-            field: 'Order Added',
-            previousValue: '-',
-            newValue: '$diff x ${nameMap[key]}',
-          ));
+          newLogs.add(
+            AuditLog(
+              id: '${DateTime.now().millisecondsSinceEpoch}_add_$key',
+              editedBy: staffName,
+              timestamp: DateTime.now(),
+              field: 'Order Added',
+              previousValue: '-',
+              newValue: '$diff x ${nameMap[key]}',
+            ),
+          );
         } else if (newQty < oldQty) {
           final diff = oldQty - newQty;
-          newLogs.add(AuditLog(
-            id: '${DateTime.now().millisecondsSinceEpoch}_rem_$key',
-            editedBy: staffName,
-            timestamp: DateTime.now(),
-            field: 'Order Removed',
-            previousValue: '-',
-            newValue: '$diff x ${nameMap[key]}',
-          ));
+          newLogs.add(
+            AuditLog(
+              id: '${DateTime.now().millisecondsSinceEpoch}_rem_$key',
+              editedBy: staffName,
+              timestamp: DateTime.now(),
+              field: 'Order Removed',
+              previousValue: '-',
+              newValue: '$diff x ${nameMap[key]}',
+            ),
+          );
         }
       }
       for (final key in oldMap.keys) {
         if (!newMap.containsKey(key)) {
-          final productName = _session.orders.firstWhere((o) => '${o.productId}_${o.playerName ?? ""}' == key).productName;
-          newLogs.add(AuditLog(
-            id: '${DateTime.now().millisecondsSinceEpoch}_rem_$key',
-            editedBy: staffName,
-            timestamp: DateTime.now(),
-            field: 'Order Removed',
-            previousValue: '-',
-            newValue: '${oldMap[key]} x $productName',
-          ));
+          final productName = _session.orders
+              .firstWhere((o) => '${o.productId}_${o.playerName ?? ""}' == key)
+              .productName;
+          newLogs.add(
+            AuditLog(
+              id: '${DateTime.now().millisecondsSinceEpoch}_rem_$key',
+              editedBy: staffName,
+              timestamp: DateTime.now(),
+              field: 'Order Removed',
+              previousValue: '-',
+              newValue: '${oldMap[key]} x $productName',
+            ),
+          );
         }
       }
 
       setState(() {
-              final oldGames = <String, ManualGameCharge>{};
-      for (final g in _session.manualGameCharges) {
-        oldGames[g.id] = g;
-      }
-      final newGames = <String, ManualGameCharge>{};
-      for (final g in updated.manualGameCharges) {
-        newGames[g.id] = g;
-      }
-
-      for (final g in newGames.values) {
-        if (!oldGames.containsKey(g.id)) {
-          newLogs.add(AuditLog(
-            id: '${DateTime.now().millisecondsSinceEpoch}_add_${g.id}',
-            editedBy: staffName,
-            timestamp: DateTime.now(),
-            field: 'Game Added',
-            previousValue: '-',
-            newValue: '${g.tableName} - ${g.gameType.displayName}',
-          ));
+        final oldGames = <String, ManualGameCharge>{};
+        for (final g in _session.manualGameCharges) {
+          oldGames[g.id] = g;
         }
-      }
-      for (final g in oldGames.values) {
-        if (!newGames.containsKey(g.id)) {
-          newLogs.add(AuditLog(
-            id: '${DateTime.now().millisecondsSinceEpoch}_rem_${g.id}',
-            editedBy: staffName,
-            timestamp: DateTime.now(),
-            field: 'Game Removed',
-            previousValue: '-',
-            newValue: '${g.tableName} - ${g.gameType.displayName}',
-          ));
+        final newGames = <String, ManualGameCharge>{};
+        for (final g in updated.manualGameCharges) {
+          newGames[g.id] = g;
         }
-      }
 
-      _session = _session.copyWith(orders: updated.orders, manualGameCharges: updated.manualGameCharges, auditLogs: newLogs);
+        for (final g in newGames.values) {
+          if (!oldGames.containsKey(g.id)) {
+            newLogs.add(
+              AuditLog(
+                id: '${DateTime.now().millisecondsSinceEpoch}_add_${g.id}',
+                editedBy: staffName,
+                timestamp: DateTime.now(),
+                field: 'Game Added',
+                previousValue: '-',
+                newValue: '${g.tableName} - ${g.gameType.displayName}',
+              ),
+            );
+          }
+        }
+        for (final g in oldGames.values) {
+          if (!newGames.containsKey(g.id)) {
+            newLogs.add(
+              AuditLog(
+                id: '${DateTime.now().millisecondsSinceEpoch}_rem_${g.id}',
+                editedBy: staffName,
+                timestamp: DateTime.now(),
+                field: 'Game Removed',
+                previousValue: '-',
+                newValue: '${g.tableName} - ${g.gameType.displayName}',
+              ),
+            );
+          }
+        }
+
+        _session = _session.copyWith(
+          orders: updated.orders,
+          manualGameCharges: updated.manualGameCharges,
+          auditLogs: newLogs,
+        );
         _initializeLiabilities();
       });
     }
@@ -313,17 +474,17 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
 
   void _removePlayer(String player) {
     if (_session.allPlayers.length <= 1) return;
-    
+
     setState(() {
       final newTeamA = List<String>.from(_session.teamA)..remove(player);
       final newTeamB = List<String>.from(_session.teamB)..remove(player);
       _session = _session.copyWith(teamA: newTeamA, teamB: newTeamB);
-      
+
       _selectedPayers.remove(player);
       _playerPaymentSplits.remove(player);
       _liabilityControllers.remove(player);
       _customLiabilities.remove(player);
-      
+
       _initializeLiabilities();
     });
   }
@@ -367,36 +528,36 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
     );
 
     if (newName != null && newName != oldName) {
-        setState(() {
-          final newTeamA = List<String>.from(_session.teamA);
-          final aIndex = newTeamA.indexOf(oldName);
-          if (aIndex != -1) newTeamA[aIndex] = newName;
+      setState(() {
+        final newTeamA = List<String>.from(_session.teamA);
+        final aIndex = newTeamA.indexOf(oldName);
+        if (aIndex != -1) newTeamA[aIndex] = newName;
 
-          final newTeamB = List<String>.from(_session.teamB);
-          final bIndex = newTeamB.indexOf(oldName);
-          if (bIndex != -1) newTeamB[bIndex] = newName;
+        final newTeamB = List<String>.from(_session.teamB);
+        final bIndex = newTeamB.indexOf(oldName);
+        if (bIndex != -1) newTeamB[bIndex] = newName;
 
-          _session = _session.copyWith(teamA: newTeamA, teamB: newTeamB);
+        _session = _session.copyWith(teamA: newTeamA, teamB: newTeamB);
 
-          if (_selectedPayers.contains(oldName)) {
-            _selectedPayers.remove(oldName);
-            _selectedPayers.add(newName);
-          }
+        if (_selectedPayers.contains(oldName)) {
+          _selectedPayers.remove(oldName);
+          _selectedPayers.add(newName);
+        }
 
-          final splits = _playerPaymentSplits.remove(oldName);
-          _playerPaymentSplits[newName] = splits ?? {PaymentMethod.cash: 0.0};
+        final splits = _playerPaymentSplits.remove(oldName);
+        _playerPaymentSplits[newName] = splits ?? {PaymentMethod.cash: 0.0};
 
-          final controller = _liabilityControllers.remove(oldName);
-          _liabilityControllers[newName] = controller ?? TextEditingController();
+        final controller = _liabilityControllers.remove(oldName);
+        _liabilityControllers[newName] = controller ?? TextEditingController();
 
-          if (_customLiabilities.containsKey(oldName)) {
-            final liab = _customLiabilities.remove(oldName);
-            _customLiabilities[newName] = liab!;
-          }
+        if (_customLiabilities.containsKey(oldName)) {
+          final liab = _customLiabilities.remove(oldName);
+          _customLiabilities[newName] = liab!;
+        }
 
-          _initializeLiabilities();
-        });
-      }
+        _initializeLiabilities();
+      });
+    }
   }
 
   Future<void> _showManagePayersDialog() async {
@@ -428,7 +589,10 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
                           ),
                           if (_session.allPlayers.length > 1)
                             IconButton(
-                              icon: const Icon(Icons.delete_outline, color: Colors.red),
+                              icon: const Icon(
+                                Icons.delete_outline,
+                                color: Colors.red,
+                              ),
                               onPressed: () {
                                 _removePlayer(player);
                                 setStateDialog(() {});
@@ -444,7 +608,7 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
                 TextButton(
                   onPressed: () => Navigator.pop(context),
                   child: const Text('Done'),
-                )
+                ),
               ],
             );
           },
@@ -463,13 +627,19 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
       return;
     }
 
-    final double discountedGame = _gameCharge - _discountAmount;
+    final double discountedGame = _finalGameCharge;
 
     if (_selectedPayers.isNotEmpty) {
-      final expectedMinimum = _session.isMinimumBillEnabled 
-          ? (_session.minimumBillAmount - _discountAmount) 
+      final expectedMinimum = _session.isMinimumBillEnabled
+          ? math
+                .max(
+                  0.0,
+                  _session.minimumBillAmount -
+                      _appliedCurrentGameDiscountAmount,
+                )
+                .toDouble()
           : 0.0;
-      
+
       double roundedGame = BillingUtils.roundAmount(discountedGame);
       if (roundedGame < expectedMinimum) {
         roundedGame = expectedMinimum;
@@ -482,7 +652,9 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
       }
     }
 
-    final splitGroup = _selectedPayers.isNotEmpty ? _selectedPayers.toList() : _session.allPlayers.toList();
+    final splitGroup = _selectedPayers.isNotEmpty
+        ? _selectedPayers.toList()
+        : _session.allPlayers.toList();
 
     for (final o in _session.orders) {
       if (o.playerName != null && liabilities.containsKey(o.playerName)) {
@@ -497,7 +669,7 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
     }
 
     for (final g in _session.manualGameCharges) {
-      final split = g.calculatedAmount / splitGroup.length;
+      final split = g.finalAmount / splitGroup.length;
       for (final p in splitGroup) {
         liabilities[p] = (liabilities[p] ?? 0.0) + split;
       }
@@ -506,11 +678,12 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
     final appSettings = ref.read(appSettingsProvider);
     final billingFeatures = appSettings.billingFeatures;
 
-    if (billingFeatures.manualFinalAmountEnabled && _manualSelectedFinalAmount != null) {
+    if (billingFeatures.manualFinalAmountEnabled &&
+        _manualSelectedFinalAmount != null) {
       // Direct distribution of the selected final amount
       final total = _manualSelectedFinalAmount!;
       final split = total / splitGroup.length;
-      
+
       // Clear previous calculations and just distribute the final amount evenly
       for (final p in _session.allPlayers) {
         liabilities[p] = 0.0;
@@ -519,7 +692,20 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
         liabilities[p] = split;
       }
     } else {
-      if (_session.tableType != TableType.arcade && !billingFeatures.manualFinalAmountEnabled) {
+      final liabilityTotal = liabilities.values.fold<double>(
+        0.0,
+        (sum, amount) => sum + amount,
+      );
+      if (liabilityTotal > 0 && _appliedBillDiscountAmount > 0) {
+        final discount = math.min(_appliedBillDiscountAmount, liabilityTotal);
+        for (final player in liabilities.keys.toList()) {
+          final amount = liabilities[player] ?? 0.0;
+          liabilities[player] = amount - discount * amount / liabilityTotal;
+        }
+      }
+
+      if (_session.tableType != TableType.arcade &&
+          !billingFeatures.manualFinalAmountEnabled) {
         for (final p in _session.allPlayers) {
           liabilities[p] = BillingUtils.roundAmount(liabilities[p] ?? 0.0);
         }
@@ -563,7 +749,11 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
     final tables = ref.read(resolvedTablesProvider);
     final table = tables.firstWhere(
       (t) => t.id == _session.tableId,
-      orElse: () => TableModel(id: _session.tableId, name: _session.tableName, type: _session.tableType),
+      orElse: () => TableModel(
+        id: _session.tableId,
+        name: _session.tableName,
+        type: _session.tableType,
+      ),
     );
 
     return TablePricingConfig.calculateCharge(
@@ -586,7 +776,8 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
   }
 
   double get _gameCharge {
-    final bool canHaveOvertime = _session.billingType == BillingType.oneHour ||
+    final bool canHaveOvertime =
+        _session.billingType == BillingType.oneHour ||
         _session.billingType == BillingType.halfHour ||
         _session.billingType == BillingType.customMinute;
 
@@ -595,26 +786,65 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
     }
     return _breakdown.totalCharge;
   }
+
   double get _baseGameCharge => _breakdown.baseCharge;
   int get _overtimeMinutes => _breakdown.overtimeMinutes;
   double get _overtimeCharge => _breakdown.overtimeCharge;
 
-  double get _manualGamesTotal => _session.manualGameCharges.fold<double>(0, (s, g) => s + g.calculatedAmount);
-    
+  double get _manualGamesTotal =>
+      _session.manualGameCharges.fold<double>(0, (s, g) => s + g.finalAmount);
+
+  double get _manualGamesSubtotal => _session.manualGameCharges.fold<double>(
+    0,
+    (sum, charge) => sum + charge.calculatedAmount,
+  );
+
   double get _ordersTotal =>
       _session.orders.fold<double>(0, (s, o) => s + o.total);
 
-  double get _discountedGameCharge => _gameCharge - _discountAmount;
+  double get _appliedCurrentGameDiscountAmount =>
+      _currentGameDiscountAmount.clamp(0.0, _gameCharge).toDouble();
 
-  double get _grandTotal => _gameCharge + _ordersTotal + _manualGamesTotal;
+  double get _appliedBillDiscountAmount => _discountAmount
+      .clamp(
+        0.0,
+        math.max(
+          0.0,
+          _grandTotal -
+              _appliedCurrentGameDiscountAmount -
+              (_manualGamesSubtotal - _manualGamesTotal),
+        ),
+      )
+      .toDouble();
 
-  double get _finalTotal => _discountedGameCharge + _ordersTotal + _manualGamesTotal;
+  double get _finalGameCharge =>
+      math.max(0.0, _gameCharge - _appliedCurrentGameDiscountAmount).toDouble();
+
+  double get _grandTotal => _gameCharge + _ordersTotal + _manualGamesSubtotal;
+
+  double get _totalDiscountsApplied =>
+      _appliedBillDiscountAmount +
+      _appliedCurrentGameDiscountAmount +
+      _session.manualGameCharges.fold<double>(
+        0,
+        (sum, charge) => sum + charge.appliedDiscountAmount,
+      );
+
+  double get _finalTotal => math
+      .max(
+        0.0,
+        _grandTotal -
+            _appliedBillDiscountAmount -
+            _appliedCurrentGameDiscountAmount -
+            (_manualGamesSubtotal - _manualGamesTotal),
+      )
+      .toDouble();
 
   double get _roundedTotal {
     if (_session.tableType == TableType.arcade) {
       return _finalTotal;
     }
-    
+
     if (_customLiabilities.isNotEmpty) {
       return _customLiabilities.values.fold(0.0, (s, v) => s + v);
     }
@@ -628,26 +858,10 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
       }
       // If not yet selected, the authoritative calculated amount is the unrounded total.
       // Make sure minimum bill applies first.
-      final expectedMinimum = _session.isMinimumBillEnabled 
-          ? (_session.minimumBillAmount - _discountAmount) 
-          : 0.0;
-      double baseTotal = _discountedGameCharge;
-      if (baseTotal < expectedMinimum) {
-        baseTotal = expectedMinimum;
-      }
-      return baseTotal + _ordersTotal + _manualGamesTotal;
+      return _finalTotal;
     }
 
-    final expectedMinimum = _session.isMinimumBillEnabled 
-        ? (_session.minimumBillAmount - _discountAmount) 
-        : 0.0;
-
-    double roundedGame = BillingUtils.roundAmount(_discountedGameCharge);
-    if (roundedGame < expectedMinimum) {
-      roundedGame = expectedMinimum;
-    }
-    
-    return roundedGame + _ordersTotal + _manualGamesTotal;
+    return BillingUtils.roundAmount(_finalTotal);
   }
 
   String _formatDuration(int seconds) {
@@ -697,7 +911,11 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
     final tables = ref.watch(tablesProvider).value ?? [];
     final table = tables.firstWhere(
       (t) => t.id == _session.tableId,
-      orElse: () => TableModel(id: _session.tableId, name: _session.tableName, type: _session.tableType),
+      orElse: () => TableModel(
+        id: _session.tableId,
+        name: _session.tableName,
+        type: _session.tableType,
+      ),
     );
     final currentSum = _customLiabilities.values.fold<double>(
       0.0,
@@ -824,31 +1042,89 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
                 const Gap(8),
                 _SectionCard(
                   children: [
-                    ..._session.manualGameCharges.grouped().map(
-                      (group) {
-                        final g = group.charge;
-                        return Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 4),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Expanded(
-                                child: Text(
-                                  '${group.quantity}x ${g.tableName} - ${g.gameType.displayName}',
-                                  style: theme.textTheme.bodyMedium,
+                    ..._session.manualGameCharges.map((charge) {
+                      return Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 4),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    '${charge.tableName} - ${charge.gameType.displayName}',
+                                    style: theme.textTheme.bodyMedium,
+                                  ),
+                                ),
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.end,
+                                  children: [
+                                    Text(
+                                      '\u20B9${charge.finalAmount.toStringAsFixed(2)}',
+                                      style: theme.textTheme.bodyMedium
+                                          ?.copyWith(
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                    ),
+                                    if (charge.appliedDiscountAmount > 0)
+                                      Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.end,
+                                        children: [
+                                          Text(
+                                            '-\u20B9${charge.appliedDiscountAmount.toStringAsFixed(2)} discount',
+                                            style: theme.textTheme.bodySmall
+                                                ?.copyWith(
+                                                  color: AppColors.success,
+                                                ),
+                                          ),
+                                          Text(
+                                            '\u20B9${charge.calculatedAmount.toStringAsFixed(2)} before discount',
+                                            style: theme.textTheme.bodySmall
+                                                ?.copyWith(
+                                                  color: theme
+                                                      .colorScheme
+                                                      .onSurfaceVariant,
+                                                  decoration: TextDecoration
+                                                      .lineThrough,
+                                                ),
+                                          ),
+                                        ],
+                                      ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                            Align(
+                              alignment: Alignment.centerRight,
+                              child: TextButton.icon(
+                                onPressed: () =>
+                                    _editManualGameDiscount(charge),
+                                icon: const Icon(
+                                  Icons.discount_outlined,
+                                  size: 16,
+                                ),
+                                label: Text(
+                                  charge.appliedDiscountAmount > 0
+                                      ? 'Edit Discount'
+                                      : 'Apply Discount',
+                                ),
+                                style: TextButton.styleFrom(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 8,
+                                    vertical: 4,
+                                  ),
+                                  minimumSize: Size.zero,
+                                  tapTargetSize:
+                                      MaterialTapTargetSize.shrinkWrap,
                                 ),
                               ),
-                              Text(
-                                '\u20B9${group.totalAmount.toStringAsFixed(0)}',
-                                style: theme.textTheme.bodyMedium?.copyWith(
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ],
-                          ),
-                        );
-                      }
-                    ),
+                            ),
+                          ],
+                        ),
+                      );
+                    }),
                   ],
                 ),
                 const Gap(16),
@@ -917,11 +1193,13 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
                             onPressed: () async {
                               setState(() => _isRefreshing = true);
                               await Future.delayed(
-                                  const Duration(milliseconds: 300));
+                                const Duration(milliseconds: 300),
+                              );
                               if (!mounted) return;
                               setState(() {
                                 _session = _session.copyWith(
-                                    endTime: DateTime.now());
+                                  endTime: DateTime.now(),
+                                );
                                 _initializeLiabilities();
                                 _isRefreshing = false;
                               });
@@ -970,21 +1248,55 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
                       value: '\u20B9${_gameCharge.toStringAsFixed(2)}',
                     ),
                   ],
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: TextButton.icon(
+                      onPressed: _editCurrentGameDiscount,
+                      icon: const Icon(Icons.discount_outlined, size: 16),
+                      label: Text(
+                        _appliedCurrentGameDiscountAmount > 0
+                            ? 'Edit Game Discount'
+                            : 'Apply Game Discount',
+                      ),
+                      style: TextButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
+                        minimumSize: Size.zero,
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      ),
+                    ),
+                  ),
+                  if (_appliedCurrentGameDiscountAmount > 0) ...[
+                    _InfoRow(
+                      label: 'Current Game Discount',
+                      value:
+                          '-\u20B9${_appliedCurrentGameDiscountAmount.toStringAsFixed(2)}',
+                    ),
+                    _InfoRow(
+                      label: 'Current Game After Discount',
+                      value: '\u20B9${_finalGameCharge.toStringAsFixed(2)}',
+                    ),
+                  ],
                   if (_ordersTotal > 0)
                     _InfoRow(
                       label: 'Orders Total',
                       value: '\u20B9${_ordersTotal.toStringAsFixed(2)}',
                     ),
-                    
+
                   if ((_session.billingType == BillingType.oneHour ||
-                       _session.billingType == BillingType.halfHour ||
-                       _session.billingType == BillingType.customMinute) &&
+                          _session.billingType == BillingType.halfHour ||
+                          _session.billingType == BillingType.customMinute) &&
                       _overtimeMinutes > 0) ...[
                     const Gap(16),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text('Apply Overtime Charges', style: theme.textTheme.titleSmall),
+                        Text(
+                          'Apply Overtime Charges',
+                          style: theme.textTheme.titleSmall,
+                        ),
                         Switch(
                           value: _applyOvertimeCharges,
                           onChanged: (val) {
@@ -1003,7 +1315,10 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text('Apply Discount', style: theme.textTheme.titleSmall),
+                      Text(
+                        'Apply Bill Discount',
+                        style: theme.textTheme.titleSmall,
+                      ),
                       Switch(
                         value: _hasDiscount,
                         onChanged: (val) {
@@ -1016,7 +1331,8 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
                               _discountedGameController.clear();
                               _initializeLiabilities();
                             } else {
-                              _discountedGameController.text = _gameCharge.toStringAsFixed(0);
+                              _discountedGameController.text = _grandTotal
+                                  .toStringAsFixed(0);
                             }
                           });
                         },
@@ -1039,17 +1355,19 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
                               ),
                             ),
                             onChanged: (val) {
-                              final percent = double.tryParse(val) ?? 0.0;
-                              final amount = (_gameCharge * (percent / 100));
+                              final percent = (double.tryParse(val) ?? 0.0)
+                                  .clamp(0.0, 100.0)
+                                  .toDouble();
+                              final amount = _grandTotal * (percent / 100);
                               setState(() {
                                 _discountAmount = amount;
                                 _discountController.text = amount == 0
                                     ? ''
                                     : amount.toStringAsFixed(0);
-                                final finalCharge = _gameCharge - amount;
-                                _discountedGameController.text = finalCharge == 0
+                                final finalBill = _grandTotal - amount;
+                                _discountedGameController.text = finalBill == 0
                                     ? ''
-                                    : finalCharge.toStringAsFixed(0);
+                                    : finalBill.toStringAsFixed(0);
                               });
                               _initializeLiabilities();
                             },
@@ -1068,19 +1386,21 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
                               ),
                             ),
                             onChanged: (val) {
-                              final amount = double.tryParse(val) ?? 0.0;
-                              final percent = _gameCharge > 0
-                                  ? (amount / _gameCharge) * 100
+                              final amount = (double.tryParse(val) ?? 0.0)
+                                  .clamp(0.0, _grandTotal)
+                                  .toDouble();
+                              final percent = _grandTotal > 0
+                                  ? (amount / _grandTotal) * 100
                                   : 0.0;
                               setState(() {
                                 _discountAmount = amount;
                                 _discountPercentController.text = percent == 0
                                     ? ''
                                     : percent.toStringAsFixed(1);
-                                final finalCharge = _gameCharge - amount;
-                                _discountedGameController.text = finalCharge == 0
+                                final finalBill = _grandTotal - amount;
+                                _discountedGameController.text = finalBill == 0
                                     ? ''
-                                    : finalCharge.toStringAsFixed(0);
+                                    : finalBill.toStringAsFixed(0);
                               });
                               _initializeLiabilities();
                             },
@@ -1092,22 +1412,25 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
                             controller: _discountedGameController,
                             keyboardType: TextInputType.number,
                             decoration: InputDecoration(
-                              labelText: 'Final Game',
+                              labelText: 'Final Bill',
                               prefixText: '\u20B9',
                               border: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(12),
                               ),
                             ),
                             onChanged: (val) {
-                              double finalGame = double.tryParse(val) ?? _gameCharge;
-                              if (finalGame > _gameCharge) finalGame = _gameCharge;
-                              if (finalGame < 0) finalGame = 0;
-                              
-                              final amount = _gameCharge - finalGame;
-                              final percent = _gameCharge > 0
-                                  ? (amount / _gameCharge) * 100
+                              double finalBill =
+                                  double.tryParse(val) ?? _grandTotal;
+                              if (finalBill > _grandTotal) {
+                                finalBill = _grandTotal;
+                              }
+                              if (finalBill < 0) finalBill = 0;
+
+                              final amount = _grandTotal - finalBill;
+                              final percent = _grandTotal > 0
+                                  ? (amount / _grandTotal) * 100
                                   : 0.0;
-                                  
+
                               setState(() {
                                 _discountAmount = amount;
                                 _discountController.text = amount == 0
@@ -1128,16 +1451,16 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
 
                   // ── Final Amounts ──
                   if (!appSettings.game.hideBillingDetails) ...[
-                    if (_hasDiscount) ...[
+                    if (_totalDiscountsApplied > 0) ...[
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Text(
-                            'Discounted Game',
+                            'Total Discounts',
                             style: theme.textTheme.titleSmall,
                           ),
                           Text(
-                            '\u20B9${_discountedGameCharge.toStringAsFixed(2)}',
+                            '-\u20B9${_totalDiscountsApplied.toStringAsFixed(2)}',
                             style: theme.textTheme.titleSmall,
                           ),
                         ],
@@ -1198,28 +1521,34 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
                   ),
                   if (appSettings.billingFeatures.manualFinalAmountEnabled) ...[
                     const Gap(16),
-                    Text('Select Final Amount', style: theme.textTheme.titleSmall),
+                    Text(
+                      'Select Final Amount',
+                      style: theme.textTheme.titleSmall,
+                    ),
                     const Gap(8),
                     Wrap(
                       spacing: 8,
-                      children: BillingUtils.generateFinalAmountOptions(
-                        _finalTotal, 
-                        incrementPaise: appSettings.billingFeatures.incrementPaise
-                      ).map((opt) {
-                        final isSelected = _manualSelectedFinalAmount == opt;
-                        return ChoiceChip(
-                          label: Text('\u20B9${opt.toStringAsFixed(0)}'),
-                          selected: isSelected,
-                          onSelected: (selected) {
-                            if (selected) {
-                              setState(() {
-                                _manualSelectedFinalAmount = opt;
-                                _initializeLiabilities();
-                              });
-                            }
-                          },
-                        );
-                      }).toList(),
+                      children:
+                          BillingUtils.generateFinalAmountOptions(
+                            _finalTotal,
+                            incrementPaise:
+                                appSettings.billingFeatures.incrementPaise,
+                          ).map((opt) {
+                            final isSelected =
+                                _manualSelectedFinalAmount == opt;
+                            return ChoiceChip(
+                              label: Text('\u20B9${opt.toStringAsFixed(0)}'),
+                              selected: isSelected,
+                              onSelected: (selected) {
+                                if (selected) {
+                                  setState(() {
+                                    _manualSelectedFinalAmount = opt;
+                                    _initializeLiabilities();
+                                  });
+                                }
+                              },
+                            );
+                          }).toList(),
                     ),
                   ],
                 ],
@@ -1262,71 +1591,83 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
                           spacing: 4,
                           runSpacing: 4,
                           children: [
-                          if (appSettings.business.upiId != null &&
-                              appSettings.business.upiId!.isNotEmpty)
-                            Padding(
-                              padding: const EdgeInsets.only(right: 8.0),
-                              child: TextButton.icon(
-                                onPressed: () {
-                                  final splits = _playerPaymentSplits[basePlayer];
-                                  final upiAmount = splits != null ? (splits[PaymentMethod.upi] ?? 0.0) : 0.0;
-                                  final qrAmount = upiAmount > 0 ? upiAmount : _roundedTotal;
-                                  showDialog(
-                                    context: context,
-                                    builder: (ctx) => UpiQrDialog(
-                                      upiId: appSettings.business.upiId!,
-                                      payeeName: appSettings.business.clubName,
-                                      amount: qrAmount,
-                                    ),
-                                  );
-                                },
-                                style: TextButton.styleFrom(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 8,
-                                    vertical: 4,
-                                  ),
-                                  minimumSize: Size.zero,
-                                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                                ),
-                                icon: const Icon(Icons.qr_code_2, size: 16),
-                                label: const Text(
-                                  'Generate QR',
-                                  style: TextStyle(fontSize: 12),
-                                ),
-                              ),
-                            ),
-                          TextButton.icon(
-                            onPressed: () {
-                              showModalBottomSheet(
-                                context: context,
-                                isScrollControlled: true,
-                                builder: (ctx) => PlayerSplitPaymentSheet(
-                                  playerName: displayPlayer,
-                                  totalLiability: _roundedTotal,
-                                  initialSplits:
-                                      _playerPaymentSplits[basePlayer] ??
-                                      {_paymentMethod: _roundedTotal},
-                                  onSplitsSaved: (newSplits) {
-                                    setState(() {
-                                      _playerPaymentSplits[basePlayer] = newSplits;
-                                    });
+                            if (appSettings.business.upiId != null &&
+                                appSettings.business.upiId!.isNotEmpty)
+                              Padding(
+                                padding: const EdgeInsets.only(right: 8.0),
+                                child: TextButton.icon(
+                                  onPressed: () {
+                                    final splits =
+                                        _playerPaymentSplits[basePlayer];
+                                    final upiAmount = splits != null
+                                        ? (splits[PaymentMethod.upi] ?? 0.0)
+                                        : 0.0;
+                                    final qrAmount = upiAmount > 0
+                                        ? upiAmount
+                                        : _roundedTotal;
+                                    showDialog(
+                                      context: context,
+                                      builder: (ctx) => UpiQrDialog(
+                                        upiId: appSettings.business.upiId!,
+                                        payeeName:
+                                            appSettings.business.clubName,
+                                        amount: qrAmount,
+                                      ),
+                                    );
                                   },
+                                  style: TextButton.styleFrom(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 8,
+                                      vertical: 4,
+                                    ),
+                                    minimumSize: Size.zero,
+                                    tapTargetSize:
+                                        MaterialTapTargetSize.shrinkWrap,
+                                  ),
+                                  icon: const Icon(Icons.qr_code_2, size: 16),
+                                  label: const Text(
+                                    'Generate QR',
+                                    style: TextStyle(fontSize: 12),
+                                  ),
                                 ),
-                              );
-                            },
-                            style: TextButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 8,
-                                vertical: 4,
                               ),
-                              minimumSize: Size.zero,
-                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                            TextButton.icon(
+                              onPressed: () {
+                                showModalBottomSheet(
+                                  context: context,
+                                  isScrollControlled: true,
+                                  builder: (ctx) => PlayerSplitPaymentSheet(
+                                    playerName: displayPlayer,
+                                    totalLiability: _roundedTotal,
+                                    initialSplits:
+                                        _playerPaymentSplits[basePlayer] ??
+                                        {_paymentMethod: _roundedTotal},
+                                    onSplitsSaved: (newSplits) {
+                                      setState(() {
+                                        _playerPaymentSplits[basePlayer] =
+                                            newSplits;
+                                      });
+                                    },
+                                  ),
+                                );
+                              },
+                              style: TextButton.styleFrom(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                  vertical: 4,
+                                ),
+                                minimumSize: Size.zero,
+                                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                              ),
+                              icon: const Icon(Icons.call_split, size: 16),
+                              label: const Text(
+                                'Payment Breakdown',
+                                style: TextStyle(fontSize: 12),
+                              ),
                             ),
-                            icon: const Icon(Icons.call_split, size: 16),
-                            label: const Text('Payment Breakdown', style: TextStyle(fontSize: 12)),
-                          ),
-                        ],
-                      ));
+                          ],
+                        ),
+                      );
                     })(),
                   ],
                 ),
@@ -1390,7 +1731,8 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
                                   _playerPaymentSplits[player] = {
                                     method: _roundedTotal,
                                   };
-                                  if (method == PaymentMethod.credit && !isSplit) {
+                                  if (method == PaymentMethod.credit &&
+                                      !isSplit) {
                                     _PlayerProfileName = player;
                                   }
                                 });
@@ -1545,100 +1887,106 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
                               ),
                             ),
                             IconButton(
-                            icon: const Icon(
-                              Icons.edit,
-                              size: 16,
-                              color: Colors.grey,
-                            ),
-                            onPressed: () => _showCreditNameDialog(
-                              player,
-                              autoConfirm: false,
-                              setMethod: false,
-                            ),
-                            padding: const EdgeInsets.symmetric(horizontal: 8),
-                            constraints: const BoxConstraints(),
-                            tooltip: 'Rename Player',
-                          ),
-                          const Gap(4),
-                          Wrap(
-                            spacing: 4,
-                            runSpacing: 4,
-                            children: [
-                              if (appSettings.business.upiId != null &&
-                                  appSettings.business.upiId!.isNotEmpty)
-                                Padding(
-                                  padding: const EdgeInsets.only(right: 8.0),
-                                  child: TextButton.icon(
-                                    onPressed: () {
-                                      final upiAmount = splits[PaymentMethod.upi] ?? 0.0;
-                                      final qrAmount = upiAmount > 0 ? upiAmount : (liabilities[player] ?? 0.0);
-                                      showDialog(
-                                        context: context,
-                                        builder: (ctx) => UpiQrDialog(
-                                          upiId: appSettings.business.upiId!,
-                                          payeeName:
-                                              appSettings.business.clubName,
-                                          amount: qrAmount,
-                                        ),
-                                      );
-                                    },
-                                    style: TextButton.styleFrom(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 8,
-                                        vertical: 4,
-                                      ),
-                                      minimumSize: Size.zero,
-                                      tapTargetSize:
-                                          MaterialTapTargetSize.shrinkWrap,
-                                    ),
-                                    icon: const Icon(
-                                      Icons.qr_code_2,
-                                      size: 16,
-                                    ),
-                                    label: const Text(
-                                      'Generate QR',
-                                      style: TextStyle(fontSize: 12),
-                                    ),
-                                  ),
-                                ),
-                              TextButton.icon(
-                                onPressed: () {
-                                  showModalBottomSheet(
-                                    context: context,
-                                    isScrollControlled: true,
-                                    builder: (ctx) => PlayerSplitPaymentSheet(
-                                      playerName: player,
-                                      totalLiability:
-                                          liabilities[player] ?? 0.0,
-                                      initialSplits: splits,
-                                      onSplitsSaved: (newSplits) {
-                                        setState(() {
-                                          _playerPaymentSplits[player] =
-                                              newSplits;
-                                        });
-                                      },
-                                    ),
-                                  );
-                                },
-                                style: TextButton.styleFrom(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 8,
-                                    vertical: 4,
-                                  ),
-                                  minimumSize: Size.zero,
-                                  tapTargetSize:
-                                      MaterialTapTargetSize.shrinkWrap,
-                                ),
-                                icon: const Icon(Icons.call_split, size: 16),
-                                label: const Text(
-                                  'Payment Breakdown',
-                                  style: TextStyle(fontSize: 12),
-                                ),
+                              icon: const Icon(
+                                Icons.edit,
+                                size: 16,
+                                color: Colors.grey,
                               ),
-                            ],
-                          ),
-                        ],
-                      )),
+                              onPressed: () => _showCreditNameDialog(
+                                player,
+                                autoConfirm: false,
+                                setMethod: false,
+                              ),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                              ),
+                              constraints: const BoxConstraints(),
+                              tooltip: 'Rename Player',
+                            ),
+                            const Gap(4),
+                            Wrap(
+                              spacing: 4,
+                              runSpacing: 4,
+                              children: [
+                                if (appSettings.business.upiId != null &&
+                                    appSettings.business.upiId!.isNotEmpty)
+                                  Padding(
+                                    padding: const EdgeInsets.only(right: 8.0),
+                                    child: TextButton.icon(
+                                      onPressed: () {
+                                        final upiAmount =
+                                            splits[PaymentMethod.upi] ?? 0.0;
+                                        final qrAmount = upiAmount > 0
+                                            ? upiAmount
+                                            : (liabilities[player] ?? 0.0);
+                                        showDialog(
+                                          context: context,
+                                          builder: (ctx) => UpiQrDialog(
+                                            upiId: appSettings.business.upiId!,
+                                            payeeName:
+                                                appSettings.business.clubName,
+                                            amount: qrAmount,
+                                          ),
+                                        );
+                                      },
+                                      style: TextButton.styleFrom(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 8,
+                                          vertical: 4,
+                                        ),
+                                        minimumSize: Size.zero,
+                                        tapTargetSize:
+                                            MaterialTapTargetSize.shrinkWrap,
+                                      ),
+                                      icon: const Icon(
+                                        Icons.qr_code_2,
+                                        size: 16,
+                                      ),
+                                      label: const Text(
+                                        'Generate QR',
+                                        style: TextStyle(fontSize: 12),
+                                      ),
+                                    ),
+                                  ),
+                                TextButton.icon(
+                                  onPressed: () {
+                                    showModalBottomSheet(
+                                      context: context,
+                                      isScrollControlled: true,
+                                      builder: (ctx) => PlayerSplitPaymentSheet(
+                                        playerName: player,
+                                        totalLiability:
+                                            liabilities[player] ?? 0.0,
+                                        initialSplits: splits,
+                                        onSplitsSaved: (newSplits) {
+                                          setState(() {
+                                            _playerPaymentSplits[player] =
+                                                newSplits;
+                                          });
+                                        },
+                                      ),
+                                    );
+                                  },
+                                  style: TextButton.styleFrom(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 8,
+                                      vertical: 4,
+                                    ),
+                                    minimumSize: Size.zero,
+                                    tapTargetSize:
+                                        MaterialTapTargetSize.shrinkWrap,
+                                  ),
+                                  icon: const Icon(Icons.call_split, size: 16),
+                                  label: const Text(
+                                    'Payment Breakdown',
+                                    style: TextStyle(fontSize: 12),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
                       SizedBox(
                         width: 120,
                         child: TextFormField(
@@ -1860,7 +2208,6 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
     );
   }
 
-  
   Future<void> _markAsPending(String customerId, String customerName) async {
     if (_isProcessing) return;
 
@@ -1872,7 +2219,7 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
       final finalEndTime = _isTimeManuallyEdited
           ? _session.endTime ?? DateTime.now()
           : DateTime.now();
-      
+
       final finalSession = _session.copyWith(
         endTime: finalEndTime,
         gameCharge: _gameCharge,
@@ -1880,19 +2227,24 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
         overtimeMinutes: _overtimeMinutes,
         overtimeCharge: _overtimeCharge,
         ordersTotal: _ordersTotal,
-        
-        grandTotal: _finalTotal,
+
+        grandTotal: _grandTotal,
         roundedAmount: _roundedTotal,
         finalAmount: _roundedTotal,
         manualSelectedFinalAmount: _manualSelectedFinalAmount,
-        discountAmount: _discountAmount,
+        discountAmount: _appliedBillDiscountAmount,
+        currentGameDiscountAmount: _appliedCurrentGameDiscountAmount,
         playerPaymentSplits: _playerPaymentSplits,
         playerLiabilities: _customLiabilities,
       );
 
       await ref
           .read(gamesRepositoryProvider)
-          .markAsPendingBill(finalSession, customerId: customerId, customerName: customerName);
+          .markAsPendingBill(
+            finalSession,
+            customerId: customerId,
+            customerName: customerName,
+          );
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -2092,46 +2444,54 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
 
     if (_isTimeManuallyEdited) {
       final editorName = staffName;
-      
+
       final oldStart = widget.session.startTime;
       final newStart = _session.startTime;
       if (oldStart != newStart) {
-        updatedLogs.add(AuditLog(
-          id: DateTime.now().millisecondsSinceEpoch.toString() + '_start',
-          editedBy: editorName,
-          timestamp: DateTime.now(),
-          field: 'Start Time',
-          previousValue: DateFormat('hh:mm a').format(oldStart),
-          newValue: DateFormat('hh:mm a').format(newStart),
-        ));
+        updatedLogs.add(
+          AuditLog(
+            id: DateTime.now().millisecondsSinceEpoch.toString() + '_start',
+            editedBy: editorName,
+            timestamp: DateTime.now(),
+            field: 'Start Time',
+            previousValue: DateFormat('hh:mm a').format(oldStart),
+            newValue: DateFormat('hh:mm a').format(newStart),
+          ),
+        );
       }
-      
+
       final oldEnd = widget.session.endTime;
       final newEnd = _session.endTime!;
       if (oldEnd != newEnd) {
-        updatedLogs.add(AuditLog(
-          id: DateTime.now().millisecondsSinceEpoch.toString() + '_end',
-          editedBy: editorName,
-          timestamp: DateTime.now(),
-          field: 'End Time',
-          previousValue: oldEnd != null ? DateFormat('hh:mm a').format(oldEnd) : 'Live/Running',
-          newValue: DateFormat('hh:mm a').format(newEnd),
-        ));
+        updatedLogs.add(
+          AuditLog(
+            id: DateTime.now().millisecondsSinceEpoch.toString() + '_end',
+            editedBy: editorName,
+            timestamp: DateTime.now(),
+            field: 'End Time',
+            previousValue: oldEnd != null
+                ? DateFormat('hh:mm a').format(oldEnd)
+                : 'Live/Running',
+            newValue: DateFormat('hh:mm a').format(newEnd),
+          ),
+        );
       }
     }
 
-    final paymentMethodLabel = isSplit 
-        ? 'Split' 
+    final paymentMethodLabel = isSplit
+        ? 'Split'
         : _paymentMethod?.displayName ?? 'Paid';
-        
-    updatedLogs.add(AuditLog(
-      id: '${DateTime.now().millisecondsSinceEpoch}_payment',
-      editedBy: staffName,
-      timestamp: DateTime.now(),
-      field: 'Payment Processed',
-      previousValue: '-',
-      newValue: '₹${_roundedTotal.toStringAsFixed(2)} — $paymentMethodLabel',
-    ));
+
+    updatedLogs.add(
+      AuditLog(
+        id: '${DateTime.now().millisecondsSinceEpoch}_payment',
+        editedBy: staffName,
+        timestamp: DateTime.now(),
+        field: 'Payment Processed',
+        previousValue: '-',
+        newValue: '₹${_roundedTotal.toStringAsFixed(2)} — $paymentMethodLabel',
+      ),
+    );
 
     final finalSession = _session.copyWith(
       endTime: finalEndTime,
@@ -2154,7 +2514,8 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
       roundedAmount: _roundedTotal,
       finalAmount: _roundedTotal,
       manualSelectedFinalAmount: _manualSelectedFinalAmount,
-      discountAmount: _discountAmount,
+      discountAmount: _appliedBillDiscountAmount,
+      currentGameDiscountAmount: _appliedCurrentGameDiscountAmount,
       date: finalDate,
       paidBy:
           (_paymentMethod == PaymentMethod.credit && !_isMultiPayer && !isSplit)
@@ -2252,10 +2613,7 @@ class _InfoRow extends StatelessWidget {
                   fontWeight: FontWeight.w600,
                 ),
               ),
-              if (trailing != null) ...[
-                const SizedBox(width: 8),
-                trailing!,
-              ],
+              if (trailing != null) ...[const SizedBox(width: 8), trailing!],
             ],
           ),
         ],
@@ -2530,18 +2888,21 @@ class __CreditCustomerSearchDialogState
                 data: (allCustomers) {
                   final rawQuery = _searchController.text.trim();
                   final query = rawQuery.toLowerCase();
-                  
+
                   List<PlayerProfile> filteredCustomers = allCustomers;
                   bool isNewCustomer = false;
-                  
+
                   if (query.isNotEmpty) {
                     filteredCustomers = allCustomers.where((c) {
                       final matchesName = c.name.toLowerCase().contains(query);
                       final matchesPhone =
-                          c.mobileNumber != null && c.mobileNumber!.contains(query);
+                          c.mobileNumber != null &&
+                          c.mobileNumber!.contains(query);
                       return matchesName || matchesPhone;
                     }).toList();
-                    isNewCustomer = !filteredCustomers.any((c) => c.name.toLowerCase() == query);
+                    isNewCustomer = !filteredCustomers.any(
+                      (c) => c.name.toLowerCase() == query,
+                    );
                   }
 
                   return ListView(
