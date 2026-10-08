@@ -7,6 +7,7 @@ import 'package:gap/gap.dart';
 import 'package:snooker_club/features/settings/domain/models/settings_models.dart';
 
 import 'package:snooker_club/features/games/domain/models/game_models.dart';
+import 'package:snooker_club/features/floors/providers/floor_providers.dart';
 
 import 'package:snooker_club/features/games/providers/games_providers.dart';
 
@@ -30,6 +31,7 @@ class _PricingEditSheetState extends ConsumerState<PricingEditSheet> {
   final Map<String, bool> _minBillToggles = {};
   final Map<String, TextEditingController> _minBillControllers = {};
   final Map<String, bool> _customPriceToggles = {};
+  String? _selectedFloorId;
 
   @override
   void dispose() {
@@ -443,11 +445,17 @@ class _PricingEditSheetState extends ConsumerState<PricingEditSheet> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    final tables = ref.watch(resolvedTablesProvider);
+    final allTables = ref.watch(resolvedTablesProvider);
 
-    for (var table in tables) {
+    for (var table in allTables) {
       _initControllersForTable(table, widget.initialSettings);
     }
+    
+    final tables = _selectedFloorId == null 
+        ? allTables 
+        : allTables.where((t) => t.floorId == _selectedFloorId).toList();
+    final floorsAsync = ref.watch(floorsProvider);
+    final floors = floorsAsync.value ?? [];
 
     return DefaultTabController(
       length: 2,
@@ -490,6 +498,38 @@ class _PricingEditSheetState extends ConsumerState<PricingEditSheet> {
                   ),
                 ],
               ),
+
+              if (floors.isNotEmpty) ...[
+                const Gap(8),
+                SizedBox(
+                  height: 36,
+                  child: ListView(
+                    scrollDirection: Axis.horizontal,
+                    padding: const EdgeInsets.symmetric(horizontal: 0),
+                    children: [
+                      ChoiceChip(
+                        label: const Text('All'),
+                        selected: _selectedFloorId == null,
+                        onSelected: (selected) {
+                          if (selected) setState(() => _selectedFloorId = null);
+                        },
+                      ),
+                      const Gap(8),
+                      ...floors.map((floor) => Padding(
+                        padding: const EdgeInsets.only(right: 8.0),
+                        child: ChoiceChip(
+                          label: Text(floor.name),
+                          selected: _selectedFloorId == floor.id,
+                          onSelected: (selected) {
+                            if (selected) setState(() => _selectedFloorId = floor.id);
+                          },
+                        ),
+                      )),
+                    ],
+                  ),
+                ),
+                const Gap(8),
+              ],
 
               TabBar(
                 labelColor: theme.colorScheme.primary,
@@ -818,3 +858,9 @@ class _PricingEditSheetState extends ConsumerState<PricingEditSheet> {
     );
   }
 }
+
+
+
+
+
+
