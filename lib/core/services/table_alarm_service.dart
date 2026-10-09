@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:alarm/alarm.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_tts/flutter_tts.dart';
@@ -67,6 +68,17 @@ class TableAlarmService {
     await _flutterTts.setPitch(1.0);
 
     if (_isNativeAlarmSupported) {
+      try {
+        if (await Permission.scheduleExactAlarm.isDenied) {
+          await Permission.scheduleExactAlarm.request();
+        }
+        if (await Permission.ignoreBatteryOptimizations.isDenied) {
+          await Permission.ignoreBatteryOptimizations.request();
+        }
+      } catch (e) {
+        AppLogger.error('Failed to request alarm permissions: $e');
+      }
+
       _ringSubscription = Alarm.ringStream.stream.listen((alarmSettings) {
         final alarm = _activeAlarms.values.cast<AlarmInfo?>().firstWhere(
             (a) => a?.gameId.hashCode == alarmSettings.id, orElse: () => null);
