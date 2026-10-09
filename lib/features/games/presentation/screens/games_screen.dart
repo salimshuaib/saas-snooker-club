@@ -18,14 +18,7 @@ class GamesScreen extends ConsumerStatefulWidget {
 }
 
 class _GamesScreenState extends ConsumerState<GamesScreen> {
-  @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      // Seed default tables if first launch
-      ref.read(gamesRepositoryProvider).seedTablesIfEmpty();
-    });
-  }
+  
 
   @override
   Widget build(BuildContext context) {

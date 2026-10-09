@@ -87,9 +87,9 @@ final resolvedTablesProvider = Provider<List<TableModel>>((ref) {
   }
 
   return async.when(
-    data: (tables) => sortTables(tables.isEmpty ? TablesConfig.defaultTables : tables),
-    loading: () => sortTables(TablesConfig.defaultTables),
-    error: (_, __) => sortTables(TablesConfig.defaultTables),
+    data: (tables) => sortTables(tables),
+    loading: () => async.value != null ? sortTables(async.value!) : [],
+    error: (_, __) => async.value != null ? sortTables(async.value!) : [],
   );
 });
 
