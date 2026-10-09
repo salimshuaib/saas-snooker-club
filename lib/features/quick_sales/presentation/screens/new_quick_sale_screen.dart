@@ -669,7 +669,7 @@ class _NewQuickSaleScreenState extends ConsumerState<NewQuickSaleScreen> {
                     padding: EdgeInsets.only(bottom: bottomInset),
                     child: Container(
                       constraints: BoxConstraints(
-                        maxHeight: MediaQuery.of(context).size.height * 0.9 - bottomInset,
+                        maxHeight: MediaQuery.of(sheetContext).size.height * 0.9 - bottomInset,
                       ),
                     child: _buildCartPanel(
                       theme,
