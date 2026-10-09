@@ -44,25 +44,6 @@ class AdministrativeSettingsScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildRateOverviewTile(String label, String rates) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6.0),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(
-            label,
-            style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 13),
-          ),
-          Text(
-            rates,
-            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
-          ),
-        ],
-      ),
-    );
-  }
-
   void _confirmClearCache(BuildContext context, WidgetRef ref) {
     AppModal.showDialog(
       context: context,
@@ -100,7 +81,6 @@ class AdministrativeSettingsScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final settings = ref.watch(appSettingsProvider);
-    final currency = ref.watch(currencyProvider);
     final notifier = ref.read(appSettingsProvider.notifier);
 
     return Scaffold(
@@ -364,20 +344,7 @@ class AdministrativeSettingsScreen extends ConsumerWidget {
               icon: const Icon(Icons.tune, size: 16),
               label: const Text('Configure'),
             ),
-            children: [
-              _buildRateOverviewTile(
-                'Snooker (Per Min / 1h)',
-                '${currency.symbol}${settings.pricing.snookerPerMinute.toStringAsFixed(2)} / ${currency.symbol}${settings.pricing.snookerOneHour.toStringAsFixed(0)}',
-              ),
-              _buildRateOverviewTile(
-                'Indian Pool (Per Frame / 1h)',
-                '${currency.symbol}${settings.pricing.indianPoolPerFrame.toStringAsFixed(0)} / ${currency.symbol}${settings.pricing.indianPoolOneHour.toStringAsFixed(0)}',
-              ),
-              _buildRateOverviewTile(
-                'American Pool (Per Frame / 1h)',
-                '${currency.symbol}${settings.pricing.americanPoolPerFrame.toStringAsFixed(0)} / ${currency.symbol}${settings.pricing.americanPoolOneHour.toStringAsFixed(0)}',
-              ),
-            ],
+            children: [],
           ),
 
           // Inventory Settings

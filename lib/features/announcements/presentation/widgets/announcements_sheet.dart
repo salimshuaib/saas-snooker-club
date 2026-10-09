@@ -69,6 +69,7 @@ class _AnnouncementsSheetState extends ConsumerState<AnnouncementsSheet> {
   Widget build(BuildContext context) {
     final announcementsAsync = ref.watch(announcementsProvider);
     final theme = Theme.of(context);
+    final currentStaffId = ref.watch(currentStaffProvider).value?.id;
 
     return Container(
       constraints: BoxConstraints(
@@ -127,48 +128,68 @@ class _AnnouncementsSheetState extends ConsumerState<AnnouncementsSheet> {
                   reverse: true, // Show newest at the bottom naturally
                   itemCount: announcements.length,
                   separatorBuilder: (context, index) => const Gap(16),
-                  itemBuilder: (context, index) {
+                                    itemBuilder: (context, index) {
                     final announcement = announcements[index];
+                    final isMe = announcement.senderId == currentStaffId;
+                    
                     final dateStr = DateFormat('dd MMM').format(announcement.createdAt);
                     final timeStr = DateFormat('hh:mm a').format(announcement.createdAt);
-                    final timestamp = '$dateStr, $timeStr';
-
-                    return Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: theme.colorScheme.surfaceContainerHighest.withOpacity(0.5),
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(
-                          color: theme.dividerColor.withOpacity(0.1),
+                    
+                    return Align(
+                      alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
+                      child: Container(
+                        margin: EdgeInsets.only(
+                          left: isMe ? 48.0 : 0.0,
+                          right: isMe ? 0.0 : 48.0,
                         ),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text(
-                                announcement.senderName,
-                                style: theme.textTheme.labelLarge?.copyWith(
-                                  fontWeight: FontWeight.bold,
-                                  color: theme.colorScheme.primary,
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                        decoration: BoxDecoration(
+                          color: isMe
+                              ? theme.colorScheme.primary
+                              : theme.colorScheme.surfaceContainerHighest.withOpacity(0.7),
+                          borderRadius: BorderRadius.only(
+                            topLeft: const Radius.circular(16),
+                            topRight: const Radius.circular(16),
+                            bottomLeft: Radius.circular(isMe ? 16 : 4),
+                            bottomRight: Radius.circular(isMe ? 4 : 16),
+                          ),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            if (!isMe)
+                              Padding(
+                                padding: const EdgeInsets.only(bottom: 4.0),
+                                child: Text(
+                                  announcement.senderName,
+                                  style: theme.textTheme.labelMedium?.copyWith(
+                                    fontWeight: FontWeight.bold,
+                                    color: theme.colorScheme.primary,
+                                  ),
                                 ),
                               ),
-                              Text(
-                                timestamp,
+                            Text(
+                              announcement.message,
+                              style: theme.textTheme.bodyMedium?.copyWith(
+                                color: isMe ? theme.colorScheme.onPrimary : theme.colorScheme.onSurface,
+                              ),
+                            ),
+                            const Gap(4),
+                            Align(
+                              alignment: Alignment.bottomRight,
+                              child: Text(
+                                '${dateStr}, ${timeStr}',
                                 style: theme.textTheme.labelSmall?.copyWith(
-                                  color: theme.colorScheme.onSurfaceVariant,
+                                  color: isMe
+                                      ? theme.colorScheme.onPrimary.withOpacity(0.7)
+                                      : theme.colorScheme.onSurfaceVariant,
+                                  fontSize: 10,
                                 ),
                               ),
-                            ],
-                          ),
-                          const Gap(8),
-                          Text(
-                            announcement.message,
-                            style: theme.textTheme.bodyMedium,
-                          ),
-                        ],
+                            ),
+                          ],
+                        ),
                       ),
                     );
                   },

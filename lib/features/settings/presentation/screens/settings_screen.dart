@@ -29,7 +29,6 @@ class SettingsScreen extends ConsumerWidget {
     final settings = ref.watch(appSettingsProvider);
     final themeMode = ref.watch(themeModeProvider);
     final currency = ref.watch(currencyProvider);
-    final tables = ref.watch(resolvedTablesProvider);
     final syncStatus = ref.watch(firebaseSyncStatusProvider);
     final notifier = ref.read(appSettingsProvider.notifier);
     final packageInfo = ref.watch(packageInfoProvider);
@@ -94,42 +93,6 @@ class SettingsScreen extends ConsumerWidget {
             icon: Icons.table_bar,
             iconColor: AppColors.secondary,
             children: [
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 4),
-                child: Text(
-                  'Active club pool and snooker tables deployed across the facility:',
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant,
-                  ),
-                ),
-              ),
-              const Gap(8),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: [
-                  _buildTableCountBadge(
-                    'Snooker',
-                    tables.where((t) => t.type == TableType.snooker).length,
-                    Colors.red,
-                    context,
-                  ),
-                  _buildTableCountBadge(
-                    'Indian Pool',
-                    tables.where((t) => t.type == TableType.indianPool).length,
-                    Colors.amber,
-                    context,
-                  ),
-                  _buildTableCountBadge(
-                    'American Pool',
-                    tables
-                        .where((t) => t.type == TableType.americanPool)
-                        .length,
-                    Colors.blue,
-                    context,
-                  ),
-                ],
-              ),
-              const Gap(16),
               SizedBox(
                 width: double.infinity,
                 child: FilledButton.icon(
@@ -521,41 +484,6 @@ class SettingsScreen extends ConsumerWidget {
                 color: Colors.grey,
               ),
             ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildTableCountBadge(
-    String label,
-    int count,
-    Color color,
-    BuildContext context,
-  ) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: color.withValues(alpha: 0.3)),
-      ),
-      child: Column(
-        children: [
-          Text(
-            count.toString(),
-            style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.w800,
-              color: color,
-            ),
-          ),
-          const Gap(4),
-          Text(
-            label,
-            style: Theme.of(
-              context,
-            ).textTheme.labelSmall?.copyWith(fontWeight: FontWeight.w600),
           ),
         ],
       ),

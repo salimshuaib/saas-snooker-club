@@ -17,7 +17,7 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:snooker_club/core/services/push_notification_service.dart';
 import 'package:snooker_club/core/services/table_alarm_service.dart';
 import 'dart:ui';
-import 'package:alarm/alarm.dart';
+
 
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
@@ -31,7 +31,7 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   // Initialize alarm package
-  await Alarm.init();
+  
 
   // Register background handler
   FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);

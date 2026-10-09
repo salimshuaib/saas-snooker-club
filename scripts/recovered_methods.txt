@@ -1,0 +1,55 @@
+Created At: 2026-09-27T16:58:03+05:30
+Completed At: 2026-09-27T16:58:04+05:30
+
+The command exited with code 0.
+Output:
+
+>   Future<void> markAsPendingBill(
+      GameSession session, {
+      required String customerId,
+>     AppConfig.guardWrite('GamesRepository.markAsPendingBill');
+      final staffName = currentUserName;
+      final staffId = currentUserId;
+>       'status': TableStatus.pendingBill.name,
+        'paymentStatus': 'Pending',
+>       'pendingBillCustomerId': customerId,
+>       'pendingBillCustomerName': customerName,
+        'markedPendingAt': now.toIso8601String(),
+        'markedPendingByUserId': currentUserId,
+>   Future<void> markAsPendingBillWithSplits(
+      GameSession session,
+      List<Map<String, String>> players,
+>     AppConfig.guardWrite('GamesRepository.markAsPendingBillWithSplits');
+      final staffName = currentUserName;
+      final staffId = currentUserId;
+>         status: TableStatus.pendingBill,
+          paymentStatus: 'Pending',
+>         pendingBillCustomerId: pId,
+>         pendingBillCustomerName: pName,
+          markedPendingAt: now,
+          markedPendingByUserId: staffId,
+>   Future<void> settlePendingBill(GameSession session, {
+      required PaymentMethod? paymentMethod,
+      required String? paidBy,
+>     AppConfig.guardWrite('GamesRepository.settlePendingBill');
+      
+      final doc = await _db
+>     if (!doc.exists || doc.data()?['status'] != TableStatus.pendingBill.name) {
+        throw Exception('This bill is no longer pending or has already been settled.');
+      }
+>       final customerName = paidBy ?? session.pendingBillCustomerName;
+        
+        final creditRepo = _ref!.read(creditRepositoryProvider);
+>   Future<void> cancelPendingBill(String gameId, GameSession session) async {
+>     AppConfig.guardWrite('GamesRepository.cancelPendingBill');
+      
+      final staffName = currentUserName;
+>   Stream<List<GameSession>> watchPendingBills() {
+      return _db
+          .collection(FirebaseConstants.clubsCollection)
+>         .where('status', isEqualTo: TableStatus.pendingBill.name)
+          .snapshots()
+          .map((snapshot) {
+
+
+
