@@ -52,6 +52,7 @@ dependencies:
   flutter_tts: ^4.2.5
   audioplayers: ^6.5.1
   alarm: ^5.13.3
+  permission_handler: ^13.0.2
 dev_dependencies:
   flutter_test:
     sdk: flutter

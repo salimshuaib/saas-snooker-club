@@ -2,6 +2,7 @@ import 'dart:typed_data';
 import 'dart:async';
 import 'dart:convert';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:timezone/timezone.dart' as tz;
 import 'package:timezone/data/latest_all.dart' as tz;
 import 'package:flutter/foundation.dart';
@@ -72,8 +73,15 @@ class TableAlarmService {
     await _flutterTts.setPitch(1.0);
 
     if (_isNativeAlarmSupported) {
+      // Request battery optimization ignore for background reliability
+      try {
+        await Permission.ignoreBatteryOptimizations.request();
+      } catch (e) {
+        AppLogger.error('Failed to request battery optimization ignore: $e');
+      }
+
       const AndroidNotificationChannel alarmChannel = AndroidNotificationChannel(
-        'table_alarm_channel',
+        'table_alarm_channel_v2',
         'Table Alarms',
         description: 'Loud alarm notifications when table time is over',
         importance: Importance.max,
@@ -157,7 +165,7 @@ class TableAlarmService {
 
     if (_isNativeAlarmSupported) {
       final androidDetails = AndroidNotificationDetails(
-        'table_alarm_channel',
+        'table_alarm_channel_v2',
         'Table Alarms',
         channelDescription: 'Loud alarm notifications when table time is over',
         importance: Importance.max,
