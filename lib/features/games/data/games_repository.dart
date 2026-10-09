@@ -168,7 +168,15 @@ class GamesRepository {
 
   Future<void> updateTable(TableModel table) async {
     if (AppConfig.guardWrite('GamesRepository.updateTable')) return;
-    await _tablesRef.doc(table.id).update(table.toMap());
+    try {
+      await _tablesRef.doc(table.id).update(table.toMap());
+    } on FirebaseException catch (e) {
+      if (e.code == 'not-found') {
+        AppLogger.warning('Table ${table.id} not found for update, likely deleted.');
+      } else {
+        rethrow;
+      }
+    }
   }
 
   Future<void> updateTableStatus(
@@ -177,10 +185,18 @@ class GamesRepository {
     String? activeGameId,
   }) async {
     if (AppConfig.guardWrite('GamesRepository.updateTableStatus')) return;
-    await _tablesRef.doc(tableId).update({
-      'status': status.name,
-      'activeGameId': activeGameId,
-    });
+    try {
+      await _tablesRef.doc(tableId).update({
+        'status': status.name,
+        'activeGameId': activeGameId,
+      });
+    } on FirebaseException catch (e) {
+      if (e.code == 'not-found') {
+        AppLogger.warning('Table $tableId not found for status update, likely deleted.');
+      } else {
+        rethrow;
+      }
+    }
   }
 
   // Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
