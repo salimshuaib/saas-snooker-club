@@ -41,6 +41,7 @@ class AlarmInfo {
 
 class TableAlarmService {
   bool get _isNativeAlarmSupported => !kIsWeb && (defaultTargetPlatform == TargetPlatform.android || defaultTargetPlatform == TargetPlatform.iOS);
+  final FlutterLocalNotificationsPlugin _localNotifications = FlutterLocalNotificationsPlugin();
   static final TableAlarmService _instance = TableAlarmService._internal();
   factory TableAlarmService() => _instance;
   TableAlarmService._internal();
@@ -175,8 +176,7 @@ class TableAlarmService {
           tz.TZDateTime.from(fireAt, tz.local),
           NotificationDetails(android: androidDetails),
           androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-          uiLocalNotificationDateInterpretation:
-              UILocalNotificationDateInterpretation.absoluteTime,
+          
           payload: jsonEncode(alarm.toJson()),
         );
       } catch (e) {
