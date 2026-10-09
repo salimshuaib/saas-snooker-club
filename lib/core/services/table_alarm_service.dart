@@ -91,7 +91,7 @@ class TableAlarmService {
       );
 
       await _localNotifications.initialize(
-        initializationSettings,
+        settings: initializationSettings,
         onDidReceiveNotificationResponse: (details) {
           if (details.payload != null) {
             try {
@@ -123,7 +123,7 @@ class TableAlarmService {
         } else {
            // Cleanup stale alarms
            needsSave = true;
-           if (_isNativeAlarmSupported) await _localNotifications.cancel(alarm.gameId.hashCode);
+           if (_isNativeAlarmSupported) await _localNotifications.cancel(id: alarm.gameId.hashCode);
         }
       } catch (e) {
         AppLogger.error('Failed to parse persisted alarm: $e');
@@ -170,13 +170,12 @@ class TableAlarmService {
       
       try {
         await _localNotifications.zonedSchedule(
-          gameId.hashCode,
-          tableName,
-          'Time Over!',
-          tz.TZDateTime.from(fireAt, tz.local),
-          NotificationDetails(android: androidDetails),
+          id: gameId.hashCode,
+          title: tableName,
+          body: 'Time Over!',
+          scheduledDate: tz.TZDateTime.from(fireAt, tz.local),
+          notificationDetails: NotificationDetails(android: androidDetails),
           androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-          
           payload: jsonEncode(alarm.toJson()),
         );
       } catch (e) {
@@ -218,7 +217,7 @@ class TableAlarmService {
       await _saveAlarms();
 
       if (_isNativeAlarmSupported) {
-        await _localNotifications.cancel(gameId.hashCode);
+        await _localNotifications.cancel(id: gameId.hashCode);
       }
     }
     
@@ -300,7 +299,7 @@ class TableAlarmService {
       await _sirenPlayer.stop();
       
       if (_isNativeAlarmSupported && _currentlyRingingId != null) {
-        await _localNotifications.cancel(_currentlyRingingId!);
+        await _localNotifications.cancel(id: _currentlyRingingId!);
         _currentlyRingingId = null;
       }
       
@@ -320,7 +319,7 @@ class TableAlarmService {
       _ringingAlarmsController.add(List.unmodifiable(ringingAlarms));
 
       if (_isNativeAlarmSupported) {
-        await _localNotifications.cancel(gameId.hashCode);
+        await _localNotifications.cancel(id: gameId.hashCode);
       }
 
       if (ringingAlarms.isEmpty) {
