@@ -1,10 +1,6 @@
-import 'dart:typed_data';
 import 'dart:async';
 import 'dart:convert';
-import 'package:flutter_local_notifications/flutter_local_notifications.dart';
-import 'package:permission_handler/permission_handler.dart';
-import 'package:timezone/timezone.dart' as tz;
-import 'package:timezone/data/latest_all.dart' as tz;
+import 'package:alarm/alarm.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 import 'package:audioplayers/audioplayers.dart';
@@ -31,18 +27,14 @@ class AlarmInfo {
         'fireAt': fireAt.toIso8601String(),
       };
 
-  factory AlarmInfo.fromJson(Map<String, dynamic> json) {
-    return AlarmInfo(
-      gameId: json['gameId'],
-      tableName: json['tableName'],
-      fireAt: DateTime.parse(json['fireAt']),
-    );
-  }
+  factory AlarmInfo.fromJson(Map<String, dynamic> json) => AlarmInfo(
+        gameId: json['gameId'],
+        tableName: json['tableName'],
+        fireAt: DateTime.parse(json['fireAt']),
+      );
 }
 
 class TableAlarmService {
-  bool get _isNativeAlarmSupported => !kIsWeb && (defaultTargetPlatform == TargetPlatform.android || defaultTargetPlatform == TargetPlatform.iOS);
-  final FlutterLocalNotificationsPlugin _localNotifications = FlutterLocalNotificationsPlugin();
   static final TableAlarmService _instance = TableAlarmService._internal();
   factory TableAlarmService() => _instance;
   TableAlarmService._internal();
@@ -63,54 +55,28 @@ class TableAlarmService {
   final FlutterTts _flutterTts = FlutterTts();
   final AudioPlayer _sirenPlayer = AudioPlayer();
   Timer? _ttsLoopTimer;
-  
+  StreamSubscription<AlarmSettings>? _ringSubscription;
   int? _currentlyRingingId;
 
+  // We consider mobile platforms as supporting native alarms (via alarm package)
+  bool get _isNativeAlarmSupported => !kIsWeb && (defaultTargetPlatform == TargetPlatform.android || defaultTargetPlatform == TargetPlatform.iOS);
+
   Future<void> initialize() async {
-    tz.initializeTimeZones();
     await _flutterTts.setVolume(1.0);
     await _flutterTts.setSpeechRate(0.5);
     await _flutterTts.setPitch(1.0);
 
     if (_isNativeAlarmSupported) {
-      // Request battery optimization ignore for background reliability
-      try {
-        await Permission.ignoreBatteryOptimizations.request();
-      } catch (e) {
-        AppLogger.error('Failed to request battery optimization ignore: $e');
-      }
-
-      const AndroidNotificationChannel alarmChannel = AndroidNotificationChannel(
-        'table_alarm_channel_v2',
-        'Table Alarms',
-        description: 'Loud alarm notifications when table time is over',
-        importance: Importance.max,
-        playSound: true,
-        sound: RawResourceAndroidNotificationSound('table_alarm'),
-      );
-      final androidPlugin = _localNotifications.resolvePlatformSpecificImplementation<
-          AndroidFlutterLocalNotificationsPlugin>();
-      await androidPlugin?.createNotificationChannel(alarmChannel);
-      await androidPlugin?.requestExactAlarmsPermission();
-
-      const initializationSettings = InitializationSettings(
-        android: AndroidInitializationSettings('@mipmap/ic_launcher'),
-        iOS: DarwinInitializationSettings(),
-      );
-
-      await _localNotifications.initialize(
-        settings: initializationSettings,
-        onDidReceiveNotificationResponse: (details) {
-          if (details.payload != null) {
-            try {
-              final alarm = AlarmInfo.fromJson(jsonDecode(details.payload!));
-              _onAlarmFired(alarm);
-            } catch (e) {
-              AppLogger.error('Failed to parse alarm payload: $e');
-            }
-          }
-        },
-      );
+      _ringSubscription = Alarm.ringStream.stream.listen((alarmSettings) {
+        final alarm = _activeAlarms.values.cast<AlarmInfo?>().firstWhere(
+            (a) => a?.gameId.hashCode == alarmSettings.id, orElse: () => null);
+        if (alarm != null) {
+          _onAlarmFired(alarm);
+        } else {
+          // If the alarm is not in our active list but rang, stop it
+          Alarm.stop(alarmSettings.id);
+        }
+      });
     }
     
     await _loadPersistedAlarms();
@@ -131,7 +97,7 @@ class TableAlarmService {
         } else {
            // Cleanup stale alarms
            needsSave = true;
-           if (_isNativeAlarmSupported) await _localNotifications.cancel(id: alarm.gameId.hashCode);
+           if (_isNativeAlarmSupported) await Alarm.stop(alarm.gameId.hashCode);
         }
       } catch (e) {
         AppLogger.error('Failed to parse persisted alarm: $e');
@@ -164,40 +130,28 @@ class TableAlarmService {
     await _saveAlarms();
 
     if (_isNativeAlarmSupported) {
-      final androidDetails = AndroidNotificationDetails(
-        'table_alarm_channel_v2',
-        'Table Alarms',
-        channelDescription: 'Loud alarm notifications when table time is over',
-        importance: Importance.max,
-        priority: Priority.max,
-        fullScreenIntent: true,
-        playSound: true,
-        sound: const RawResourceAndroidNotificationSound('table_alarm'),
-        additionalFlags: Int32List.fromList(<int>[4]), // FLAG_INSISTENT for continuous loop
+      final alarmSettings = AlarmSettings(
+        id: gameId.hashCode,
+        dateTime: fireAt,
+        assetAudioPath: 'assets/sounds/table_alarm.wav',
+        loopAudio: true,
+        vibrate: true,
+        volumeSettings: VolumeSettings.fade(
+          volume: 1.0,
+          fadeDuration: const Duration(seconds: 3),
+        ),
+        notificationSettings: NotificationSettings(
+          title: tableName,
+          body: 'Time Over!',
+          stopButton: 'Stop',
+        ),
       );
       
       try {
-        await _localNotifications.zonedSchedule(
-          id: gameId.hashCode,
-          title: tableName,
-          body: 'Time Over!',
-          scheduledDate: tz.TZDateTime.from(fireAt, tz.local),
-          notificationDetails: NotificationDetails(android: androidDetails),
-          androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-          payload: jsonEncode(alarm.toJson()),
-        );
+        await Alarm.set(alarmSettings: alarmSettings);
       } catch (e) {
         AppLogger.error('Failed to schedule exact alarm: $e');
       }
-      
-      // Also set fallback timer in case app is open, so we get the internal UI overlay
-      final duration = fireAt.difference(DateTime.now());
-      _fallbackTimers[gameId] = Timer(duration.isNegative ? Duration.zero : duration, () {
-        final active = _activeAlarms[gameId];
-        if (active != null) {
-          _onAlarmFired(active);
-        }
-      });
     } else {
       // Fallback timer only for Web/Desktop where the native alarm package is unavailable
       final duration = fireAt.difference(DateTime.now());
@@ -225,7 +179,7 @@ class TableAlarmService {
       await _saveAlarms();
 
       if (_isNativeAlarmSupported) {
-        await _localNotifications.cancel(id: gameId.hashCode);
+        await Alarm.stop(gameId.hashCode);
       }
     }
     
@@ -307,13 +261,16 @@ class TableAlarmService {
       await _sirenPlayer.stop();
       
       if (_isNativeAlarmSupported && _currentlyRingingId != null) {
-        await _localNotifications.cancel(id: _currentlyRingingId!);
+        await Alarm.stop(_currentlyRingingId!);
         _currentlyRingingId = null;
       }
       
       if (_isNativeAlarmSupported) {
         try {
-           await _localNotifications.cancelAll();
+           final hasAlarm = await Alarm.hasAlarm();
+           if (hasAlarm) {
+               await Alarm.stopAll();
+           }
         } catch (_) {}
       }
     } catch (e) {
@@ -327,7 +284,7 @@ class TableAlarmService {
       _ringingAlarmsController.add(List.unmodifiable(ringingAlarms));
 
       if (_isNativeAlarmSupported) {
-        await _localNotifications.cancel(id: gameId.hashCode);
+        await Alarm.stop(gameId.hashCode);
       }
 
       if (ringingAlarms.isEmpty) {
@@ -345,4 +302,3 @@ class TableAlarmService {
     return _activeAlarms[gameId];
   }
 }
-
