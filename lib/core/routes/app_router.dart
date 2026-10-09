@@ -362,6 +362,12 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           routes: [
             GoRoute(
               path: 'inventory-details',
+              redirect: (context, state) {
+                if (state.extra == null || state.extra is! InventoryItem) {
+                  return '/inventory';
+                }
+                return null;
+              },
               builder: (context, state) {
                 final item = state.extra as InventoryItem;
                 return ProductDetailsScreen(item: item);
