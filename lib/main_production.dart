@@ -34,8 +34,6 @@ void main() async {
   // Initialize alarm package
   
 
-  // Register background handler
-  FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
 
   // Set environment to PRODUCTION
   AppConfig.initialize(AppEnvironment.production);
@@ -50,10 +48,14 @@ void main() async {
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   AppLogger.info('Firebase initialized successfully');
 
+  if (!kIsWeb) {
+    FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+  }
+
   // Initialize Push Notifications
   try {
     final pushService = PushNotificationService();
-    await pushService.initialize();
+    pushService.setup();
   } catch (e) {
     AppLogger.error('Failed to initialize push notifications: $e');
   }

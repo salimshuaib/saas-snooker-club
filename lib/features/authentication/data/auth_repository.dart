@@ -36,7 +36,7 @@ class AuthRepository {
       // Save FCM Token
       try {
         final pushService = PushNotificationService();
-        await pushService.initialize();
+        await pushService.requestPermission();
       } catch (e) {
         AppLogger.error('Failed to init push service after login: $e');
       }

@@ -28,8 +28,6 @@ void main() async {
   // Initialize alarm package
   await Alarm.init();
 
-  // Register background handler
-  FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
 
   // Set environment to PREVIEW — this blocks all write operations
   AppConfig.initialize(AppEnvironment.preview);
@@ -47,7 +45,7 @@ void main() async {
   // Initialize Push Notifications
   try {
     final pushService = PushNotificationService();
-    await pushService.initialize();
+    pushService.setup();
   } catch (e) {
     AppLogger.error('Failed to initialize push notifications: $e');
   }
