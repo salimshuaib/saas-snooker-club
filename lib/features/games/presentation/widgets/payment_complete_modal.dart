@@ -775,45 +775,69 @@ class _PaymentCompleteModalState extends ConsumerState<PaymentCompleteModal> {
                 ],
 
                 // Action Buttons
-                FilledButton.icon(
-                  onPressed: _isPrinting ? null : _printReceipt,
-                  icon: _isPrinting
-                      ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                      : const Icon(Icons.print, size: 18),
-                  label: const Text('Print Receipt'),
-                  style: FilledButton.styleFrom(
-                    backgroundColor: const Color(0xFF38BDF8),
-                    foregroundColor: Colors.black,
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                if (isDesktop) ...[
+                  FilledButton.icon(
+                    onPressed: _isPrinting ? null : _printReceipt,
+                    icon: _isPrinting
+                        ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                        : const Icon(Icons.print, size: 18),
+                    label: const Text('Print Receipt'),
+                    style: FilledButton.styleFrom(
+                      backgroundColor: const Color(0xFF38BDF8),
+                      foregroundColor: Colors.black,
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    ),
                   ),
-                ),
-                const SizedBox(width: 10),
-                OutlinedButton.icon(
-                  onPressed: _isSharing ? null : _sendViaWhatsApp,
-                  icon: _isSharing
-                      ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.success))
-                      : const Icon(Icons.message, size: 18, color: AppColors.success),
-                  label: const Text('Send Receipt'),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: AppColors.success,
-                    side: const BorderSide(color: AppColors.success),
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  const SizedBox(width: 10),
+                  OutlinedButton.icon(
+                    onPressed: _isSharing ? null : _sendViaWhatsApp,
+                    icon: _isSharing
+                        ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.success))
+                        : const Icon(Icons.message, size: 18, color: AppColors.success),
+                    label: const Text('Send Receipt'),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: AppColors.success,
+                      side: const BorderSide(color: AppColors.success),
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    ),
                   ),
-                ),
-                const SizedBox(width: 10),
-                FilledButton.icon(
-                  onPressed: () {
-                    Navigator.of(context).pop();
-                    if (widget.onClose != null) widget.onClose!();
-                  },
-                  icon: const Icon(Icons.check, size: 18),
-                  label: const Text('Close'),
-                  style: FilledButton.styleFrom(
-                    backgroundColor: theme.colorScheme.surfaceContainerHighest,
-                    foregroundColor: theme.colorScheme.onSurface,
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                ] else ...[
+                  Expanded(
+                    child: FilledButton.icon(
+                      onPressed: _isPrinting ? null : _printReceipt,
+                      icon: _isPrinting
+                          ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                          : const Icon(Icons.print, size: 18),
+                      label: const FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Text('Print Receipt'),
+                      ),
+                      style: FilledButton.styleFrom(
+                        backgroundColor: const Color(0xFF38BDF8),
+                        foregroundColor: Colors.black,
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+                      ),
+                    ),
                   ),
-                ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: _isSharing ? null : _sendViaWhatsApp,
+                      icon: _isSharing
+                          ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.success))
+                          : const Icon(Icons.message, size: 18, color: AppColors.success),
+                      label: const FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Text('Send Receipt'),
+                      ),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: AppColors.success,
+                        side: const BorderSide(color: AppColors.success),
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+                      ),
+                    ),
+                  ),
+                ],
               ],
             ),
           ),
