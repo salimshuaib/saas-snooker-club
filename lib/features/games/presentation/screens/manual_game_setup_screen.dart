@@ -278,6 +278,12 @@ class _ManualGameSetupScreenState extends ConsumerState<ManualGameSetupScreen> {
             );
             newProfilesToCreate.add(newProfile);
             finalPlayerIds.add(newId);
+          } else {
+            final newId = FirebaseFirestore.instance
+                .collection('credits')
+                .doc()
+                .id;
+            finalPlayerIds.add(newId);
           }
         }
       }

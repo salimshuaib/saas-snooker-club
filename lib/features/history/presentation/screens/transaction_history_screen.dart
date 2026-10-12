@@ -229,13 +229,14 @@ class _TransactionHistoryScreenState extends ConsumerState<TransactionHistoryScr
                           color: theme.colorScheme.primary,
                         ),
                         const Gap(8),
-                        Text(
-                          'Game Transactions ($dateLabel)',
-                          style: theme.textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.w700,
+                        Expanded(
+                          child: Text(
+                            'Game Transactions',
+                            style: theme.textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.w700,
+                            ),
                           ),
                         ),
-                        const Spacer(),
                         if (hasFloors && floors.isNotEmpty)
                           DropdownButton<String?>(
                             value: selectedFloor?.id,
@@ -325,7 +326,7 @@ class _TransactionHistoryScreenState extends ConsumerState<TransactionHistoryScr
                         ),
                         const Gap(8),
                         Text(
-                          'Quick Sale Transactions ($dateLabel)',
+                          'Quick Sale Transactions',
                           style: theme.textTheme.titleMedium?.copyWith(
                             fontWeight: FontWeight.w700,
                           ),

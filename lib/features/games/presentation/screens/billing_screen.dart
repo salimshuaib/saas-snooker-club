@@ -772,7 +772,7 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
       completedRounds: _session.rounds,
       customPrice: _session.customPrice,
       customExtraCharge: _session.customExtraCharge,
-      playersCount: _session.playerIds.length,
+      playersCount: math.max(_session.allPlayers.length, _session.playerIds.length),
       coinQuantity: _session.coinQuantity,
       customMinutes: _session.customMinutes,
       isMinimumBillEnabled: _session.isMinimumBillEnabled,

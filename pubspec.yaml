@@ -1,7 +1,7 @@
 name: snooker_club
 description: "Snooker Club Management System"
 publish_to: 'none'
-version: 1.0.25+25
+version: 1.0.26+26
 
 environment:
   sdk: ^3.11.1

@@ -1,12 +1,19 @@
 import re
 
 file_path = 'pubspec.yaml'
-with open(file_path, 'r', encoding='utf-8') as f:
-    content = f.read()
+try:
+    with open(file_path, 'r', encoding='utf-8') as f:
+        content = f.read()
 
-content = content.replace("permission_handler: ^13.0.2", "permission_handler: ^11.3.1")
+    old_version = "version: 1.0.24+24"
+    new_version = "version: 1.0.25+25"
 
-with open(file_path, 'w', encoding='utf-8') as f:
-    f.write(content)
-
-print("Done")
+    if old_version in content:
+        content = content.replace(old_version, new_version)
+        with open(file_path, 'w', encoding='utf-8') as f:
+            f.write(content)
+        print("Patched pubspec.yaml version to 1.0.25+25")
+    else:
+        print("Could not find exact version string to replace.")
+except Exception as e:
+    print(f"Error: {e}")
