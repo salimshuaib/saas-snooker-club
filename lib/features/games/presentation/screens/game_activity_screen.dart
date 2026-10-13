@@ -10,11 +10,10 @@ import 'package:snooker_club/features/team/domain/models/staff_member.dart';
 import 'package:snooker_club/features/games/domain/models/game_models.dart';
 import 'package:snooker_club/features/games/providers/games_providers.dart';
 import 'package:snooker_club/features/games/presentation/widgets/game_activity_card.dart';
-import 'package:snooker_club/core/widgets/modals/app_modal.dart';
-import 'package:snooker_club/features/floors/presentation/widgets/floor_selector_sheet.dart';
 import 'package:snooker_club/features/floors/providers/floor_providers.dart';
 import 'package:snooker_club/features/announcements/presentation/widgets/announcements_sheet.dart';
 import 'package:snooker_club/features/dashboard/presentation/widgets/profile_popup_menu.dart';
+import 'package:snooker_club/core/widgets/modals/app_modal.dart';
 
 class GameActivityScreen extends ConsumerWidget {
   const GameActivityScreen({super.key});
@@ -98,9 +97,48 @@ class GameActivityScreen extends ConsumerWidget {
         builder: (context) {
           if (tablesAsync.isEmpty) {
             return Center(
-              child: Text(
-                'No tables configured.',
-                style: TextStyle(color: theme.colorScheme.onSurface),
+              child: Padding(
+                padding: const EdgeInsets.all(32.0),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(20),
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.primary.withValues(alpha: 0.1),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        Icons.table_restaurant_outlined,
+                        size: 48,
+                        color: theme.colorScheme.primary,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      'No Tables Configured Yet',
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Your floors are ready! Add tables and games to start tracking active sessions.',
+                      textAlign: TextAlign.center,
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    FilledButton.icon(
+                      onPressed: () {
+                        context.push(RouteNames.settings);
+                      },
+                      icon: const Icon(Icons.add),
+                      label: const Text('Manage Games & Tables'),
+                    ),
+                  ],
+                ),
               ),
             );
           }

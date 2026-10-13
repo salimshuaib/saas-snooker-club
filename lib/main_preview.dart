@@ -25,9 +25,6 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Initialize alarm package
-  await Alarm.init();
-
 
   // Set environment to PREVIEW — this blocks all write operations
   AppConfig.initialize(AppEnvironment.preview);

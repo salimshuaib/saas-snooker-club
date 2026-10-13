@@ -496,8 +496,54 @@ class _BillDetailsScreenState extends ConsumerState<BillDetailsScreen> {
                 ],
 
                 // ── Billing Summary ──
-                Text('Billing Summary', style: theme.textTheme.titleMedium),
                 const Gap(8),
+                if (session.appliedOfferName != null) ...[
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(12),
+                    margin: const EdgeInsets.only(bottom: 12),
+                    decoration: BoxDecoration(
+                      color: Colors.deepOrangeAccent.withOpacity(0.12),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: Colors.deepOrangeAccent.withOpacity(0.4),
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(
+                          Icons.local_offer,
+                          color: Colors.deepOrangeAccent,
+                          size: 22,
+                        ),
+                        const Gap(10),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Happy Hour: ${session.appliedOfferName}${session.appliedOfferCode != null ? " (${session.appliedOfferCode})" : ""}',
+                                style: theme.textTheme.titleSmall?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.deepOrangeAccent,
+                                ),
+                              ),
+                              if (session.standardPrice != null &&
+                                  session.appliedOfferPrice != null &&
+                                  session.standardPrice! > session.appliedOfferPrice!)
+                                Text(
+                                  'Standard ₹${session.standardPrice!.toStringAsFixed(0)} → Promo ₹${session.appliedOfferPrice!.toStringAsFixed(0)} (Saved ₹${(session.standardPrice! - session.appliedOfferPrice!).toStringAsFixed(0)})',
+                                  style: theme.textTheme.bodySmall?.copyWith(
+                                    color: theme.colorScheme.onSurfaceVariant,
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
                 _SectionCard(
                   children: [
                     if (session.billingType == BillingType.perFrame) ...[

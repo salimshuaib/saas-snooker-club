@@ -87,61 +87,123 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen> {
                     ],
                   ),
                   const Gap(24),
-                  Row(
-                    children: [
-                      _StatColumn(
-                        'Current Stock',
-                        '${currentItem.currentStock}',
-                      ),
-                      _StatColumn(
-                        'Selling Price',
-                        '₹${currentItem.sellingPrice.toStringAsFixed(0)}',
-                      ),
-                      _StatColumn(
-                        'Purchase Price',
-                        '₹${currentItem.purchasePrice.toStringAsFixed(0)}',
-                      ),
-                    ],
-                  ),
-                  const Gap(16),
-                  Row(
-                    children: [
-                      _StatColumn(
-                        'Total Purchased',
-                        '${currentItem.totalPurchased}',
-                      ),
-                      _StatColumn('Total Sold', '${currentItem.totalSold}'),
-                      _StatColumn(
-                        'Status',
-                        currentItem.isActive ? 'Active' : 'Inactive',
-                      ),
-                    ],
-                  ),
+                  if (currentItem.isFood) ...[
+                    Row(
+                      children: [
+                        _StatColumn(
+                          'Selling Price',
+                          '₹${currentItem.sellingPrice.toStringAsFixed(0)}',
+                        ),
+                        _StatColumn(
+                          'Availability',
+                          currentItem.isAvailable ? 'Available' : 'Unavailable',
+                        ),
+                        _StatColumn(
+                          'Total Sold',
+                          '${currentItem.totalSold}',
+                        ),
+                      ],
+                    ),
+                    const Gap(16),
+                    Row(
+                      children: [
+                        _StatColumn(
+                          'Status',
+                          currentItem.isActive ? 'Active' : 'Inactive',
+                        ),
+                      ],
+                    ),
+                  ] else ...[
+                    Row(
+                      children: [
+                        _StatColumn(
+                          'Current Stock',
+                          '${currentItem.currentStock}',
+                        ),
+                        _StatColumn(
+                          'Selling Price',
+                          '₹${currentItem.sellingPrice.toStringAsFixed(0)}',
+                        ),
+                        _StatColumn(
+                          'Purchase Price',
+                          '₹${currentItem.purchasePrice.toStringAsFixed(0)}',
+                        ),
+                      ],
+                    ),
+                    const Gap(16),
+                    Row(
+                      children: [
+                        _StatColumn(
+                          'Total Purchased',
+                          '${currentItem.totalPurchased}',
+                        ),
+                        _StatColumn('Total Sold', '${currentItem.totalSold}'),
+                        _StatColumn(
+                          'Status',
+                          currentItem.isActive ? 'Active' : 'Inactive',
+                        ),
+                      ],
+                    ),
+                  ],
                 ],
               ),
             ),
             const Gap(24),
 
             // ── Actions ──
-            Row(
-              children: [
-                Expanded(
-                  child: FilledButton.icon(
-                    onPressed: () {
-                      showModalBottomSheet(
-                        useRootNavigator: true,
-                        context: context,
-                        isScrollControlled: true,
-                        builder: (_) => AddStockSheet(item: currentItem),
-                      );
-                    },
-                    icon: const Icon(Icons.add_circle_outline),
-                    label: const Text('Add Stock'),
-                  ),
+            if (currentItem.isFood) ...[
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 8,
                 ),
-              ],
-            ),
-            const Gap(12),
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.surface,
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: theme.colorScheme.outlineVariant),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Available for Orders',
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    Switch(
+                      value: currentItem.isAvailable,
+                      onChanged: (val) {
+                        ref
+                            .read(inventoryRepositoryProvider)
+                            .toggleAvailability(currentItem.id, val);
+                      },
+                    ),
+                  ],
+                ),
+              ),
+              const Gap(16),
+            ] else ...[
+              Row(
+                children: [
+                  Expanded(
+                    child: FilledButton.icon(
+                      onPressed: () {
+                        showModalBottomSheet(
+                          useRootNavigator: true,
+                          context: context,
+                          isScrollControlled: true,
+                          builder: (_) => AddStockSheet(item: currentItem),
+                        );
+                      },
+                      icon: const Icon(Icons.add_circle_outline),
+                      label: const Text('Add Stock'),
+                    ),
+                  ),
+                ],
+              ),
+              const Gap(12),
+            ],
             Row(
               children: [
                 Expanded(
@@ -156,7 +218,9 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen> {
                       );
                     },
                     icon: const Icon(Icons.edit),
-                    label: const Text('Edit Product'),
+                    label: Text(
+                      currentItem.isFood ? 'Edit Food Item' : 'Edit Product',
+                    ),
                   ),
                 ),
                 const Gap(12),
@@ -177,16 +241,14 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen> {
             ),
             const Gap(32),
 
-            // ── Stock History (Placeholder for now, or we can fetch specifically for this item) ──
-            // Since watchStockHistory takes a date, we could fetch all history for this product specifically.
-            // For now, we'll keep it simple as per requirements.
-            Text(
-              'To view complete stock history, go to Inventory History.',
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
-                fontStyle: FontStyle.italic,
+            if (!currentItem.isFood)
+              Text(
+                'To view complete stock history, go to Inventory History.',
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                  fontStyle: FontStyle.italic,
+                ),
               ),
-            ),
           ],
         ),
       ),

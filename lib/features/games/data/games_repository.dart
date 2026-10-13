@@ -1,4 +1,4 @@
-﻿import 'package:intl/intl.dart';
+import 'package:intl/intl.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:snooker_club/core/providers/club_scope_provider.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -868,6 +868,11 @@ class GamesRepository {
       'roundedAmount': session.roundedAmount,
       'finalAmount': session.finalAmount,
       'manualSelectedFinalAmount': session.manualSelectedFinalAmount,
+      'appliedOfferId': session.appliedOfferId,
+      'appliedOfferName': session.appliedOfferName,
+      'appliedOfferCode': session.appliedOfferCode,
+      'appliedOfferPrice': session.appliedOfferPrice,
+      'standardPrice': session.standardPrice,
       'paymentStatus': session.paymentStatus,
       'processedByUserId':
           session.processedByUserId ??
@@ -987,14 +992,26 @@ class GamesRepository {
         FirebaseConstants.inventoryCollection,
       );
       final Map<String, int> stockDeductions = {};
+      final Map<String, int> foodSoldCounts = {};
       for (final order in session.orders) {
-        stockDeductions[order.productId] =
-            (stockDeductions[order.productId] ?? 0) + order.quantity;
+        if (order.category.trim().toLowerCase() == 'food') {
+          foodSoldCounts[order.productId] =
+              (foodSoldCounts[order.productId] ?? 0) + order.quantity;
+        } else {
+          stockDeductions[order.productId] =
+              (stockDeductions[order.productId] ?? 0) + order.quantity;
+        }
       }
       for (final entry in stockDeductions.entries) {
         final docRef = inventoryRef.doc(entry.key);
         batch.update(docRef, {
           'currentStock': FieldValue.increment(-entry.value),
+          'totalSold': FieldValue.increment(entry.value),
+        });
+      }
+      for (final entry in foodSoldCounts.entries) {
+        final docRef = inventoryRef.doc(entry.key);
+        batch.update(docRef, {
           'totalSold': FieldValue.increment(entry.value),
         });
       }

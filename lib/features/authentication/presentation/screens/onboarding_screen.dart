@@ -3,11 +3,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gap/gap.dart';
 import 'package:go_router/go_router.dart';
 import 'package:snooker_club/core/routes/route_names.dart';
-import 'package:snooker_club/features/games/domain/models/game_models.dart';
-import 'package:snooker_club/features/games/providers/games_providers.dart';
-import 'package:snooker_club/features/settings/data/settings_repository.dart';
-import 'package:snooker_club/features/settings/providers/settings_providers.dart';
 import 'package:snooker_club/core/theme/app_colors.dart';
+import 'package:snooker_club/features/floors/domain/models/floor_model.dart';
+import 'package:snooker_club/features/floors/providers/floor_providers.dart';
+import 'package:snooker_club/features/settings/providers/settings_providers.dart';
 
 class OnboardingScreen extends ConsumerStatefulWidget {
   const OnboardingScreen({super.key});
@@ -20,9 +19,40 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   bool _agreedToTerms = false;
   bool _isLoading = false;
 
-  final Map<TableType, int> _counts = {
-    for (var type in TableType.values) type: 0,
-  };
+  late final List<TextEditingController> _floorControllers;
+
+  @override
+  void initState() {
+    super.initState();
+    _floorControllers = [
+      TextEditingController(text: 'Ground Floor'),
+    ];
+  }
+
+  @override
+  void dispose() {
+    for (final c in _floorControllers) {
+      c.dispose();
+    }
+    super.dispose();
+  }
+
+  void _addFloor() {
+    setState(() {
+      final nextNumber = _floorControllers.length + 1;
+      _floorControllers.add(
+        TextEditingController(text: 'Floor $nextNumber'),
+      );
+    });
+  }
+
+  void _removeFloor(int index) {
+    if (_floorControllers.length <= 1) return;
+    setState(() {
+      final removed = _floorControllers.removeAt(index);
+      removed.dispose();
+    });
+  }
 
   final String _userAgreementText = '''
 # SaaS Snooker Club Management - User Agreement (v1.0)
@@ -59,16 +89,33 @@ By checking "I Agree" and proceeding, you acknowledge that you have read, unders
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('You must agree to the User Agreement to proceed.'),
+          backgroundColor: AppColors.error,
         ),
       );
       return;
     }
 
-    final totalCount = _counts.values.fold(0, (sum, count) => sum + count);
-    if (totalCount == 0) {
+    final floorNames = _floorControllers
+        .map((c) => c.text.trim())
+        .where((name) => name.isNotEmpty)
+        .toList();
+
+    if (floorNames.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Please add at least one table or game to continue.'),
+          content: Text('Please add at least one floor to continue.'),
+          backgroundColor: AppColors.error,
+        ),
+      );
+      return;
+    }
+
+    final uniqueNames = floorNames.map((e) => e.toLowerCase()).toSet();
+    if (uniqueNames.length < floorNames.length) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Each floor must have a unique name.'),
+          backgroundColor: AppColors.error,
         ),
       );
       return;
@@ -77,20 +124,16 @@ By checking "I Agree" and proceeding, you acknowledge that you have read, unders
     setState(() => _isLoading = true);
 
     try {
-      final gamesRepo = ref.read(gamesRepositoryProvider);
+      final floorRepo = ref.read(floorRepositoryProvider);
 
-      for (final entry in _counts.entries) {
-        final type = entry.key;
-        final count = entry.value;
-
-        for (int i = 1; i <= count; i++) {
-          final table = TableModel(
-            id: '',
-            name: '${type.displayName} $i',
-            type: type,
-          );
-          await gamesRepo.addTable(table);
-        }
+      for (int i = 0; i < floorNames.length; i++) {
+        final floor = FloorModel(
+          id: '',
+          name: floorNames[i],
+          order: i,
+          createdAt: DateTime.now(),
+        );
+        await floorRepo.addFloor(floor);
       }
 
       // Complete Onboarding
@@ -102,9 +145,12 @@ By checking "I Agree" and proceeding, you acknowledge that you have read, unders
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Error: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: $e'),
+            backgroundColor: AppColors.error,
+          ),
+        );
       }
     } finally {
       if (mounted) {
@@ -165,55 +211,77 @@ By checking "I Agree" and proceeding, you acknowledge that you have read, unders
               ),
               const Gap(32),
               Text(
-                'Step 2: Table Setup',
+                'Step 2: Floor Setup',
                 style: theme.textTheme.titleLarge?.copyWith(
                   fontWeight: FontWeight.bold,
                 ),
               ),
               const Gap(8),
               Text(
-                'Add your tables so you can start tracking time immediately.',
+                'Add the floors available at your club. During onboarding, you only set up your floors—you can add tables and games to each floor later from the dashboard.',
                 style: theme.textTheme.bodyMedium?.copyWith(
                   color: theme.colorScheme.onSurfaceVariant,
                 ),
               ),
               const Gap(16),
-              DefaultTabController(
-                length: 2,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    TabBar(
-                      labelColor: AppColors.primary,
-                      unselectedLabelColor: theme.colorScheme.onSurfaceVariant,
-                      indicatorColor: AppColors.primary,
-                      tabs: const [
-                        Tab(text: 'Billiards'),
-                        Tab(text: 'Other Games'),
-                      ],
-                    ),
-                    const Gap(16),
-                    SizedBox(
-                      height: 450,
-                      child: TabBarView(
-                        children: [
-                          _buildTabContent([
-                            TableType.snooker,
-                            TableType.indianPool,
-                            TableType.americanPool,
-                          ]),
-                          _buildTabContent(
-                            TableType.values
-                                .where((t) => t.isOtherGame)
-                                .toList(),
-                          ),
-                        ],
+              ...List.generate(_floorControllers.length, (index) {
+                final controller = _floorControllers[index];
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: AppColors.primary.withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: const Icon(
+                          Icons.layers,
+                          color: AppColors.primary,
+                          size: 20,
+                        ),
                       ),
-                    ),
-                  ],
+                      const Gap(12),
+                      Expanded(
+                        child: TextFormField(
+                          controller: controller,
+                          decoration: InputDecoration(
+                            labelText: 'Floor ${index + 1} Name',
+                            hintText: 'e.g. Ground Floor, 1st Floor',
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 14,
+                              vertical: 12,
+                            ),
+                          ),
+                        ),
+                      ),
+                      if (_floorControllers.length > 1) ...[
+                        const Gap(8),
+                        IconButton(
+                          icon: const Icon(Icons.remove_circle_outline),
+                          color: AppColors.error,
+                          tooltip: 'Remove Floor',
+                          onPressed: () => _removeFloor(index),
+                        ),
+                      ],
+                    ],
+                  ),
+                );
+              }),
+              const Gap(8),
+              OutlinedButton.icon(
+                onPressed: _addFloor,
+                icon: const Icon(Icons.add),
+                label: const Text('Add Another Floor'),
+                style: OutlinedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 12),
                 ),
               ),
-              const Gap(16),
+              const Gap(24),
               ElevatedButton(
                 onPressed: _isLoading ? null : _submit,
                 style: ElevatedButton.styleFrom(
@@ -242,68 +310,6 @@ By checking "I Agree" and proceeding, you acknowledge that you have read, unders
             ],
           ),
         ),
-      ),
-    );
-  }
-
-  Widget _buildTabContent(List<TableType> types) {
-    return ListView.separated(
-      itemCount: types.length,
-      separatorBuilder: (_, __) => const Gap(12),
-      itemBuilder: (context, index) {
-        final type = types[index];
-        return _buildTableConfigurator(type);
-      },
-    );
-  }
-
-  Widget _buildTableConfigurator(TableType type) {
-    final theme = Theme.of(context);
-    final count = _counts[type] ?? 0;
-
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surface,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: theme.colorScheme.outlineVariant),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(
-            type.displayName,
-            style: theme.textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          Row(
-            children: [
-              IconButton(
-                onPressed: () {
-                  if (count > 0) {
-                    setState(() => _counts[type] = count - 1);
-                  }
-                },
-                icon: const Icon(Icons.remove_circle_outline),
-                color: AppColors.error,
-              ),
-              Text(
-                '$count',
-                style: theme.textTheme.titleLarge?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              IconButton(
-                onPressed: () {
-                  setState(() => _counts[type] = count + 1);
-                },
-                icon: const Icon(Icons.add_circle_outline),
-                color: AppColors.success,
-              ),
-            ],
-          ),
-        ],
       ),
     );
   }

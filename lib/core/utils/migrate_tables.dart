@@ -50,8 +50,6 @@ Future<void> migrateTablesPricing(String clubId) async {
             'perMinute': globalPricing.snookerPerMinute,
             'halfHour': globalPricing.snookerHalfHour,
             'oneHour': globalPricing.snookerOneHour,
-            'racePerMinute': globalPricing.snookerRacePerMinute,
-            'rummyPerMinute': globalPricing.snookerRummyPerMinute,
           };
         } else if (type == TableType.indianPool) {
           pricing = {
@@ -59,7 +57,6 @@ Future<void> migrateTablesPricing(String clubId) async {
             'perMinute': globalPricing.indianPoolPerMinute,
             'halfHour': globalPricing.indianPoolHalfHour,
             'oneHour': globalPricing.indianPoolOneHour,
-            'racePerMinute': globalPricing.indianPoolRacePerMinute,
           };
         } else if (type == TableType.americanPool) {
           pricing = {
@@ -67,7 +64,6 @@ Future<void> migrateTablesPricing(String clubId) async {
             'perMinute': globalPricing.americanPoolPerMinute,
             'halfHour': globalPricing.americanPoolHalfHour,
             'oneHour': globalPricing.americanPoolOneHour,
-            'racePerMinute': globalPricing.americanPoolRacePerMinute,
           };
         }
 

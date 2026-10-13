@@ -157,7 +157,8 @@ class QuickSalesRepository {
     if (AppConfig.guardWrite('QuickSalesRepository.createQuickSale')) return;
     sale = _enrichWithStaff(sale, true);
     await _firestore.runTransaction((transaction) async {
-      // 1. Verify all stock before making changes
+      // 1. Verify all items before making changes
+      final Map<String, bool> isFoodMap = {};
       for (final item in sale.items) {
         final docRef = _inventoryRef.doc(item.productId);
         final snapshot = await transaction.get(docRef);
@@ -169,22 +170,41 @@ class QuickSalesRepository {
         }
 
         final data = snapshot.data() as Map<String, dynamic>?;
-        final currentStock = data?['currentStock'] as int? ?? 0;
-        if (currentStock < item.quantity) {
-          throw Exception(
-            'Insufficient stock for ${item.productName}. Available: $currentStock, Requested: ${item.quantity}',
-          );
+        final category = data?['category'] as String? ?? item.category;
+        final isFood = category.trim().toLowerCase() == 'food';
+        isFoodMap[item.productId] = isFood;
+
+        if (isFood) {
+          final isAvailable = data?['isAvailable'] as bool? ?? true;
+          if (!isAvailable) {
+            throw Exception(
+              'Food item ${item.productName} is currently unavailable.',
+            );
+          }
+        } else {
+          final currentStock = data?['currentStock'] as int? ?? 0;
+          if (currentStock < item.quantity) {
+            throw Exception(
+              'Insufficient stock for ${item.productName}. Available: $currentStock, Requested: ${item.quantity}',
+            );
+          }
         }
       }
 
       // 2. Perform updates
       for (final item in sale.items) {
         final docRef = _inventoryRef.doc(item.productId);
-        // Can safely use FieldValue.increment because we verified stock in this transaction block
-        transaction.update(docRef, {
-          'currentStock': FieldValue.increment(-item.quantity),
-          'totalSold': FieldValue.increment(item.quantity),
-        });
+        final isFood = isFoodMap[item.productId] ?? false;
+        if (isFood) {
+          transaction.update(docRef, {
+            'totalSold': FieldValue.increment(item.quantity),
+          });
+        } else {
+          transaction.update(docRef, {
+            'currentStock': FieldValue.increment(-item.quantity),
+            'totalSold': FieldValue.increment(item.quantity),
+          });
+        }
       }
 
       // 3. Save Quick Sale

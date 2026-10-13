@@ -10,6 +10,7 @@ class InventoryItem {
   final int totalPurchased;
   final int totalSold;
   final bool isActive;
+  final bool isAvailable;
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -23,6 +24,7 @@ class InventoryItem {
     this.totalPurchased = 0,
     this.totalSold = 0,
     this.isActive = true,
+    this.isAvailable = true,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -32,11 +34,13 @@ class InventoryItem {
   static int defaultInitialQuantity = 10;
   static bool enableLowStockAlerts = true;
 
+  bool get isFood => category.trim().toLowerCase() == 'food';
   bool get isLowStock =>
+      !isFood &&
       enableLowStockAlerts &&
       currentStock > 0 &&
       currentStock <= lowStockThreshold;
-  bool get isOutOfStock => currentStock <= 0;
+  bool get isOutOfStock => isFood ? !isAvailable : currentStock <= 0;
 
   InventoryItem copyWith({
     String? id,
@@ -48,6 +52,7 @@ class InventoryItem {
     int? totalPurchased,
     int? totalSold,
     bool? isActive,
+    bool? isAvailable,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) {
@@ -61,6 +66,7 @@ class InventoryItem {
       totalPurchased: totalPurchased ?? this.totalPurchased,
       totalSold: totalSold ?? this.totalSold,
       isActive: isActive ?? this.isActive,
+      isAvailable: isAvailable ?? this.isAvailable,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );
@@ -76,6 +82,7 @@ class InventoryItem {
       'totalPurchased': totalPurchased,
       'totalSold': totalSold,
       'isActive': isActive,
+      'isAvailable': isAvailable,
       'createdAt': Timestamp.fromDate(createdAt),
       'updatedAt': Timestamp.fromDate(updatedAt),
     };
@@ -92,6 +99,7 @@ class InventoryItem {
       totalPurchased: map['totalPurchased'] as int? ?? 0,
       totalSold: map['totalSold'] as int? ?? 0,
       isActive: map['isActive'] as bool? ?? true,
+      isAvailable: map['isAvailable'] as bool? ?? true,
       createdAt: (map['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
       updatedAt: (map['updatedAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
     );

@@ -774,6 +774,11 @@ class GameSession {
   final DateTime? alarmTime;
   final String? alarmSetByUserId;
   final List<WaitlistPlayer> waitlistPlayers;
+  final String? appliedOfferId;
+  final String? appliedOfferName;
+  final String? appliedOfferCode;
+  final double? appliedOfferPrice;
+  final double? standardPrice;
 
   const GameSession({
     this.createdByUserId,
@@ -856,6 +861,11 @@ class GameSession {
     this.alarmTime,
     this.alarmSetByUserId,
     this.waitlistPlayers = const [],
+    this.appliedOfferId,
+    this.appliedOfferName,
+    this.appliedOfferCode,
+    this.appliedOfferPrice,
+    this.standardPrice,
   });
 
   /// All players involved (team A + team B)
@@ -988,6 +998,11 @@ class GameSession {
     DateTime? alarmTime,
     String? alarmSetByUserId,
     List<WaitlistPlayer>? waitlistPlayers,
+    String? appliedOfferId,
+    String? appliedOfferName,
+    String? appliedOfferCode,
+    double? appliedOfferPrice,
+    double? standardPrice,
   }) {
     return GameSession(
       createdByUserId: createdByUserId ?? this.createdByUserId,
@@ -1072,6 +1087,11 @@ class GameSession {
       alarmTime: alarmTime ?? this.alarmTime,
       alarmSetByUserId: alarmSetByUserId ?? this.alarmSetByUserId,
       waitlistPlayers: waitlistPlayers ?? this.waitlistPlayers,
+      appliedOfferId: appliedOfferId ?? this.appliedOfferId,
+      appliedOfferName: appliedOfferName ?? this.appliedOfferName,
+      appliedOfferCode: appliedOfferCode ?? this.appliedOfferCode,
+      appliedOfferPrice: appliedOfferPrice ?? this.appliedOfferPrice,
+      standardPrice: standardPrice ?? this.standardPrice,
     );
   }
 
@@ -1163,6 +1183,11 @@ class GameSession {
       'alarmTime': alarmTime != null ? Timestamp.fromDate(alarmTime!) : null,
       'alarmSetByUserId': alarmSetByUserId,
       'waitlistPlayers': waitlistPlayers.map((p) => p.toMap()).toList(),
+      'appliedOfferId': appliedOfferId,
+      'appliedOfferName': appliedOfferName,
+      'appliedOfferCode': appliedOfferCode,
+      'appliedOfferPrice': appliedOfferPrice,
+      'standardPrice': standardPrice,
     };
   }
 
@@ -1348,6 +1373,11 @@ class GameSession {
               ?.map((p) => WaitlistPlayer.fromMap(Map<String, dynamic>.from(p)))
               .toList() ??
           const [],
+      appliedOfferId: map['appliedOfferId'] as String?,
+      appliedOfferName: map['appliedOfferName'] as String?,
+      appliedOfferCode: map['appliedOfferCode'] as String?,
+      appliedOfferPrice: (map['appliedOfferPrice'] as num?)?.toDouble(),
+      standardPrice: (map['standardPrice'] as num?)?.toDouble(),
     );
   }
 }

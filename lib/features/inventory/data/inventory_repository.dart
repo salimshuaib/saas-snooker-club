@@ -110,6 +110,14 @@ class InventoryRepository {
     await _inventoryRef.doc(id).update({'isActive': false});
   }
 
+  Future<void> toggleAvailability(String id, bool isAvailable) async {
+    if (AppConfig.guardWrite('InventoryRepository.toggleAvailability')) return;
+    await _inventoryRef.doc(id).update({
+      'isAvailable': isAvailable,
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
+  }
+
   Future<void> addStock({
     required InventoryItem item,
     required int quantityAdded,

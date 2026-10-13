@@ -25,6 +25,8 @@ import 'package:snooker_club/features/games/presentation/widgets/upi_qr_dialog.d
 import 'package:snooker_club/features/games/presentation/widgets/audit_log_sheet.dart';
 import 'package:snooker_club/features/games/presentation/widgets/orders_sheet.dart';
 import 'package:snooker_club/features/games/presentation/widgets/payment_complete_modal.dart';
+import 'package:snooker_club/features/happy_hour/domain/models/happy_hour_offer.dart';
+import 'package:snooker_club/features/happy_hour/presentation/widgets/offer_selection_sheet.dart';
 
 class BillingScreen extends ConsumerStatefulWidget {
   final GameSession session;
@@ -65,6 +67,8 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
   bool _liabilitiesInitialized = false;
   bool _applyOvertimeCharges = false;
   double? _manualSelectedFinalAmount;
+  HappyHourOffer? _appliedOffer;
+  double? _standardPriceBeforeOffer;
 
   @override
   void initState() {
@@ -76,6 +80,26 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
     _discountAmount = _session.discountAmount ?? 0.0;
     _currentGameDiscountAmount = _session.currentGameDiscountAmount ?? 0.0;
     _hasDiscount = _discountAmount > 0;
+
+    if (_session.appliedOfferId != null) {
+      _appliedOffer = HappyHourOffer(
+        id: _session.appliedOfferId!,
+        name: _session.appliedOfferName ?? 'Happy Hour',
+        code: _session.appliedOfferCode ?? '',
+        isActive: true,
+        startDate: DateTime.now(),
+        endDate: DateTime.now(),
+        dailyStartTime: '',
+        dailyEndTime: '',
+        gameOffers: {
+          _session.tableId: _session.appliedOfferPrice ?? 0.0,
+        },
+        createdAt: DateTime.now(),
+        createdByUserId: '',
+        createdByName: '',
+      );
+      _standardPriceBeforeOffer = _session.standardPrice;
+    }
 
     _discountController = TextEditingController(
       text: _discountAmount == 0 ? '' : _discountAmount.toStringAsFixed(0),
@@ -761,6 +785,12 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
       ),
     );
 
+    double? effectiveCustomPrice = _session.customPrice;
+    if (_appliedOffer != null) {
+      effectiveCustomPrice = _appliedOffer!.gameOffers[_session.tableId] ??
+          _appliedOffer!.gameOffers.values.firstOrNull;
+    }
+
     return TablePricingConfig.calculateCharge(
       table: table,
       gameType: _session.gameType,
@@ -770,13 +800,13 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
       pricingConfig: _session.pricingSnapshot ?? appSettings.pricing,
       gameConfig: _session.gameSettingsSnapshot ?? appSettings.game,
       completedRounds: _session.rounds,
-      customPrice: _session.customPrice,
+      customPrice: effectiveCustomPrice,
       customExtraCharge: _session.customExtraCharge,
       playersCount: math.max(_session.allPlayers.length, _session.playerIds.length),
       coinQuantity: _session.coinQuantity,
       customMinutes: _session.customMinutes,
-      isMinimumBillEnabled: _session.isMinimumBillEnabled,
-      minimumBillAmount: _session.minimumBillAmount,
+      isMinimumBillEnabled: _appliedOffer == null && _session.isMinimumBillEnabled,
+      minimumBillAmount: _appliedOffer == null ? _session.minimumBillAmount : 0.0,
     );
   }
 
@@ -863,6 +893,15 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
       }
       // If not yet selected, the authoritative calculated amount is the unrounded total.
       // Make sure minimum bill applies first.
+      return _finalTotal;
+    }
+
+    // Exact Happy Hour price rule: preserve exact promotional figure (e.g. ₹99)
+    if (_appliedOffer != null &&
+        _ordersTotal == 0 &&
+        _manualGamesSubtotal == 0 &&
+        _appliedBillDiscountAmount == 0 &&
+        _appliedCurrentGameDiscountAmount == 0) {
       return _finalTotal;
     }
 
@@ -1314,6 +1353,10 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
                       ],
                     ),
                   ],
+
+                  // ── Happy Hour Offers ──
+                  const Gap(16),
+                  _buildOffersSection(theme),
 
                   // ── Discount ──
                   const Gap(16),
@@ -2502,6 +2545,23 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
       ),
     );
 
+    if (_appliedOffer != null) {
+      final promoVal = _appliedOffer!.gameOffers[_session.tableId] ?? 0.0;
+      updatedLogs.add(
+        AuditLog(
+          id: '${DateTime.now().millisecondsSinceEpoch}_happyhour',
+          editedBy: staffName,
+          timestamp: DateTime.now(),
+          field: 'Happy Hour Offer Applied',
+          previousValue: _standardPriceBeforeOffer != null
+              ? '₹${_standardPriceBeforeOffer!.toStringAsFixed(2)}'
+              : '-',
+          newValue:
+              '${_appliedOffer!.name} (${_appliedOffer!.code}) — ₹${promoVal.toStringAsFixed(2)}',
+        ),
+      );
+    }
+
     final finalSession = _session.copyWith(
       endTime: finalEndTime,
       auditLogs: updatedLogs,
@@ -2523,6 +2583,11 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
       roundedAmount: _roundedTotal,
       finalAmount: _roundedTotal,
       manualSelectedFinalAmount: _manualSelectedFinalAmount,
+      appliedOfferId: _appliedOffer?.id,
+      appliedOfferName: _appliedOffer?.name,
+      appliedOfferCode: _appliedOffer?.code,
+      appliedOfferPrice: _appliedOffer?.gameOffers[_session.tableId],
+      standardPrice: _standardPriceBeforeOffer,
       discountAmount: _appliedBillDiscountAmount,
       currentGameDiscountAmount: _appliedCurrentGameDiscountAmount,
       date: finalDate,
@@ -2567,6 +2632,153 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
     if (mounted) {
       setState(() => _isProcessing = false);
     }
+  }
+
+  Widget _buildOffersSection(ThemeData theme) {
+    if (_appliedOffer != null) {
+      final promoPrice =
+          _appliedOffer!.gameOffers[_session.tableId] ?? 0.0;
+      return Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: Colors.deepOrangeAccent.withOpacity(0.12),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: Colors.deepOrangeAccent.withOpacity(0.4),
+          ),
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.deepOrangeAccent.withOpacity(0.2),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Icon(
+                Icons.local_offer,
+                color: Colors.deepOrangeAccent,
+                size: 20,
+              ),
+            ),
+            const Gap(12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Text(
+                        _appliedOffer!.name,
+                        style: theme.textTheme.titleSmall?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const Gap(6),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 6,
+                          vertical: 2,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.deepOrangeAccent.withOpacity(0.2),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Text(
+                          _appliedOffer!.code,
+                          style: const TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.deepOrangeAccent,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const Gap(2),
+                  Text(
+                    'Promo Rate: ₹${promoPrice.toStringAsFixed(2)}${_standardPriceBeforeOffer != null ? " (Standard: ₹${_standardPriceBeforeOffer!.toStringAsFixed(2)})" : ""}',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            IconButton(
+              icon: const Icon(Icons.close, size: 20, color: AppColors.error),
+              tooltip: 'Remove Offer',
+              onPressed: () {
+                setState(() {
+                  _appliedOffer = null;
+                  _standardPriceBeforeOffer = null;
+                  _initializeLiabilities();
+                });
+              },
+            ),
+          ],
+        ),
+      );
+    }
+
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Row(
+          children: [
+            const Icon(
+              Icons.local_offer_outlined,
+              size: 20,
+              color: Colors.deepOrangeAccent,
+            ),
+            const Gap(8),
+            Text(
+              'Happy Hour Offer',
+              style: theme.textTheme.titleSmall,
+            ),
+          ],
+        ),
+        OutlinedButton.icon(
+          onPressed: () async {
+            final result = await showModalBottomSheet<dynamic>(
+              context: context,
+              isScrollControlled: true,
+              backgroundColor: Colors.transparent,
+              builder: (ctx) => OfferSelectionSheet(
+                tableId: _session.tableId,
+                tableName: _session.tableName,
+                currentOffer: _appliedOffer,
+                currentStandardCharge:
+                    _standardPriceBeforeOffer ?? _baseGameCharge,
+              ),
+            );
+
+            if (result != null) {
+              if (result is HappyHourOffer) {
+                setState(() {
+                  _standardPriceBeforeOffer ??= _baseGameCharge;
+                  _appliedOffer = result;
+                  _initializeLiabilities();
+                });
+              } else if (result == false) {
+                setState(() {
+                  _appliedOffer = null;
+                  _standardPriceBeforeOffer = null;
+                  _initializeLiabilities();
+                });
+              }
+            }
+          },
+          icon: const Icon(Icons.loyalty, size: 16),
+          label: const Text('Offers'),
+          style: OutlinedButton.styleFrom(
+            foregroundColor: Colors.deepOrangeAccent,
+            side: const BorderSide(color: Colors.deepOrangeAccent),
+            visualDensity: VisualDensity.compact,
+          ),
+        ),
+      ],
+    );
   }
 }
 

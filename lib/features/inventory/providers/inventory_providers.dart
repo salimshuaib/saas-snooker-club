@@ -47,10 +47,11 @@ final inventoryStatsProvider = Provider<Map<String, dynamic>>((ref) {
   return itemsAsync.when(
     data: (items) {
       int totalProducts = items.length;
-      int lowStockCount = items.where((i) => i.isLowStock).length;
-      int outOfStockCount = items.where((i) => i.isOutOfStock).length;
-      int totalStockItems = items.fold(0, (sum, i) => sum + i.currentStock);
-      double inventoryValue = items.fold(
+      final stockItems = items.where((i) => !i.isFood).toList();
+      int lowStockCount = stockItems.where((i) => i.isLowStock).length;
+      int outOfStockCount = stockItems.where((i) => i.isOutOfStock).length;
+      int totalStockItems = stockItems.fold(0, (sum, i) => sum + i.currentStock);
+      double inventoryValue = stockItems.fold(
         0.0,
         (sum, i) => sum + (i.currentStock * i.purchasePrice),
       );

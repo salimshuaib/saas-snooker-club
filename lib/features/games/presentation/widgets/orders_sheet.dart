@@ -395,19 +395,28 @@ class _ProductTile extends StatelessWidget {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
               decoration: BoxDecoration(
-                color:
-                    (product.currentStock > 5
+                color: (product.isFood
+                        ? (product.isAvailable
                             ? AppColors.available
-                            : AppColors.warning)
-                        .withValues(alpha: 0.15),
+                            : AppColors.error)
+                        : (product.currentStock > 5
+                            ? AppColors.available
+                            : AppColors.warning))
+                    .withValues(alpha: 0.15),
                 borderRadius: BorderRadius.circular(6),
               ),
               child: Text(
-                'Stock: ${product.currentStock}',
+                product.isFood
+                    ? (product.isAvailable ? 'Available' : 'Unavailable')
+                    : 'Stock: ${product.currentStock}',
                 style: TextStyle(
-                  color: product.currentStock > 5
-                      ? AppColors.available
-                      : AppColors.warning,
+                  color: product.isFood
+                      ? (product.isAvailable
+                          ? AppColors.available
+                          : AppColors.error)
+                      : (product.currentStock > 5
+                          ? AppColors.available
+                          : AppColors.warning),
                   fontSize: 11,
                   fontWeight: FontWeight.w700,
                 ),
@@ -416,21 +425,51 @@ class _ProductTile extends StatelessWidget {
           ],
         ),
         trailing: currentQty == 0
-            ? FilledButton.tonal(
-                onPressed: () => _addItem(context, 1),
-                style: FilledButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 14,
-                    vertical: 6,
-                  ),
-                  minimumSize: Size.zero,
-                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                ),
-                child: const Text(
-                  'Add',
-                  style: TextStyle(fontWeight: FontWeight.bold),
-                ),
-              )
+            ? (product.isFood && !product.isAvailable)
+                ? FilledButton.tonal(
+                    onPressed: () {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content:
+                              Text('This food item is currently unavailable'),
+                          backgroundColor: AppColors.error,
+                        ),
+                      );
+                    },
+                    style: FilledButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 6,
+                      ),
+                      minimumSize: Size.zero,
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      backgroundColor:
+                          theme.colorScheme.surfaceContainerHighest,
+                    ),
+                    child: Text(
+                      'Unavailable',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: theme.colorScheme.onSurfaceVariant
+                            .withValues(alpha: 0.5),
+                      ),
+                    ),
+                  )
+                : FilledButton.tonal(
+                    onPressed: () => _addItem(context, 1),
+                    style: FilledButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 6,
+                      ),
+                      minimumSize: Size.zero,
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    ),
+                    child: const Text(
+                      'Add',
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                  )
             : Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -464,19 +503,31 @@ class _ProductTile extends StatelessWidget {
 
   void _addItem(BuildContext context, int delta) {
     if (delta > 0) {
-      final totalOrdered = orders
-          .where((o) => o.productId == product.id)
-          .fold<int>(0, (sum, o) => sum + o.quantity);
-      if (totalOrdered + delta > product.currentStock) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              'Not enough stock available (Current stock: ${product.currentStock})',
+      if (product.isFood) {
+        if (!product.isAvailable) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('This food item is currently unavailable'),
+              backgroundColor: AppColors.error,
             ),
-            backgroundColor: AppColors.error,
-          ),
-        );
-        return;
+          );
+          return;
+        }
+      } else {
+        final totalOrdered = orders
+            .where((o) => o.productId == product.id)
+            .fold<int>(0, (sum, o) => sum + o.quantity);
+        if (totalOrdered + delta > product.currentStock) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                'Not enough stock available (Current stock: ${product.currentStock})',
+              ),
+              backgroundColor: AppColors.error,
+            ),
+          );
+          return;
+        }
       }
     }
 

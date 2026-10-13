@@ -44,10 +44,22 @@ class _NewQuickSaleScreenState extends ConsumerState<NewQuickSaleScreen> {
     String productId,
     int availableStock, [
     VoidCallback? onModalUpdate,
+    bool isFood = false,
+    bool isAvailable = true,
   ]) {
+    if (isFood && !isAvailable) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('This food item is currently unavailable'),
+          backgroundColor: AppColors.error,
+        ),
+      );
+      return;
+    }
+
     setState(() {
       final current = _cart[productId] ?? 0;
-      if (current < availableStock) {
+      if (isFood || current < availableStock) {
         _cart[productId] = current + 1;
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -420,7 +432,13 @@ class _NewQuickSaleScreenState extends ConsumerState<NewQuickSaleScreen> {
             final isLowStock = item.currentStock <= 5;
 
             return InkWell(
-              onTap: () => _addToCart(item.id, item.currentStock),
+              onTap: () => _addToCart(
+                item.id,
+                item.currentStock,
+                null,
+                item.isFood,
+                item.isAvailable,
+              ),
               borderRadius: BorderRadius.circular(14),
               child: Container(
                 padding: const EdgeInsets.symmetric(
@@ -451,9 +469,11 @@ class _NewQuickSaleScreenState extends ConsumerState<NewQuickSaleScreen> {
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Icon(
-                        item.category == 'Drinks'
-                            ? Icons.local_drink
-                            : Icons.smoking_rooms,
+                        item.isFood
+                            ? Icons.restaurant
+                            : (item.category == 'Drinks'
+                                ? Icons.local_drink
+                                : Icons.smoking_rooms),
                         size: 22,
                         color: theme.colorScheme.primary,
                       ),
@@ -480,21 +500,32 @@ class _NewQuickSaleScreenState extends ConsumerState<NewQuickSaleScreen> {
                                   vertical: 2,
                                 ),
                                 decoration: BoxDecoration(
-                                  color: isLowStock
-                                      ? AppColors.warning.withValues(
-                                          alpha: 0.15,
-                                        )
-                                      : AppColors.available.withValues(
-                                          alpha: 0.15,
-                                        ),
+                                  color: (item.isFood
+                                          ? (item.isAvailable
+                                              ? AppColors.available
+                                              : AppColors.error)
+                                          : (isLowStock
+                                              ? AppColors.warning
+                                              : AppColors.available))
+                                      .withValues(
+                                        alpha: 0.15,
+                                      ),
                                   borderRadius: BorderRadius.circular(6),
                                 ),
                                 child: Text(
-                                  '${item.currentStock} in stock',
+                                  item.isFood
+                                      ? (item.isAvailable
+                                          ? 'Available'
+                                          : 'Unavailable')
+                                      : '${item.currentStock} in stock',
                                   style: TextStyle(
-                                    color: isLowStock
-                                        ? AppColors.warning
-                                        : AppColors.available,
+                                    color: item.isFood
+                                        ? (item.isAvailable
+                                            ? AppColors.available
+                                            : AppColors.error)
+                                        : (isLowStock
+                                            ? AppColors.warning
+                                            : AppColors.available),
                                     fontSize: 11,
                                     fontWeight: FontWeight.w700,
                                   ),
@@ -552,8 +583,13 @@ class _NewQuickSaleScreenState extends ConsumerState<NewQuickSaleScreen> {
                                 ),
                               ),
                               InkWell(
-                                onTap: () =>
-                                    _addToCart(item.id, item.currentStock),
+                                onTap: () => _addToCart(
+                                  item.id,
+                                  item.currentStock,
+                                  null,
+                                  item.isFood,
+                                  item.isAvailable,
+                                ),
                                 borderRadius: BorderRadius.circular(14),
                                 child: Container(
                                   padding: const EdgeInsets.all(4),
@@ -921,6 +957,8 @@ class _NewQuickSaleScreenState extends ConsumerState<NewQuickSaleScreen> {
                                     productId,
                                     product.currentStock,
                                     onModalUpdate,
+                                    product.isFood,
+                                    product.isAvailable,
                                   ),
                                   borderRadius: BorderRadius.circular(20),
                                   child: Container(

@@ -1,4 +1,5 @@
 import 'package:snooker_club/features/settings/presentation/screens/resource_management_screen.dart';
+import 'package:snooker_club/features/happy_hour/presentation/screens/happy_hour_management_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -106,6 +107,45 @@ class SettingsScreen extends ConsumerWidget {
                   },
                   icon: const Icon(Icons.settings_suggest),
                   label: const Text('Manage Games & Tables'),
+                ),
+              ),
+              const Gap(8),
+            ],
+          ),
+
+          // Happy Hour Promotions
+          SettingsSectionCard(
+            title: 'Happy Hour Promotions',
+            icon: Icons.local_offer,
+            iconColor: Colors.deepOrangeAccent,
+            children: [
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 4),
+                child: Text(
+                  'Configure promotional pricing, time windows, and active deals:',
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ),
+              const Gap(16),
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton.icon(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const HappyHourManagementScreen(),
+                      ),
+                    );
+                  },
+                  icon: const Icon(Icons.loyalty),
+                  label: const Text('Manage Happy Hour Offers'),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: Colors.deepOrangeAccent,
+                    foregroundColor: Colors.white,
+                  ),
                 ),
               ),
               const Gap(8),

@@ -24,8 +24,17 @@ class _AddProductSheetState extends ConsumerState<AddProductSheet> {
   late TextEditingController _initialStockController;
   String _category = 'Drinks';
   bool _isProcessing = false;
+  late bool _isAvailable;
 
-  final List<String> _categories = ['Drinks', 'Cigarettes', 'Snacks', 'Other'];
+  final List<String> _categories = [
+    'Drinks',
+    'Food',
+    'Cigarettes',
+    'Snacks',
+    'Other',
+  ];
+
+  bool get _isFoodCategory => _category.trim().toLowerCase() == 'food';
 
   @override
   void initState() {
@@ -43,6 +52,7 @@ class _AddProductSheetState extends ConsumerState<AddProductSheet> {
           InventoryItem.defaultInitialQuantity.toString(),
     );
     _category = widget.initialItem?.category ?? 'Drinks';
+    _isAvailable = widget.initialItem?.isAvailable ?? true;
   }
 
   @override
@@ -61,18 +71,26 @@ class _AddProductSheetState extends ConsumerState<AddProductSheet> {
 
     try {
       final repo = ref.read(inventoryRepositoryProvider);
+      final isFood = _isFoodCategory;
       final item = InventoryItem(
         id: widget.initialItem?.id ?? '',
         name: _nameController.text.trim(),
         category: _category,
         sellingPrice: double.tryParse(_sellingPriceController.text) ?? 0,
-        purchasePrice: double.tryParse(_purchasePriceController.text) ?? 0,
-        currentStock: widget.initialItem != null
-            ? widget.initialItem!.currentStock
-            : (int.tryParse(_initialStockController.text) ?? 0),
-        totalPurchased: widget.initialItem?.totalPurchased ?? 0,
+        purchasePrice: isFood
+            ? 0.0
+            : (double.tryParse(_purchasePriceController.text) ?? 0),
+        currentStock: isFood
+            ? 0
+            : (widget.initialItem != null
+                ? widget.initialItem!.currentStock
+                : (int.tryParse(_initialStockController.text) ?? 0)),
+        totalPurchased: isFood ? 0 : (widget.initialItem?.totalPurchased ?? 0),
         totalSold: widget.initialItem?.totalSold ?? 0,
         isActive: widget.initialItem?.isActive ?? true,
+        isAvailable: isFood
+            ? _isAvailable
+            : (widget.initialItem?.isAvailable ?? true),
         createdAt: widget.initialItem?.createdAt ?? DateTime.now(),
         updatedAt: DateTime.now(),
       );
@@ -145,7 +163,9 @@ class _AddProductSheetState extends ConsumerState<AddProductSheet> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                isEdit ? 'Edit Product' : 'Add New Product',
+                isEdit
+                    ? (_isFoodCategory ? 'Edit Food Item' : 'Edit Product')
+                    : (_isFoodCategory ? 'Add Food Item' : 'Add New Product'),
                 style: theme.textTheme.titleLarge?.copyWith(
                   fontWeight: FontWeight.w700,
                 ),
@@ -171,52 +191,111 @@ class _AddProductSheetState extends ConsumerState<AddProductSheet> {
               ),
               const Gap(16),
 
-              Row(
-                children: [
-                  Expanded(
-                    child: AppTextField(
-                      label: 'Selling Price (₹)',
-                      controller: _sellingPriceController,
-                      keyboardType: TextInputType.number,
-                      validator: (v) {
-                        if (v == null || v.isEmpty) return 'Required';
-                        final val = double.tryParse(v);
-                        if (val == null || val < 0) return 'Invalid';
-                        return null;
-                      },
-                    ),
-                  ),
-                  const Gap(16),
-                  Expanded(
-                    child: AppTextField(
-                      label: 'Purchase Price (₹)',
-                      controller: _purchasePriceController,
-                      keyboardType: TextInputType.number,
-                      validator: (v) {
-                        if (v == null || v.isEmpty) return 'Required';
-                        final val = double.tryParse(v);
-                        if (val == null || val < 0) return 'Invalid';
-                        return null;
-                      },
-                    ),
-                  ),
-                ],
-              ),
-              const Gap(16),
-
-              if (!isEdit) ...[
+              if (_isFoodCategory) ...[
                 AppTextField(
-                  label: 'Initial Quantity',
-                  controller: _initialStockController,
+                  label: 'Selling Price (₹)',
+                  controller: _sellingPriceController,
                   keyboardType: TextInputType.number,
                   validator: (v) {
                     if (v == null || v.isEmpty) return 'Required';
-                    final val = int.tryParse(v);
+                    final val = double.tryParse(v);
                     if (val == null || val < 0) return 'Invalid';
                     return null;
                   },
                 ),
+                const Gap(16),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 10,
+                  ),
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.surfaceContainerHighest
+                        .withValues(alpha: 0.4),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: theme.colorScheme.outlineVariant,
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Available for Orders',
+                              style: theme.textTheme.bodyMedium?.copyWith(
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            Text(
+                              _isAvailable
+                                  ? 'Item will show as available on running tables'
+                                  : 'Item will show as unavailable',
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                color: theme.colorScheme.onSurfaceVariant,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Switch(
+                        value: _isAvailable,
+                        onChanged: (val) => setState(() => _isAvailable = val),
+                      ),
+                    ],
+                  ),
+                ),
                 const Gap(24),
+              ] else ...[
+                Row(
+                  children: [
+                    Expanded(
+                      child: AppTextField(
+                        label: 'Selling Price (₹)',
+                        controller: _sellingPriceController,
+                        keyboardType: TextInputType.number,
+                        validator: (v) {
+                          if (v == null || v.isEmpty) return 'Required';
+                          final val = double.tryParse(v);
+                          if (val == null || val < 0) return 'Invalid';
+                          return null;
+                        },
+                      ),
+                    ),
+                    const Gap(16),
+                    Expanded(
+                      child: AppTextField(
+                        label: 'Purchase Price (₹)',
+                        controller: _purchasePriceController,
+                        keyboardType: TextInputType.number,
+                        validator: (v) {
+                          if (v == null || v.isEmpty) return 'Required';
+                          final val = double.tryParse(v);
+                          if (val == null || val < 0) return 'Invalid';
+                          return null;
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+                const Gap(16),
+                if (!isEdit) ...[
+                  AppTextField(
+                    label: 'Initial Quantity',
+                    controller: _initialStockController,
+                    keyboardType: TextInputType.number,
+                    validator: (v) {
+                      if (v == null || v.isEmpty) return 'Required';
+                      final val = int.tryParse(v);
+                      if (val == null || val < 0) return 'Invalid';
+                      return null;
+                    },
+                  ),
+                  const Gap(24),
+                ],
               ],
 
               SizedBox(
@@ -232,7 +311,13 @@ class _AddProductSheetState extends ConsumerState<AddProductSheet> {
                           width: 20,
                           child: CircularProgressIndicator(strokeWidth: 2),
                         )
-                      : Text(isEdit ? 'Save Changes' : 'Add Product'),
+                      : Text(
+                          isEdit
+                              ? 'Save Changes'
+                              : (_isFoodCategory
+                                  ? 'Add Food Item'
+                                  : 'Add Product'),
+                        ),
                 ),
               ),
             ],
