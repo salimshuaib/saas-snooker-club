@@ -500,6 +500,7 @@ class TablePricingConfig {
     int? customMinutes,
     bool isMinimumBillEnabled = false,
     double minimumBillAmount = 0.0,
+    bool? isOvertimeEnabled,
   }) {
     final tableType = table.type;
 
@@ -550,7 +551,8 @@ class TablePricingConfig {
           getPerMinutePrice(table, gameType, pricingConfig) / 60.0;
     }
 
-    final bool overtimeEnabled = gameConfig.enableOvertimeBilling;
+    final bool overtimeEnabled =
+        isOvertimeEnabled ?? gameConfig.enableOvertimeBilling;
 
     GameChargeBreakdown rawBreakdown;
     switch (billingType) {

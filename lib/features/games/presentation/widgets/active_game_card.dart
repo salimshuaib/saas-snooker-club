@@ -107,6 +107,7 @@ class _ActiveGameCardState extends ConsumerState<ActiveGameCard> {
                   customMinutes: game.customMinutes,
                   isMinimumBillEnabled: game.isMinimumBillEnabled,
                   minimumBillAmount: game.minimumBillAmount,
+                  isOvertimeEnabled: game.isOvertimeEnabled,
                 );
                 final h = (seconds ~/ 3600).toString().padLeft(2, '0');
                 final m = ((seconds % 3600) ~/ 60).toString().padLeft(2, '0');
@@ -169,6 +170,42 @@ class _ActiveGameCardState extends ConsumerState<ActiveGameCard> {
                               ],
                             ),
                           ),
+                          if (game.isPrepaid) ...[
+                            const Gap(8),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 4,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.amber.withValues(alpha: 0.15),
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(
+                                  color: Colors.amber.shade700,
+                                  width: 1,
+                                ),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    Icons.verified,
+                                    size: 13,
+                                    color: Colors.amber.shade700,
+                                  ),
+                                  const Gap(4),
+                                  Text(
+                                    'PREPAID ₹${game.prepaidAmount.toStringAsFixed(0)}',
+                                    style: theme.textTheme.labelSmall?.copyWith(
+                                      color: Colors.amber.shade900,
+                                      fontWeight: FontWeight.w800,
+                                      letterSpacing: 0.3,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
                           const Gap(8),
                           _BellIcon(
                             gameId: game.id,
@@ -220,6 +257,81 @@ class _ActiveGameCardState extends ConsumerState<ActiveGameCard> {
                                   ),
                                 ),
                               ),
+                              if (game.isPrepaid &&
+                                  game.prepaidDurationMinutes != null) ...[
+                                Builder(
+                                  builder: (context) {
+                                    final totalAllowedSeconds =
+                                        game.prepaidDurationMinutes! * 60;
+                                    final diffSeconds =
+                                        totalAllowedSeconds - seconds;
+                                    if (diffSeconds > 0) {
+                                      final rm = (diffSeconds ~/ 60)
+                                          .toString()
+                                          .padLeft(2, '0');
+                                      final rs = (diffSeconds % 60)
+                                          .toString()
+                                          .padLeft(2, '0');
+                                      return Padding(
+                                        padding: const EdgeInsets.only(top: 4),
+                                        child: Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            const Icon(
+                                              Icons.hourglass_bottom,
+                                              size: 14,
+                                              color: AppColors.primary,
+                                            ),
+                                            const Gap(4),
+                                            Text(
+                                              'Left: $rm:$rs / ${game.prepaidDurationMinutes}m',
+                                              style: theme.textTheme.labelMedium
+                                                  ?.copyWith(
+                                                color: AppColors.primary,
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      );
+                                    } else {
+                                      final overSecs = -diffSeconds;
+                                      final om = (overSecs ~/ 60)
+                                          .toString()
+                                          .padLeft(2, '0');
+                                      final os = (overSecs % 60)
+                                          .toString()
+                                          .padLeft(2, '0');
+                                      return Padding(
+                                        padding: const EdgeInsets.only(top: 4),
+                                        child: Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            Icon(
+                                              Icons.warning_amber_rounded,
+                                              size: 14,
+                                              color: game.isOvertimeEnabled
+                                                  ? AppColors.warning
+                                                  : theme.colorScheme.onSurfaceVariant,
+                                            ),
+                                            const Gap(4),
+                                            Text(
+                                              'Overtime: +$om:$os${game.isOvertimeEnabled ? "" : " (No Charge)"}',
+                                              style: theme.textTheme.labelMedium
+                                                  ?.copyWith(
+                                                color: game.isOvertimeEnabled
+                                                    ? AppColors.warning
+                                                    : theme.colorScheme.onSurfaceVariant,
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      );
+                                    }
+                                  },
+                                ),
+                              ],
                               Builder(
                                 builder: (context) {
                                   String displayStr =
@@ -316,6 +428,60 @@ class _ActiveGameCardState extends ConsumerState<ActiveGameCard> {
                         label:
                             'Frame ${game.framesPlayed + 1}/${game.totalFrames}',
                       ),
+                    if (game.isPrepaid) ...[
+                      InkWell(
+                        onTap: () {
+                          ref
+                              .read(gamesRepositoryProvider)
+                              .toggleOvertimeBilling(
+                                game.id,
+                                !game.isOvertimeEnabled,
+                              );
+                        },
+                        borderRadius: BorderRadius.circular(8),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 4,
+                          ),
+                          decoration: BoxDecoration(
+                            color: game.isOvertimeEnabled
+                                ? AppColors.warning.withValues(alpha: 0.15)
+                                : theme.colorScheme.surfaceContainerHighest,
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(
+                              color: game.isOvertimeEnabled
+                                  ? AppColors.warning
+                                  : theme.dividerColor.withValues(alpha: 0.2),
+                            ),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                game.isOvertimeEnabled
+                                    ? Icons.alarm_on
+                                    : Icons.alarm_off,
+                                size: 14,
+                                color: game.isOvertimeEnabled
+                                    ? AppColors.warning
+                                    : theme.colorScheme.onSurfaceVariant,
+                              ),
+                              const Gap(4),
+                              Text(
+                                'Overtime: ${game.isOvertimeEnabled ? "ON" : "OFF"}',
+                                style: theme.textTheme.labelSmall?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                  color: game.isOvertimeEnabled
+                                      ? AppColors.warning
+                                      : theme.colorScheme.onSurfaceVariant,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
                   ],
                 ),
                 const Gap(12),

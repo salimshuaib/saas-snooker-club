@@ -36,6 +36,8 @@ class ReceiptData {
   final double roundingAmount;
   final double amountDue;
   final bool isPaid;
+  final double? prepaidAmount;
+  final double? settlementAmount;
 
   const ReceiptData({
     required this.invoiceNumber,
@@ -54,6 +56,8 @@ class ReceiptData {
     this.roundingAmount = 0.0,
     required this.amountDue,
     this.isPaid = true,
+    this.prepaidAmount,
+    this.settlementAmount,
   });
 
   factory ReceiptData.fromGameSession(
@@ -131,6 +135,16 @@ class ReceiptData {
       ));
     }
 
+    final double prepaid = (session.isPrepaid && session.prepaidAmount > 0)
+        ? session.prepaidAmount
+        : 0.0;
+    if (prepaid > 0) {
+      items.add(ReceiptLineItem(
+        description: 'Prepaid advance paid',
+        amount: -prepaid,
+      ));
+    }
+
     final double sub = items.fold(0.0, (sum, i) => sum + i.amount);
     final double grand = ((session.grandTotal ?? (sub + totalDiscounts)) -
             totalDiscounts)
@@ -138,6 +152,14 @@ class ReceiptData {
         .toDouble();
     final double finalAmt = session.finalAmount ?? session.roundedAmount ?? grand;
     final double roundDiff = finalAmt - grand;
+
+    final double effectiveDue = session.status == TableStatus.pendingBill
+        ? (finalAmt - prepaid).clamp(0.0, double.infinity).toDouble()
+        : (prepaid > 0
+            ? (session.settlementAmountPaid ?? (finalAmt - prepaid))
+                .clamp(0.0, double.infinity)
+                .toDouble()
+            : finalAmt);
 
     String? payerName = session.paidBy ?? session.pendingBillCustomerName;
     if (payerName == null || payerName.isEmpty) {
@@ -155,6 +177,8 @@ class ReceiptData {
         }
       }
       if (methods.isNotEmpty) payLabel = methods.join(', ');
+    } else if (session.isPrepaid && session.prepaidPaymentMethod != null) {
+      payLabel = '${session.prepaidPaymentMethod!.displayName} (Prepaid)';
     }
 
     return ReceiptData(
@@ -171,8 +195,10 @@ class ReceiptData {
       subtotal: sub,
       grandTotal: grand,
       roundingAmount: roundDiff,
-      amountDue: finalAmt,
+      amountDue: effectiveDue,
       isPaid: session.status != TableStatus.pendingBill,
+      prepaidAmount: prepaid > 0 ? prepaid : null,
+      settlementAmount: prepaid > 0 ? effectiveDue : null,
     );
   }
 
@@ -436,9 +462,21 @@ class ThermalReceiptWidget extends StatelessWidget {
             ),
           ],
 
+          if (receipt.prepaidAmount != null && receipt.prepaidAmount! > 0) ...[
+            const SizedBox(height: 4),
+            _buildRow(
+              'Prepaid Advance',
+              '-₹${receipt.prepaidAmount!.toStringAsFixed(0)}',
+              monoStyle,
+              monoStyle,
+            ),
+          ],
+
           const SizedBox(height: 6),
           _buildRow(
-            'AMOUNT DUE',
+            (receipt.prepaidAmount != null && receipt.prepaidAmount! > 0)
+                ? (receipt.amountDue <= 0 ? 'BALANCE (PAID)' : 'BALANCE DUE')
+                : 'AMOUNT DUE',
             '₹${receipt.amountDue.toStringAsFixed(0)}',
             GoogleFonts.courierPrime(
               color: Colors.black,
@@ -869,30 +907,53 @@ class _PaymentCompleteModalState extends ConsumerState<PaymentCompleteModal> {
             ),
           ),
           const SizedBox(height: 12),
-          const Text(
-            'PAYMENT RECEIVED',
-            style: TextStyle(
-              color: AppColors.success,
-              fontSize: 13,
-              fontWeight: FontWeight.w800,
-              letterSpacing: 1.2,
-            ),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            '₹${widget.receipt.amountDue.toStringAsFixed(0)}',
-            style: theme.textTheme.headlineMedium?.copyWith(
-              fontWeight: FontWeight.w900,
-              color: theme.colorScheme.onSurface,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            'Invoice #${widget.receipt.invoiceNumber} completed successfully',
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: theme.colorScheme.onSurfaceVariant,
-            ),
-            textAlign: TextAlign.center,
+          Builder(
+            builder: (context) {
+              final isPrepaid = widget.receipt.prepaidAmount != null &&
+                  widget.receipt.prepaidAmount! > 0;
+              final isFullyPaidUpfront = isPrepaid && widget.receipt.amountDue <= 0;
+              final headerText = isFullyPaidUpfront
+                  ? 'PREPAID SESSION SETTLED'
+                  : 'PAYMENT RECEIVED';
+              final displayAmount = isFullyPaidUpfront
+                  ? widget.receipt.prepaidAmount!
+                  : widget.receipt.amountDue;
+              final subtitle = isFullyPaidUpfront
+                  ? 'Invoice #${widget.receipt.invoiceNumber} \u2022 Prepaid advance settled'
+                  : (isPrepaid
+                      ? 'Invoice #${widget.receipt.invoiceNumber} \u2022 Total Billed: \u20B9${widget.receipt.grandTotal.toStringAsFixed(0)}'
+                      : 'Invoice #${widget.receipt.invoiceNumber} completed successfully');
+
+              return Column(
+                children: [
+                  Text(
+                    headerText,
+                    style: const TextStyle(
+                      color: AppColors.success,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 1.2,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    '\u20B9${displayAmount.toStringAsFixed(0)}',
+                    style: theme.textTheme.headlineMedium?.copyWith(
+                      fontWeight: FontWeight.w900,
+                      color: theme.colorScheme.onSurface,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    subtitle,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
+              );
+            },
           ),
           const SizedBox(height: 20),
 

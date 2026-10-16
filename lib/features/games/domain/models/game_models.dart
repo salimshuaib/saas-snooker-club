@@ -779,6 +779,18 @@ class GameSession {
   final String? appliedOfferCode;
   final double? appliedOfferPrice;
   final double? standardPrice;
+  final bool isPrepaid;
+  final double prepaidAmount;
+  final int? prepaidDurationMinutes;
+  final int? prepaidFrames;
+  final PaymentMethod? prepaidPaymentMethod;
+  final Map<String, Map<PaymentMethod, double>>? prepaidPlayerPaymentSplits;
+  final String? prepaidPaidBy;
+  final DateTime? prepaidConfirmedAt;
+  final bool isOvertimeEnabled;
+  final double? settlementAmountPaid;
+  final PaymentMethod? settlementPaymentMethod;
+  final Map<String, Map<PaymentMethod, double>>? settlementPaymentSplits;
 
   const GameSession({
     this.createdByUserId,
@@ -866,6 +878,18 @@ class GameSession {
     this.appliedOfferCode,
     this.appliedOfferPrice,
     this.standardPrice,
+    this.isPrepaid = false,
+    this.prepaidAmount = 0.0,
+    this.prepaidDurationMinutes,
+    this.prepaidFrames,
+    this.prepaidPaymentMethod,
+    this.prepaidPlayerPaymentSplits,
+    this.prepaidPaidBy,
+    this.prepaidConfirmedAt,
+    this.isOvertimeEnabled = true,
+    this.settlementAmountPaid,
+    this.settlementPaymentMethod,
+    this.settlementPaymentSplits,
   });
 
   /// All players involved (team A + team B)
@@ -1003,6 +1027,18 @@ class GameSession {
     String? appliedOfferCode,
     double? appliedOfferPrice,
     double? standardPrice,
+    bool? isPrepaid,
+    double? prepaidAmount,
+    int? prepaidDurationMinutes,
+    int? prepaidFrames,
+    PaymentMethod? prepaidPaymentMethod,
+    Map<String, Map<PaymentMethod, double>>? prepaidPlayerPaymentSplits,
+    String? prepaidPaidBy,
+    DateTime? prepaidConfirmedAt,
+    bool? isOvertimeEnabled,
+    double? settlementAmountPaid,
+    PaymentMethod? settlementPaymentMethod,
+    Map<String, Map<PaymentMethod, double>>? settlementPaymentSplits,
   }) {
     return GameSession(
       createdByUserId: createdByUserId ?? this.createdByUserId,
@@ -1092,6 +1128,18 @@ class GameSession {
       appliedOfferCode: appliedOfferCode ?? this.appliedOfferCode,
       appliedOfferPrice: appliedOfferPrice ?? this.appliedOfferPrice,
       standardPrice: standardPrice ?? this.standardPrice,
+      isPrepaid: isPrepaid ?? this.isPrepaid,
+      prepaidAmount: prepaidAmount ?? this.prepaidAmount,
+      prepaidDurationMinutes: prepaidDurationMinutes ?? this.prepaidDurationMinutes,
+      prepaidFrames: prepaidFrames ?? this.prepaidFrames,
+      prepaidPaymentMethod: prepaidPaymentMethod ?? this.prepaidPaymentMethod,
+      prepaidPlayerPaymentSplits: prepaidPlayerPaymentSplits ?? this.prepaidPlayerPaymentSplits,
+      prepaidPaidBy: prepaidPaidBy ?? this.prepaidPaidBy,
+      prepaidConfirmedAt: prepaidConfirmedAt ?? this.prepaidConfirmedAt,
+      isOvertimeEnabled: isOvertimeEnabled ?? this.isOvertimeEnabled,
+      settlementAmountPaid: settlementAmountPaid ?? this.settlementAmountPaid,
+      settlementPaymentMethod: settlementPaymentMethod ?? this.settlementPaymentMethod,
+      settlementPaymentSplits: settlementPaymentSplits ?? this.settlementPaymentSplits,
     );
   }
 
@@ -1188,6 +1236,24 @@ class GameSession {
       'appliedOfferCode': appliedOfferCode,
       'appliedOfferPrice': appliedOfferPrice,
       'standardPrice': standardPrice,
+      'isPrepaid': isPrepaid,
+      'prepaidAmount': prepaidAmount,
+      'prepaidDurationMinutes': prepaidDurationMinutes,
+      'prepaidFrames': prepaidFrames,
+      'prepaidPaymentMethod': prepaidPaymentMethod?.name,
+      'prepaidPlayerPaymentSplits': prepaidPlayerPaymentSplits?.map(
+        (k, v) => MapEntry(k, v.map((k2, v2) => MapEntry(k2.name, v2))),
+      ),
+      'prepaidPaidBy': prepaidPaidBy,
+      'prepaidConfirmedAt': prepaidConfirmedAt != null
+          ? Timestamp.fromDate(prepaidConfirmedAt!)
+          : null,
+      'isOvertimeEnabled': isOvertimeEnabled,
+      'settlementAmountPaid': settlementAmountPaid,
+      'settlementPaymentMethod': settlementPaymentMethod?.name,
+      'settlementPaymentSplits': settlementPaymentSplits?.map(
+        (k, v) => MapEntry(k, v.map((k2, v2) => MapEntry(k2.name, v2))),
+      ),
     };
   }
 
@@ -1378,6 +1444,68 @@ class GameSession {
       appliedOfferCode: map['appliedOfferCode'] as String?,
       appliedOfferPrice: (map['appliedOfferPrice'] as num?)?.toDouble(),
       standardPrice: (map['standardPrice'] as num?)?.toDouble(),
+      isPrepaid: map['isPrepaid'] as bool? ?? false,
+      prepaidAmount: (map['prepaidAmount'] as num?)?.toDouble() ?? 0.0,
+      prepaidDurationMinutes: (map['prepaidDurationMinutes'] as num?)?.toInt(),
+      prepaidFrames: (map['prepaidFrames'] as num?)?.toInt(),
+      prepaidPaymentMethod: map['prepaidPaymentMethod'] != null
+          ? PaymentMethod.values.firstWhere(
+              (p) => p.name == map['prepaidPaymentMethod'],
+              orElse: () => PaymentMethod.cash,
+            )
+          : null,
+      prepaidPlayerPaymentSplits: () {
+        if (map['prepaidPlayerPaymentSplits'] != null) {
+          final splits = map['prepaidPlayerPaymentSplits'] as Map<String, dynamic>;
+          return splits.map((player, methodsMap) {
+            final parsedMethods = (methodsMap as Map<String, dynamic>).map((
+              methodName,
+              amount,
+            ) {
+              final method = PaymentMethod.values.firstWhere(
+                (p) => p.name == methodName,
+                orElse: () => PaymentMethod.cash,
+              );
+              return MapEntry(method, (amount as num).toDouble());
+            });
+            return MapEntry(player, parsedMethods);
+          });
+        }
+        return null;
+      }(),
+      prepaidPaidBy: map['prepaidPaidBy'] as String?,
+      prepaidConfirmedAt: map['prepaidConfirmedAt'] != null
+          ? (map['prepaidConfirmedAt'] is Timestamp
+              ? (map['prepaidConfirmedAt'] as Timestamp).toDate()
+              : DateTime.tryParse(map['prepaidConfirmedAt'].toString()))
+          : null,
+      isOvertimeEnabled: map['isOvertimeEnabled'] as bool? ?? true,
+      settlementAmountPaid: (map['settlementAmountPaid'] as num?)?.toDouble(),
+      settlementPaymentMethod: map['settlementPaymentMethod'] != null
+          ? PaymentMethod.values.firstWhere(
+              (p) => p.name == map['settlementPaymentMethod'],
+              orElse: () => PaymentMethod.cash,
+            )
+          : null,
+      settlementPaymentSplits: () {
+        if (map['settlementPaymentSplits'] != null) {
+          final splits = map['settlementPaymentSplits'] as Map<String, dynamic>;
+          return splits.map((player, methodsMap) {
+            final parsedMethods = (methodsMap as Map<String, dynamic>).map((
+              methodName,
+              amount,
+            ) {
+              final method = PaymentMethod.values.firstWhere(
+                (p) => p.name == methodName,
+                orElse: () => PaymentMethod.cash,
+              );
+              return MapEntry(method, (amount as num).toDouble());
+            });
+            return MapEntry(player, parsedMethods);
+          });
+        }
+        return null;
+      }(),
     );
   }
 }

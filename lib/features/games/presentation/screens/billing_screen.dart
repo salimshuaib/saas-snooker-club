@@ -77,6 +77,9 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
         ? widget.session.copyWith(endTime: DateTime.now())
         : widget.session;
     _selectedPayers = List.from(_session.selectedPayers ?? _session.allPlayers);
+    if (_session.isPrepaid) {
+      _applyOvertimeCharges = _session.isOvertimeEnabled;
+    }
     _discountAmount = _session.discountAmount ?? 0.0;
     _currentGameDiscountAmount = _session.currentGameDiscountAmount ?? 0.0;
     _hasDiscount = _discountAmount > 0;
@@ -741,6 +744,22 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
       }
     }
 
+    if (_session.isPrepaid) {
+      if (_netAmountDue <= 0.0) {
+        for (final p in _session.allPlayers) {
+          liabilities[p] = 0.0;
+        }
+      } else {
+        final share = _netAmountDue / splitGroup.length;
+        for (final p in _session.allPlayers) {
+          liabilities[p] = 0.0;
+        }
+        for (final p in splitGroup) {
+          liabilities[p] = BillingUtils.roundAmount(share);
+        }
+      }
+    }
+
     for (final p in _session.allPlayers) {
       final amount = liabilities[p] ?? 0.0;
       final textValue = amount == 0
@@ -807,6 +826,7 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
       customMinutes: _session.customMinutes,
       isMinimumBillEnabled: _appliedOffer == null && _session.isMinimumBillEnabled,
       minimumBillAmount: _appliedOffer == null ? _session.minimumBillAmount : 0.0,
+      isOvertimeEnabled: _applyOvertimeCharges,
     );
   }
 
@@ -816,15 +836,29 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
         _session.billingType == BillingType.halfHour ||
         _session.billingType == BillingType.customMinute;
 
+    double charge;
     if (canHaveOvertime && !_applyOvertimeCharges) {
-      return _breakdown.baseCharge + _breakdown.minimumBillAdjustment;
+      charge = _breakdown.baseCharge + _breakdown.minimumBillAdjustment;
+    } else {
+      charge = _breakdown.totalCharge;
     }
-    return _breakdown.totalCharge;
+
+    if (_session.isPrepaid) {
+      return math.max(_session.prepaidAmount, charge);
+    }
+    return charge;
   }
 
-  double get _baseGameCharge => _breakdown.baseCharge;
+  double get _baseGameCharge =>
+      _session.isPrepaid ? _session.prepaidAmount : _breakdown.baseCharge;
   int get _overtimeMinutes => _breakdown.overtimeMinutes;
   double get _overtimeCharge => _breakdown.overtimeCharge;
+
+  double get _prepaidAmountPaid =>
+      _session.isPrepaid ? _session.prepaidAmount : 0.0;
+
+  double get _netAmountDue =>
+      math.max(0.0, _roundedTotal - _prepaidAmountPaid);
 
   double get _manualGamesTotal =>
       _session.manualGameCharges.fold<double>(0, (s, g) => s + g.finalAmount);
@@ -932,13 +966,16 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
   }
 
   String get _ctaLabel {
+    if (_session.isPrepaid && _netAmountDue <= 0.0) {
+      return 'Complete & Finish Game';
+    }
     if (_isMultiPayer) {
       return 'Mark Payment Complete';
     } else {
       if (_hasCredit) {
         return 'Record Payment & Credit';
       }
-      return 'Confirm Payment (\u20B9${_roundedTotal.toStringAsFixed(0)})';
+      return 'Confirm Payment (\u20B9${_netAmountDue.toStringAsFixed(0)})';
     }
   }
 
@@ -961,11 +998,13 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
         type: _session.tableType,
       ),
     );
+    final targetSettlementTotal =
+        _session.isPrepaid ? _netAmountDue : _roundedTotal;
     final currentSum = _customLiabilities.values.fold<double>(
       0.0,
       (s, v) => s + v,
     );
-    final isBalanced = (_roundedTotal - currentSum).abs() < 0.5;
+    final isBalanced = (targetSettlementTotal - currentSum).abs() < 0.5;
     final theme = Theme.of(context);
     final dtFmt = DateFormat('d MMM, hh:mm a');
 
@@ -1567,6 +1606,59 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
                       ),
                     ],
                   ),
+                  if (_session.isPrepaid) ...[
+                    const Gap(10),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Row(
+                          children: [
+                            Icon(
+                              Icons.verified,
+                              size: 16,
+                              color: Colors.amber.shade800,
+                            ),
+                            const Gap(6),
+                            Text(
+                              'Prepaid Advance Paid',
+                              style: theme.textTheme.titleSmall?.copyWith(
+                                color: Colors.amber.shade900,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
+                        Text(
+                          '-\u20B9${_session.prepaidAmount.toStringAsFixed(2)}',
+                          style: theme.textTheme.titleSmall?.copyWith(
+                            color: Colors.amber.shade900,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const Gap(10),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'Balance Due',
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        Text(
+                          '\u20B9${_netAmountDue.toStringAsFixed(0)}',
+                          style: theme.textTheme.titleLarge?.copyWith(
+                            color: _netAmountDue > 0
+                                ? AppColors.warning
+                                : AppColors.success,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
                   if (appSettings.billingFeatures.manualFinalAmountEnabled) ...[
                     const Gap(16),
                     Text(
@@ -1612,11 +1704,60 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
                 const Gap(8),
                 _buildSplitLiabilityTable(theme),
                 const Gap(32),
+              ] else if (_session.isPrepaid && _netAmountDue <= 0.0) ...[
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: AppColors.success.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: AppColors.success.withValues(alpha: 0.35),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(
+                        Icons.check_circle,
+                        color: AppColors.success,
+                        size: 24,
+                      ),
+                      const Gap(12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Prepaid Advance Settled',
+                              style: theme.textTheme.titleSmall?.copyWith(
+                                color: AppColors.success,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            const Gap(2),
+                            Text(
+                              'The entire session of \u20B9${_session.prepaidAmount.toStringAsFixed(0)} was paid upfront. Tap below to complete and free the table.',
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                color: theme.colorScheme.onSurfaceVariant,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const Gap(32),
               ] else ...[
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text('Payment Method', style: theme.textTheme.titleMedium),
+                    Text(
+                      _session.isPrepaid
+                          ? 'Pay Remaining Balance'
+                          : 'Payment Method',
+                      style: theme.textTheme.titleMedium,
+                    ),
                     (() {
                       final basePlayer = _selectedPayers.isNotEmpty
                           ? _selectedPayers.first
@@ -1632,6 +1773,8 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
                               _PlayerProfileName!.isNotEmpty)
                           ? _PlayerProfileName!
                           : basePlayer;
+                      final targetAmount =
+                          _session.isPrepaid ? _netAmountDue : _roundedTotal;
                       return Expanded(
                         child: Wrap(
                           alignment: WrapAlignment.end,
@@ -1652,7 +1795,7 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
                                         : 0.0;
                                     final qrAmount = upiAmount > 0
                                         ? upiAmount
-                                        : _roundedTotal;
+                                        : targetAmount;
                                     showDialog(
                                       context: context,
                                       builder: (ctx) => UpiQrDialog(
@@ -1686,10 +1829,10 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
                                   isScrollControlled: true,
                                   builder: (ctx) => PlayerSplitPaymentSheet(
                                     playerName: displayPlayer,
-                                    totalLiability: _roundedTotal,
+                                    totalLiability: targetAmount,
                                     initialSplits:
                                         _playerPaymentSplits[basePlayer] ??
-                                        {_paymentMethod: _roundedTotal},
+                                        {_paymentMethod: targetAmount},
                                     onSplitsSaved: (newSplits) {
                                       setState(() {
                                         _playerPaymentSplits[basePlayer] =
@@ -1776,8 +1919,11 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
                               } else {
                                 setState(() {
                                   _paymentMethod = method;
+                                  final dueAmount = _session.isPrepaid
+                                      ? _netAmountDue
+                                      : _roundedTotal;
                                   _playerPaymentSplits[player] = {
-                                    method: _roundedTotal,
+                                    method: dueAmount,
                                   };
                                   if (method == PaymentMethod.credit &&
                                       !isSplit) {
@@ -1877,8 +2023,9 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
     final players = _session.allPlayers;
 
     // Sum validation
+    final targetTotal = _session.isPrepaid ? _netAmountDue : _roundedTotal;
     final currentSum = liabilities.values.fold<double>(0.0, (s, v) => s + v);
-    final diff = (_roundedTotal - currentSum).abs();
+    final diff = (targetTotal - currentSum).abs();
     final isBalanced = diff < 0.5; // Small tolerance
 
     return Column(
@@ -2355,30 +2502,32 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
         _PlayerProfileName == null ||
         _PlayerProfileName!.toLowerCase().startsWith('default');
 
-    if (!_isMultiPayer && _session.gameType == GameType.standard) {
-      if (!isSplit &&
-          _paymentMethod == PaymentMethod.credit &&
-          isDefaultProfile) {
-        hasDefaultCredit = true;
-      } else if (isSplit) {
-        final splits = _playerPaymentSplits[singlePayer] ?? {};
-        if (splits.containsKey(PaymentMethod.credit) &&
-            splits[PaymentMethod.credit]! > 0) {
-          if (isDefaultProfile &&
-              singlePayer.toLowerCase().startsWith('default')) {
-            hasDefaultCredit = true;
+    if (!_session.isPrepaid || _netAmountDue > 0.0) {
+      if (!_isMultiPayer && _session.gameType == GameType.standard) {
+        if (!isSplit &&
+            _paymentMethod == PaymentMethod.credit &&
+            isDefaultProfile) {
+          hasDefaultCredit = true;
+        } else if (isSplit) {
+          final splits = _playerPaymentSplits[singlePayer] ?? {};
+          if (splits.containsKey(PaymentMethod.credit) &&
+              splits[PaymentMethod.credit]! > 0) {
+            if (isDefaultProfile &&
+                singlePayer.toLowerCase().startsWith('default')) {
+              hasDefaultCredit = true;
+            }
           }
         }
-      }
-    } else if (_isMultiPayer) {
-      for (final player in _playerPaymentSplits.keys) {
-        final splits = _playerPaymentSplits[player]!;
-        if (splits.containsKey(PaymentMethod.credit) &&
-            splits[PaymentMethod.credit]! > 0) {
-          final displayName = _renamedPlayers[player] ?? player;
-          if (displayName.toLowerCase().startsWith('default')) {
-            hasDefaultCredit = true;
-            break;
+      } else if (_isMultiPayer) {
+        for (final player in _playerPaymentSplits.keys) {
+          final splits = _playerPaymentSplits[player]!;
+          if (splits.containsKey(PaymentMethod.credit) &&
+              splits[PaymentMethod.credit]! > 0) {
+            final displayName = _renamedPlayers[player] ?? player;
+            if (displayName.toLowerCase().startsWith('default')) {
+              hasDefaultCredit = true;
+              break;
+            }
           }
         }
       }
@@ -2479,10 +2628,11 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
             ? _PlayerProfileName!
             : singlePayer;
         _playerPaymentSplits.clear();
-        _playerPaymentSplits[creditPayer] = {_paymentMethod: _roundedTotal};
+        final dueAmount = _session.isPrepaid ? _netAmountDue : _roundedTotal;
+        _playerPaymentSplits[creditPayer] = {_paymentMethod: dueAmount};
 
         _customLiabilities.clear();
-        _customLiabilities[creditPayer] = _roundedTotal;
+        _customLiabilities[creditPayer] = dueAmount;
       }
     }
 
@@ -2534,6 +2684,20 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
         ? 'Split'
         : _paymentMethod?.displayName ?? 'Paid';
 
+    final String paymentLogValue;
+    if (_session.isPrepaid) {
+      if (_netAmountDue <= 0.0) {
+        paymentLogValue =
+            'Prepaid Advance Completed (\u20B9${_roundedTotal.toStringAsFixed(2)})';
+      } else {
+        paymentLogValue =
+            '\u20B9${_roundedTotal.toStringAsFixed(2)} (Prepaid \u20B9${_session.prepaidAmount.toStringAsFixed(0)} + Settlement \u20B9${_netAmountDue.toStringAsFixed(2)} \u2014 $paymentMethodLabel)';
+      }
+    } else {
+      paymentLogValue =
+          '\u20B9${_roundedTotal.toStringAsFixed(2)} \u2014 $paymentMethodLabel';
+    }
+
     updatedLogs.add(
       AuditLog(
         id: '${DateTime.now().millisecondsSinceEpoch}_payment',
@@ -2541,7 +2705,7 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
         timestamp: DateTime.now(),
         field: 'Payment Processed',
         previousValue: '-',
-        newValue: '₹${_roundedTotal.toStringAsFixed(2)} — $paymentMethodLabel',
+        newValue: paymentLogValue,
       ),
     );
 
@@ -2562,6 +2726,83 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
       );
     }
 
+    Map<String, Map<PaymentMethod, double>>? finalSplits;
+    PaymentMethod? finalPaymentMethod;
+    String? finalPaidBy;
+    double? settlementPaid;
+    PaymentMethod? settlementMethod;
+    Map<String, Map<PaymentMethod, double>>? settlementSplits;
+
+    if (_session.isPrepaid) {
+      if (_netAmountDue <= 0.0) {
+        settlementPaid = 0.0;
+        settlementMethod = null;
+        settlementSplits = null;
+        finalPaidBy = _session.prepaidPaidBy ?? singlePayer;
+        finalPaymentMethod = _session.prepaidPaymentMethod;
+
+        if (_session.prepaidPlayerPaymentSplits != null &&
+            _session.prepaidPlayerPaymentSplits!.isNotEmpty) {
+          finalSplits = _session.prepaidPlayerPaymentSplits;
+        } else if (_session.prepaidPaymentMethod != null) {
+          finalSplits = {
+            finalPaidBy: {_session.prepaidPaymentMethod!: _roundedTotal},
+          };
+        }
+      } else {
+        settlementPaid = _netAmountDue;
+        settlementMethod = (!_isMultiPayer && !isSplit) ? _paymentMethod : null;
+        settlementSplits = Map<String, Map<PaymentMethod, double>>.from(
+          _playerPaymentSplits,
+        );
+
+        final Map<String, Map<PaymentMethod, double>> merged = {};
+        if (_session.prepaidPlayerPaymentSplits != null &&
+            _session.prepaidPlayerPaymentSplits!.isNotEmpty) {
+          for (final entry in _session.prepaidPlayerPaymentSplits!.entries) {
+            merged[entry.key] = Map.from(entry.value);
+          }
+        } else {
+          final pPayer = _session.prepaidPaidBy ?? singlePayer;
+          final pMethod = _session.prepaidPaymentMethod ?? PaymentMethod.cash;
+          merged[pPayer] = {pMethod: _session.prepaidAmount};
+        }
+
+        for (final entry in _playerPaymentSplits.entries) {
+          final p = entry.key;
+          if (!merged.containsKey(p)) {
+            merged[p] = Map.from(entry.value);
+          } else {
+            for (final mEntry in entry.value.entries) {
+              merged[p]![mEntry.key] =
+                  (merged[p]![mEntry.key] ?? 0.0) + mEntry.value;
+            }
+          }
+        }
+        finalSplits = merged;
+
+        if (_session.prepaidPaymentMethod != null &&
+            _session.prepaidPaymentMethod == settlementMethod &&
+            !_isMultiPayer &&
+            !isSplit) {
+          finalPaymentMethod = settlementMethod;
+          finalPaidBy = settlementMethod == PaymentMethod.credit
+              ? _PlayerProfileName
+              : (_session.prepaidPaidBy ?? singlePayer);
+        } else {
+          finalPaymentMethod = null;
+          finalPaidBy = null;
+        }
+      }
+    } else {
+      finalSplits = _playerPaymentSplits;
+      finalPaymentMethod = (!_isMultiPayer && !isSplit) ? _paymentMethod : null;
+      finalPaidBy =
+          (_paymentMethod == PaymentMethod.credit && !_isMultiPayer && !isSplit)
+          ? _PlayerProfileName
+          : null;
+    }
+
     final finalSession = _session.copyWith(
       endTime: finalEndTime,
       auditLogs: updatedLogs,
@@ -2572,7 +2813,7 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
       teamB: finalTeamB,
       playerIds: finalPlayerIds,
       playerIdentities: finalPlayerIdentities,
-      playerPaymentSplits: _playerPaymentSplits,
+      playerPaymentSplits: finalSplits,
       playerLiabilities: _customLiabilities,
       gameCharge: _gameCharge,
       baseGameCharge: _baseGameCharge,
@@ -2591,11 +2832,11 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
       discountAmount: _appliedBillDiscountAmount,
       currentGameDiscountAmount: _appliedCurrentGameDiscountAmount,
       date: finalDate,
-      paidBy:
-          (_paymentMethod == PaymentMethod.credit && !_isMultiPayer && !isSplit)
-          ? _PlayerProfileName
-          : null,
-      paymentMethod: (!_isMultiPayer && !isSplit) ? _paymentMethod : null,
+      paidBy: finalPaidBy,
+      paymentMethod: finalPaymentMethod,
+      settlementAmountPaid: _session.isPrepaid ? settlementPaid : null,
+      settlementPaymentMethod: _session.isPrepaid ? settlementMethod : null,
+      settlementPaymentSplits: _session.isPrepaid ? settlementSplits : null,
     );
 
     try {

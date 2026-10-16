@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'package:intl/intl.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:snooker_club/core/providers/club_scope_provider.dart';
@@ -621,6 +622,18 @@ class GamesRepository {
     await batch.commit();
   }
 
+  Future<void> toggleOvertimeBilling(
+    String gameId,
+    bool isOvertimeEnabled,
+  ) async {
+    if (AppConfig.guardWrite('GamesRepository.toggleOvertimeBilling')) return;
+    await _gamesRef.doc(gameId).update({
+      'isOvertimeEnabled': isOvertimeEnabled,
+      'updatedByUserId': currentUserId,
+      'updatedByName': currentUserName,
+    });
+  }
+
   Future<void> updatePendingBillOrders(
     GameSession session,
     List<GameOrder> orders,
@@ -885,7 +898,23 @@ class GamesRepository {
       'teamB': session.teamB,
       'playerIds': session.playerIds,
       'playerIdentities': session.playerIdentities,
-      };
+      'isPrepaid': session.isPrepaid,
+      'prepaidAmount': session.prepaidAmount,
+      'prepaidDurationMinutes': session.prepaidDurationMinutes,
+      'prepaidFrames': session.prepaidFrames,
+      'prepaidPaymentMethod': session.prepaidPaymentMethod?.name,
+      'prepaidPlayerPaymentSplits': session.prepaidPlayerPaymentSplits?.map(
+        (k, v) => MapEntry(k, v.map((mk, mv) => MapEntry(mk.name, mv))),
+      ),
+      'prepaidPaidBy': session.prepaidPaidBy,
+      'prepaidConfirmedAt': session.prepaidConfirmedAt?.toIso8601String(),
+      'isOvertimeEnabled': session.isOvertimeEnabled,
+      'settlementAmountPaid': session.settlementAmountPaid,
+      'settlementPaymentMethod': session.settlementPaymentMethod?.name,
+      'settlementPaymentSplits': session.settlementPaymentSplits?.map(
+        (k, v) => MapEntry(k, v.map((mk, mv) => MapEntry(mk.name, mv))),
+      ),
+    };
 
     if (session.paymentMethod == PaymentMethod.credit) {
       updateMap['paidBy'] = session.paidBy;
@@ -899,9 +928,18 @@ class GamesRepository {
       updateMap['paidAmount'] = amountToPay;
       updateMap['remainingAmount'] = 0.0;
     } else if (session.paymentMethod == PaymentMethod.credit) {
-      updateMap['paymentStatus'] = 'Outstanding';
-      updateMap['paidAmount'] = 0.0;
-      updateMap['remainingAmount'] = amountToPay;
+      final creditAmount = (session.isPrepaid &&
+              session.prepaidPaymentMethod != PaymentMethod.credit)
+          ? math.max(0.0, amountToPay - session.prepaidAmount)
+          : amountToPay;
+      final paidAmount = (session.isPrepaid &&
+              session.prepaidPaymentMethod != PaymentMethod.credit)
+          ? session.prepaidAmount
+          : 0.0;
+      updateMap['paymentStatus'] =
+          paidAmount > 0 && creditAmount > 0 ? 'Partially Paid' : 'Outstanding';
+      updateMap['paidAmount'] = paidAmount;
+      updateMap['remainingAmount'] = creditAmount;
     } else if (session.paymentMethod == null &&
         session.playerPaymentSplits != null &&
         session.playerPaymentSplits!.isNotEmpty) {
@@ -972,19 +1010,25 @@ class GamesRepository {
       }
     } else if (session.paymentMethod == PaymentMethod.credit &&
         session.paidBy != null) {
-      await creditRepo.appendCreditToBatch(
-        batch: batch,
-        customerName: session.paidBy!,
-        customerId: session.playerIdentities != null
-            ? session.playerIdentities![session.paidBy!]
-            : null,
-        amount: amountToPay,
-        type: CreditTransactionType.game,
-        referenceId: session.id,
-        title: 'Game on Table ${session.tableName}',
-        subtitle: 'Billed Amount: \u20B9${amountToPay.toStringAsFixed(2)}',
-        paymentMethod: session.paymentMethod!,
-      );
+      final creditAmount = (session.isPrepaid &&
+              session.prepaidPaymentMethod != PaymentMethod.credit)
+          ? math.max(0.0, amountToPay - session.prepaidAmount)
+          : amountToPay;
+      if (creditAmount > 0) {
+        await creditRepo.appendCreditToBatch(
+          batch: batch,
+          customerName: session.paidBy!,
+          customerId: session.playerIdentities != null
+              ? session.playerIdentities![session.paidBy!]
+              : null,
+          amount: creditAmount,
+          type: CreditTransactionType.game,
+          referenceId: session.id,
+          title: 'Game on Table ${session.tableName}',
+          subtitle: 'Billed Amount: \u20B9${creditAmount.toStringAsFixed(2)}',
+          paymentMethod: session.paymentMethod!,
+        );
+      }
     }
 
     if (session.orders.isNotEmpty) {
@@ -1709,6 +1753,21 @@ class GamesRepository {
         (k, v) => MapEntry(k, v.map((mk, mv) => MapEntry(mk.name, mv))),
       ),
       'playerLiabilities': session.playerLiabilities,
+      'isPrepaid': session.isPrepaid,
+      'prepaidAmount': session.prepaidAmount,
+      'prepaidDurationMinutes': session.prepaidDurationMinutes,
+      'prepaidFrames': session.prepaidFrames,
+      'prepaidPaymentMethod': session.prepaidPaymentMethod?.name,
+      'prepaidPlayerPaymentSplits': session.prepaidPlayerPaymentSplits?.map(
+        (k, v) => MapEntry(k, v.map((mk, mv) => MapEntry(mk.name, mv))),
+      ),
+      'prepaidPaidBy': session.prepaidPaidBy,
+      'prepaidConfirmedAt': session.prepaidConfirmedAt?.toIso8601String(),
+      'isOvertimeEnabled': session.isOvertimeEnabled,
+      'paidAmount': session.isPrepaid ? session.prepaidAmount : 0.0,
+      'remainingAmount': session.isPrepaid
+          ? math.max(0.0, (session.finalAmount ?? session.roundedAmount ?? 0.0) - session.prepaidAmount)
+          : (session.finalAmount ?? session.roundedAmount ?? 0.0),
     };
 
     final auditLog = AuditLog(
@@ -1863,6 +1922,12 @@ class GamesRepository {
         grandTotal: (session.grandTotal ?? 0) / splitCount,
         roundedAmount: (session.roundedAmount ?? 0) / splitCount,
         finalAmount: (session.finalAmount ?? 0) / splitCount,
+        isPrepaid: session.isPrepaid,
+        prepaidAmount: session.isPrepaid ? (session.prepaidAmount / splitCount) : 0.0,
+        paidAmount: session.isPrepaid ? (session.prepaidAmount / splitCount) : 0.0,
+        remainingAmount: session.isPrepaid
+            ? math.max(0.0, ((session.finalAmount ?? session.roundedAmount ?? 0) / splitCount) - (session.prepaidAmount / splitCount))
+            : ((session.finalAmount ?? session.roundedAmount ?? 0) / splitCount),
         customPrice:
             (session.gameCharge ?? 0) /
             splitCount, // Set custom price so recalculations don't break it

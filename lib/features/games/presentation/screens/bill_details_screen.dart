@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'package:snooker_club/l10n/app_localizations.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
@@ -659,6 +660,23 @@ class _BillDetailsScreenState extends ConsumerState<BillDetailsScreen> {
                           ),
                         ],
                       ),
+                    ],
+                    if (session.isPrepaid) ...[
+                      const Divider(height: 16),
+                      _InfoRow(
+                        label: 'Prepaid Advance Paid',
+                        value: '-₹${session.prepaidAmount.toStringAsFixed(2)}',
+                      ),
+                      _InfoRow(
+                        label: 'Settlement Balance',
+                        value:
+                            '₹${(session.settlementAmountPaid ?? math.max(0.0, (session.finalAmount ?? session.grandTotal ?? 0) - session.prepaidAmount)).toStringAsFixed(2)}',
+                      ),
+                      if (!session.isOvertimeEnabled)
+                        const _InfoRow(
+                          label: 'Overtime Billing',
+                          value: 'Disabled (No extra charge)',
+                        ),
                     ],
                   ],
                 ),

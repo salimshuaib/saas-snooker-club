@@ -17,6 +17,7 @@ import 'package:snooker_club/features/team/providers/team_providers.dart';
 import 'package:snooker_club/features/credit/providers/credit_providers.dart';
 import 'package:snooker_club/features/credit/presentation/widgets/player_search_field.dart';
 import 'package:snooker_club/features/credit/domain/models/credit_models.dart';
+import 'package:snooker_club/features/games/presentation/widgets/prepaid_payment_sheet.dart';
 
 class GameSetupDialog extends ConsumerStatefulWidget {
   final TableModel table;
@@ -45,6 +46,9 @@ class _GameSetupDialogState extends ConsumerState<GameSetupDialog> {
     text: '15',
   );
   int _customMinutes = 15;
+  bool _isPrepaid = false;
+  bool _enableOvertime = true;
+  int _prepaidFrames = 1;
   late List<PlayerSelection?> _playerSelections;
   late List<WaitlistPlayer> _remainingWaitlist;
   int _nextDefaultNumber = 2;
@@ -143,7 +147,9 @@ class _GameSetupDialogState extends ConsumerState<GameSetupDialog> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    _buildPrepaidSegmentedControl(theme),
                     _buildBillingTypeSelector(theme),
+                    _buildOvertimeToggle(theme),
                     const SizedBox(height: 24),
                     _buildTeamSection('Players', _playerSelections, 10, theme),
                     const SizedBox(height: 24),
@@ -226,7 +232,9 @@ class _GameSetupDialogState extends ConsumerState<GameSetupDialog> {
                       : Text(
                           _tableType == TableType.arcade
                               ? 'Purchase Tokens'
-                              : 'Start Game',
+                              : _isPrepaid
+                                  ? 'Pay ₹${_calculatePrepaidAmount().toStringAsFixed(0)} & Start Game'
+                                  : 'Start Game',
                           style: const TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
@@ -241,12 +249,172 @@ class _GameSetupDialogState extends ConsumerState<GameSetupDialog> {
     );
   }
 
+  double _calculatePrepaidAmount() {
+    final appSettings = ref.read(appSettingsProvider);
+    if (_isCustomPrice && !_tableType.isOtherGame) {
+      final customP = double.tryParse(_customPriceController.text) ?? 0.0;
+      if (_billingType == BillingType.customMinute) {
+        return (customP / 60.0) * _customMinutes;
+      } else if (_billingType == BillingType.perFrame) {
+        return customP * _prepaidFrames;
+      }
+      return customP;
+    }
+
+    final basePrice = TablePricingConfig.getPrice(
+          widget.table,
+          GameType.standard,
+          _billingType,
+          appSettings.pricing,
+        ) ??
+        0.0;
+
+    final extraCharge = TablePricingConfig.getExtraCharge(
+          widget.table,
+          GameType.standard,
+          _billingType,
+          appSettings.pricing,
+        ) ??
+        0.0;
+
+    double total = 0.0;
+    if (_billingType == BillingType.customMinute) {
+      total = basePrice * _customMinutes;
+    } else if (_billingType == BillingType.perFrame) {
+      total = basePrice * _prepaidFrames;
+    } else if (_billingType == BillingType.perCoin) {
+      total = basePrice * (_coinQuantity ?? 1);
+    } else {
+      total = basePrice;
+    }
+
+    if (_tableType == TableType.ps5 || _tableType == TableType.ps4) {
+      final activePlayers = _playerSelections
+          .where((p) => p != null && p.name.trim().isNotEmpty)
+          .length;
+      if (activePlayers > 1) {
+        total += (activePlayers - 1) * extraCharge;
+      }
+    }
+
+    return total;
+  }
+
+  Widget _buildPrepaidSegmentedControl(ThemeData theme) {
+    if (_tableType == TableType.arcade) return const SizedBox.shrink();
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('Session Mode', style: theme.textTheme.labelMedium),
+        const SizedBox(height: 8),
+        SizedBox(
+          width: double.infinity,
+          child: SegmentedButton<bool>(
+            showSelectedIcon: false,
+            segments: const [
+              ButtonSegment<bool>(
+                value: false,
+                label: Text('Normal Game'),
+                icon: Icon(Icons.timer_outlined, size: 18),
+              ),
+              ButtonSegment<bool>(
+                value: true,
+                label: Text('Prepaid / Pre-Book'),
+                icon: Icon(Icons.verified_outlined, size: 18),
+              ),
+            ],
+            selected: {_isPrepaid},
+            onSelectionChanged: (Set<bool> newSelection) {
+              final isPre = newSelection.first;
+              setState(() {
+                _isPrepaid = isPre;
+                final validBilling = TablePricingConfig.supportedBillingTypes(
+                  widget.table,
+                  GameType.standard,
+                );
+                if (_isPrepaid) {
+                  if (_billingType == BillingType.perMinute) {
+                    if (validBilling.contains(BillingType.oneHour)) {
+                      _billingType = BillingType.oneHour;
+                    } else if (validBilling.contains(BillingType.halfHour)) {
+                      _billingType = BillingType.halfHour;
+                    } else if (validBilling.contains(BillingType.customMinute)) {
+                      _billingType = BillingType.customMinute;
+                    } else if (validBilling.contains(BillingType.perFrame)) {
+                      _billingType = BillingType.perFrame;
+                    }
+                  }
+                } else {
+                  if (validBilling.contains(BillingType.perMinute)) {
+                    _billingType = BillingType.perMinute;
+                  }
+                }
+              });
+            },
+          ),
+        ),
+        const SizedBox(height: 20),
+      ],
+    );
+  }
+
+  Widget _buildOvertimeToggle(ThemeData theme) {
+    if (!_isPrepaid || _tableType == TableType.arcade) {
+      return const SizedBox.shrink();
+    }
+    return Container(
+      margin: const EdgeInsets.only(top: 16),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surfaceBright,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: theme.dividerColor.withOpacity(0.1)),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Overtime Billing',
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                Text(
+                  'Charge standard rate if session exceeds allowance',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Switch(
+            value: _enableOvertime,
+            onChanged: (val) => setState(() => _enableOvertime = val),
+            activeColor: theme.colorScheme.primary,
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildBillingTypeSelector(ThemeData theme) {
-    final types = TablePricingConfig.supportedBillingTypes(
+    var types = TablePricingConfig.supportedBillingTypes(
       widget.table,
       GameType.standard,
     );
+    if (_isPrepaid) {
+      types = types.where((t) => t != BillingType.perMinute).toList();
+    }
     if (types.isEmpty) return const SizedBox.shrink();
+
+    if (!types.contains(_billingType)) {
+      _billingType = types.first;
+    }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -316,6 +484,50 @@ class _GameSetupDialogState extends ConsumerState<GameSetupDialog> {
               filled: true,
               fillColor: theme.colorScheme.surfaceBright,
               suffixText: 'mins',
+            ),
+          ),
+        ],
+        if (_isPrepaid && _billingType == BillingType.perFrame) ...[
+          const SizedBox(height: 16),
+          Text('Prepaid Frames', style: theme.textTheme.labelMedium),
+          const SizedBox(height: 8),
+          Container(
+            height: 52,
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            decoration: BoxDecoration(
+              color: theme.colorScheme.surfaceBright,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: theme.dividerColor.withOpacity(0.1),
+              ),
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    'Number of Frames:',
+                    style: theme.textTheme.bodyLarge,
+                  ),
+                ),
+                IconButton(
+                  onPressed: _prepaidFrames > 1
+                      ? () => setState(() => _prepaidFrames--)
+                      : null,
+                  icon: const Icon(Icons.remove_circle_outline),
+                  color: theme.colorScheme.primary,
+                ),
+                Text(
+                  '$_prepaidFrames',
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                IconButton(
+                  onPressed: () => setState(() => _prepaidFrames++),
+                  icon: const Icon(Icons.add_circle_outline),
+                  color: theme.colorScheme.primary,
+                ),
+              ],
             ),
           ),
         ],
@@ -619,8 +831,7 @@ class _GameSetupDialogState extends ConsumerState<GameSetupDialog> {
         }
       }
 
-      final now = DateTime.now();
-      final dateStr = '\-\-';
+      const dateStr = '--';
 
       final appSettings = ref.read(appSettingsProvider);
 
@@ -641,15 +852,46 @@ class _GameSetupDialogState extends ConsumerState<GameSetupDialog> {
       );
 
       DateTime? initialAlarmTime;
+      int? prepaidDurationMins;
       if (_billingType == BillingType.halfHour) {
+        prepaidDurationMins = 30;
         initialAlarmTime = DateTime.now().add(const Duration(minutes: 30));
       } else if (_billingType == BillingType.oneHour) {
+        prepaidDurationMins = 60;
         initialAlarmTime = DateTime.now().add(const Duration(minutes: 60));
-      } else if (_billingType == BillingType.customMinute &&
-          _customMinutes != null) {
+      } else if (_billingType == BillingType.customMinute) {
+        prepaidDurationMins = _customMinutes;
         initialAlarmTime = DateTime.now().add(
-          Duration(minutes: _customMinutes!),
+          Duration(minutes: _customMinutes),
         );
+      }
+
+      String packageDesc = _billingType.displayName;
+      if (_billingType == BillingType.customMinute) {
+        packageDesc = '$_customMinutes Mins';
+      } else if (_billingType == BillingType.perFrame) {
+        packageDesc = '$_prepaidFrames Frame${_prepaidFrames > 1 ? "s" : ""}';
+      }
+
+      PrepaidPaymentResult? prepaidResult;
+      double prepaidAmount = 0.0;
+      if (_isPrepaid) {
+        if (!mounted) return;
+        prepaidAmount = _calculatePrepaidAmount();
+        prepaidResult = await PrepaidPaymentSheet.show(
+          context,
+          amount: prepaidAmount,
+          tableName: widget.table.name,
+          players: combinedSelections.map((p) => p.name).toList(),
+          playerIdentities: resolvedIdentities,
+          packageDescription: packageDesc,
+        );
+
+        if (prepaidResult == null) {
+          // Staff cancelled or payment was not confirmed
+          setState(() => _isLoading = false);
+          return;
+        }
       }
 
       GameSession gameSession = GameSession(
@@ -665,7 +907,7 @@ class _GameSetupDialogState extends ConsumerState<GameSetupDialog> {
         mode: GameMode.solo,
         matchType: MatchType.friendly,
         billingType: _billingType,
-        totalFrames: 1,
+        totalFrames: _isPrepaid && _billingType == BillingType.perFrame ? _prepaidFrames : 1,
         framesPlayed: 0,
         customMinutes: _billingType == BillingType.customMinute
             ? _customMinutes
@@ -686,6 +928,15 @@ class _GameSetupDialogState extends ConsumerState<GameSetupDialog> {
         minimumBillAmount: widget.table.minimumBillAmount,
         gameSettingsSnapshot: appSettings.game,
         alarmTime: initialAlarmTime,
+        isPrepaid: _isPrepaid,
+        prepaidAmount: _isPrepaid ? prepaidAmount : 0.0,
+        prepaidDurationMinutes: _isPrepaid ? prepaidDurationMins : null,
+        prepaidFrames: _isPrepaid && _billingType == BillingType.perFrame ? _prepaidFrames : null,
+        prepaidPaymentMethod: prepaidResult?.paymentMethod,
+        prepaidPlayerPaymentSplits: prepaidResult?.playerPaymentSplits,
+        prepaidPaidBy: prepaidResult?.paidBy,
+        prepaidConfirmedAt: _isPrepaid ? DateTime.now() : null,
+        isOvertimeEnabled: _isPrepaid ? _enableOvertime : true,
       );
 
       if (_tableType == TableType.arcade) {
