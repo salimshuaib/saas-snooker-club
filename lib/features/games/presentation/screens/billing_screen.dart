@@ -48,7 +48,7 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
   String? _PlayerProfileName;
   final Map<String, String> _renamedPlayers = {};
   late Map<String, Map<PaymentMethod, double>> _playerPaymentSplits;
-  late Map<String, double> _customLiabilities;
+  Map<String, double> _customLiabilities = {};
   bool _isProcessing = false;
   bool _isRefreshing = false;
   bool _isTimeManuallyEdited = false;
@@ -117,6 +117,7 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
     _playerPaymentSplits = {
       for (final p in _session.allPlayers) p: {PaymentMethod.cash: 0.0},
     };
+    _customLiabilities = {};
   }
 
   @override
@@ -745,12 +746,17 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
     }
 
     if (_session.isPrepaid) {
-      if (_netAmountDue <= 0.0) {
+      final totalLiability = liabilities.values.fold<double>(
+        0.0,
+        (sum, amount) => sum + amount,
+      );
+      final netDue = math.max(0.0, totalLiability - _session.prepaidAmount);
+      if (netDue <= 0.0) {
         for (final p in _session.allPlayers) {
           liabilities[p] = 0.0;
         }
       } else {
-        final share = _netAmountDue / splitGroup.length;
+        final share = netDue / splitGroup.length;
         for (final p in _session.allPlayers) {
           liabilities[p] = 0.0;
         }
@@ -915,6 +921,10 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
     }
 
     if (_customLiabilities.isNotEmpty) {
+      if (_session.isPrepaid) {
+        return _prepaidAmountPaid +
+            _customLiabilities.values.fold(0.0, (s, v) => s + v);
+      }
       return _customLiabilities.values.fold(0.0, (s, v) => s + v);
     }
 

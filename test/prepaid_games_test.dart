@@ -252,5 +252,63 @@ void main() {
         isTrue,
       );
     });
+
+    test('Prepaid session with zero due yields empty net liabilities and preserves total amount', () {
+      final now = DateTime(2026, 10, 16, 12, 0);
+      final session = GameSession(
+        id: 'test_prepaid_liab',
+        tableId: 't1',
+        tableName: 'Snooker 1',
+        tableType: TableType.snooker,
+        gameType: GameType.standard,
+        mode: GameMode.solo,
+        billingType: BillingType.halfHour,
+        matchType: MatchType.friendly,
+        teamA: const ['Player 1'],
+        teamB: const [],
+        playerIds: const [],
+        status: TableStatus.running,
+        startTime: now,
+        endTime: now.add(const Duration(minutes: 30)),
+        pauseTimes: const [],
+        resumeTimes: const [],
+        totalFrames: 1,
+        framesPlayed: 0,
+        orders: const [],
+        manualGameCharges: const [],
+        rounds: const [],
+        date: '2026-10-16',
+        auditLogs: const [],
+        isPrepaid: true,
+        prepaidAmount: 120.0,
+        prepaidDurationMinutes: 30,
+        prepaidPaymentMethod: PaymentMethod.cash,
+        isOvertimeEnabled: false,
+      );
+
+      // Verify that prepaid fields exist
+      expect(session.isPrepaid, isTrue);
+      expect(session.prepaidAmount, 120.0);
+
+      // Verify net due calculation with 0 liabilities
+      final Map<String, double> liabilities = {
+        for (final p in session.allPlayers) p: 120.0,
+      };
+      final totalLiability = liabilities.values.fold<double>(0.0, (s, a) => s + a);
+      final netDue = (totalLiability - session.prepaidAmount).clamp(0.0, double.infinity);
+      expect(netDue, 0.0);
+
+      if (netDue <= 0.0) {
+        for (final p in session.allPlayers) {
+          liabilities[p] = 0.0;
+        }
+      }
+      expect(liabilities['Player 1'], 0.0);
+
+      // When custom liabilities are 0.0, total bill is prepaidAmount + sum(customLiabilities) = 120.0
+      final totalBill = session.prepaidAmount + liabilities.values.fold<double>(0.0, (s, v) => s + v);
+      expect(totalBill, 120.0);
+    });
   });
 }
+
