@@ -27,6 +27,7 @@ import 'package:snooker_club/features/games/presentation/widgets/orders_sheet.da
 import 'package:snooker_club/features/games/presentation/widgets/payment_complete_modal.dart';
 import 'package:snooker_club/features/happy_hour/domain/models/happy_hour_offer.dart';
 import 'package:snooker_club/features/happy_hour/presentation/widgets/offer_selection_sheet.dart';
+import 'package:snooker_club/features/happy_hour/providers/happy_hour_providers.dart';
 
 class BillingScreen extends ConsumerStatefulWidget {
   final GameSession session;
@@ -1404,8 +1405,15 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
                   ],
 
                   // ── Happy Hour Offers ──
-                  const Gap(16),
-                  _buildOffersSection(theme),
+                  if (_appliedOffer != null ||
+                      ref
+                          .watch(
+                            eligibleOffersForTableProvider(_session.tableId),
+                          )
+                          .isNotEmpty) ...[
+                    const Gap(16),
+                    _buildOffersSection(theme),
+                  ],
 
                   // ── Discount ──
                   const Gap(16),
@@ -2970,6 +2978,12 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
           ],
         ),
       );
+    }
+
+    final eligibleOffers =
+        ref.watch(eligibleOffersForTableProvider(_session.tableId));
+    if (eligibleOffers.isEmpty) {
+      return const SizedBox.shrink();
     }
 
     return Row(
