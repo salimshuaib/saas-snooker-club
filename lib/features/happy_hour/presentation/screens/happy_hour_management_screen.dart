@@ -135,7 +135,7 @@ class HappyHourManagementScreen extends ConsumerWidget {
                         shape: BoxShape.circle,
                       ),
                       child: Icon(
-                        Icons.local_offer_outlined,
+                        Icons.discount_outlined,
                         size: 64,
                         color: theme.colorScheme.primary,
                       ),
@@ -307,7 +307,7 @@ class HappyHourManagementScreen extends ConsumerWidget {
                         children: [
                           Icon(
                             offer.isOvernightSchedule
-                                ? Icons.nightlight_round
+                                ? Icons.access_time
                                 : Icons.access_time,
                             size: 14,
                             color: offer.isOvernightSchedule

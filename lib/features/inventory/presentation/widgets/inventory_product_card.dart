@@ -30,7 +30,7 @@ class InventoryProductCard extends ConsumerWidget {
   }
 
   IconData _getCategoryIcon() {
-    if (item.isFood) return Icons.restaurant;
+    if (item.isFood) return Icons.fastfood;
     if (item.category == 'Drinks') return Icons.local_drink;
     if (item.category == 'Snacks') return Icons.fastfood;
     return Icons.smoking_rooms;

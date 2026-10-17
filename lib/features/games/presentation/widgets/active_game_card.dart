@@ -191,7 +191,7 @@ class _ActiveGameCardState extends ConsumerState<ActiveGameCard> {
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
                                   Icon(
-                                    Icons.verified,
+                                    Icons.flash_on,
                                     size: 13,
                                     color: Colors.amber.shade700,
                                   ),
@@ -280,7 +280,7 @@ class _ActiveGameCardState extends ConsumerState<ActiveGameCard> {
                                           mainAxisSize: MainAxisSize.min,
                                           children: [
                                             const Icon(
-                                              Icons.hourglass_bottom,
+                                              Icons.hourglass_empty,
                                               size: 14,
                                               color: AppColors.primary,
                                             ),
@@ -462,8 +462,8 @@ class _ActiveGameCardState extends ConsumerState<ActiveGameCard> {
                             children: [
                               Icon(
                                 game.isOvertimeEnabled
-                                    ? Icons.alarm_on
-                                    : Icons.alarm_off,
+                                    ? Icons.notifications_active
+                                    : Icons.notifications_none,
                                 size: 14,
                                 color: game.isOvertimeEnabled
                                     ? AppColors.warning

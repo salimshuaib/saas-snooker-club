@@ -155,7 +155,7 @@ class GameActivityCard extends ConsumerWidget {
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
                                     Icon(
-                                      Icons.verified,
+                                      Icons.flash_on,
                                       size: 11,
                                       color: Colors.amber.shade700,
                                     ),

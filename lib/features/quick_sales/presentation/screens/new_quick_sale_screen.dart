@@ -470,7 +470,7 @@ class _NewQuickSaleScreenState extends ConsumerState<NewQuickSaleScreen> {
                       ),
                       child: Icon(
                         item.isFood
-                            ? Icons.restaurant
+                            ? Icons.fastfood
                             : (item.category == 'Drinks'
                                 ? Icons.local_drink
                                 : Icons.smoking_rooms),

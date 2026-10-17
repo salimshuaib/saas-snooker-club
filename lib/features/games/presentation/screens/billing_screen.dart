@@ -1632,7 +1632,7 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
                         Row(
                           children: [
                             Icon(
-                              Icons.verified,
+                              Icons.check_circle,
                               size: 16,
                               color: Colors.amber.shade800,
                             ),
@@ -2972,7 +2972,7 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
                 borderRadius: BorderRadius.circular(8),
               ),
               child: const Icon(
-                Icons.local_offer,
+                Icons.discount_outlined,
                 color: Colors.deepOrangeAccent,
                 size: 20,
               ),
@@ -3049,7 +3049,7 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
         Row(
           children: [
             const Icon(
-              Icons.local_offer_outlined,
+              Icons.discount_outlined,
               size: 20,
               color: Colors.deepOrangeAccent,
             ),
@@ -3091,7 +3091,7 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
               }
             }
           },
-          icon: const Icon(Icons.loyalty, size: 16),
+          icon: const Icon(Icons.discount_outlined, size: 16),
           label: const Text('Offers'),
           style: OutlinedButton.styleFrom(
             foregroundColor: Colors.deepOrangeAccent,

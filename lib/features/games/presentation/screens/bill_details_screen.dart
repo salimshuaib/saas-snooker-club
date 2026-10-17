@@ -513,7 +513,7 @@ class _BillDetailsScreenState extends ConsumerState<BillDetailsScreen> {
                     child: Row(
                       children: [
                         const Icon(
-                          Icons.local_offer,
+                          Icons.discount_outlined,
                           color: Colors.deepOrangeAccent,
                           size: 22,
                         ),

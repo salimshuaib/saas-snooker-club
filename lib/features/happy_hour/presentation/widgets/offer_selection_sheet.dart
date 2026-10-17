@@ -124,7 +124,7 @@ class _OfferSelectionSheetState extends ConsumerState<OfferSelectionSheet> {
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: const Icon(
-                    Icons.local_offer,
+                    Icons.discount_outlined,
                     color: Colors.deepOrangeAccent,
                     size: 20,
                   ),
@@ -220,7 +220,7 @@ class _OfferSelectionSheetState extends ConsumerState<OfferSelectionSheet> {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Icon(
-                          Icons.sentiment_dissatisfied_outlined,
+                          Icons.info_outline,
                           size: 48,
                           color: theme.colorScheme.onSurfaceVariant,
                         ),

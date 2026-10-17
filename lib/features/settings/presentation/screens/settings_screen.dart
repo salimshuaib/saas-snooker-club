@@ -116,7 +116,7 @@ class SettingsScreen extends ConsumerWidget {
           // Happy Hour Promotions
           SettingsSectionCard(
             title: 'Happy Hour Promotions',
-            icon: Icons.local_offer,
+            icon: Icons.discount_outlined,
             iconColor: Colors.deepOrangeAccent,
             children: [
               Padding(
@@ -140,7 +140,7 @@ class SettingsScreen extends ConsumerWidget {
                       ),
                     );
                   },
-                  icon: const Icon(Icons.loyalty),
+                  icon: const Icon(Icons.discount_outlined),
                   label: const Text('Manage Happy Hour Offers'),
                   style: FilledButton.styleFrom(
                     backgroundColor: Colors.deepOrangeAccent,

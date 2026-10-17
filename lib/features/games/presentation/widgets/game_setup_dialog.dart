@@ -321,7 +321,7 @@ class _GameSetupDialogState extends ConsumerState<GameSetupDialog> {
               ButtonSegment<bool>(
                 value: true,
                 label: Text('Prepaid'),
-                icon: Icon(Icons.verified_outlined, size: 18),
+                icon: Icon(Icons.flash_on, size: 18),
               ),
             ],
             selected: {_isPrepaid},

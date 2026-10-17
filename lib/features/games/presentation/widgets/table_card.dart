@@ -81,8 +81,8 @@ class TableCard extends ConsumerWidget {
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             Icon(
-                              Icons.verified,
-                              size: 10,
+                              Icons.flash_on,
+                              size: 11,
                               color: Colors.amber.shade700,
                             ),
                             const Gap(3),

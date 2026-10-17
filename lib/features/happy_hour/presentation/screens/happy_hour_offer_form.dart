@@ -270,7 +270,7 @@ class _HappyHourOfferFormScreenState
                       decoration: const InputDecoration(
                         labelText: 'Offer Name *',
                         hintText: 'e.g. Afternoon Special, Weekend Rush',
-                        prefixIcon: Icon(Icons.label_outline),
+                        prefixIcon: Icon(Icons.edit),
                       ),
                       validator: (val) {
                         if (val == null || val.trim().isEmpty) {
@@ -391,7 +391,7 @@ class _HappyHourOfferFormScreenState
                             child: InputDecorator(
                               decoration: const InputDecoration(
                                 labelText: 'Daily End Time',
-                                prefixIcon: Icon(Icons.timer_off_outlined, size: 18),
+                                prefixIcon: Icon(Icons.access_time, size: 18),
                               ),
                               child: Text(_endTime.format(context)),
                             ),
@@ -410,7 +410,7 @@ class _HappyHourOfferFormScreenState
                         ),
                         child: Row(
                           children: [
-                            const Icon(Icons.nightlight_round, color: Colors.amber, size: 18),
+                            const Icon(Icons.access_time, color: Colors.amber, size: 18),
                             const Gap(8),
                             Expanded(
                               child: Text(
