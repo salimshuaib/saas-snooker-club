@@ -182,6 +182,110 @@ void main() {
       expect(charge.overtimeCharge, 0.0);
       expect(charge.totalCharge, 200.0);
     });
+
+    test('Custom Minute game applies round off logic (15 mins @ 4.5/min -> ₹70)', () {
+      const snookerPricing = PricingSettings(
+        snookerOneHour: 270.0,
+        snookerHalfHour: 135.0,
+        snookerPerMinute: 4.5,
+      );
+
+      final charge = TablePricingConfig.calculateCharge(
+        table: table,
+        gameType: GameType.standard,
+        billingType: BillingType.customMinute,
+        activeSeconds: 15 * 60,
+        framesPlayed: 0,
+        customMinutes: 15,
+        pricingConfig: snookerPricing,
+        gameConfig: const GameSettings(),
+        isOvertimeEnabled: true,
+      );
+
+      // 15 * 4.5 = 67.5 -> rounded to nearest 5 is 70.0
+      expect(charge.baseCharge, 70.0);
+      expect(charge.overtimeMinutes, 0);
+      expect(charge.overtimeCharge, 0.0);
+      expect(charge.totalCharge, 70.0);
+    });
+
+    test('Custom Minute game with overtime rounds off base + overtime', () {
+      const snookerPricing = PricingSettings(
+        snookerOneHour: 270.0,
+        snookerHalfHour: 135.0,
+        snookerPerMinute: 4.5,
+      );
+
+      // 18 minutes elapsed = 3 minutes overtime
+      final charge = TablePricingConfig.calculateCharge(
+        table: table,
+        gameType: GameType.standard,
+        billingType: BillingType.customMinute,
+        activeSeconds: 18 * 60,
+        framesPlayed: 0,
+        customMinutes: 15,
+        pricingConfig: snookerPricing,
+        gameConfig: const GameSettings(),
+        isOvertimeEnabled: true,
+      );
+
+      // Base: 70.0, 3 mins overtime @ 4.5 = 13.5 -> 70 + 13.5 = 83.5 -> rounded is 85.0
+      expect(charge.baseCharge, 70.0);
+      expect(charge.overtimeMinutes, 3);
+      expect(charge.overtimeCharge, 15.0);
+      expect(charge.totalCharge, 85.0);
+    });
+
+    test('One Hour package before time limit preserves exact package price (no round off until time limit)', () {
+      const snookerPricing = PricingSettings(
+        snookerOneHour: 270.0,
+        snookerHalfHour: 135.0,
+        snookerPerMinute: 4.5,
+      );
+
+      // 45 minutes elapsed (within 60 mins)
+      final charge = TablePricingConfig.calculateCharge(
+        table: table,
+        gameType: GameType.standard,
+        billingType: BillingType.oneHour,
+        activeSeconds: 45 * 60,
+        framesPlayed: 0,
+        pricingConfig: snookerPricing,
+        gameConfig: const GameSettings(),
+        isOvertimeEnabled: true,
+      );
+
+      expect(charge.baseCharge, 270.0);
+      expect(charge.overtimeMinutes, 0);
+      expect(charge.overtimeCharge, 0.0);
+      expect(charge.totalCharge, 270.0);
+    });
+
+    test('One Hour package with overtime rounds off package price + overtime', () {
+      const snookerPricing = PricingSettings(
+        snookerOneHour: 270.0,
+        snookerHalfHour: 135.0,
+        snookerPerMinute: 4.5,
+      );
+
+      // 63 minutes elapsed (3 minutes overtime)
+      final charge = TablePricingConfig.calculateCharge(
+        table: table,
+        gameType: GameType.standard,
+        billingType: BillingType.oneHour,
+        activeSeconds: 63 * 60,
+        framesPlayed: 0,
+        pricingConfig: snookerPricing,
+        gameConfig: const GameSettings(),
+        isOvertimeEnabled: true,
+      );
+
+      // Base: 270.0, 3 mins overtime @ 4.5 = 13.5 -> 270 + 13.5 = 283.5 -> rounded is 285.0
+      expect(charge.baseCharge, 270.0);
+      expect(charge.overtimeMinutes, 3);
+      expect(charge.overtimeCharge, 15.0);
+      expect(charge.totalCharge, 285.0);
+    });
   });
 
   group('Prepaid Settlement Reconciliation & Receipts Tests', () {

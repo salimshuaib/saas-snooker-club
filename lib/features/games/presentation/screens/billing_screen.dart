@@ -1767,120 +1767,177 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
                 ),
                 const Gap(32),
               ] else ...[
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      _session.isPrepaid
-                          ? 'Pay Remaining Balance'
-                          : 'Payment Method',
-                      style: theme.textTheme.titleMedium,
-                    ),
-                    (() {
-                      final basePlayer = _selectedPayers.isNotEmpty
-                          ? _selectedPayers.first
-                          : _session.allPlayers.isEmpty
-                          ? 'Guest'
-                          : _session.allPlayers.first;
-                      final isSingleDefault =
-                          !_isMultiPayer &&
-                          basePlayer.toLowerCase().startsWith('default');
-                      final displayPlayer =
-                          (isSingleDefault &&
-                              _PlayerProfileName != null &&
-                              _PlayerProfileName!.isNotEmpty)
-                          ? _PlayerProfileName!
-                          : basePlayer;
-                      final targetAmount =
-                          _session.isPrepaid ? _netAmountDue : _roundedTotal;
-                      return Expanded(
-                        child: Wrap(
-                          alignment: WrapAlignment.end,
-                          crossAxisAlignment: WrapCrossAlignment.center,
-                          spacing: 4,
-                          runSpacing: 4,
-                          children: [
-                            if (appSettings.business.upiId != null &&
-                                appSettings.business.upiId!.isNotEmpty)
-                              Padding(
-                                padding: const EdgeInsets.only(right: 8.0),
-                                child: TextButton.icon(
-                                  onPressed: () {
-                                    final splits =
-                                        _playerPaymentSplits[basePlayer];
-                                    final upiAmount = splits != null
-                                        ? (splits[PaymentMethod.upi] ?? 0.0)
-                                        : 0.0;
-                                    final qrAmount = upiAmount > 0
-                                        ? upiAmount
-                                        : targetAmount;
-                                    showDialog(
-                                      context: context,
-                                      builder: (ctx) => UpiQrDialog(
-                                        upiId: appSettings.business.upiId!,
-                                        payeeName:
-                                            appSettings.business.clubName,
-                                        amount: qrAmount,
-                                      ),
-                                    );
-                                  },
-                                  style: TextButton.styleFrom(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 8,
-                                      vertical: 4,
-                                    ),
-                                    minimumSize: Size.zero,
-                                    tapTargetSize:
-                                        MaterialTapTargetSize.shrinkWrap,
-                                  ),
-                                  icon: const Icon(Icons.qr_code_2, size: 16),
-                                  label: const Text(
-                                    'Generate QR',
-                                    style: TextStyle(fontSize: 12),
-                                  ),
-                                ),
-                              ),
-                            TextButton.icon(
-                              onPressed: () {
-                                showModalBottomSheet(
-                                  context: context,
-                                  isScrollControlled: true,
-                                  builder: (ctx) => PlayerSplitPaymentSheet(
-                                    playerName: displayPlayer,
-                                    totalLiability: targetAmount,
-                                    initialSplits:
-                                        _playerPaymentSplits[basePlayer] ??
-                                        {_paymentMethod: targetAmount},
-                                    onSplitsSaved: (newSplits) {
-                                      setState(() {
-                                        _playerPaymentSplits[basePlayer] =
-                                            newSplits;
-                                      });
-                                    },
-                                  ),
-                                );
-                              },
-                              style: TextButton.styleFrom(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 8,
-                                  vertical: 4,
-                                ),
-                                minimumSize: Size.zero,
-                                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                              ),
-                              icon: const Icon(Icons.call_split, size: 16),
-                              label: const Text(
-                                'Payment Breakdown',
-                                style: TextStyle(fontSize: 12),
-                              ),
-                            ),
-                          ],
-                        ),
-                      );
-                    })(),
-                  ],
+                Text(
+                  _session.isPrepaid
+                      ? 'Pay Remaining Balance'
+                      : 'Payment Method',
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
-                const Gap(8),
+                const Gap(12),
+                (() {
+                  final basePlayer = _selectedPayers.isNotEmpty
+                      ? _selectedPayers.first
+                      : _session.allPlayers.isEmpty
+                      ? 'Guest'
+                      : _session.allPlayers.first;
+                  final isSingleDefault =
+                      !_isMultiPayer &&
+                      basePlayer.toLowerCase().startsWith('default');
+                  final displayPlayer =
+                      (isSingleDefault &&
+                          _PlayerProfileName != null &&
+                          _PlayerProfileName!.isNotEmpty)
+                      ? _PlayerProfileName!
+                      : basePlayer;
+                  final targetAmount =
+                      _session.isPrepaid ? _netAmountDue : _roundedTotal;
+
+                  final hasUpi = appSettings.business.upiId != null &&
+                      appSettings.business.upiId!.isNotEmpty;
+
+                  Widget buildQrButton() {
+                    return Material(
+                      color: Colors.transparent,
+                      child: InkWell(
+                        onTap: () {
+                          final splits = _playerPaymentSplits[basePlayer];
+                          final upiAmount = splits != null
+                              ? (splits[PaymentMethod.upi] ?? 0.0)
+                              : 0.0;
+                          final qrAmount =
+                              upiAmount > 0 ? upiAmount : targetAmount;
+                          showDialog(
+                            context: context,
+                            builder: (ctx) => UpiQrDialog(
+                              upiId: appSettings.business.upiId!,
+                              payeeName: appSettings.business.clubName,
+                              amount: qrAmount,
+                            ),
+                          );
+                        },
+                        borderRadius: BorderRadius.circular(10),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            vertical: 8,
+                            horizontal: 10,
+                          ),
+                          decoration: BoxDecoration(
+                            color: theme.colorScheme.surfaceContainerHighest
+                                .withValues(alpha: 0.35),
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(
+                              color: theme.colorScheme.outlineVariant,
+                            ),
+                          ),
+                          alignment: Alignment.center,
+                          child: const Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.qr_code_2,
+                                size: 16,
+                                color: AppColors.primary,
+                              ),
+                              Gap(6),
+                              Flexible(
+                                child: Text(
+                                  'Generate QR',
+                                  style: TextStyle(
+                                    color: AppColors.primary,
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 12,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    );
+                  }
+
+                  Widget buildBreakdownButton() {
+                    return Material(
+                      color: Colors.transparent,
+                      child: InkWell(
+                        onTap: () {
+                          showModalBottomSheet(
+                            context: context,
+                            isScrollControlled: true,
+                            builder: (ctx) => PlayerSplitPaymentSheet(
+                              playerName: displayPlayer,
+                              totalLiability: targetAmount,
+                              initialSplits:
+                                  _playerPaymentSplits[basePlayer] ??
+                                  {_paymentMethod: targetAmount},
+                              onSplitsSaved: (newSplits) {
+                                setState(() {
+                                  _playerPaymentSplits[basePlayer] = newSplits;
+                                });
+                              },
+                            ),
+                          );
+                        },
+                        borderRadius: BorderRadius.circular(10),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            vertical: 8,
+                            horizontal: 10,
+                          ),
+                          decoration: BoxDecoration(
+                            color: theme.colorScheme.surfaceContainerHighest
+                                .withValues(alpha: 0.35),
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(
+                              color: theme.colorScheme.outlineVariant,
+                            ),
+                          ),
+                          alignment: Alignment.center,
+                          child: const Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.call_split,
+                                size: 16,
+                                color: AppColors.primary,
+                              ),
+                              Gap(6),
+                              Flexible(
+                                child: Text(
+                                  'Payment Breakdown',
+                                  style: TextStyle(
+                                    color: AppColors.primary,
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 12,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    );
+                  }
+
+                  if (hasUpi) {
+                    return Row(
+                      children: [
+                        Expanded(child: buildQrButton()),
+                        const Gap(10),
+                        Expanded(child: buildBreakdownButton()),
+                      ],
+                    );
+                  } else {
+                    return buildBreakdownButton();
+                  }
+                })(),
+                const Gap(12),
                 Builder(
                   builder: (context) {
                     final player = _selectedPayers.isNotEmpty

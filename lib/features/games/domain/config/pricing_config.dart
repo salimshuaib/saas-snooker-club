@@ -1,6 +1,6 @@
 import 'package:snooker_club/features/games/domain/models/game_models.dart';
-
 import 'package:snooker_club/features/settings/domain/models/settings_models.dart';
+import 'package:snooker_club/core/utils/billing_utils.dart';
 
 /// Centralized pricing and game configuration.
 
@@ -537,6 +537,8 @@ class TablePricingConfig {
     double perSecondRate;
     if (billingType == BillingType.perMinute && customPrice != null) {
       perSecondRate = customPrice / 60.0;
+    } else if (billingType == BillingType.customMinute && customPrice != null) {
+      perSecondRate = (customPrice / 60.0) / 60.0;
     } else if (tableType.isOtherGame && basePrice != null) {
       if (billingType == BillingType.halfHour) {
         perSecondRate = basePrice / (30 * 60.0);
@@ -573,24 +575,31 @@ class TablePricingConfig {
       case BillingType.customMinute:
         final int targetMinutes = customMinutes ?? 0;
         final int targetSeconds = targetMinutes * 60;
-        final double customBaseCharge = targetMinutes * perSecondRate * 60.0;
+        final double rawBase = (customPrice != null)
+            ? (customPrice / 60.0) * targetMinutes
+            : targetMinutes * perSecondRate * 60.0;
+        final double customBaseCharge = BillingUtils.roundAmount(rawBase);
         
         final int overtimeSeconds = overtimeEnabled
             ? (activeSeconds - targetSeconds)
             : 0;
             
-        final double overtimeCharge = overtimeSeconds > 0
+        final double rawOvertimeCharge = overtimeSeconds > 0
             ? overtimeSeconds * perSecondRate
             : 0;
             
         final int overtimeMins = overtimeSeconds > 0
             ? (overtimeSeconds / 60.0).ceil()
             : 0;
+
+        final double finalOvertimeCharge = (overtimeSeconds > 0 && overtimeEnabled)
+            ? (BillingUtils.roundAmount(customBaseCharge + rawOvertimeCharge) - customBaseCharge)
+            : 0.0;
             
         rawBreakdown = GameChargeBreakdown(
           baseCharge: customBaseCharge,
           overtimeMinutes: overtimeMins,
-          overtimeCharge: overtimeCharge,
+          overtimeCharge: finalOvertimeCharge,
         );
 
       case BillingType.perFrame:
@@ -656,7 +665,7 @@ class TablePricingConfig {
             ? (activeSeconds - (30 * 60))
             : 0;
 
-        final double overtimeCharge = overtimeSeconds > 0
+        final double rawOvertimeCharge = overtimeSeconds > 0
             ? overtimeSeconds * perSecondRate
             : 0;
 
@@ -664,12 +673,14 @@ class TablePricingConfig {
             ? (overtimeSeconds / 60.0).ceil()
             : 0;
 
+        final double finalOvertimeCharge = (overtimeSeconds > 0 && overtimeEnabled)
+            ? (BillingUtils.roundAmount(price + rawOvertimeCharge) - price)
+            : 0.0;
+
         rawBreakdown = GameChargeBreakdown(
           baseCharge: price,
-
           overtimeMinutes: overtimeMinutes,
-
-          overtimeCharge: overtimeCharge,
+          overtimeCharge: finalOvertimeCharge,
         );
 
       case BillingType.oneHour:
@@ -677,7 +688,7 @@ class TablePricingConfig {
             ? (activeSeconds - (60 * 60))
             : 0;
 
-        final double overtimeCharge = overtimeSeconds > 0
+        final double rawOvertimeCharge = overtimeSeconds > 0
             ? overtimeSeconds * perSecondRate
             : 0;
 
@@ -685,12 +696,14 @@ class TablePricingConfig {
             ? (overtimeSeconds / 60.0).ceil()
             : 0;
 
+        final double finalOvertimeCharge = (overtimeSeconds > 0 && overtimeEnabled)
+            ? (BillingUtils.roundAmount(price + rawOvertimeCharge) - price)
+            : 0.0;
+
         rawBreakdown = GameChargeBreakdown(
           baseCharge: price,
-
           overtimeMinutes: overtimeMinutes,
-
-          overtimeCharge: overtimeCharge,
+          overtimeCharge: finalOvertimeCharge,
         );
     }
     if (isMinimumBillEnabled && minimumBillAmount > 0) {

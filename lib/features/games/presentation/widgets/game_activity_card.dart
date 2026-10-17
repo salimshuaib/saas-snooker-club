@@ -136,6 +136,43 @@ class GameActivityCard extends ConsumerWidget {
                             ),
                           ),
                           if (!isAvailable && gameAsync.value != null) ...[
+                            if (gameAsync.value!.isPrepaid) ...[
+                              const SizedBox(width: 8),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                  vertical: 2.5,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: Colors.amber.withValues(alpha: 0.15),
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(
+                                    color: Colors.amber.shade700,
+                                    width: 1,
+                                  ),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(
+                                      Icons.verified,
+                                      size: 11,
+                                      color: Colors.amber.shade700,
+                                    ),
+                                    const SizedBox(width: 3),
+                                    Text(
+                                      'PREPAID',
+                                      style: TextStyle(
+                                        color: Colors.amber.shade900,
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.w800,
+                                        letterSpacing: 0.5,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
                             const SizedBox(width: 8),
                             GestureDetector(
                               behavior: HitTestBehavior.opaque,

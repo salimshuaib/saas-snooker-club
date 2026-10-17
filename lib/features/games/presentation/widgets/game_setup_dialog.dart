@@ -18,6 +18,7 @@ import 'package:snooker_club/features/credit/providers/credit_providers.dart';
 import 'package:snooker_club/features/credit/presentation/widgets/player_search_field.dart';
 import 'package:snooker_club/features/credit/domain/models/credit_models.dart';
 import 'package:snooker_club/features/games/presentation/widgets/prepaid_payment_sheet.dart';
+import 'package:snooker_club/core/utils/billing_utils.dart';
 
 class GameSetupDialog extends ConsumerStatefulWidget {
   final TableModel table;
@@ -254,7 +255,7 @@ class _GameSetupDialogState extends ConsumerState<GameSetupDialog> {
     if (_isCustomPrice && !_tableType.isOtherGame) {
       final customP = double.tryParse(_customPriceController.text) ?? 0.0;
       if (_billingType == BillingType.customMinute) {
-        return (customP / 60.0) * _customMinutes;
+        return BillingUtils.roundAmount((customP / 60.0) * _customMinutes);
       } else if (_billingType == BillingType.perFrame) {
         return customP * _prepaidFrames;
       }
@@ -279,7 +280,7 @@ class _GameSetupDialogState extends ConsumerState<GameSetupDialog> {
 
     double total = 0.0;
     if (_billingType == BillingType.customMinute) {
-      total = basePrice * _customMinutes;
+      total = BillingUtils.roundAmount(basePrice * _customMinutes);
     } else if (_billingType == BillingType.perFrame) {
       total = basePrice * _prepaidFrames;
     } else if (_billingType == BillingType.perCoin) {
@@ -319,7 +320,7 @@ class _GameSetupDialogState extends ConsumerState<GameSetupDialog> {
               ),
               ButtonSegment<bool>(
                 value: true,
-                label: Text('Prepaid / Pre-Book'),
+                label: Text('Prepaid'),
                 icon: Icon(Icons.verified_outlined, size: 18),
               ),
             ],

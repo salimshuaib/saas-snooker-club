@@ -5,8 +5,6 @@ import 'package:gap/gap.dart';
 import 'package:snooker_club/core/theme/app_colors.dart';
 import 'package:snooker_club/features/games/domain/models/game_models.dart';
 import 'package:snooker_club/features/games/providers/games_providers.dart';
-import 'package:snooker_club/features/team/providers/team_providers.dart';
-import 'package:snooker_club/features/games/presentation/screens/manual_game_setup_screen.dart';
 
 class TableCard extends ConsumerWidget {
   final TableModel table;
@@ -60,7 +58,49 @@ class TableCard extends ConsumerWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                _StatusBadge(status: table.status),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    _StatusBadge(status: table.status),
+                    if (activeGameAsync.value?.isPrepaid == true) ...[
+                      const Gap(6),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 6,
+                          vertical: 2,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.amber.withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(
+                            color: Colors.amber.shade700,
+                            width: 1,
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.verified,
+                              size: 10,
+                              color: Colors.amber.shade700,
+                            ),
+                            const Gap(3),
+                            Text(
+                              'PREPAID',
+                              style: TextStyle(
+                                color: Colors.amber.shade900,
+                                fontSize: 9,
+                                fontWeight: FontWeight.w800,
+                                letterSpacing: 0.3,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
                 Icon(
                   _tableIcon(table.type),
                   size: 18,

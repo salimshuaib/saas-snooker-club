@@ -20,7 +20,6 @@ import 'package:snooker_club/features/games/presentation/widgets/table_history_s
 import 'package:snooker_club/features/team/providers/team_providers.dart';
 import 'package:snooker_club/core/services/table_alarm_service.dart';
 import 'package:snooker_club/features/games/presentation/widgets/alarm_setup_sheet.dart';
-import 'package:snooker_club/core/utils/billing_utils.dart';
 import 'package:snooker_club/features/games/presentation/widgets/mark_pending_dialog.dart';
 import 'package:snooker_club/features/credit/presentation/widgets/player_search_field.dart';
 import 'package:snooker_club/features/games/presentation/widgets/game_setup_dialog.dart';
@@ -109,6 +108,9 @@ class _ActiveGameCardState extends ConsumerState<ActiveGameCard> {
                   minimumBillAmount: game.minimumBillAmount,
                   isOvertimeEnabled: game.isOvertimeEnabled,
                 );
+                final displayedCharge = game.isPrepaid
+                    ? math.max(game.prepaidAmount, charge.totalCharge)
+                    : charge.totalCharge;
                 final h = (seconds ~/ 3600).toString().padLeft(2, '0');
                 final m = ((seconds % 3600) ~/ 60).toString().padLeft(2, '0');
                 final s = (seconds % 60).toString().padLeft(2, '0');
@@ -378,7 +380,7 @@ class _ActiveGameCardState extends ConsumerState<ActiveGameCard> {
                           crossAxisAlignment: CrossAxisAlignment.end,
                           children: [
                             Text(
-                              '₹${charge.totalCharge.toStringAsFixed(2)}',
+                              '₹${displayedCharge.toStringAsFixed(displayedCharge.truncateToDouble() == displayedCharge ? 0 : 2)}',
                               style: theme.textTheme.headlineSmall?.copyWith(
                                 fontWeight: FontWeight.w700,
                                 color: AppColors.primary,
