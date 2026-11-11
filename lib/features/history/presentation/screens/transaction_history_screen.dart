@@ -237,7 +237,7 @@ class _TransactionHistoryScreenState extends ConsumerState<TransactionHistoryScr
                             ),
                           ),
                         ),
-                        if (hasFloors && floors.isNotEmpty)
+                        if (hasFloors && floors.length > 1)
                           DropdownButton<String?>(
                             value: selectedFloor?.id,
                             hint: const Text('All Floors'),
@@ -555,38 +555,45 @@ class _GameTransactionTile extends ConsumerWidget {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Text(
-                                session.tableName,
-                                style: theme.textTheme.titleMedium?.copyWith(
-                                  fontWeight: FontWeight.w700,
-                                ),
-                              ),
-                              if (session.appliedOfferName != null) ...[
-                                const Gap(6),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 6,
-                                    vertical: 2,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: Colors.deepOrangeAccent.withValues(alpha: 0.15),
-                                    borderRadius: BorderRadius.circular(6),
-                                  ),
+                          Expanded(
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Flexible(
                                   child: Text(
-                                    session.appliedOfferCode ?? 'OFFER',
-                                    style: const TextStyle(
-                                      fontSize: 10,
-                                      fontWeight: FontWeight.bold,
-                                      color: Colors.deepOrangeAccent,
+                                    session.tableName,
+                                    style: theme.textTheme.titleMedium?.copyWith(
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                                if (session.appliedOfferName != null) ...[
+                                  const Gap(6),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 6,
+                                      vertical: 2,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: Colors.deepOrangeAccent.withValues(alpha: 0.15),
+                                      borderRadius: BorderRadius.circular(6),
+                                    ),
+                                    child: Text(
+                                      session.appliedOfferCode ?? 'OFFER',
+                                      style: const TextStyle(
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.deepOrangeAccent,
+                                      ),
                                     ),
                                   ),
-                                ),
+                                ],
                               ],
-                            ],
+                            ),
                           ),
+                          const Gap(8),
                           if (session.isCancelled)
                             Container(
                               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -614,7 +621,7 @@ class _GameTransactionTile extends ConsumerWidget {
                       ),
                       const Gap(4),
                       Text(
-                        '$players • ${session.billingType.displayName}',
+                        '$players • ${session.tableName.contains(',') ? 'Combined (${session.tableName.split(',').length} Games)' : session.billingType.displayName}',
                         style: theme.textTheme.bodySmall?.copyWith(
                           color: theme.colorScheme.onSurfaceVariant,
                         ),

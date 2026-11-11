@@ -2,7 +2,6 @@ import 'package:snooker_club/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gap/gap.dart';
-import 'package:snooker_club/core/providers/app_providers.dart';
 import 'package:snooker_club/core/providers/club_scope_provider.dart';
 import 'package:snooker_club/core/theme/app_colors.dart';
 import 'package:snooker_club/core/widgets/modals/app_modal.dart';
@@ -11,7 +10,6 @@ import 'package:snooker_club/features/games/providers/games_providers.dart';
 import 'package:snooker_club/features/bookings/presentation/widgets/booking_settings_sheet.dart';
 import 'package:snooker_club/features/settings/presentation/widgets/business_edit_sheet.dart';
 import 'package:snooker_club/features/settings/presentation/widgets/change_passcode_dialog.dart';
-import 'package:snooker_club/features/settings/presentation/widgets/pricing_edit_sheet.dart';
 import 'package:snooker_club/features/settings/presentation/widgets/settings_section_card.dart';
 import 'package:snooker_club/features/settings/providers/settings_providers.dart';
 
@@ -83,6 +81,407 @@ class AdministrativeSettingsScreen extends ConsumerWidget {
     final settings = ref.watch(appSettingsProvider);
     final notifier = ref.read(appSettingsProvider.notifier);
 
+    final securityCard = SettingsSectionCard(
+      title: 'Security & Permissions',
+      icon: Icons.security,
+      iconColor: AppColors.error,
+      children: [
+        SwitchListTile(
+          contentPadding: EdgeInsets.zero,
+          title: const Text('Require Passcode for Deletions'),
+          subtitle: const Text(
+            'Enforce admin PIN when removing records from Games, Credit, and Sales',
+          ),
+          value: settings.security.requirePasscodeForDeletion,
+          onChanged: (val) => notifier.updateSecuritySettings(
+            settings.security.copyWith(requirePasscodeForDeletion: val),
+          ),
+        ),
+        ListTile(
+          contentPadding: EdgeInsets.zero,
+          title: const Text('Administrator Passcode'),
+          subtitle: const Text(
+            'Change the active PIN required for high-security actions',
+          ),
+          trailing: ElevatedButton.icon(
+            onPressed: () => AppModal.showDialog(
+              context: context,
+              builder: (_) => const ChangePasscodeDialog(),
+            ),
+            icon: const Icon(Icons.lock_reset, size: 16),
+            label: const Text('Update PIN'),
+          ),
+        ),
+      ],
+    );
+
+    final businessCard = SettingsSectionCard(
+      title: 'Business Information',
+      icon: Icons.business,
+      iconColor: AppColors.primary,
+      trailing: OutlinedButton.icon(
+        onPressed: () {
+          AppModal.showBottomSheet(
+            useRootNavigator: true,
+            context: context,
+            isScrollControlled: true,
+            builder: (context) =>
+                BusinessEditSheet(initialSettings: settings.business),
+          );
+        },
+        icon: const Icon(Icons.edit, size: 16),
+        label: const Text('Edit'),
+      ),
+      children: [
+        _buildInfoTile('Club Name', settings.business.clubName),
+        _buildInfoTile(
+          'Booking Link Slug',
+          settings.business.slug?.isNotEmpty == true
+              ? settings.business.slug!
+              : 'Not set',
+        ),
+        _buildInfoTile(
+          'Contact Number',
+          settings.business.contactNumber.isEmpty
+              ? 'Not set'
+              : settings.business.contactNumber,
+        ),
+        _buildInfoTile(
+          'Address / Location',
+          settings.business.address.isEmpty
+              ? 'Not set'
+              : settings.business.address,
+        ),
+      ],
+    );
+
+    final bookingCard = SettingsSectionCard(
+      title: 'Online Booking & Time Slots',
+      icon: Icons.schedule_send,
+      iconColor: AppColors.primary,
+      trailing: OutlinedButton.icon(
+        onPressed: () {
+          showModalBottomSheet(
+            useRootNavigator: true,
+            context: context,
+            isScrollControlled: true,
+            constraints: BoxConstraints(
+              maxWidth: MediaQuery.sizeOf(context).width > 800 ? 680 : double.infinity,
+            ),
+            shape: const RoundedRectangleBorder(
+              borderRadius: BorderRadius.vertical(
+                top: Radius.circular(20),
+              ),
+            ),
+            builder: (context) =>
+                BookingSettingsSheet(initialSettings: settings.booking),
+          );
+        },
+        icon: const Icon(Icons.tune, size: 16),
+        label: const Text('Configure'),
+      ),
+      children: [
+        _buildInfoTile(
+          'Website Booking Status',
+          settings.booking.isEnabled ? 'Enabled' : 'Disabled',
+        ),
+        _buildInfoTile(
+          'Slot Duration',
+          '${settings.booking.slotDurationMinutes} Minutes',
+        ),
+        _buildInfoTile(
+          'Operating Hours',
+          '${settings.booking.openingTime} - ${settings.booking.closingTime}',
+        ),
+      ],
+    );
+
+    final gameRulesCard = SettingsSectionCard(
+      title: 'Game Rules & Timing',
+      icon: Icons.timer_outlined,
+      iconColor: AppColors.running,
+      children: [
+        ListTile(
+          contentPadding: EdgeInsets.zero,
+          title: const Text('Indian Pool Grace Period (Mins)'),
+          subtitle: const Text('Time allowed before overtime for Indian Pool'),
+          trailing: DropdownButton<int>(
+            value: settings.game.indianPoolGracePeriodMinutes,
+            underline: const SizedBox(),
+            items: [10, 15, 20, 25, 30, 45, 60].map((mins) {
+              return DropdownMenuItem(
+                value: mins,
+                child: Text('$mins Mins'),
+              );
+            }).toList(),
+            onChanged: (val) {
+              if (val != null) {
+                notifier.updateGameSettings(
+                  settings.game.copyWith(indianPoolGracePeriodMinutes: val),
+                );
+              }
+            },
+          ),
+        ),
+        ListTile(
+          contentPadding: EdgeInsets.zero,
+          title: const Text('American Pool Grace Period (Mins)'),
+          subtitle: const Text('Time allowed before overtime for American Pool'),
+          trailing: DropdownButton<int>(
+            value: settings.game.americanPoolGracePeriodMinutes,
+            underline: const SizedBox(),
+            items: [10, 15, 20, 25, 30, 45, 60].map((mins) {
+              return DropdownMenuItem(
+                value: mins,
+                child: Text('$mins Mins'),
+              );
+            }).toList(),
+            onChanged: (val) {
+              if (val != null) {
+                notifier.updateGameSettings(
+                  settings.game.copyWith(americanPoolGracePeriodMinutes: val),
+                );
+              }
+            },
+          ),
+        ),
+        SwitchListTile(
+          contentPadding: EdgeInsets.zero,
+          title: const Text('Enable Overtime Billing'),
+          subtitle: const Text(
+            'Automatically calculate extra charges after grace period',
+          ),
+          value: settings.game.enableOvertimeBilling,
+          onChanged: (val) => notifier.updateGameSettings(
+            settings.game.copyWith(enableOvertimeBilling: val),
+          ),
+        ),
+        SwitchListTile(
+          contentPadding: EdgeInsets.zero,
+          title: const Text('Hide Billing Details'),
+          subtitle: const Text(
+            'Only show Total, Discount and Final Amount on the bill',
+          ),
+          value: settings.game.hideBillingDetails,
+          onChanged: (val) => notifier.updateGameSettings(
+            settings.game.copyWith(hideBillingDetails: val),
+          ),
+        ),
+        SwitchListTile(
+          contentPadding: EdgeInsets.zero,
+          title: const Text('Allow Pause & Resume'),
+          subtitle: const Text(
+            'Permit operators to pause active table sessions',
+          ),
+          value: settings.game.allowPauseResume,
+          onChanged: (val) => notifier.updateGameSettings(
+            settings.game.copyWith(allowPauseResume: val),
+          ),
+        ),
+        ListTile(
+          contentPadding: EdgeInsets.zero,
+          title: const Text('Max Players per Team'),
+          subtitle: const Text('Maximum squad limit for games'),
+          trailing: DropdownButton<int>(
+            value: settings.game.maxPlayersPerTeam,
+            underline: const SizedBox(),
+            items: [2, 3, 4, 5, 6].map((count) {
+              return DropdownMenuItem(
+                value: count,
+                child: Text('$count Players'),
+              );
+            }).toList(),
+            onChanged: (val) {
+              if (val != null) {
+                notifier.updateGameSettings(
+                  settings.game.copyWith(maxPlayersPerTeam: val),
+                );
+              }
+            },
+          ),
+        ),
+      ],
+    );
+
+    final inventoryCard = SettingsSectionCard(
+      title: 'Inventory Settings',
+      icon: Icons.inventory_2_outlined,
+      iconColor: AppColors.available,
+      children: [
+        SwitchListTile(
+          contentPadding: EdgeInsets.zero,
+          title: const Text('Enable Low Stock Alerts'),
+          subtitle: const Text(
+            'Highlight inventory items falling below warning threshold',
+          ),
+          value: settings.inventory.enableLowStockAlerts,
+          onChanged: (val) => notifier.updateInventorySettings(
+            settings.inventory.copyWith(enableLowStockAlerts: val),
+          ),
+        ),
+        ListTile(
+          contentPadding: EdgeInsets.zero,
+          title: const Text('Low Stock Warning Threshold'),
+          subtitle: const Text(
+            'Items at or below this count will flag as low stock',
+          ),
+          trailing: DropdownButton<int>(
+            value: settings.inventory.lowStockThreshold,
+            underline: const SizedBox(),
+            items: [3, 5, 10, 15, 20].map((cnt) {
+              return DropdownMenuItem(
+                value: cnt,
+                child: Text('$cnt Units'),
+              );
+            }).toList(),
+            onChanged: (val) {
+              if (val != null) {
+                notifier.updateInventorySettings(
+                  settings.inventory.copyWith(lowStockThreshold: val),
+                );
+              }
+            },
+          ),
+        ),
+        ListTile(
+          contentPadding: EdgeInsets.zero,
+          title: const Text('Default Initial Stock Quantity'),
+          subtitle: const Text(
+            'Default stock count when registering new products',
+          ),
+          trailing: DropdownButton<int>(
+            value: settings.inventory.defaultInitialQuantity,
+            underline: const SizedBox(),
+            items: [1, 5, 10, 20, 50, 100].map((cnt) {
+              return DropdownMenuItem(
+                value: cnt,
+                child: Text('$cnt Units'),
+              );
+            }).toList(),
+            onChanged: (val) {
+              if (val != null) {
+                notifier.updateInventorySettings(
+                  settings.inventory.copyWith(
+                    defaultInitialQuantity: val,
+                  ),
+                );
+              }
+            },
+          ),
+        ),
+      ],
+    );
+
+    final dataSyncCard = SettingsSectionCard(
+      title: 'Data & Sync Management',
+      icon: Icons.storage_rounded,
+      iconColor: Colors.deepOrange,
+      children: [
+        SizedBox(
+          width: double.infinity,
+          child: OutlinedButton.icon(
+            onPressed: () async {
+              try {
+                await notifier.forceManualSync();
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text(
+                        'Manual sync completed successfully.',
+                      ),
+                    ),
+                  );
+                }
+              } catch (e) {
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Sync failed: $e'),
+                      backgroundColor: AppColors.error,
+                    ),
+                  );
+                }
+              }
+            },
+            icon: const Icon(Icons.cloud_sync, size: 18),
+            label: const Text('Force Manual Sync Now'),
+          ),
+        ),
+        const Gap(12),
+        ListTile(
+          contentPadding: EdgeInsets.zero,
+          title: const Text('Refresh Cached Data'),
+          subtitle: const Text(
+            'Reload in-memory data providers without deleting storage',
+          ),
+          trailing: OutlinedButton(
+            onPressed: () {
+              ref.invalidate(resolvedTablesProvider);
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('In-memory cache refreshed.'),
+                ),
+              );
+            },
+            child: const Text('Refresh'),
+          ),
+        ),
+        ListTile(
+          contentPadding: EdgeInsets.zero,
+          title: const Text('Clear Local Offline Cache'),
+          subtitle: const Text(
+            'Remove local offline persistence without affecting Firebase records',
+          ),
+          trailing: OutlinedButton(
+            style: OutlinedButton.styleFrom(
+              foregroundColor: AppColors.error,
+            ),
+            onPressed: () => _confirmClearCache(context, ref),
+            child: const Text('Clear Cache'),
+          ),
+        ),
+      ],
+    );
+
+    final isSharmaClub = ref.watch(clubIdProvider) == 'ObnNL7TGuMA8hr1JhBCZ';
+    final billingFeaturesCard = isSharmaClub
+        ? SettingsSectionCard(
+            title: 'Advanced Billing Options',
+            icon: Icons.calculate,
+            iconColor: Colors.deepPurple,
+            children: [
+              SwitchListTile(
+                contentPadding: EdgeInsets.zero,
+                title: const Text('Manual Final Amount Selection'),
+                subtitle: const Text(
+                  'Allows the owner to manually select the final rounded bill amount before payment.',
+                ),
+                value: settings.billingFeatures.manualFinalAmountEnabled,
+                onChanged: (val) {
+                  notifier.updateBillingFeatures(
+                    settings.billingFeatures.copyWith(
+                      manualFinalAmountEnabled: val,
+                    ),
+                  );
+                },
+              ),
+            ],
+          )
+        : null;
+
+    final leftCards = [
+      securityCard,
+      businessCard,
+      bookingCard,
+      ?billingFeaturesCard,
+    ];
+
+    final rightCards = [
+      gameRulesCard,
+      inventoryCard,
+      dataSyncCard,
+    ];
+
     return Scaffold(
       appBar: AppBar(
         title: const Row(
@@ -95,426 +494,59 @@ class AdministrativeSettingsScreen extends ConsumerWidget {
         centerTitle: false,
         elevation: 0,
       ),
-      body: ListView(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        children: [
-          // Security & Permissions
-          SettingsSectionCard(
-            title: 'Security & Permissions',
-            icon: Icons.security,
-            iconColor: AppColors.error,
-            children: [
-              SwitchListTile(
-                contentPadding: EdgeInsets.zero,
-                title: const Text('Require Passcode for Deletions'),
-                subtitle: const Text(
-                  'Enforce admin PIN when removing records from Games, Credit, and Sales',
-                ),
-                value: settings.security.requirePasscodeForDeletion,
-                onChanged: (val) => notifier.updateSecuritySettings(
-                  settings.security.copyWith(requirePasscodeForDeletion: val),
-                ),
-              ),
-              ListTile(
-                contentPadding: EdgeInsets.zero,
-                title: const Text('Administrator Passcode'),
-                subtitle: const Text(
-                  'Change the active PIN required for high-security actions',
-                ),
-                trailing: ElevatedButton.icon(
-                  onPressed: () => AppModal.showDialog(
-                    context: context,
-                    builder: (_) => const ChangePasscodeDialog(),
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          final isDesktop = constraints.maxWidth > 800;
+
+          if (isDesktop) {
+            return Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 1100),
+                child: ListView(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 24,
+                    vertical: 20,
                   ),
-                  icon: const Icon(Icons.lock_reset, size: 16),
-                  label: const Text('Update PIN'),
-                ),
-              ),
-            ],
-          ),
-
-          // Business Information
-          SettingsSectionCard(
-            title: 'Business Information',
-            icon: Icons.business,
-            iconColor: AppColors.primary,
-            trailing: OutlinedButton.icon(
-              onPressed: () {
-                AppModal.showBottomSheet(
-                  useRootNavigator: true,
-                  context: context,
-                  isScrollControlled: true,
-                  builder: (context) =>
-                      BusinessEditSheet(initialSettings: settings.business),
-                );
-              },
-              icon: const Icon(Icons.edit, size: 16),
-              label: const Text('Edit'),
-            ),
-            children: [
-              _buildInfoTile('Club Name', settings.business.clubName),
-              _buildInfoTile(
-                'Booking Link Slug',
-                settings.business.slug?.isNotEmpty == true
-                    ? settings.business.slug!
-                    : 'Not set',
-              ),
-              _buildInfoTile(
-                'Contact Number',
-                settings.business.contactNumber.isEmpty
-                    ? 'Not set'
-                    : settings.business.contactNumber,
-              ),
-              _buildInfoTile(
-                'Address / Location',
-                settings.business.address.isEmpty
-                    ? 'Not set'
-                    : settings.business.address,
-              ),
-            ],
-          ),
-
-          // Online Booking & Time Slots
-          SettingsSectionCard(
-            title: 'Online Booking & Time Slots',
-            icon: Icons.schedule_send,
-            iconColor: AppColors.primary,
-            trailing: OutlinedButton.icon(
-              onPressed: () {
-                showModalBottomSheet(
-                  useRootNavigator: true,
-                  context: context,
-                  isScrollControlled: true,
-                  shape: const RoundedRectangleBorder(
-                    borderRadius: BorderRadius.vertical(
-                      top: Radius.circular(20),
-                    ),
-                  ),
-                  builder: (context) =>
-                      BookingSettingsSheet(initialSettings: settings.booking),
-                );
-              },
-              icon: const Icon(Icons.tune, size: 16),
-              label: const Text('Configure'),
-            ),
-            children: [
-              _buildInfoTile(
-                'Website Booking Status',
-                settings.booking.isEnabled ? 'Enabled' : 'Disabled',
-              ),
-              _buildInfoTile(
-                'Slot Duration',
-                '${settings.booking.slotDurationMinutes} Minutes',
-              ),
-              _buildInfoTile(
-                'Operating Hours',
-                '${settings.booking.openingTime} - ${settings.booking.closingTime}',
-              ),
-            ],
-          ),
-
-          // Game Rules & Timing
-          SettingsSectionCard(
-            title: 'Game Rules & Timing',
-            icon: Icons.timer_outlined,
-            iconColor: AppColors.running,
-            children: [
-              ListTile(
-                contentPadding: EdgeInsets.zero,
-                title: const Text('Indian Pool Grace Period (Mins)'),
-                subtitle: const Text('Time allowed before overtime for Indian Pool'),
-                trailing: DropdownButton<int>(
-                  value: settings.game.indianPoolGracePeriodMinutes,
-                  underline: const SizedBox(),
-                  items: [10, 15, 20, 25, 30, 45, 60].map((mins) {
-                    return DropdownMenuItem(
-                      value: mins,
-                      child: Text('$mins Mins'),
-                    );
-                  }).toList(),
-                  onChanged: (val) {
-                    if (val != null) {
-                      notifier.updateGameSettings(
-                        settings.game.copyWith(indianPoolGracePeriodMinutes: val),
-                      );
-                    }
-                  },
-                ),
-              ),
-              ListTile(
-                contentPadding: EdgeInsets.zero,
-                title: const Text('American Pool Grace Period (Mins)'),
-                subtitle: const Text('Time allowed before overtime for American Pool'),
-                trailing: DropdownButton<int>(
-                  value: settings.game.americanPoolGracePeriodMinutes,
-                  underline: const SizedBox(),
-                  items: [10, 15, 20, 25, 30, 45, 60].map((mins) {
-                    return DropdownMenuItem(
-                      value: mins,
-                      child: Text('$mins Mins'),
-                    );
-                  }).toList(),
-                  onChanged: (val) {
-                    if (val != null) {
-                      notifier.updateGameSettings(
-                        settings.game.copyWith(americanPoolGracePeriodMinutes: val),
-                      );
-                    }
-                  },
-                ),
-              ),
-              SwitchListTile(
-                contentPadding: EdgeInsets.zero,
-                title: const Text('Enable Overtime Billing'),
-                subtitle: const Text(
-                  'Automatically calculate extra charges after grace period',
-                ),
-                value: settings.game.enableOvertimeBilling,
-                onChanged: (val) => notifier.updateGameSettings(
-                  settings.game.copyWith(enableOvertimeBilling: val),
-                ),
-              ),
-              SwitchListTile(
-                contentPadding: EdgeInsets.zero,
-                title: const Text('Hide Billing Details'),
-                subtitle: const Text(
-                  'Only show Total, Discount and Final Amount on the bill',
-                ),
-                value: settings.game.hideBillingDetails,
-                onChanged: (val) => notifier.updateGameSettings(
-                  settings.game.copyWith(hideBillingDetails: val),
-                ),
-              ),
-              SwitchListTile(
-                contentPadding: EdgeInsets.zero,
-                title: const Text('Allow Pause & Resume'),
-                subtitle: const Text(
-                  'Permit operators to pause active table sessions',
-                ),
-                value: settings.game.allowPauseResume,
-                onChanged: (val) => notifier.updateGameSettings(
-                  settings.game.copyWith(allowPauseResume: val),
-                ),
-              ),
-              ListTile(
-                contentPadding: EdgeInsets.zero,
-                title: const Text('Max Players per Team'),
-                subtitle: const Text('Maximum squad limit for games'),
-                trailing: DropdownButton<int>(
-                  value: settings.game.maxPlayersPerTeam,
-                  underline: const SizedBox(),
-                  items: [2, 3, 4, 5, 6].map((count) {
-                    return DropdownMenuItem(
-                      value: count,
-                      child: Text('$count Players'),
-                    );
-                  }).toList(),
-                  onChanged: (val) {
-                    if (val != null) {
-                      notifier.updateGameSettings(
-                        settings.game.copyWith(maxPlayersPerTeam: val),
-                      );
-                    }
-                  },
-                ),
-              ),
-            ],
-          ),
-
-          // Pricing Customization
-          SettingsSectionCard(
-            title: 'Pricing Customization',
-            icon: Icons.price_change,
-            iconColor: AppColors.tertiary,
-            trailing: ElevatedButton.icon(
-              onPressed: () {
-                showModalBottomSheet(
-                  useRootNavigator: true,
-                  context: context,
-                  isScrollControlled: true,
-                  shape: const RoundedRectangleBorder(
-                    borderRadius: BorderRadius.vertical(
-                      top: Radius.circular(20),
-                    ),
-                  ),
-                  builder: (context) =>
-                      PricingEditSheet(initialSettings: settings.pricing),
-                );
-              },
-              icon: const Icon(Icons.tune, size: 16),
-              label: const Text('Configure'),
-            ),
-            children: [],
-          ),
-
-          // Inventory Settings
-          SettingsSectionCard(
-            title: 'Inventory Settings',
-            icon: Icons.inventory_2_outlined,
-            iconColor: AppColors.available,
-            children: [
-              SwitchListTile(
-                contentPadding: EdgeInsets.zero,
-                title: const Text('Enable Low Stock Alerts'),
-                subtitle: const Text(
-                  'Highlight inventory items falling below warning threshold',
-                ),
-                value: settings.inventory.enableLowStockAlerts,
-                onChanged: (val) => notifier.updateInventorySettings(
-                  settings.inventory.copyWith(enableLowStockAlerts: val),
-                ),
-              ),
-              ListTile(
-                contentPadding: EdgeInsets.zero,
-                title: const Text('Low Stock Warning Threshold'),
-                subtitle: const Text(
-                  'Items at or below this count will flag as low stock',
-                ),
-                trailing: DropdownButton<int>(
-                  value: settings.inventory.lowStockThreshold,
-                  underline: const SizedBox(),
-                  items: [3, 5, 10, 15, 20].map((cnt) {
-                    return DropdownMenuItem(
-                      value: cnt,
-                      child: Text('$cnt Units'),
-                    );
-                  }).toList(),
-                  onChanged: (val) {
-                    if (val != null) {
-                      notifier.updateInventorySettings(
-                        settings.inventory.copyWith(lowStockThreshold: val),
-                      );
-                    }
-                  },
-                ),
-              ),
-              ListTile(
-                contentPadding: EdgeInsets.zero,
-                title: const Text('Default Initial Stock Quantity'),
-                subtitle: const Text(
-                  'Default stock count when registering new products',
-                ),
-                trailing: DropdownButton<int>(
-                  value: settings.inventory.defaultInitialQuantity,
-                  underline: const SizedBox(),
-                  items: [1, 5, 10, 20, 50, 100].map((cnt) {
-                    return DropdownMenuItem(
-                      value: cnt,
-                      child: Text('$cnt Units'),
-                    );
-                  }).toList(),
-                  onChanged: (val) {
-                    if (val != null) {
-                      notifier.updateInventorySettings(
-                        settings.inventory.copyWith(
-                          defaultInitialQuantity: val,
+                  children: [
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: leftCards,
+                          ),
                         ),
-                      );
-                    }
-                  },
+                        const Gap(20),
+                        Expanded(
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: rightCards,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const Gap(32),
+                  ],
                 ),
               ),
-            ],
-          ),
+            );
+          }
 
-          // Data Management
-          SettingsSectionCard(
-            title: 'Data & Sync Management',
-            icon: Icons.storage_rounded,
-            iconColor: Colors.deepOrange,
+          return ListView(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             children: [
-              SizedBox(
-                width: double.infinity,
-                child: OutlinedButton.icon(
-                  onPressed: () async {
-                    try {
-                      await notifier.forceManualSync();
-                      if (context.mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text(
-                              'Manual sync completed successfully.',
-                            ),
-                          ),
-                        );
-                      }
-                    } catch (e) {
-                      if (context.mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text('Sync failed: $e'),
-                            backgroundColor: AppColors.error,
-                          ),
-                        );
-                      }
-                    }
-                  },
-                  icon: const Icon(Icons.cloud_sync, size: 18),
-                  label: const Text('Force Manual Sync Now'),
-                ),
-              ),
-              const Gap(12),
-              ListTile(
-                contentPadding: EdgeInsets.zero,
-                title: const Text('Refresh Cached Data'),
-                subtitle: const Text(
-                  'Reload in-memory data providers without deleting storage',
-                ),
-                trailing: OutlinedButton(
-                  onPressed: () {
-                    ref.invalidate(resolvedTablesProvider);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('In-memory cache refreshed.'),
-                      ),
-                    );
-                  },
-                  child: const Text('Refresh'),
-                ),
-              ),
-              ListTile(
-                contentPadding: EdgeInsets.zero,
-                title: const Text('Clear Local Offline Cache'),
-                subtitle: const Text(
-                  'Remove local offline persistence without affecting Firebase records',
-                ),
-                trailing: OutlinedButton(
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: AppColors.error,
-                  ),
-                  onPressed: () => _confirmClearCache(context, ref),
-                  child: const Text('Clear Cache'),
-                ),
-              ),
+              securityCard,
+              businessCard,
+              bookingCard,
+              gameRulesCard,
+              inventoryCard,
+              dataSyncCard,
+              ?billingFeaturesCard,
+              const Gap(32),
             ],
-          ),
-          if (ref.watch(clubIdProvider) == 'ObnNL7TGuMA8hr1JhBCZ') ...[
-            SettingsSectionCard(
-              title: 'Advanced Billing Options',
-              icon: Icons.calculate,
-              iconColor: Colors.deepPurple,
-              children: [
-                SwitchListTile(
-                  contentPadding: EdgeInsets.zero,
-                  title: const Text('Manual Final Amount Selection'),
-                  subtitle: const Text(
-                    'Allows the owner to manually select the final rounded bill amount before payment.',
-                  ),
-                  value: settings.billingFeatures.manualFinalAmountEnabled,
-                  onChanged: (val) {
-                    notifier.updateBillingFeatures(
-                      settings.billingFeatures.copyWith(
-                        manualFinalAmountEnabled: val,
-                      ),
-                    );
-                  },
-                ),
-              ],
-            ),
-          ],
-          
-          const Gap(32),
-        ],
+          );
+        },
       ),
     );
   }

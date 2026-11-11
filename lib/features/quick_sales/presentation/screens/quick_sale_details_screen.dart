@@ -306,6 +306,14 @@ class _QuickSaleDetailsScreenState
                           ),
                         ],
                       ),
+                      if (sale.floorName != null) ...[
+                        const Gap(16),
+                        Row(
+                          children: [
+                            _StatColumn('Floor / Location', sale.floorName!),
+                          ],
+                        ),
+                      ],
                     ],
                   ),
                 ),

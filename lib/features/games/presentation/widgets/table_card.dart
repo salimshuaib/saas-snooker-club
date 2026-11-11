@@ -129,7 +129,9 @@ class TableCard extends ConsumerWidget {
             ),
             const Gap(2),
             Text(
-              table.type.displayName,
+              table.customGameName?.isNotEmpty == true
+                  ? table.customGameName!
+                  : table.type.displayName,
               style: theme.textTheme.labelSmall?.copyWith(
                 color: theme.colorScheme.onSurfaceVariant,
               ),
@@ -160,25 +162,7 @@ class TableCard extends ConsumerWidget {
     }
   }
 
-  IconData _tableIcon(TableType type) {
-    switch (type) {
-      case TableType.snooker:
-        return Icons.sports_esports;
-      case TableType.indianPool:
-        return Icons.circle_outlined;
-      case TableType.americanPool:
-        return Icons.sports_golf;
-      case TableType.ps5:
-      case TableType.pc:
-        return Icons.gamepad;
-      case TableType.carrom:
-      case TableType.foosball:
-      case TableType.chess:
-        return Icons.sports_esports;
-      default:
-        return Icons.table_bar;
-    }
-  }
+  IconData _tableIcon(TableType type) => type.icon;
 }
 
 class _StatusBadge extends StatelessWidget {

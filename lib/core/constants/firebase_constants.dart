@@ -19,6 +19,7 @@ class FirebaseConstants {
   static const String attendanceCollection = 'attendance';
   static const String announcementsCollection = 'announcements';
   static const String happyHoursCollection = 'happy_hours';
+  static const String expensesCollection = 'expenses';
 
   // Sub-paths
   static const String ordersSubCollection = 'orders';

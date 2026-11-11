@@ -177,6 +177,9 @@ class PricingSettings {
   final double arcadeCoinPrice;
   final double extraControllerFeeHalfHour;
   final double extraControllerFeeOneHour;
+  final double otherHalfHour;
+  final double otherOneHour;
+  final double otherPerMinute;
 
   const PricingSettings({
     this.snookerPerMinute = 4.50,
@@ -208,6 +211,9 @@ class PricingSettings {
     this.arcadeCoinPrice = 10.00,
     this.extraControllerFeeHalfHour = 50.00,
     this.extraControllerFeeOneHour = 100.00,
+    this.otherHalfHour = 100.00,
+    this.otherOneHour = 200.00,
+    this.otherPerMinute = 3.50,
   });
 
   PricingSettings copyWith({
@@ -240,6 +246,9 @@ class PricingSettings {
     double? arcadeCoinPrice,
     double? extraControllerFeeHalfHour,
     double? extraControllerFeeOneHour,
+    double? otherHalfHour,
+    double? otherOneHour,
+    double? otherPerMinute,
   }) {
     return PricingSettings(
       snookerPerMinute: snookerPerMinute ?? this.snookerPerMinute,
@@ -274,6 +283,9 @@ class PricingSettings {
           extraControllerFeeHalfHour ?? this.extraControllerFeeHalfHour,
       extraControllerFeeOneHour:
           extraControllerFeeOneHour ?? this.extraControllerFeeOneHour,
+      otherHalfHour: otherHalfHour ?? this.otherHalfHour,
+      otherOneHour: otherOneHour ?? this.otherOneHour,
+      otherPerMinute: otherPerMinute ?? this.otherPerMinute,
     );
   }
 
@@ -308,6 +320,9 @@ class PricingSettings {
       'arcadeCoinPrice': arcadeCoinPrice,
       'extraControllerFeeHalfHour': extraControllerFeeHalfHour,
       'extraControllerFeeOneHour': extraControllerFeeOneHour,
+      'otherHalfHour': otherHalfHour,
+      'otherOneHour': otherOneHour,
+      'otherPerMinute': otherPerMinute,
     };
   }
 
@@ -355,6 +370,9 @@ class PricingSettings {
           (map['extraControllerFeeHalfHour'] as num?)?.toDouble() ?? 50.00,
       extraControllerFeeOneHour:
           (map['extraControllerFeeOneHour'] as num?)?.toDouble() ?? 100.00,
+      otherHalfHour: (map['otherHalfHour'] as num?)?.toDouble() ?? 100.00,
+      otherOneHour: (map['otherOneHour'] as num?)?.toDouble() ?? 200.00,
+      otherPerMinute: (map['otherPerMinute'] as num?)?.toDouble() ?? 3.50,
     );
   }
 }
@@ -615,6 +633,55 @@ class BillingFeatures {
   }
 }
 
+class ExpenseSettings {
+  final List<String> customCategories;
+
+  const ExpenseSettings({
+    this.customCategories = const [],
+  });
+
+  static const List<String> defaultCategories = [
+    'Equipment & Supplies',
+    'Maintenance & Repairs',
+    'Electricity Bill',
+    'Water Bill',
+    'Rent',
+    'Salary & Wages',
+    'Inventory Purchase',
+    'Petty Expenses',
+    'Other',
+  ];
+
+  List<String> get allCategories {
+    final set = <String>{...defaultCategories, ...customCategories};
+    return set.toList();
+  }
+
+  ExpenseSettings copyWith({
+    List<String>? customCategories,
+  }) {
+    return ExpenseSettings(
+      customCategories: customCategories ?? this.customCategories,
+    );
+  }
+
+  Map<String, dynamic> toMap() {
+    return {
+      'customCategories': customCategories,
+    };
+  }
+
+  factory ExpenseSettings.fromMap(Map<String, dynamic>? map) {
+    if (map == null) return const ExpenseSettings();
+    return ExpenseSettings(
+      customCategories: (map['customCategories'] as List<dynamic>?)
+              ?.map((e) => e.toString())
+              .toList() ??
+          const [],
+    );
+  }
+}
+
 class AppSettings {
   final BusinessSettings business;
   final GameSettings game;
@@ -625,6 +692,7 @@ class AppSettings {
   final FeatureFlags features;
   final BookingSettings booking;
   final BillingFeatures billingFeatures;
+  final ExpenseSettings expense;
   final DateTime? lastSyncTime;
 
   const AppSettings({
@@ -637,6 +705,7 @@ class AppSettings {
     this.features = const FeatureFlags(),
     this.booking = const BookingSettings(),
     this.billingFeatures = const BillingFeatures(),
+    this.expense = const ExpenseSettings(),
     this.lastSyncTime,
   });
 
@@ -650,6 +719,7 @@ class AppSettings {
     FeatureFlags? features,
     BookingSettings? booking,
     BillingFeatures? billingFeatures,
+    ExpenseSettings? expense,
     DateTime? lastSyncTime,
   }) {
     return AppSettings(
@@ -662,6 +732,7 @@ class AppSettings {
       features: features ?? this.features,
       booking: booking ?? this.booking,
       billingFeatures: billingFeatures ?? this.billingFeatures,
+      expense: expense ?? this.expense,
       lastSyncTime: lastSyncTime ?? this.lastSyncTime,
     );
   }
@@ -677,6 +748,7 @@ class AppSettings {
       'features': features.toMap(),
       'booking': booking.toMap(),
       'billingFeatures': billingFeatures.toMap(),
+      'expense': expense.toMap(),
       'lastSyncTime': lastSyncTime?.toIso8601String(),
     };
   }
@@ -701,6 +773,7 @@ class AppSettings {
       features: FeatureFlags.fromMap(map['features'] as Map<String, dynamic>?),
       booking: BookingSettings.fromMap(map['booking'] as Map<String, dynamic>?),
       billingFeatures: BillingFeatures.fromMap(map['billingFeatures'] as Map<String, dynamic>?),
+      expense: ExpenseSettings.fromMap(map['expense'] as Map<String, dynamic>?),
       lastSyncTime: map['lastSyncTime'] != null
           ? DateTime.tryParse(map['lastSyncTime'] as String)
           : null,

@@ -6,7 +6,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:snooker_club/features/team/providers/team_providers.dart';
 import 'package:snooker_club/core/config/app_environment.dart';
 import 'package:snooker_club/core/constants/firebase_constants.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:snooker_club/core/utils/logger.dart';
 import 'package:snooker_club/features/games/domain/config/tables_config.dart';
 import 'package:snooker_club/features/games/domain/models/game_models.dart';
@@ -2007,15 +2006,41 @@ class GamesRepository {
     List<AuditLog> allAuditLogs = [];
     List<GameRound> allRounds = [];
 
+    final isMultiBill = bills.length > 1;
+
     for (final bill in bills) {
-      totalGameCharge += (bill.gameCharge ?? 0);
-      totalBaseGameCharge += (bill.baseGameCharge ?? 0);
+      final billGameAmount = (bill.gameCharge ??
+          ((bill.baseGameCharge ?? 0.0) + (bill.overtimeCharge ?? 0.0)));
+      final int billMins = (bill.activeSeconds / 60).ceil();
+      final String billDur = billMins >= 60
+          ? '${(billMins / 60).toStringAsFixed(1)}h'
+          : '${billMins}m';
+
+      if (isMultiBill && billGameAmount > 0) {
+        allManualGames.add(
+          ManualGameCharge(
+            id: bill.id,
+            tableId: bill.tableId,
+            tableName: '${bill.tableName} ($billDur)',
+            tableType: bill.tableType,
+            gameType: bill.gameType,
+            billingType: bill.billingType,
+            durationSeconds: bill.activeSeconds,
+            calculatedAmount: billGameAmount,
+            discountAmount: (bill.discountAmount ?? 0.0) +
+                (bill.currentGameDiscountAmount ?? 0.0),
+          ),
+        );
+      }
+
+      totalGameCharge += (bill.gameCharge ?? billGameAmount);
+      totalBaseGameCharge += (bill.baseGameCharge ?? billGameAmount);
       totalOvertimeCharge += (bill.overtimeCharge ?? 0);
       totalOrdersTotal += (bill.ordersTotal ?? 0);
       totalDiscountAmount += (bill.discountAmount ?? 0);
       totalCurrentGameDiscountAmount += (bill.currentGameDiscountAmount ?? 0);
       totalGrandTotal +=
-          (bill.gameCharge ?? 0) +
+          billGameAmount +
           (bill.ordersTotal ?? 0) +
           bill.manualGameCharges.fold<double>(
             0,
@@ -2144,8 +2169,8 @@ class GamesRepository {
       'activeSeconds': totalActiveSeconds,
       'players': bills.first.players,
 
-      'gameCharge': totalGameCharge,
-      'baseGameCharge': totalBaseGameCharge,
+      'gameCharge': isMultiBill ? 0.0 : totalGameCharge,
+      'baseGameCharge': isMultiBill ? 0.0 : totalBaseGameCharge,
       'overtimeCharge': totalOvertimeCharge,
       'ordersTotal': totalOrdersTotal,
       'discountAmount': totalDiscountAmount,

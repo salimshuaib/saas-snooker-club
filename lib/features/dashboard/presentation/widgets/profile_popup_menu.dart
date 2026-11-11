@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:snooker_club/features/team/providers/team_providers.dart';
+import 'package:snooker_club/features/team/presentation/screens/staff_attendance_screen.dart';
 import 'package:snooker_club/features/floors/providers/floor_providers.dart';
 import 'package:snooker_club/features/floors/presentation/widgets/floor_selector_sheet.dart';
 import 'package:snooker_club/core/widgets/modals/app_modal.dart';
@@ -12,7 +13,7 @@ class ProfilePopupMenu extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final currentStaff = ref.watch(currentStaffProvider).value;
-    final isFloorsEnabled = ref.watch(hasFloorsProvider);
+    final hasMultipleFloors = ref.watch(hasMultipleFloorsProvider);
 
     return PopupMenuButton<int>(
       padding: EdgeInsets.zero,
@@ -48,6 +49,14 @@ class ProfilePopupMenu extends ConsumerWidget {
             context: context,
             builder: (_) => const FloorSelectorSheet(),
           );
+        } else if (value == 2) {
+          if (currentStaff == null) return;
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => StaffAttendanceScreen(staffMember: currentStaff),
+            ),
+          );
         }
       },
       itemBuilder: (context) => [
@@ -65,7 +74,18 @@ class ProfilePopupMenu extends ConsumerWidget {
               ],
             ),
           ),
-        if (isFloorsEnabled)
+        if (currentStaff != null)
+          const PopupMenuItem(
+            value: 2,
+            child: Row(
+              children: [
+                Icon(Icons.calendar_month, color: Colors.blue),
+                SizedBox(width: 12),
+                Text('My Attendance'),
+              ],
+            ),
+          ),
+        if (hasMultipleFloors)
           const PopupMenuItem(
             value: 1,
             child: Row(

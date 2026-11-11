@@ -120,6 +120,10 @@ class AppSettingsNotifier extends Notifier<AppSettings> {
     await _save(state.copyWith(booking: booking));
   }
 
+  Future<void> updateExpenseSettings(ExpenseSettings expense) async {
+    await _save(state.copyWith(expense: expense));
+  }
+
   Future<void> updateBillingFeatures(BillingFeatures billingFeatures) async {
     await _save(state.copyWith(billingFeatures: billingFeatures));
   }

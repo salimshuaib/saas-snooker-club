@@ -843,6 +843,8 @@ class _ActiveGameCardState extends ConsumerState<ActiveGameCard> {
         currentOrders: game.orders,
         currentManualGameCharges: game.manualGameCharges,
         enableGamesTab: true,
+        floorId: game.floorId,
+        floorName: game.floorName,
       ),
     );
 

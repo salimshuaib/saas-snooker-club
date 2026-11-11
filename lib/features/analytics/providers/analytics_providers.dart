@@ -15,6 +15,8 @@ import 'package:snooker_club/features/games/providers/games_providers.dart';
 import 'package:snooker_club/features/inventory/domain/models/inventory_models.dart';
 import 'package:snooker_club/features/inventory/providers/inventory_providers.dart';
 import 'package:snooker_club/features/quick_sales/domain/models/quick_sale_models.dart';
+import 'package:snooker_club/features/expenses/domain/models/expense_models.dart';
+import 'package:snooker_club/features/expenses/providers/expense_providers.dart';
 import 'package:snooker_club/features/quick_sales/providers/quick_sales_providers.dart';
 
 // â”€â”€â”€ State Notifiers â”€â”€â”€
@@ -269,8 +271,9 @@ RevenueOverviewData _computeRevenue(
   List<QuickSale> quickSales,
   List<PaymentHistory> payments,
   double outstanding,
-  double pendingBillsAmount,
-) {
+  double pendingBillsAmount, {
+  List<Expense> expenses = const [],
+}) {
   double totalBilled = 0;
   double totalGameBilled = 0;
   double totalQuickSaleBilled = 0;
@@ -278,6 +281,23 @@ RevenueOverviewData _computeRevenue(
   double upiCollected = 0;
   double creditCreated = 0;
   double creditCollected = 0;
+  double totalExpenses = 0;
+  double cashExpenses = 0;
+  double upiExpenses = 0;
+  double creditExpenses = 0;
+
+  for (final e in expenses) {
+    totalExpenses += e.amount;
+    if (e.paymentMethod == PaymentMethod.cash ||
+        (e.isCredit && e.isSettled && e.settledPaymentMethod == PaymentMethod.cash)) {
+      cashExpenses += e.amount;
+    } else if (e.paymentMethod == PaymentMethod.upi ||
+        (e.isCredit && e.isSettled && e.settledPaymentMethod == PaymentMethod.upi)) {
+      upiExpenses += e.amount;
+    } else if (e.isOutstandingCredit) {
+      creditExpenses += e.amount;
+    }
+  }
 
   for (final g in games) {
     if (g.status != TableStatus.available || g.paymentStatus == 'Unpaid' || g.isCancelled) {
@@ -335,6 +355,10 @@ RevenueOverviewData _computeRevenue(
     pendingBillsAmount: pendingBillsAmount,
     totalGameBilled: totalGameBilled,
     totalQuickSaleBilled: totalQuickSaleBilled,
+    totalExpenses: totalExpenses,
+    cashExpenses: cashExpenses,
+    upiExpenses: upiExpenses,
+    creditExpenses: creditExpenses,
   );
 }
 
@@ -373,10 +397,15 @@ CompleteAnalyticsData getCompleteAnalyticsData(dynamic ref) {
     games = games.where((g) => g.floorId == selectedFloorId).toList();
   }
   
-  final List<QuickSale> quickSales =
+  List<QuickSale> quickSales =
       ref.watch(analyticsQuickSalesStreamProvider).value ?? <QuickSale>[];
+  if (selectedFloorId != null) {
+    quickSales = quickSales.where((q) => q.floorId == selectedFloorId).toList();
+  }
   final List<PaymentHistory> payments =
       ref.watch(analyticsPaymentsStreamProvider).value ?? <PaymentHistory>[];
+  final List<Expense> expenses =
+      ref.watch(analyticsExpensesStreamProvider).value ?? <Expense>[];
 
   List<GameSession> prevGames =
       ref.watch(previousGamesStreamProvider).value ?? <GameSession>[];
@@ -384,8 +413,11 @@ CompleteAnalyticsData getCompleteAnalyticsData(dynamic ref) {
     prevGames = prevGames.where((g) => g.floorId == selectedFloorId).toList();
   }
   
-  final List<QuickSale> prevQuickSales =
+  List<QuickSale> prevQuickSales =
       ref.watch(previousQuickSalesStreamProvider).value ?? <QuickSale>[];
+  if (selectedFloorId != null) {
+    prevQuickSales = prevQuickSales.where((q) => q.floorId == selectedFloorId).toList();
+  }
   final List<PaymentHistory> prevPayments =
       ref.watch(previousPaymentsStreamProvider).value ?? <PaymentHistory>[];
 
@@ -400,6 +432,7 @@ CompleteAnalyticsData getCompleteAnalyticsData(dynamic ref) {
     payments,
     outstanding,
     pendingBillsAmount,
+    expenses: expenses,
   );
   final prevOverview = _computeRevenue(
     prevGames,
@@ -723,6 +756,24 @@ CompleteAnalyticsData getCompleteAnalyticsData(dynamic ref) {
       ),
   ];
 
+  // Expense category shares
+  final Map<String, double> expenseCategoryMap = {};
+  for (final exp in expenses) {
+    expenseCategoryMap[exp.category] =
+        (expenseCategoryMap[exp.category] ?? 0.0) + exp.amount;
+  }
+  final expenseCategoryShare = expenseCategoryMap.entries.map((entry) {
+    final pct = revenueOverview.totalExpenses > 0
+        ? (entry.value / revenueOverview.totalExpenses) * 100
+        : 0.0;
+    return CategoryShare(
+      categoryName: entry.key,
+      amount: entry.value,
+      percentage: pct,
+      color: AppColors.secondary,
+    );
+  }).toList();
+
   final sourceShare = [
     if (revenueOverview.totalGameBilled > 0)
       CategoryShare(
@@ -813,5 +864,7 @@ CompleteAnalyticsData getCompleteAnalyticsData(dynamic ref) {
       costOfGoodsSold: totalCogs,
       grossProfit: revenueOverview.totalBilled - totalCogs,
     ),
+    expenses: expenses,
+    expenseCategoryShare: expenseCategoryShare,
   );
 }

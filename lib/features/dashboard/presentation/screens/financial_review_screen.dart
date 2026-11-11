@@ -8,13 +8,26 @@ import 'package:snooker_club/core/providers/app_providers.dart';
 import 'package:snooker_club/core/theme/app_colors.dart';
 import 'package:snooker_club/features/analytics/domain/models/analytics_models.dart';
 import 'package:snooker_club/features/analytics/providers/analytics_providers.dart';
-import 'package:snooker_club/features/games/domain/models/game_models.dart';
+import 'package:snooker_club/features/floors/providers/floor_providers.dart';
+import 'package:snooker_club/features/floors/domain/models/floor_model.dart';
+import 'package:snooker_club/features/expenses/presentation/screens/expenses_screen.dart';
+import 'package:snooker_club/features/expenses/presentation/screens/business_credit_screen.dart';
+import 'package:snooker_club/core/widgets/cards/not_authorized_card.dart';
+import 'package:snooker_club/features/team/providers/team_providers.dart';
 
 class FinancialReviewScreen extends ConsumerWidget {
   const FinancialReviewScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final currentStaff = ref.watch(currentStaffProvider).value;
+    if (currentStaff?.isLimitedAccess == true) {
+      return const NotAuthorizedScreen(
+        title: 'Not Authorized',
+        message: 'Financial review and revenue details are restricted to Full Access accounts.',
+      );
+    }
+
     final theme = Theme.of(context);
     final analyticsData = getCompleteAnalyticsData(ref);
     final timeRange = ref.watch(analyticsTimeRangeProvider);
@@ -32,6 +45,9 @@ class FinancialReviewScreen extends ConsumerWidget {
         physics: const BouncingScrollPhysics(),
         slivers: [
           SliverToBoxAdapter(
+            child: _buildFloorSelector(context, ref, theme),
+          ),
+          SliverToBoxAdapter(
             child: _buildDateNavigation(context, ref, timeRange, theme),
           ),
           SliverPadding(
@@ -42,7 +58,9 @@ class FinancialReviewScreen extends ConsumerWidget {
                 const Gap(16),
                 _buildRevenueBreakdown(analyticsData, theme),
                 const Gap(16),
-                _buildPaymentCollection(analyticsData, theme),
+                _buildPaymentCollection(analyticsData, theme, ref),
+                const Gap(16),
+                _buildExpenseSection(context, ref, analyticsData, theme),
                 const Gap(16),
                 _buildKeyMetrics(analyticsData, theme),
                 const Gap(16),
@@ -56,6 +74,119 @@ class FinancialReviewScreen extends ConsumerWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildFloorSelector(
+    BuildContext context,
+    WidgetRef ref,
+    ThemeData theme,
+  ) {
+    final hasFloors = ref.watch(hasFloorsProvider);
+    final floors = ref.watch(floorsProvider).value ?? [];
+    if (!hasFloors || floors.length <= 1) return const SizedBox.shrink();
+
+    final selectedFloorId = ref.watch(selectedFloorIdProvider);
+    final sortedFloors = List<FloorModel>.from(floors);
+    sortedFloors.sort((a, b) {
+      int getRank(FloorModel f) {
+        final n = f.name.toLowerCase();
+        if (n.contains('first') || n.contains('floor 1') || n.contains('1st') || n == '1') return 1;
+        if (n.contains('second') || n.contains('floor 2') || n.contains('2nd') || n == '2') return 2;
+        if (n.contains('third') || n.contains('floor 3') || n.contains('3rd') || n == '3') return 3;
+        if (n.contains('fourth') || n.contains('floor 4') || n.contains('4th') || n == '4') return 4;
+        return 10 + f.order;
+      }
+      final rankA = getRank(a);
+      final rankB = getRank(b);
+      if (rankA != rankB) return rankA.compareTo(rankB);
+      return a.name.compareTo(b.name);
+    });
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+      child: Container(
+        decoration: BoxDecoration(
+          color: theme.colorScheme.surfaceContainerHighest.withValues(
+            alpha: 0.35,
+          ),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: theme.colorScheme.outlineVariant,
+          ),
+        ),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 2),
+        child: Row(
+          children: [
+            Icon(
+              Icons.layers_outlined,
+              size: 18,
+              color: theme.colorScheme.primary,
+            ),
+            const Gap(8),
+            Text(
+              'Floor:',
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+            const Gap(10),
+            Expanded(
+              child: DropdownButtonHideUnderline(
+                child: DropdownButton<String?>(
+                  value: (sortedFloors.any((f) => f.id == selectedFloorId) ||
+                          selectedFloorId == null)
+                      ? selectedFloorId
+                      : sortedFloors.first.id,
+                  isExpanded: true,
+                  icon: Icon(
+                    Icons.keyboard_arrow_down_rounded,
+                    color: theme.colorScheme.primary,
+                  ),
+                  borderRadius: BorderRadius.circular(12),
+                  dropdownColor: theme.colorScheme.surface,
+                  style: TextStyle(
+                    color: theme.colorScheme.onSurface,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 14,
+                  ),
+                  items: [
+                    const DropdownMenuItem<String?>(
+                      value: null,
+                      child: Text(
+                        'All Floors',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 14,
+                        ),
+                      ),
+                    ),
+                    ...sortedFloors.map(
+                      (floor) => DropdownMenuItem<String?>(
+                        value: floor.id,
+                        child: Text(
+                          floor.name,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w600,
+                            fontSize: 14,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                  onChanged: (newFloorId) {
+                    ref
+                        .read(selectedFloorIdProvider.notifier)
+                        .selectFloor(newFloorId);
+                  },
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -287,28 +418,207 @@ class FinancialReviewScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildPaymentCollection(CompleteAnalyticsData data, ThemeData theme) {
+  Widget _buildPaymentCollection(CompleteAnalyticsData data, ThemeData theme, WidgetRef ref) {
+    final currency = ref.watch(currencyProvider);
     return _buildSectionCard(
       theme,
       title: "Payment Collection",
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
+      child: Column(
         children: [
-          _buildCompactMetric(
-            "💵 Cash",
-            data.revenueOverview.cashCollected,
-            theme,
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: [
+              _buildCompactMetric(
+                "💵 Cash In",
+                data.revenueOverview.cashCollected,
+                theme,
+              ),
+              _buildCompactMetric(
+                "📱 UPI",
+                data.revenueOverview.upiCollected,
+                theme,
+              ),
+              _buildCompactMetric(
+                "💳 Credit Given",
+                data.revenueOverview.creditCreated,
+                theme,
+                color: AppColors.error,
+              ),
+            ],
           ),
-          _buildCompactMetric(
-            "📱 UPI",
-            data.revenueOverview.upiCollected,
-            theme,
+          if (data.revenueOverview.cashExpenses > 0) ...[
+            const Gap(12),
+            const Divider(),
+            const Gap(8),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  children: [
+                    const Icon(Icons.money_off, size: 16, color: AppColors.error),
+                    const Gap(6),
+                    Text(
+                      "Cash Expenses Paid:",
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                ),
+                Text(
+                  "- ${CurrencyHelper.format(data.revenueOverview.cashExpenses, currency)}",
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.error,
+                  ),
+                ),
+              ],
+            ),
+            const Gap(6),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  children: [
+                    const Icon(Icons.point_of_sale, size: 16, color: AppColors.success),
+                    const Gap(6),
+                    Text(
+                      "Net Cash in Register:",
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+                Text(
+                  CurrencyHelper.format(data.revenueOverview.netCashCollected, currency),
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.success,
+                    fontSize: 16,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildExpenseSection(
+    BuildContext context,
+    WidgetRef ref,
+    CompleteAnalyticsData data,
+    ThemeData theme,
+  ) {
+    final currency = ref.watch(currencyProvider);
+    final totalExp = data.revenueOverview.totalExpenses;
+    final cashExp = data.revenueOverview.cashExpenses;
+    final upiExp = data.revenueOverview.upiExpenses;
+    final creditExp = data.revenueOverview.creditExpenses;
+
+    return _buildSectionCard(
+      theme,
+      title: "Business Expenses",
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                "Total Expenses",
+                style: theme.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: totalExp > 0 ? AppColors.error : null,
+                ),
+              ),
+              Text(
+                CurrencyHelper.format(totalExp, currency),
+                style: theme.textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.w800,
+                  color: totalExp > 0 ? AppColors.error : null,
+                ),
+              ),
+            ],
           ),
-          _buildCompactMetric(
-            "💳 Credit Given",
-            data.revenueOverview.creditCreated,
-            theme,
-            color: AppColors.error,
+          const Gap(12),
+          const Divider(height: 1),
+          const Gap(12),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: [
+              _buildCompactMetric("💵 Cash", cashExp, theme),
+              _buildCompactMetric("📱 UPI", upiExp, theme),
+              _buildCompactMetric(
+                "💳 Credit",
+                creditExp,
+                theme,
+                color: creditExp > 0 ? AppColors.warning : null,
+              ),
+            ],
+          ),
+          if (data.expenseCategoryShare.isNotEmpty) ...[
+            const Gap(16),
+            const Divider(height: 1),
+            const Gap(8),
+            Text(
+              "Expenses by Category",
+              style: theme.textTheme.labelMedium?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const Gap(8),
+            ...data.expenseCategoryShare.map(
+              (cat) => _buildTableRow(
+                cat.categoryName,
+                cat.amount,
+                theme,
+                subtitle: "${cat.percentage.toStringAsFixed(1)}% of expenses",
+              ),
+            ),
+          ],
+          const Gap(16),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const ExpensesScreen(),
+                      ),
+                    );
+                  },
+                  icon: const Icon(Icons.receipt_long, size: 18),
+                  label: const Text("Manage Expenses"),
+                ),
+              ),
+              if (creditExp > 0) ...[
+                const Gap(8),
+                Expanded(
+                  child: FilledButton.tonalIcon(
+                    style: FilledButton.styleFrom(
+                      foregroundColor: AppColors.warning,
+                      backgroundColor: AppColors.warning.withValues(alpha: 0.15),
+                    ),
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const BusinessCreditScreen(),
+                        ),
+                      );
+                    },
+                    icon: const Icon(Icons.credit_card, size: 18),
+                    label: const Text("Credit Tracker"),
+                  ),
+                ),
+              ],
+            ],
           ),
         ],
       ),
@@ -441,16 +751,19 @@ class FinancialReviewScreen extends ConsumerWidget {
           ),
           _buildTableRow(
             "Total Expenses",
-            0.0,
+            data.revenueOverview.totalExpenses,
             theme,
-          ), // Placeholder for expenses
+            color: data.revenueOverview.totalExpenses > 0 ? AppColors.error : null,
+          ),
           const Divider(),
           _buildTableRow(
             "Net Earnings",
-            data.revenueOverview.totalBilled,
+            data.revenueOverview.netEarnings,
             theme,
             isBold: true,
-            color: AppColors.success,
+            color: data.revenueOverview.netEarnings >= 0
+                ? AppColors.success
+                : AppColors.error,
           ),
         ],
       ),

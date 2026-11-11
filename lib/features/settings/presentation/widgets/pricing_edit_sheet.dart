@@ -103,11 +103,11 @@ class _PricingEditSheetState extends ConsumerState<PricingEditSheet> {
   bool _isDefaultEnabled(TableType type, String key) {
     switch (type) {
       case TableType.snooker:
-        return ['perMinute', 'halfHour', 'oneHour'].contains(key);
+        return ['perMinute', 'halfHour', 'oneHour', 'overtime'].contains(key);
 
       case TableType.indianPool:
       case TableType.americanPool:
-        return ['perFrame', 'perMinute', 'halfHour', 'oneHour'].contains(key);
+        return ['perFrame', 'perMinute', 'halfHour', 'oneHour', 'overtime'].contains(key);
 
       case TableType.ps5:
       case TableType.pc:
@@ -119,7 +119,10 @@ class _PricingEditSheetState extends ConsumerState<PricingEditSheet> {
       case TableType.steeringWheel:
       case TableType.simulator:
       case TableType.iceHockey:
-        return ['halfHour', 'oneHour'].contains(key);
+        return ['halfHour', 'oneHour', 'perMinute', 'overtime'].contains(key);
+
+      case TableType.other:
+        return ['oneHour', 'halfHour', 'perMinute', 'overtime'].contains(key);
 
       case TableType.arcade:
         return ['perCoin'].contains(key);
@@ -129,7 +132,7 @@ class _PricingEditSheetState extends ConsumerState<PricingEditSheet> {
   double _getDefaultPrice(PricingSettings p, TableType type, String key) {
     switch (type) {
       case TableType.snooker:
-        if (key == 'perMinute') return p.snookerPerMinute;
+        if (key == 'perMinute' || key == 'overtime') return p.snookerPerMinute;
 
         if (key == 'halfHour') return p.snookerHalfHour;
 
@@ -142,7 +145,7 @@ class _PricingEditSheetState extends ConsumerState<PricingEditSheet> {
       case TableType.indianPool:
         if (key == 'perFrame') return p.indianPoolPerFrame;
 
-        if (key == 'perMinute') return p.indianPoolPerMinute;
+        if (key == 'perMinute' || key == 'overtime') return p.indianPoolPerMinute;
 
         if (key == 'halfHour') return p.indianPoolHalfHour;
 
@@ -154,7 +157,7 @@ class _PricingEditSheetState extends ConsumerState<PricingEditSheet> {
       case TableType.americanPool:
         if (key == 'perFrame') return p.americanPoolPerFrame;
 
-        if (key == 'perMinute') return p.americanPoolPerMinute;
+        if (key == 'perMinute' || key == 'overtime') return p.americanPoolPerMinute;
 
         if (key == 'halfHour') return p.americanPoolHalfHour;
 
@@ -168,12 +171,16 @@ class _PricingEditSheetState extends ConsumerState<PricingEditSheet> {
 
         if (key == 'oneHour') return p.ps5OneHour;
 
+        if (key == 'perMinute' || key == 'overtime') return p.ps5OneHour / 60.0;
+
         break;
 
       case TableType.pc:
         if (key == 'halfHour') return p.pcHalfHour;
 
         if (key == 'oneHour') return p.pcOneHour;
+
+        if (key == 'perMinute' || key == 'overtime') return p.pcOneHour / 60.0;
 
         break;
 
@@ -182,12 +189,16 @@ class _PricingEditSheetState extends ConsumerState<PricingEditSheet> {
 
         if (key == 'oneHour') return p.carromOneHour;
 
+        if (key == 'perMinute' || key == 'overtime') return p.carromOneHour / 60.0;
+
         break;
 
       case TableType.foosball:
         if (key == 'halfHour') return p.foosballHalfHour;
 
         if (key == 'oneHour') return p.foosballOneHour;
+
+        if (key == 'perMinute' || key == 'overtime') return p.foosballOneHour / 60.0;
 
         break;
 
@@ -196,31 +207,43 @@ class _PricingEditSheetState extends ConsumerState<PricingEditSheet> {
 
         if (key == 'oneHour') return p.chessOneHour;
 
+        if (key == 'perMinute' || key == 'overtime') return p.chessOneHour / 60.0;
+
         break;
 
       case TableType.ps4:
         if (key == 'halfHour') return p.ps4HalfHour;
         if (key == 'oneHour') return p.ps4OneHour;
+        if (key == 'perMinute' || key == 'overtime') return p.ps4OneHour / 60.0;
         break;
 
       case TableType.simulator:
         if (key == 'halfHour') return p.simulatorHalfHour;
         if (key == 'oneHour') return p.simulatorOneHour;
+        if (key == 'perMinute' || key == 'overtime') return p.simulatorOneHour / 60.0;
         break;
 
       case TableType.iceHockey:
         if (key == 'halfHour') return p.iceHockeyHalfHour;
         if (key == 'oneHour') return p.iceHockeyOneHour;
+        if (key == 'perMinute' || key == 'overtime') return p.iceHockeyOneHour / 60.0;
         break;
 
       case TableType.arcade:
         if (key == 'perCoin') return p.arcadeCoinPrice;
         break;
 
+      case TableType.other:
+        if (key == 'halfHour') return p.otherHalfHour;
+        if (key == 'oneHour') return p.otherOneHour;
+        if (key == 'perMinute' || key == 'overtime') return p.otherPerMinute;
+        break;
+
       case TableType.tableTennis:
       case TableType.steeringWheel:
         if (key == 'halfHour') return p.chessHalfHour;
         if (key == 'oneHour') return p.chessOneHour;
+        if (key == 'perMinute' || key == 'overtime') return p.chessOneHour / 60.0;
         break;
     }
 
@@ -232,32 +255,40 @@ class _PricingEditSheetState extends ConsumerState<PricingEditSheet> {
       case TableType.snooker:
         return [
           {'key': 'perMinute', 'label': 'Per Minute'},
-
           {'key': 'halfHour', 'label': 'Half Hour (30m)'},
-
-          {'key': 'oneHour', 'label': 'One Hour (1h)'},        ];
+          {'key': 'oneHour', 'label': 'One Hour (1h)'},
+          {'key': 'overtime', 'label': 'Overtime Rate'},
+        ];
 
       case TableType.indianPool:
       case TableType.americanPool:
         return [
           {'key': 'perFrame', 'label': 'Per Frame'},
-
-          {'key': 'perMinute', 'label': 'Per Minute / Overtime'},
-
+          {'key': 'perMinute', 'label': 'Per Minute'},
           {'key': 'halfHour', 'label': 'Half Hour (30m)'},
-
-          {'key': 'oneHour', 'label': 'One Hour (1h)'},        ];
+          {'key': 'oneHour', 'label': 'One Hour (1h)'},
+          {'key': 'overtime', 'label': 'Overtime Rate'},
+        ];
 
       case TableType.arcade:
         return [
           {'key': 'perCoin', 'label': 'Per Coin'},
         ];
 
+      case TableType.other:
+        return [
+          {'key': 'oneHour', 'label': 'One Hour (1h)'},
+          {'key': 'halfHour', 'label': 'Half Hour (30m)'},
+          {'key': 'perMinute', 'label': 'Per Minute'},
+          {'key': 'overtime', 'label': 'Overtime Rate'},
+        ];
+
       default:
         return [
           {'key': 'halfHour', 'label': 'Half Hour (30m)'},
-
           {'key': 'oneHour', 'label': 'One Hour (1h)'},
+          {'key': 'perMinute', 'label': 'Per Minute'},
+          {'key': 'overtime', 'label': 'Overtime Rate'},
         ];
     }
   }
@@ -299,6 +330,8 @@ class _PricingEditSheetState extends ConsumerState<PricingEditSheet> {
         return Icons.drive_eta;
       case TableType.iceHockey:
         return Icons.ac_unit;
+      case TableType.other:
+        return Icons.auto_awesome;
     }
   }
 
@@ -339,6 +372,8 @@ class _PricingEditSheetState extends ConsumerState<PricingEditSheet> {
         return Colors.teal;
       case TableType.iceHockey:
         return Colors.lightBlue;
+      case TableType.other:
+        return Colors.purpleAccent;
     }
   }
 
@@ -647,7 +682,9 @@ class _PricingEditSheetState extends ConsumerState<PricingEditSheet> {
                 ),
                 const Spacer(),
                 Text(
-                  table.type.displayName,
+                  table.customGameName?.isNotEmpty == true
+                      ? table.customGameName!
+                      : table.type.displayName,
                   style: theme.textTheme.bodySmall?.copyWith(
                     color: theme.colorScheme.onSurfaceVariant,
                   ),

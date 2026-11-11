@@ -42,7 +42,8 @@ class GameActivityCard extends ConsumerWidget {
       } catch (_) {}
     }
     
-    final shouldShowFloorName = hasFloors && selectedFloor == null && resolvedFloorName != null && resolvedFloorName.isNotEmpty;
+    final floorsList = floorsAsync.value ?? [];
+    final shouldShowFloorName = hasFloors && floorsList.length > 1 && selectedFloor == null && resolvedFloorName != null && resolvedFloorName.isNotEmpty;
 
     return Card(
       margin: const EdgeInsets.only(bottom: 16),

@@ -75,6 +75,7 @@ class _GameSetupDialogState extends ConsumerState<GameSetupDialog> {
       _remainingWaitlist = sortedWaitlist.skip(1).toList();
     }
     _tableType = widget.table.type;
+    _enableOvertime = TablePricingConfig.isOvertimeConfiguredEnabled(widget.table);
     final validBilling = TablePricingConfig.supportedBillingTypes(
       widget.table,
       GameType.standard,
@@ -252,10 +253,10 @@ class _GameSetupDialogState extends ConsumerState<GameSetupDialog> {
 
   double _calculatePrepaidAmount() {
     final appSettings = ref.read(appSettingsProvider);
-    if (_isCustomPrice && !_tableType.isOtherGame) {
+    if (_isCustomPrice) {
       final customP = double.tryParse(_customPriceController.text) ?? 0.0;
       if (_billingType == BillingType.customMinute) {
-        return BillingUtils.roundAmount((customP / 60.0) * _customMinutes);
+        return BillingUtils.roundAmount(customP * _customMinutes);
       } else if (_billingType == BillingType.perFrame) {
         return customP * _prepaidFrames;
       }
@@ -414,7 +415,7 @@ class _GameSetupDialogState extends ConsumerState<GameSetupDialog> {
     if (types.isEmpty) return const SizedBox.shrink();
 
     if (!types.contains(_billingType)) {
-      _billingType = types.first;
+      _billingType = types.isNotEmpty ? types.first : BillingType.customMinute;
     }
 
     return Column(
@@ -610,8 +611,6 @@ class _GameSetupDialogState extends ConsumerState<GameSetupDialog> {
   }
 
   Widget _buildCustomPriceToggle(ThemeData theme) {
-    if (_tableType.isOtherGame) return const SizedBox.shrink();
-
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       decoration: BoxDecoration(
@@ -672,9 +671,7 @@ class _GameSetupDialogState extends ConsumerState<GameSetupDialog> {
   }
 
   Future<void> _startGame() async {
-    if (_isCustomPrice &&
-        !_tableType.isOtherGame &&
-        _customPriceController.text.isEmpty) {
+    if (_isCustomPrice && _customPriceController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please enter a valid custom price')),
       );
@@ -836,14 +833,9 @@ class _GameSetupDialogState extends ConsumerState<GameSetupDialog> {
 
       final appSettings = ref.read(appSettingsProvider);
 
-      final double? resolvedPrice = (_isCustomPrice && !_tableType.isOtherGame)
+      final double? resolvedPrice = _isCustomPrice
           ? double.tryParse(_customPriceController.text)
-          : TablePricingConfig.getPrice(
-              widget.table,
-              GameType.standard,
-              _billingType,
-              appSettings.pricing,
-            );
+          : null;
 
       final double? resolvedExtraCharge = TablePricingConfig.getExtraCharge(
         widget.table,
@@ -937,7 +929,7 @@ class _GameSetupDialogState extends ConsumerState<GameSetupDialog> {
         prepaidPlayerPaymentSplits: prepaidResult?.playerPaymentSplits,
         prepaidPaidBy: prepaidResult?.paidBy,
         prepaidConfirmedAt: _isPrepaid ? DateTime.now() : null,
-        isOvertimeEnabled: _isPrepaid ? _enableOvertime : true,
+        isOvertimeEnabled: _isPrepaid ? _enableOvertime : TablePricingConfig.isOvertimeConfiguredEnabled(widget.table),
       );
 
       if (_tableType == TableType.arcade) {

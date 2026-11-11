@@ -9,6 +9,7 @@ class AuditLog {
   final String field;
   final String previousValue;
   final String newValue;
+  final String? recordId;
 
   const AuditLog({
     required this.id,
@@ -17,6 +18,7 @@ class AuditLog {
     required this.field,
     required this.previousValue,
     required this.newValue,
+    this.recordId,
   });
 
   String get formattedDate {
@@ -31,6 +33,7 @@ class AuditLog {
     String? field,
     String? previousValue,
     String? newValue,
+    String? recordId,
   }) {
     return AuditLog(
       id: id ?? this.id,
@@ -39,6 +42,7 @@ class AuditLog {
       field: field ?? this.field,
       previousValue: previousValue ?? this.previousValue,
       newValue: newValue ?? this.newValue,
+      recordId: recordId ?? this.recordId,
     );
   }
 
@@ -50,6 +54,7 @@ class AuditLog {
       'field': field,
       'previousValue': previousValue,
       'newValue': newValue,
+      if (recordId != null) 'recordId': recordId,
     };
   }
 
@@ -66,6 +71,7 @@ class AuditLog {
     final String field = map['field'] as String? ?? map['action'] as String? ?? 'Unknown';
     final String previousValue = map['previousValue'] as String? ?? '-';
     final String newValue = map['newValue'] as String? ?? (map['recordId'] != null ? 'Game ID: ${map['recordId']}' : '-');
+    final String? recordId = map['recordId'] as String?;
 
     return AuditLog(
       id:
@@ -76,6 +82,7 @@ class AuditLog {
       field: field,
       previousValue: previousValue,
       newValue: newValue,
+      recordId: recordId,
     );
   }
 }

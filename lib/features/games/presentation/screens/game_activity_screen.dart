@@ -11,6 +11,7 @@ import 'package:snooker_club/features/games/domain/models/game_models.dart';
 import 'package:snooker_club/features/games/providers/games_providers.dart';
 import 'package:snooker_club/features/games/presentation/widgets/game_activity_card.dart';
 import 'package:snooker_club/features/floors/providers/floor_providers.dart';
+import 'package:snooker_club/features/floors/presentation/widgets/floor_selector_sheet.dart';
 import 'package:snooker_club/features/announcements/presentation/widgets/announcements_sheet.dart';
 import 'package:snooker_club/features/dashboard/presentation/widgets/profile_popup_menu.dart';
 import 'package:snooker_club/core/widgets/modals/app_modal.dart';
@@ -28,6 +29,8 @@ class GameActivityScreen extends ConsumerWidget {
     final currentStaff = ref.watch(currentStaffProvider).value;
     final selectedFloor = ref.watch(selectedFloorProvider);
     final isFloorsEnabled = ref.watch(hasFloorsProvider);
+    final floors = ref.watch(floorsProvider).value ?? [];
+    final hasMultipleFloors = isFloorsEnabled && floors.length > 1;
 
     String currentUserName = currentStaff?.name ?? 'Admin';
     if (currentStaff?.role == StaffRole.owner ||
@@ -41,9 +44,9 @@ class GameActivityScreen extends ConsumerWidget {
     }
 
     String headerTitle = clubName;
-    if (isFloorsEnabled) {
+    if (hasMultipleFloors) {
       if (selectedFloor != null) {
-        headerTitle = '${selectedFloor.name}';
+        headerTitle = selectedFloor.name;
       } else {
         headerTitle = 'All Floors';
       }
@@ -62,14 +65,51 @@ class GameActivityScreen extends ConsumerWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             Flexible(
-              child: Text(
-                headerTitle,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  color: theme.colorScheme.onSurface,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
+              child: hasMultipleFloors
+                  ? InkWell(
+                      onTap: () {
+                        AppModal.showBottomSheet(
+                          context: context,
+                          builder: (context) => const FloorSelectorSheet(),
+                        );
+                      },
+                      borderRadius: BorderRadius.circular(8),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 4,
+                          vertical: 2,
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Flexible(
+                              child: Text(
+                                headerTitle,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  color: theme.colorScheme.onSurface,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 4),
+                            Icon(
+                              Icons.keyboard_arrow_down_rounded,
+                              size: 20,
+                              color: theme.colorScheme.primary,
+                            ),
+                          ],
+                        ),
+                      ),
+                    )
+                  : Text(
+                      headerTitle,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: theme.colorScheme.onSurface,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
             ),
             const SizedBox(width: 4),
             IconButton(

@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:snooker_club/core/providers/club_scope_provider.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import 'package:snooker_club/core/theme/app_colors.dart';
 
 class SplashScreen extends ConsumerStatefulWidget {
   const SplashScreen({super.key});

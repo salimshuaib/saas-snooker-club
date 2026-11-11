@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:snooker_club/core/models/audit_log.dart';
 import 'package:snooker_club/features/settings/domain/models/settings_models.dart';
@@ -20,7 +21,8 @@ enum TableType {
   steeringWheel,
   arcade,
   simulator,
-  iceHockey;
+  iceHockey,
+  other;
 
   String get displayName {
     switch (this) {
@@ -52,6 +54,8 @@ enum TableType {
         return 'Simulator';
       case TableType.iceHockey:
         return 'Ice Hockey';
+      case TableType.other:
+        return 'Other';
     }
   }
 
@@ -59,6 +63,63 @@ enum TableType {
     return this != TableType.snooker &&
         this != TableType.indianPool &&
         this != TableType.americanPool;
+  }
+
+  IconData get icon {
+    switch (this) {
+      case TableType.snooker:
+        return Icons.sports_esports;
+      case TableType.indianPool:
+      case TableType.americanPool:
+        return Icons.circle_outlined;
+      case TableType.ps5:
+      case TableType.ps4:
+        return Icons.gamepad;
+      case TableType.pc:
+        return Icons.desktop_windows;
+      case TableType.carrom:
+        return Icons.grid_4x4;
+      case TableType.foosball:
+        return Icons.sports_soccer;
+      case TableType.chess:
+        return Icons.extension;
+      case TableType.tableTennis:
+        return Icons.sports_tennis;
+      case TableType.steeringWheel:
+        return Icons.directions_car;
+      case TableType.arcade:
+        return Icons.videogame_asset;
+      case TableType.simulator:
+        return Icons.speed;
+      case TableType.iceHockey:
+        return Icons.sports_hockey;
+      case TableType.other:
+        return Icons.auto_awesome;
+    }
+  }
+
+  String get categoryGroup {
+    switch (this) {
+      case TableType.snooker:
+      case TableType.indianPool:
+      case TableType.americanPool:
+        return 'Cue Sports';
+      case TableType.ps5:
+      case TableType.ps4:
+      case TableType.pc:
+      case TableType.steeringWheel:
+      case TableType.simulator:
+        return 'Consoles & PC';
+      case TableType.carrom:
+      case TableType.foosball:
+      case TableType.chess:
+      case TableType.tableTennis:
+      case TableType.arcade:
+      case TableType.iceHockey:
+        return 'Indoor & Tabletop';
+      case TableType.other:
+        return 'Custom & Other';
+    }
   }
 }
 
@@ -206,6 +267,7 @@ class TableModel {
   final String id;
   final String name;
   final TableType type;
+  final String? customGameName;
   final TableStatus status;
   final String? activeGameId;
   final int order;
@@ -221,6 +283,7 @@ class TableModel {
     required this.id,
     required this.name,
     required this.type,
+    this.customGameName,
     this.status = TableStatus.available,
     this.activeGameId,
     this.order = 0,
@@ -237,6 +300,7 @@ class TableModel {
     String? id,
     String? name,
     TableType? type,
+    String? customGameName,
     TableStatus? status,
     String? activeGameId,
     int? order,
@@ -252,6 +316,7 @@ class TableModel {
       id: id ?? this.id,
       name: name ?? this.name,
       type: type ?? this.type,
+      customGameName: customGameName ?? this.customGameName,
       status: status ?? this.status,
       activeGameId: activeGameId ?? this.activeGameId,
       order: order ?? this.order,
@@ -270,6 +335,7 @@ class TableModel {
       'id': id,
       'name': name,
       'type': type.name,
+      if (customGameName != null) 'customGameName': customGameName,
       'status': status.name,
       'activeGameId': activeGameId,
       'order': order,
@@ -292,6 +358,7 @@ class TableModel {
         (t) => t.name == map['type'],
         orElse: () => TableType.snooker,
       ),
+      customGameName: map['customGameName'] as String?,
       status: TableStatus.values.firstWhere(
         (s) => s.name == map['status'],
         orElse: () => TableStatus.available,

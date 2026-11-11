@@ -142,10 +142,30 @@ class AuthRepository {
     }
   }
 
+  /// Send a password reset email to the specified address.
+  /// Throws [AuthException] on failure.
+  Future<void> sendPasswordResetEmail({required String email}) async {
+    try {
+      AppLogger.info('Sending password reset email to: $email');
+      await _auth.sendPasswordResetEmail(email: email.trim());
+      AppLogger.info('Password reset email sent successfully to: $email');
+    } on FirebaseAuthException catch (e) {
+      AppLogger.warning('FirebaseAuthException during password reset: ${e.code}');
+      throw _mapFirebaseError(e);
+    } catch (e) {
+      AppLogger.error('Unexpected password reset error: $e');
+      throw const AuthException(
+        message: 'Failed to send password reset email. Please try again.',
+        code: 'unknown',
+      );
+    }
+  }
+
   /// Maps Firebase error codes to user-friendly [AuthException] messages.
   AuthException _mapFirebaseError(FirebaseAuthException e) {
     switch (e.code) {
       case 'user-not-found':
+      case 'email-not-found':
         return const AuthException(
           message: 'No account found with this email address.',
           code: 'user-not-found',

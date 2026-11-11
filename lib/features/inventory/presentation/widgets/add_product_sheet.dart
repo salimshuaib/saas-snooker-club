@@ -6,11 +6,13 @@ import 'package:snooker_club/core/widgets/inputs/app_text_field.dart';
 import 'package:snooker_club/core/widgets/inputs/app_dropdown.dart';
 import 'package:snooker_club/features/inventory/domain/models/inventory_models.dart';
 import 'package:snooker_club/features/inventory/providers/inventory_providers.dart';
+import 'package:snooker_club/features/floors/providers/floor_providers.dart';
 
 class AddProductSheet extends ConsumerStatefulWidget {
   final InventoryItem? initialItem; // If provided, it's edit mode
+  final String? initialFloorId;
 
-  const AddProductSheet({super.key, this.initialItem});
+  const AddProductSheet({super.key, this.initialItem, this.initialFloorId});
 
   @override
   ConsumerState<AddProductSheet> createState() => _AddProductSheetState();
@@ -25,6 +27,8 @@ class _AddProductSheetState extends ConsumerState<AddProductSheet> {
   String _category = 'Drinks';
   bool _isProcessing = false;
   late bool _isAvailable;
+  String? _selectedFloorId;
+  String? _selectedFloorName;
 
   final List<String> _categories = [
     'Drinks',
@@ -53,6 +57,16 @@ class _AddProductSheetState extends ConsumerState<AddProductSheet> {
     );
     _category = widget.initialItem?.category ?? 'Drinks';
     _isAvailable = widget.initialItem?.isAvailable ?? true;
+    _selectedFloorId = widget.initialItem?.floorId ?? widget.initialFloorId;
+    _selectedFloorName = widget.initialItem?.floorName;
+
+    if (_selectedFloorId == null && widget.initialItem == null) {
+      final defaultFloor = ref.read(selectedFloorProvider);
+      if (defaultFloor != null) {
+        _selectedFloorId = defaultFloor.id;
+        _selectedFloorName = defaultFloor.name;
+      }
+    }
   }
 
   @override
@@ -91,24 +105,30 @@ class _AddProductSheetState extends ConsumerState<AddProductSheet> {
         isAvailable: isFood
             ? _isAvailable
             : (widget.initialItem?.isAvailable ?? true),
+        floorId: _selectedFloorId,
+        floorName: _selectedFloorName,
         createdAt: widget.initialItem?.createdAt ?? DateTime.now(),
         updatedAt: DateTime.now(),
       );
 
       if (widget.initialItem == null) {
-        // Validation: no duplicate names in category (for Add only)
+        // Validation: no duplicate names in category on the same floor (for Add only)
         final existingAsync = ref.read(inventoryItemsProvider);
         if (existingAsync.hasValue) {
           final isDuplicate = existingAsync.value!.any(
             (e) =>
                 e.category == _category &&
-                e.name.toLowerCase() == item.name.toLowerCase(),
+                e.name.toLowerCase() == item.name.toLowerCase() &&
+                e.floorId == item.floorId,
           );
           if (isDuplicate) {
             if (mounted) {
+              final floorLabel = item.floorName != null
+                  ? ' on ${item.floorName}'
+                  : '';
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Product already exists in this category'),
+                SnackBar(
+                  content: Text('Product already exists in this category$floorLabel'),
                   backgroundColor: AppColors.error,
                 ),
               );
@@ -145,6 +165,17 @@ class _AddProductSheetState extends ConsumerState<AddProductSheet> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isEdit = widget.initialItem != null;
+    final hasFloors = ref.watch(hasFloorsProvider);
+    final floors = ref.watch(floorsProvider).value ?? [];
+
+    if (_selectedFloorId != null &&
+        _selectedFloorName == null &&
+        floors.isNotEmpty) {
+      final matched = floors.where((f) => f.id == _selectedFloorId);
+      if (matched.isNotEmpty) {
+        _selectedFloorName = matched.first.name;
+      }
+    }
 
     return Padding(
       padding: EdgeInsets.only(
@@ -190,6 +221,50 @@ class _AddProductSheetState extends ConsumerState<AddProductSheet> {
                 },
               ),
               const Gap(16),
+
+              if (hasFloors && floors.length > 1) ...[
+                AppDropdown<String?>(
+                  label: 'Floor / Location',
+                  value: floors.any((f) => f.id == _selectedFloorId)
+                      ? _selectedFloorId
+                      : null,
+                  items: [
+                    const DropdownMenuItem(
+                      value: null,
+                      child: Row(
+                        children: [
+                          Icon(Icons.domain, size: 16),
+                          SizedBox(width: 8),
+                          Text('All Floors / General'),
+                        ],
+                      ),
+                    ),
+                    ...floors.map((f) => DropdownMenuItem(
+                      value: f.id,
+                      child: Row(
+                        children: [
+                          const Icon(Icons.layers_outlined, size: 16),
+                          const SizedBox(width: 8),
+                          Text(f.name),
+                        ],
+                      ),
+                    )),
+                  ],
+                  onChanged: (val) {
+                    setState(() {
+                      _selectedFloorId = val;
+                      if (val == null) {
+                        _selectedFloorName = null;
+                      } else {
+                        final matched = floors.where((f) => f.id == val);
+                        _selectedFloorName =
+                            matched.isNotEmpty ? matched.first.name : null;
+                      }
+                    });
+                  },
+                ),
+                const Gap(16),
+              ],
 
               if (_isFoodCategory) ...[
                 AppTextField(

@@ -124,6 +124,8 @@ class InventoryRepository {
     required double purchasePrice,
     String employeeName = 'Admin',
     String? notes,
+    String? targetFloorId,
+    String? targetFloorName,
   }) async {
     if (AppConfig.guardWrite('InventoryRepository.addStock')) return;
     final batch = _firestore.batch();
@@ -132,12 +134,16 @@ class InventoryRepository {
     final updatedStock = item.currentStock + quantityAdded;
     final updatedPurchased = item.totalPurchased + quantityAdded;
 
-    batch.update(_inventoryRef.doc(item.id), {
+    final updateData = <String, dynamic>{
       'currentStock': updatedStock,
       'totalPurchased': updatedPurchased,
       'purchasePrice': purchasePrice,
       'updatedAt': FieldValue.serverTimestamp(),
-    });
+      'floorId': targetFloorId,
+      'floorName': targetFloorName,
+    };
+
+    batch.update(_inventoryRef.doc(item.id), updateData);
 
     // 2. Add Stock History
     final historyRef = _stockHistoryRef.doc();
@@ -149,6 +155,8 @@ class InventoryRepository {
       purchasePrice: purchasePrice,
       employeeName: currentUserName,
       notes: notes,
+      floorId: targetFloorId,
+      floorName: targetFloorName,
       date: DateTime.now(),
     );
     batch.set(historyRef, history.toMap());

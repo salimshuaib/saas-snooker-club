@@ -14,6 +14,8 @@ import 'package:snooker_club/features/quick_sales/domain/models/quick_sale_model
 import 'package:snooker_club/features/quick_sales/providers/quick_sales_providers.dart';
 import 'package:snooker_club/features/credit/providers/credit_providers.dart';
 import 'package:snooker_club/features/team/providers/team_providers.dart';
+import 'package:snooker_club/features/floors/providers/floor_providers.dart';
+import 'package:snooker_club/features/floors/domain/models/floor_model.dart';
 
 class NewQuickSaleScreen extends ConsumerStatefulWidget {
   const NewQuickSaleScreen({super.key});
@@ -31,6 +33,18 @@ class _NewQuickSaleScreenState extends ConsumerState<NewQuickSaleScreen> {
   bool _isProcessing = false;
   String _searchQuery = '';
   String _selectedCategory = 'All';
+  String? _selectedFloorId;
+  bool _hasInitializedFloor = false;
+
+  @override
+  void initState() {
+    super.initState();
+    final active = ref.read(selectedFloorIdProvider);
+    if (active != null) {
+      _selectedFloorId = active;
+      _hasInitializedFloor = true;
+    }
+  }
 
   @override
   void dispose() {
@@ -137,6 +151,9 @@ class _NewQuickSaleScreenState extends ConsumerState<NewQuickSaleScreen> {
       }
 
       final staff = ref.read(currentStaffProvider).value;
+      final floors = ref.read(floorsProvider).value ?? [];
+      final selectedFloor =
+          floors.where((f) => f.id == _selectedFloorId).firstOrNull;
       final sale = QuickSale(
         id: '',
         customerName: _customerNameController.text.trim().isEmpty
@@ -146,6 +163,8 @@ class _NewQuickSaleScreenState extends ConsumerState<NewQuickSaleScreen> {
         totalAmount: totalAmount,
         paymentMethod: _paymentMethod,
         employeeName: staff?.name ?? 'Admin',
+        floorId: selectedFloor?.id,
+        floorName: selectedFloor?.name,
         date: DateTime.now(),
       );
 
@@ -267,6 +286,44 @@ class _NewQuickSaleScreenState extends ConsumerState<NewQuickSaleScreen> {
     ThemeData theme,
     AsyncValue<List<dynamic>> inventoryAsync,
   ) {
+    final hasFloors = ref.watch(hasFloorsProvider);
+    final floors = ref.watch(floorsProvider).value ?? [];
+
+    // Sort floors logically: Floor 1 / First Floor first, Second Floor second, etc.
+    final sortedFloors = List<FloorModel>.from(floors);
+    sortedFloors.sort((a, b) {
+      int getRank(FloorModel f) {
+        final n = f.name.toLowerCase();
+        if (n.contains('first') || n.contains('floor 1') || n.contains('1st') || n == '1') return 1;
+        if (n.contains('second') || n.contains('floor 2') || n.contains('2nd') || n == '2') return 2;
+        if (n.contains('third') || n.contains('floor 3') || n.contains('3rd') || n == '3') return 3;
+        if (n.contains('fourth') || n.contains('floor 4') || n.contains('4th') || n == '4') return 4;
+        return 10 + f.order;
+      }
+      final rankA = getRank(a);
+      final rankB = getRank(b);
+      if (rankA != rankB) return rankA.compareTo(rankB);
+      return a.name.compareTo(b.name);
+    });
+
+    // Auto-select active floor or First Floor on initial load
+    if (!_hasInitializedFloor && sortedFloors.isNotEmpty) {
+      _hasInitializedFloor = true;
+      final active = ref.read(selectedFloorIdProvider);
+      if (active != null && sortedFloors.any((f) => f.id == active)) {
+        _selectedFloorId = active;
+      } else {
+        _selectedFloorId = sortedFloors.first.id;
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) {
+            ref
+                .read(selectedFloorIdProvider.notifier)
+                .selectFloor(sortedFloors.first.id);
+          }
+        });
+      }
+    }
+
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
       decoration: BoxDecoration(
@@ -279,6 +336,93 @@ class _NewQuickSaleScreenState extends ConsumerState<NewQuickSaleScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: [
+          // Floor Dropdown Menu
+          if (hasFloors && sortedFloors.length > 1) ...[
+            Container(
+              margin: const EdgeInsets.only(bottom: 12),
+              decoration: BoxDecoration(
+                color: theme.colorScheme.surfaceContainerHighest.withValues(
+                  alpha: 0.35,
+                ),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: theme.colorScheme.outlineVariant,
+                ),
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 2),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.layers_outlined,
+                    size: 18,
+                    color: theme.colorScheme.primary,
+                  ),
+                  const Gap(8),
+                  Text(
+                    'Floor:',
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                  const Gap(10),
+                  Expanded(
+                    child: DropdownButtonHideUnderline(
+                      child: DropdownButton<String?>(
+                        value: (sortedFloors.any((f) => f.id == _selectedFloorId) ||
+                                _selectedFloorId == null)
+                            ? _selectedFloorId
+                            : sortedFloors.first.id,
+                        isExpanded: true,
+                        icon: Icon(
+                          Icons.keyboard_arrow_down_rounded,
+                          color: theme.colorScheme.primary,
+                        ),
+                        borderRadius: BorderRadius.circular(12),
+                        dropdownColor: theme.colorScheme.surface,
+                        style: TextStyle(
+                          color: theme.colorScheme.onSurface,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 14,
+                        ),
+                        items: [
+                          ...sortedFloors.map((floor) => DropdownMenuItem<String?>(
+                                value: floor.id,
+                                child: Text(
+                                  floor.name,
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 14,
+                                  ),
+                                ),
+                              )),
+                          const DropdownMenuItem<String?>(
+                            value: null,
+                            child: Text(
+                              'All Floors',
+                              style: TextStyle(
+                                fontWeight: FontWeight.w600,
+                                fontSize: 14,
+                              ),
+                            ),
+                          ),
+                        ],
+                        onChanged: (newFloorId) {
+                          setState(() {
+                            _selectedFloorId = newFloorId;
+                          });
+                          ref
+                              .read(selectedFloorIdProvider.notifier)
+                              .selectFloor(newFloorId);
+                        },
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
           // Fixed Search Bar
           TextField(
             controller: _searchController,
@@ -326,6 +470,9 @@ class _NewQuickSaleScreenState extends ConsumerState<NewQuickSaleScreen> {
             data: (items) {
               final Set<String> categories = {'All'};
               for (final i in items) {
+                if (_selectedFloorId != null && i.floorId != _selectedFloorId) {
+                  continue;
+                }
                 if (i.category.isNotEmpty) categories.add(i.category);
               }
 
@@ -390,11 +537,16 @@ class _NewQuickSaleScreenState extends ConsumerState<NewQuickSaleScreen> {
       data: (items) {
         final activeItems = items.where((i) {
           if (!i.isActive) return false;
-          if (_selectedCategory != 'All' && i.category != _selectedCategory)
+          if (_selectedFloorId != null && i.floorId != _selectedFloorId) {
             return false;
+          }
+          if (_selectedCategory != 'All' && i.category != _selectedCategory) {
+            return false;
+          }
           if (_searchQuery.isNotEmpty &&
-              !i.name.toLowerCase().contains(_searchQuery))
+              !i.name.toLowerCase().contains(_searchQuery)) {
             return false;
+          }
           return true;
         }).toList();
 
@@ -531,6 +683,38 @@ class _NewQuickSaleScreenState extends ConsumerState<NewQuickSaleScreen> {
                                   ),
                                 ),
                               ),
+                              if (item.floorName != null) ...[
+                                const Gap(6),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 6,
+                                    vertical: 2,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: theme.colorScheme.secondaryContainer.withValues(alpha: 0.5),
+                                    borderRadius: BorderRadius.circular(6),
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(
+                                        Icons.layers_outlined,
+                                        size: 11,
+                                        color: theme.colorScheme.onSecondaryContainer,
+                                      ),
+                                      const Gap(3),
+                                      Text(
+                                        item.floorName!,
+                                        style: TextStyle(
+                                          color: theme.colorScheme.onSecondaryContainer,
+                                          fontSize: 10,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
                             ],
                           ),
                         ],
@@ -906,13 +1090,43 @@ class _NewQuickSaleScreenState extends ConsumerState<NewQuickSaleScreen> {
                                       fontSize: 14,
                                     ),
                                   ),
-                                  const Gap(2),
-                                  Text(
-                                    '₹${product.sellingPrice.toStringAsFixed(0)} each',
-                                    style: TextStyle(
-                                      color: theme.colorScheme.onSurfaceVariant,
-                                      fontSize: 12,
-                                    ),
+                                  Wrap(
+                                    crossAxisAlignment:
+                                        WrapCrossAlignment.center,
+                                    spacing: 6,
+                                    children: [
+                                      Text(
+                                        '₹${product.sellingPrice.toStringAsFixed(0)} each',
+                                        style: TextStyle(
+                                          color:
+                                              theme.colorScheme.onSurfaceVariant,
+                                          fontSize: 12,
+                                        ),
+                                      ),
+                                      if (product.floorName != null)
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 6,
+                                            vertical: 1,
+                                          ),
+                                          decoration: BoxDecoration(
+                                            color: theme
+                                                .colorScheme.secondaryContainer
+                                                .withValues(alpha: 0.5),
+                                            borderRadius:
+                                                BorderRadius.circular(4),
+                                          ),
+                                          child: Text(
+                                            product.floorName!,
+                                            style: TextStyle(
+                                              color: theme.colorScheme
+                                                  .onSecondaryContainer,
+                                              fontSize: 10,
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                          ),
+                                        ),
+                                    ],
                                   ),
                                 ],
                               ),

@@ -11,6 +11,8 @@ class InventoryItem {
   final int totalSold;
   final bool isActive;
   final bool isAvailable;
+  final String? floorId;
+  final String? floorName;
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -25,6 +27,8 @@ class InventoryItem {
     this.totalSold = 0,
     this.isActive = true,
     this.isAvailable = true,
+    this.floorId,
+    this.floorName,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -53,6 +57,8 @@ class InventoryItem {
     int? totalSold,
     bool? isActive,
     bool? isAvailable,
+    String? floorId,
+    String? floorName,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) {
@@ -67,6 +73,8 @@ class InventoryItem {
       totalSold: totalSold ?? this.totalSold,
       isActive: isActive ?? this.isActive,
       isAvailable: isAvailable ?? this.isAvailable,
+      floorId: floorId ?? this.floorId,
+      floorName: floorName ?? this.floorName,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );
@@ -83,6 +91,8 @@ class InventoryItem {
       'totalSold': totalSold,
       'isActive': isActive,
       'isAvailable': isAvailable,
+      'floorId': floorId,
+      'floorName': floorName,
       'createdAt': Timestamp.fromDate(createdAt),
       'updatedAt': Timestamp.fromDate(updatedAt),
     };
@@ -100,6 +110,8 @@ class InventoryItem {
       totalSold: map['totalSold'] as int? ?? 0,
       isActive: map['isActive'] as bool? ?? true,
       isAvailable: map['isAvailable'] as bool? ?? true,
+      floorId: map['floorId'] as String?,
+      floorName: map['floorName'] as String?,
       createdAt: (map['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
       updatedAt: (map['updatedAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
     );
@@ -114,6 +126,8 @@ class StockHistory {
   final double purchasePrice;
   final String employeeName;
   final String? notes;
+  final String? floorId;
+  final String? floorName;
   final DateTime date;
 
   const StockHistory({
@@ -124,6 +138,8 @@ class StockHistory {
     required this.purchasePrice,
     required this.employeeName,
     this.notes,
+    this.floorId,
+    this.floorName,
     required this.date,
   });
 
@@ -135,6 +151,8 @@ class StockHistory {
       'purchasePrice': purchasePrice,
       'employeeName': employeeName,
       'notes': notes,
+      'floorId': floorId,
+      'floorName': floorName,
       'date': Timestamp.fromDate(date),
     };
   }
@@ -148,6 +166,8 @@ class StockHistory {
       purchasePrice: (map['purchasePrice'] as num?)?.toDouble() ?? 0.0,
       employeeName: map['employeeName'] as String? ?? 'Admin',
       notes: map['notes'] as String?,
+      floorId: map['floorId'] as String?,
+      floorName: map['floorName'] as String?,
       date: (map['date'] as Timestamp?)?.toDate() ?? DateTime.now(),
     );
   }

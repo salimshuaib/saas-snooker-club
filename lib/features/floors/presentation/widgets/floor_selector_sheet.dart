@@ -47,15 +47,16 @@ class FloorSelectorSheet extends ConsumerWidget {
             child: ListView(
               shrinkWrap: true,
               children: [
-                _buildFloorItem(
-                  context,
-                  ref,
-                  id: null,
-                  name: 'All Floors',
-                  tableCount: tables.length,
-                  isSelected: selectedFloorId == null,
-                  icon: Icons.layers,
-                ),
+                if (floors.length > 1)
+                  _buildFloorItem(
+                    context,
+                    ref,
+                    id: null,
+                    name: 'All Floors',
+                    tableCount: tables.length,
+                    isSelected: selectedFloorId == null,
+                    icon: Icons.layers,
+                  ),
                 ...floors.map((floor) {
                   final count = tables.where((t) => t.floorId == floor.id).length;
                   return _buildFloorItem(

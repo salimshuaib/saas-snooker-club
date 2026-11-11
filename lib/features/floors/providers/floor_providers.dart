@@ -22,9 +22,25 @@ final hasFloorsProvider = Provider<bool>((ref) {
   return floors != null && floors.isNotEmpty;
 });
 
+/// True if club has 2 or more floors.
+/// If a club has 0 or 1 floor, floor selectors, floor chips, and "All Floors"
+/// options should never be shown anywhere in the app.
+final hasMultipleFloorsProvider = Provider<bool>((ref) {
+  final floors = ref.watch(floorsProvider).value;
+  return floors != null && floors.length > 1;
+});
+
 class SelectedFloorIdNotifier extends Notifier<String?> {
   @override
   String? build() => null;
+
+  @override
+  String? get state => super.state;
+
+  @override
+  set state(String? value) => super.state = value;
+
+  void selectFloor(String? id) => state = id;
 }
 
 final selectedFloorIdProvider = NotifierProvider<SelectedFloorIdNotifier, String?>(SelectedFloorIdNotifier.new);

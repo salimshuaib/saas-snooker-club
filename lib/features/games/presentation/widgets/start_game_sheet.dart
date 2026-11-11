@@ -170,6 +170,9 @@ class StartGameSheet extends ConsumerWidget {
         case TableType.iceHockey:
           title = 'Ice Hockey';
           break;
+        case TableType.other:
+          title = 'Other Games';
+          break;
       }
       return _buildTableGroup(title, tablesOfType, context, employeeId, theme);
     }).toList();

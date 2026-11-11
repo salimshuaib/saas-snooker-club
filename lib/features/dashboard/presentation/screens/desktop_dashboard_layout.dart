@@ -20,6 +20,11 @@ import 'package:snooker_club/features/games/providers/games_providers.dart';
 import 'package:snooker_club/features/quick_sales/providers/quick_sales_providers.dart';
 import 'package:snooker_club/features/dashboard/presentation/screens/dashboard_screen.dart';
 import 'package:snooker_club/features/team/providers/team_providers.dart';
+import 'package:snooker_club/features/team/presentation/screens/staff_attendance_screen.dart';
+import 'package:snooker_club/features/team/providers/attendance_providers.dart';
+import 'package:snooker_club/core/widgets/cards/not_authorized_card.dart';
+import 'package:snooker_club/features/floors/providers/floor_providers.dart';
+import 'package:snooker_club/features/floors/domain/models/floor_model.dart';
 
 class DesktopDashboardLayout extends ConsumerWidget {
   final String employeeName;
@@ -34,7 +39,9 @@ class DesktopDashboardLayout extends ConsumerWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _buildHeader(context, ref),
-          const Gap(32),
+          const Gap(24),
+          _buildFloorSelector(context, ref),
+          const Gap(16),
           _buildStatsGrid(context, ref),
           const Gap(24),
           Row(
@@ -47,7 +54,7 @@ class DesktopDashboardLayout extends ConsumerWidget {
               const Gap(24),
               Expanded(
                 flex: 3,
-                child: _buildQuickAccess(context),
+                child: _buildQuickAccess(context, ref),
               ),
             ],
           ),
@@ -136,13 +143,145 @@ class DesktopDashboardLayout extends ConsumerWidget {
                   }
                 },
               ),
+              const Gap(8),
+              ActionChip(
+                backgroundColor: const Color(0xFF6C6FEF).withValues(alpha: 0.12),
+                side: BorderSide(
+                  color: const Color(0xFF6C6FEF).withValues(alpha: 0.4),
+                  width: 1,
+                ),
+                label: const Text(
+                  'My Attendance',
+                  style: TextStyle(
+                    color: Color(0xFF6C6FEF),
+                    fontWeight: FontWeight.bold,
+                    fontSize: 12,
+                  ),
+                ),
+                avatar: const Icon(
+                  Icons.calendar_month,
+                  size: 16,
+                  color: Color(0xFF6C6FEF),
+                ),
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => StaffAttendanceScreen(staffMember: currentStaff),
+                    ),
+                  );
+                },
+              ),
             ],
           )
       ],
     );
   }
 
+  Widget _buildFloorSelector(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
+    final hasFloors = ref.watch(hasFloorsProvider);
+    final floors = ref.watch(floorsProvider).value ?? [];
+    if (!hasFloors || floors.length <= 1) return const SizedBox.shrink();
+
+    final selectedFloorId = ref.watch(selectedFloorIdProvider);
+    final sortedFloors = List<FloorModel>.from(floors);
+    sortedFloors.sort((a, b) {
+      int getRank(FloorModel f) {
+        final n = f.name.toLowerCase();
+        if (n.contains('first') || n.contains('floor 1') || n.contains('1st') || n == '1') return 1;
+        if (n.contains('second') || n.contains('floor 2') || n.contains('2nd') || n == '2') return 2;
+        if (n.contains('third') || n.contains('floor 3') || n.contains('3rd') || n == '3') return 3;
+        if (n.contains('fourth') || n.contains('floor 4') || n.contains('4th') || n == '4') return 4;
+        return 10 + f.order;
+      }
+      final rankA = getRank(a);
+      final rankB = getRank(b);
+      if (rankA != rankB) return rankA.compareTo(rankB);
+      return a.name.compareTo(b.name);
+    });
+
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: Container(
+        constraints: const BoxConstraints(maxWidth: 320),
+        decoration: BoxDecoration(
+          color: const Color(0xFF15191E),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: const Color(0xFF3E4A56)),
+        ),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 2),
+        child: Row(
+          children: [
+            Icon(Icons.layers_outlined, size: 18, color: theme.colorScheme.primary),
+            const Gap(8),
+            const Text(
+              'Floor:',
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: Color(0xFF8B8EA3),
+              ),
+            ),
+            const Gap(10),
+            Expanded(
+              child: DropdownButtonHideUnderline(
+                child: DropdownButton<String?>(
+                  value: (sortedFloors.any((f) => f.id == selectedFloorId) || selectedFloorId == null)
+                      ? selectedFloorId
+                      : sortedFloors.first.id,
+                  isExpanded: true,
+                  icon: Icon(
+                    Icons.keyboard_arrow_down_rounded,
+                    color: theme.colorScheme.primary,
+                  ),
+                  borderRadius: BorderRadius.circular(12),
+                  dropdownColor: const Color(0xFF1E232A),
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 14,
+                  ),
+                  items: [
+                    const DropdownMenuItem<String?>(
+                      value: null,
+                      child: Text(
+                        'All Floors',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 14,
+                        ),
+                      ),
+                    ),
+                    ...sortedFloors.map(
+                      (floor) => DropdownMenuItem<String?>(
+                        value: floor.id,
+                        child: Text(
+                          floor.name,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w600,
+                            fontSize: 14,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                  onChanged: (newFloorId) {
+                    ref.read(selectedFloorIdProvider.notifier).selectFloor(newFloorId);
+                  },
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildStatsGrid(BuildContext context, WidgetRef ref) {
+    final currentStaff = ref.watch(currentStaffProvider).value;
+    final isLimited = currentStaff?.isLimitedAccess == true;
+
     final asyncSummary = ref.watch(financialSummaryProvider);
     final runningCount = ref.watch(runningTablesCountProvider);
     final availableCount = ref.watch(availableTablesCountProvider);
@@ -160,30 +299,69 @@ class DesktopDashboardLayout extends ConsumerWidget {
       final useTwoRows = constraints.maxWidth < 1100;
       
       final cards = [
-        _buildStatCard(
-          title: 'Total billed',
-          value: '$currencySymbol${totalBilled.toStringAsFixed(0)}',
-          valueColor: const Color(0xFF6C6FEF),
-          icon: Icons.account_balance_wallet,
-          color: const Color(0xFF6C6FEF),
-          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (c) => const FinancialReviewScreen())),
-        ),
-        _buildStatCard(
-          title: 'Cash collected',
-          value: '$currencySymbol${cashCollected.toStringAsFixed(0)}',
-          valueColor: Colors.white,
-          icon: Icons.payments,
-          color: const Color(0xFF5DCAA5),
-          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (c) => const FinancialReviewScreen())),
-        ),
-        _buildStatCard(
-          title: 'Outstanding credit',
-          value: '$currencySymbol${outstandingCredit.toStringAsFixed(0)}',
-          valueColor: Colors.white,
-          icon: Icons.credit_card,
-          color: const Color(0xFFE24B4A),
-          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (c) => const CreditScreen())),
-        ),
+        if (isLimited) ...[
+          _buildStatCard(
+            title: 'Games started by you',
+            value: (ref.watch(myStartedGamesCountProvider).value ?? 0).toString(),
+            valueColor: const Color(0xFF6C6FEF),
+            icon: Icons.sports_esports_outlined,
+            color: const Color(0xFF6C6FEF),
+            onTap: () {
+              if (currentStaff != null) {
+                Navigator.push(context, MaterialPageRoute(builder: (c) => StaffAttendanceScreen(staffMember: currentStaff)));
+              }
+            },
+          ),
+          _buildStatCard(
+            title: 'Games started today',
+            value: (ref.watch(myStartedGamesTodayCountProvider).value ?? 0).toString(),
+            valueColor: Colors.white,
+            icon: Icons.today_outlined,
+            color: const Color(0xFF5DCAA5),
+            onTap: () {
+              if (currentStaff != null) {
+                Navigator.push(context, MaterialPageRoute(builder: (c) => StaffAttendanceScreen(staffMember: currentStaff)));
+              }
+            },
+          ),
+          _buildStatCard(
+            title: 'My shift status',
+            value: (currentStaff?.isCheckedIn == true) ? 'Active' : 'Checked Out',
+            valueColor: (currentStaff?.isCheckedIn == true) ? const Color(0xFF5DCAA5) : const Color(0xFFE24B4A),
+            icon: (currentStaff?.isCheckedIn == true) ? Icons.check_circle : Icons.power_settings_new,
+            color: (currentStaff?.isCheckedIn == true) ? const Color(0xFF5DCAA5) : const Color(0xFFE24B4A),
+            onTap: () {
+              if (currentStaff != null) {
+                Navigator.push(context, MaterialPageRoute(builder: (c) => StaffAttendanceScreen(staffMember: currentStaff)));
+              }
+            },
+          ),
+        ] else ...[
+          _buildStatCard(
+            title: 'Total billed',
+            value: '$currencySymbol${totalBilled.toStringAsFixed(0)}',
+            valueColor: const Color(0xFF6C6FEF),
+            icon: Icons.account_balance_wallet,
+            color: const Color(0xFF6C6FEF),
+            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (c) => const FinancialReviewScreen())),
+          ),
+          _buildStatCard(
+            title: 'Cash collected',
+            value: '$currencySymbol${cashCollected.toStringAsFixed(0)}',
+            valueColor: Colors.white,
+            icon: Icons.payments,
+            color: const Color(0xFF5DCAA5),
+            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (c) => const FinancialReviewScreen())),
+          ),
+          _buildStatCard(
+            title: 'Outstanding credit',
+            value: '$currencySymbol${outstandingCredit.toStringAsFixed(0)}',
+            valueColor: Colors.white,
+            icon: Icons.credit_card,
+            color: const Color(0xFFE24B4A),
+            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (c) => const CreditScreen())),
+          ),
+        ],
         _buildStatCard(
           title: 'Running tables',
           value: runningCount.toString(),
@@ -292,6 +470,11 @@ class DesktopDashboardLayout extends ConsumerWidget {
   }
 
   Widget _buildFinancialBreakdown(BuildContext context, WidgetRef ref) {
+    final currentStaff = ref.watch(currentStaffProvider).value;
+    if (currentStaff?.isLimitedAccess == true) {
+      return const NotAuthorizedCard(title: 'Not Authorized');
+    }
+
     final asyncSummary = ref.watch(financialSummaryProvider);
     final summary = asyncSummary.value;
     final currencySymbol = ref.watch(currencyProvider).symbol;
@@ -416,7 +599,10 @@ class DesktopDashboardLayout extends ConsumerWidget {
     );
   }
 
-  Widget _buildQuickAccess(BuildContext context) {
+  Widget _buildQuickAccess(BuildContext context, WidgetRef ref) {
+    final currentStaff = ref.watch(currentStaffProvider).value;
+    final isLimited = currentStaff?.isLimitedAccess == true;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -435,15 +621,17 @@ class DesktopDashboardLayout extends ConsumerWidget {
           subtitle: 'Manage table reservations',
           onTap: () => Navigator.push(context, MaterialPageRoute(builder: (c) => const BookingManagementScreen())),
         ),
-        const Gap(14),
-        _buildQuickAccessTile(
-          icon: Icons.settings,
-          iconColor: const Color(0xFFC9CBE0),
-          iconBg: const Color(0xFF1A1D29),
-          title: 'Settings',
-          subtitle: 'App config',
-          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (c) => const SettingsScreen())),
-        ),
+        if (!isLimited) ...[
+          const Gap(14),
+          _buildQuickAccessTile(
+            icon: Icons.settings,
+            iconColor: const Color(0xFFC9CBE0),
+            iconBg: const Color(0xFF1A1D29),
+            title: 'Settings',
+            subtitle: 'App config',
+            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (c) => const SettingsScreen())),
+          ),
+        ],
         const Gap(14),
         AnimatedHoverCard(
           onTap: () {

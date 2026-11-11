@@ -5,6 +5,8 @@ import 'package:go_router/go_router.dart';
 import 'package:snooker_club/core/theme/app_colors.dart';
 import 'package:snooker_club/features/inventory/domain/models/inventory_models.dart';
 import 'package:snooker_club/features/inventory/providers/inventory_providers.dart';
+import 'package:snooker_club/features/floors/providers/floor_providers.dart';
+import 'package:snooker_club/features/floors/domain/models/floor_model.dart';
 
 class InventoryStatusScreen extends ConsumerWidget {
   const InventoryStatusScreen({super.key});
@@ -13,6 +15,9 @@ class InventoryStatusScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final itemsAsync = ref.watch(inventoryItemsProvider);
+    final selectedFloorId = ref.watch(selectedFloorIdProvider);
+    final hasFloors = ref.watch(hasFloorsProvider);
+    final floors = ref.watch(floorsProvider).value ?? [];
 
     return Scaffold(
       appBar: AppBar(
@@ -23,16 +28,20 @@ class InventoryStatusScreen extends ConsumerWidget {
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, _) => Center(child: Text('Error loading inventory: $e')),
         data: (items) {
-          final outOfStock = items
+          final filteredItems = selectedFloorId != null
+              ? items.where((i) => i.floorId == selectedFloorId).toList()
+              : items;
+
+          final outOfStock = filteredItems
               .where((i) => i.currentStock == 0 && i.isActive)
               .toList();
-          final lowStock = items
+          final lowStock = filteredItems
               .where(
                 (i) => i.currentStock > 0 && i.currentStock <= 5 && i.isActive,
               )
               .toList();
-          final disabled = items.where((i) => !i.isActive).toList();
-          final activeOptimal = items
+          final disabled = filteredItems.where((i) => !i.isActive).toList();
+          final activeOptimal = filteredItems
               .where((i) => i.currentStock > 5 && i.isActive)
               .toList();
 
@@ -44,6 +53,10 @@ class InventoryStatusScreen extends ConsumerWidget {
           return CustomScrollView(
             physics: const BouncingScrollPhysics(),
             slivers: [
+              if (hasFloors && floors.length > 1)
+                SliverToBoxAdapter(
+                  child: _buildFloorSelector(context, ref, theme, floors, selectedFloorId),
+                ),
               // ─── Status Banner ───
               SliverToBoxAdapter(
                 child: Padding(
@@ -122,6 +135,7 @@ class InventoryStatusScreen extends ConsumerWidget {
                       item: outOfStock[index],
                       statusText: 'OUT OF STOCK',
                       statusColor: AppColors.error,
+                      showFloorBadge: floors.length > 1,
                     ),
                     childCount: outOfStock.length,
                   ),
@@ -142,6 +156,7 @@ class InventoryStatusScreen extends ConsumerWidget {
                       item: lowStock[index],
                       statusText: 'LOW STOCK',
                       statusColor: AppColors.warning,
+                      showFloorBadge: floors.length > 1,
                     ),
                     childCount: lowStock.length,
                   ),
@@ -162,6 +177,7 @@ class InventoryStatusScreen extends ConsumerWidget {
                       item: disabled[index],
                       statusText: 'DISABLED',
                       statusColor: theme.colorScheme.onSurfaceVariant,
+                      showFloorBadge: floors.length > 1,
                     ),
                     childCount: disabled.length,
                   ),
@@ -182,6 +198,7 @@ class InventoryStatusScreen extends ConsumerWidget {
                       item: activeOptimal[index],
                       statusText: 'ACTIVE',
                       statusColor: AppColors.available,
+                      showFloorBadge: floors.length > 1,
                     ),
                     childCount: activeOptimal.length,
                   ),
@@ -221,17 +238,129 @@ class InventoryStatusScreen extends ConsumerWidget {
       ),
     );
   }
+
+  Widget _buildFloorSelector(
+    BuildContext context,
+    WidgetRef ref,
+    ThemeData theme,
+    List<FloorModel> floors,
+    String? selectedFloorId,
+  ) {
+    final sortedFloors = List<FloorModel>.from(floors);
+    sortedFloors.sort((a, b) {
+      int getRank(FloorModel f) {
+        final n = f.name.toLowerCase();
+        if (n.contains('first') || n.contains('floor 1') || n.contains('1st') || n == '1') return 1;
+        if (n.contains('second') || n.contains('floor 2') || n.contains('2nd') || n == '2') return 2;
+        if (n.contains('third') || n.contains('floor 3') || n.contains('3rd') || n == '3') return 3;
+        if (n.contains('fourth') || n.contains('floor 4') || n.contains('4th') || n == '4') return 4;
+        return 10 + f.order;
+      }
+      final rankA = getRank(a);
+      final rankB = getRank(b);
+      if (rankA != rankB) return rankA.compareTo(rankB);
+      return a.name.compareTo(b.name);
+    });
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+      child: Container(
+        decoration: BoxDecoration(
+          color: theme.colorScheme.surfaceContainerHighest.withValues(
+            alpha: 0.35,
+          ),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: theme.colorScheme.outlineVariant,
+          ),
+        ),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 2),
+        child: Row(
+          children: [
+            Icon(
+              Icons.layers_outlined,
+              size: 18,
+              color: theme.colorScheme.primary,
+            ),
+            const Gap(8),
+            Text(
+              'Floor:',
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+            const Gap(10),
+            Expanded(
+              child: DropdownButtonHideUnderline(
+                child: DropdownButton<String?>(
+                  value: (sortedFloors.any((f) => f.id == selectedFloorId) ||
+                          selectedFloorId == null)
+                      ? selectedFloorId
+                      : sortedFloors.first.id,
+                  isExpanded: true,
+                  icon: Icon(
+                    Icons.keyboard_arrow_down_rounded,
+                    color: theme.colorScheme.primary,
+                  ),
+                  borderRadius: BorderRadius.circular(12),
+                  dropdownColor: theme.colorScheme.surface,
+                  style: TextStyle(
+                    color: theme.colorScheme.onSurface,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 14,
+                  ),
+                  items: [
+                    const DropdownMenuItem<String?>(
+                      value: null,
+                      child: Text(
+                        'All Floors',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 14,
+                        ),
+                      ),
+                    ),
+                    ...sortedFloors.map(
+                      (floor) => DropdownMenuItem<String?>(
+                        value: floor.id,
+                        child: Text(
+                          floor.name,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w600,
+                            fontSize: 14,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                  onChanged: (newFloorId) {
+                    ref
+                        .read(selectedFloorIdProvider.notifier)
+                        .selectFloor(newFloorId);
+                  },
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
 
 class _InventoryStatusTile extends StatelessWidget {
   final InventoryItem item;
   final String statusText;
   final Color statusColor;
+  final bool showFloorBadge;
 
   const _InventoryStatusTile({
     required this.item,
     required this.statusText,
     required this.statusColor,
+    this.showFloorBadge = false,
   });
 
   @override
@@ -280,12 +409,42 @@ class _InventoryStatusTile extends StatelessWidget {
                         overflow: TextOverflow.ellipsis,
                       ),
                       const Gap(4),
-                      Text(
-                        'Category: ${item.category} • Current Qty: ${item.currentStock}',
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          color: theme.colorScheme.onSurfaceVariant,
-                          fontWeight: FontWeight.w600,
-                        ),
+                      Row(
+                        children: [
+                          Flexible(
+                            child: Text(
+                              'Category: ${item.category} • Qty: ${item.currentStock}',
+                              style: theme.textTheme.bodyMedium?.copyWith(
+                                color: theme.colorScheme.onSurfaceVariant,
+                                fontWeight: FontWeight.w600,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          if (showFloorBadge && item.floorName != null && item.floorName!.isNotEmpty) ...[
+                            const Gap(6),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 6,
+                                vertical: 2,
+                              ),
+                              decoration: BoxDecoration(
+                                color: theme.colorScheme.primary.withValues(
+                                  alpha: 0.12,
+                                ),
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: Text(
+                                item.floorName!,
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w600,
+                                  color: theme.colorScheme.primary,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ],
                       ),
                     ],
                   ),

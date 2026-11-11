@@ -36,6 +36,7 @@ class AppDropdown<T> extends StatelessWidget {
             ),
           ),
         DropdownButtonFormField<T>(
+          key: ValueKey(value),
           initialValue: value,
           hint: hint != null ? Text(hint!) : null,
           items: items,

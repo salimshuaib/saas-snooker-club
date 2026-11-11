@@ -3,8 +3,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gap/gap.dart';
 import 'package:snooker_club/core/theme/app_colors.dart';
 import 'package:snooker_club/core/widgets/inputs/app_text_field.dart';
+import 'package:snooker_club/core/widgets/inputs/app_dropdown.dart';
 import 'package:snooker_club/features/inventory/domain/models/inventory_models.dart';
 import 'package:snooker_club/features/inventory/providers/inventory_providers.dart';
+import 'package:snooker_club/features/floors/providers/floor_providers.dart';
 
 class AddStockSheet extends ConsumerStatefulWidget {
   final InventoryItem item;
@@ -21,6 +23,8 @@ class _AddStockSheetState extends ConsumerState<AddStockSheet> {
   late TextEditingController _purchasePriceController;
   late TextEditingController _notesController;
   bool _isProcessing = false;
+  String? _selectedFloorId;
+  String? _selectedFloorName;
 
   @override
   void initState() {
@@ -32,6 +36,16 @@ class _AddStockSheetState extends ConsumerState<AddStockSheet> {
           : '',
     );
     _notesController = TextEditingController();
+    _selectedFloorId = widget.item.floorId;
+    _selectedFloorName = widget.item.floorName;
+
+    if (_selectedFloorId == null) {
+      final activeFloor = ref.read(selectedFloorProvider);
+      if (activeFloor != null) {
+        _selectedFloorId = activeFloor.id;
+        _selectedFloorName = activeFloor.name;
+      }
+    }
   }
 
   @override
@@ -57,11 +71,14 @@ class _AddStockSheetState extends ConsumerState<AddStockSheet> {
         notes: _notesController.text.trim().isEmpty
             ? null
             : _notesController.text.trim(),
+        targetFloorId: _selectedFloorId,
+        targetFloorName: _selectedFloorName,
       );
 
       if (mounted) {
+        final messenger = ScaffoldMessenger.of(context);
         Navigator.pop(context);
-        ScaffoldMessenger.of(context).showSnackBar(
+        messenger.showSnackBar(
           const SnackBar(
             content: Text('Stock added successfully'),
             backgroundColor: AppColors.success,
@@ -87,6 +104,17 @@ class _AddStockSheetState extends ConsumerState<AddStockSheet> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final hasFloors = ref.watch(hasFloorsProvider);
+    final floors = ref.watch(floorsProvider).value ?? [];
+
+    if (_selectedFloorId != null &&
+        _selectedFloorName == null &&
+        floors.isNotEmpty) {
+      final matched = floors.where((f) => f.id == _selectedFloorId);
+      if (matched.isNotEmpty) {
+        _selectedFloorName = matched.first.name;
+      }
+    }
 
     return Padding(
       padding: EdgeInsets.only(
@@ -111,13 +139,83 @@ class _AddStockSheetState extends ConsumerState<AddStockSheet> {
                 ),
               ),
               const Gap(4),
-              Text(
-                widget.item.name,
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant,
-                ),
+              Row(
+                children: [
+                  Text(
+                    widget.item.name,
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  if (widget.item.floorName != null) ...[
+                    const SizedBox(width: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 2,
+                      ),
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.primary.withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        widget.item.floorName!,
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                          color: theme.colorScheme.primary,
+                        ),
+                      ),
+                    ),
+                  ],
+                ],
               ),
-              const Gap(24),
+              const Gap(20),
+
+              if (hasFloors && floors.length > 1) ...[
+                AppDropdown<String?>(
+                  label: 'Floor / Location',
+                  value: floors.any((f) => f.id == _selectedFloorId)
+                      ? _selectedFloorId
+                      : null,
+                  items: [
+                    const DropdownMenuItem(
+                      value: null,
+                      child: Row(
+                        children: [
+                          Icon(Icons.domain, size: 16),
+                          SizedBox(width: 8),
+                          Text('All Floors / General'),
+                        ],
+                      ),
+                    ),
+                    ...floors.map((f) => DropdownMenuItem(
+                          value: f.id,
+                          child: Row(
+                            children: [
+                              const Icon(Icons.layers_outlined, size: 16),
+                              const SizedBox(width: 8),
+                              Text(f.name),
+                            ],
+                          ),
+                        )),
+                  ],
+                  onChanged: (val) {
+                    setState(() {
+                      _selectedFloorId = val;
+                      if (val == null) {
+                        _selectedFloorName = null;
+                      } else {
+                        final matched = floors.where((f) => f.id == val);
+                        _selectedFloorName =
+                            matched.isNotEmpty ? matched.first.name : null;
+                      }
+                    });
+                  },
+                ),
+                const Gap(16),
+              ],
 
               AppTextField(
                 label: 'Quantity Added',

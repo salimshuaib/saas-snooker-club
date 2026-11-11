@@ -6,6 +6,7 @@ import 'package:snooker_club/features/games/domain/models/game_models.dart';
 import 'package:snooker_club/features/inventory/domain/models/inventory_models.dart';
 import 'package:snooker_club/features/inventory/providers/inventory_providers.dart';
 import 'package:snooker_club/features/games/presentation/widgets/manual_game_charge_setup.dart';
+import 'package:snooker_club/features/floors/providers/floor_providers.dart';
 
 /// Bottom sheet to add items (Drinks or Cigarettes) to a running game.
 /// Returns the list of new/updated [GameOrder]s to be merged into the session.
@@ -14,6 +15,8 @@ class OrdersSheet extends ConsumerStatefulWidget {
   final List<GameOrder> currentOrders;
   final List<ManualGameCharge>? currentManualGameCharges;
   final bool enableGamesTab;
+  final String? floorId;
+  final String? floorName;
 
   const OrdersSheet({
     super.key,
@@ -21,6 +24,8 @@ class OrdersSheet extends ConsumerStatefulWidget {
     required this.currentOrders,
     this.currentManualGameCharges,
     this.enableGamesTab = false,
+    this.floorId,
+    this.floorName,
   });
 
   @override
@@ -44,6 +49,7 @@ class _OrdersSheetState extends ConsumerState<OrdersSheet> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final inventoryAsync = ref.watch(inventoryItemsProvider);
+    final activeFloorId = widget.floorId ?? ref.watch(selectedFloorIdProvider);
 
     return Container(
       height: MediaQuery.of(context).size.height * 0.85,
@@ -56,7 +62,13 @@ class _OrdersSheetState extends ConsumerState<OrdersSheet> {
         error: (err, stack) =>
             Center(child: Text('Error loading products: $err')),
         data: (items) {
-          final activeProducts = items.where((i) => i.isActive).toList();
+          final activeProducts = items.where((i) {
+            if (!i.isActive) return false;
+            if (activeFloorId != null && i.floorId != activeFloorId) {
+              return false;
+            }
+            return true;
+          }).toList();
           var categories = activeProducts
               .map((e) => e.category)
               .toSet()
@@ -422,6 +434,35 @@ class _ProductTile extends StatelessWidget {
                 ),
               ),
             ),
+            if (product.floorName != null) ...[
+              const Gap(6),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.secondaryContainer.withValues(alpha: 0.5),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.layers_outlined,
+                      size: 11,
+                      color: theme.colorScheme.onSecondaryContainer,
+                    ),
+                    const Gap(3),
+                    Text(
+                      product.floorName!,
+                      style: TextStyle(
+                        color: theme.colorScheme.onSecondaryContainer,
+                        fontSize: 10,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ],
         ),
         trailing: currentQty == 0

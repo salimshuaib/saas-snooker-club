@@ -25,6 +25,9 @@ import 'package:snooker_club/features/games/presentation/widgets/upi_qr_dialog.d
 import 'package:snooker_club/features/games/presentation/widgets/audit_log_sheet.dart';
 import 'package:snooker_club/features/games/presentation/widgets/orders_sheet.dart';
 import 'package:snooker_club/features/games/presentation/widgets/payment_complete_modal.dart';
+import 'package:flutter/foundation.dart';
+import 'package:snooker_club/core/providers/printer_provider.dart';
+import 'package:snooker_club/core/services/receipt_formatter.dart';
 import 'package:snooker_club/features/happy_hour/domain/models/happy_hour_offer.dart';
 import 'package:snooker_club/features/happy_hour/presentation/widgets/offer_selection_sheet.dart';
 import 'package:snooker_club/features/happy_hour/providers/happy_hour_providers.dart';
@@ -51,6 +54,7 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
   late Map<String, Map<PaymentMethod, double>> _playerPaymentSplits;
   Map<String, double> _customLiabilities = {};
   bool _isProcessing = false;
+  bool _isPrinting = false;
   bool _isRefreshing = false;
   bool _isTimeManuallyEdited = false;
 
@@ -1016,6 +1020,11 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
       (s, v) => s + v,
     );
     final isBalanced = (targetSettlementTotal - currentSum).abs() < 0.5;
+    final printerState = ref.watch(printerSettingsProvider);
+    final showAutoPrintButtons = printerState.autoPrint;
+    final isDisabled = _isProcessing ||
+        ((_isMultiPayer || _session.gameType != GameType.standard) &&
+            !isBalanced);
     final theme = Theme.of(context);
     final dtFmt = DateFormat('d MMM, hh:mm a');
 
@@ -2055,36 +2064,115 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
                 const Gap(32),
               ],
 
-              // ── Confirm Button ──
-              SizedBox(
-                width: double.infinity,
-                child: FilledButton(
-                  onPressed:
-                      (_isProcessing ||
-                          (_isMultiPayer ||
-                                  _session.gameType != GameType.standard) &&
-                              !isBalanced)
-                      ? null
-                      : _confirmPayment,
-                  style: FilledButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 18),
-                    backgroundColor: _ctaColor,
-                  ),
-                  child: _isProcessing
-                      ? const SizedBox(
-                          width: 22,
-                          height: 22,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : Text(
-                          _ctaLabel,
-                          style: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w700,
+              // ── Confirm Payment Button(s) ──
+              if (showAutoPrintButtons)
+                Row(
+                  children: [
+                    Expanded(
+                      flex: 5,
+                      child: OutlinedButton(
+                        onPressed: isDisabled
+                            ? null
+                            : () => _confirmPayment(andPrint: false),
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 18),
+                          side: BorderSide(color: _ctaColor, width: 1.5),
+                          backgroundColor: _ctaColor.withValues(alpha: 0.08),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
                           ),
                         ),
+                        child: (_isProcessing && !_isPrinting)
+                            ? SizedBox(
+                                width: 22,
+                                height: 22,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: _ctaColor,
+                                ),
+                              )
+                            : FittedBox(
+                                fit: BoxFit.scaleDown,
+                                child: Text(
+                                  'Confirm Payment',
+                                  style: TextStyle(
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w700,
+                                    color: _ctaColor,
+                                  ),
+                                ),
+                              ),
+                      ),
+                    ),
+                    const Gap(10),
+                    Expanded(
+                      flex: 6,
+                      child: FilledButton.icon(
+                        onPressed: isDisabled
+                            ? null
+                            : () => _confirmPayment(andPrint: true),
+                        icon: (_isProcessing && _isPrinting)
+                            ? const SizedBox.shrink()
+                            : const Icon(Icons.print_rounded, size: 18),
+                        label: (_isProcessing && _isPrinting)
+                            ? const SizedBox(
+                                width: 22,
+                                height: 22,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Colors.white,
+                                ),
+                              )
+                            : const FittedBox(
+                                fit: BoxFit.scaleDown,
+                                child: Text(
+                                  'Confirm & Print',
+                                  style: TextStyle(
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                              ),
+                        style: FilledButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 18),
+                          backgroundColor: _ctaColor,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                )
+              else
+                SizedBox(
+                  width: double.infinity,
+                  child: FilledButton(
+                    onPressed: isDisabled
+                        ? null
+                        : () => _confirmPayment(andPrint: false),
+                    style: FilledButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 18),
+                      backgroundColor: _ctaColor,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    child: _isProcessing
+                        ? const SizedBox(
+                            width: 22,
+                            height: 22,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : Text(
+                            _ctaLabel,
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                  ),
                 ),
-              ),
             ],
           ),
         ),
@@ -2564,7 +2652,7 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
     );
   }
 
-  Future<void> _confirmPayment() async {
+  Future<void> _confirmPayment({bool andPrint = false}) async {
     if (_isProcessing) return;
 
     final singlePayer = _selectedPayers.isNotEmpty
@@ -2618,7 +2706,10 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
       return;
     }
 
-    setState(() => _isProcessing = true);
+    setState(() {
+      _isProcessing = true;
+      _isPrinting = andPrint;
+    });
 
     List<String> finalTeamA = List.from(_session.teamA);
     List<String> finalTeamB = List.from(_session.teamB);
@@ -2919,10 +3010,19 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
       await ref
           .read(gameSessionControllerProvider.notifier)
           .endGame(finalSession);
+
+      if (andPrint && !kIsWeb) {
+        await _printReceiptSilently(finalSession);
+      }
+
       if (mounted) {
         messenger.showSnackBar(
-          const SnackBar(
-            content: Text('Payment recorded. Table is now available.'),
+          SnackBar(
+            content: Text(
+              andPrint
+                  ? 'Payment recorded & receipt sent to printer.'
+                  : 'Payment recorded. Table is now available.',
+            ),
             backgroundColor: AppColors.success,
           ),
         );
@@ -2946,7 +3046,74 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
       }
     }
     if (mounted) {
-      setState(() => _isProcessing = false);
+      setState(() {
+        _isProcessing = false;
+        _isPrinting = false;
+      });
+    }
+  }
+
+  Future<void> _printReceiptSilently(GameSession session) async {
+    try {
+      final service = ref.read(bluetoothPrinterServiceProvider);
+      bool isConnected = await service.isConnected;
+
+      if (!isConnected) {
+        final printerState = ref.read(printerSettingsProvider);
+        final savedMac = printerState.savedMac;
+        final savedName = printerState.savedName;
+        if (savedMac != null) {
+          isConnected = await service.connectByMac(savedMac, name: savedName);
+          if (isConnected) {
+            ref.read(printerSettingsProvider.notifier).setConnected(true);
+          }
+        }
+      }
+
+      if (!isConnected) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Payment saved, but printer is not connected.'),
+              backgroundColor: AppColors.warning,
+            ),
+          );
+        }
+        return;
+      }
+
+      final appSettings = ref.read(appSettingsProvider);
+      final tables = ref.read(tablesProvider).asData?.value ?? ref.read(tablesProvider).value ?? [];
+      final receiptData = ReceiptData.fromGameSession(
+        session,
+        clubName: appSettings.business.clubName,
+        clubAddress: appSettings.business.address,
+        clubPhone: appSettings.business.contactNumber,
+        tables: tables,
+        pricingSettings: appSettings.pricing,
+      );
+
+      final printerState = ref.read(printerSettingsProvider);
+      final paper = printerState.paperWidth;
+      final copies = printerState.printCopies;
+      final receiptBytes = ReceiptFormatter.buildReceipt(receiptData, paper: paper);
+
+      for (int i = 0; i < copies; i++) {
+        await service.printBytes(receiptBytes);
+        if (i < copies - 1) {
+          await Future.delayed(const Duration(milliseconds: 600));
+        }
+      }
+    } catch (e) {
+      debugPrint('[BillingScreen] Error printing receipt: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Print error: $e'),
+            backgroundColor: AppColors.error,
+          ),
+        );
+      }
     }
   }
 

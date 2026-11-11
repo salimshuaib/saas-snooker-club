@@ -15,6 +15,8 @@ import 'package:snooker_club/features/analytics/presentation/widgets/table_perfo
 import 'package:snooker_club/features/analytics/presentation/widgets/table_ranking_list.dart';
 import 'package:snooker_club/features/analytics/providers/analytics_providers.dart';
 import 'package:snooker_club/core/providers/app_providers.dart';
+import 'package:snooker_club/core/widgets/cards/not_authorized_card.dart';
+import 'package:snooker_club/features/team/providers/team_providers.dart';
 
 class AnalyticsScreen extends ConsumerStatefulWidget {
   const AnalyticsScreen({super.key});
@@ -25,6 +27,14 @@ class AnalyticsScreen extends ConsumerStatefulWidget {
 class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen> {
   @override
   Widget build(BuildContext context) {
+    final currentStaff = ref.watch(currentStaffProvider).value;
+    if (currentStaff?.isLimitedAccess == true) {
+      return const NotAuthorizedScreen(
+        title: 'Not Authorized',
+        message: 'Business analytics and revenue charts are restricted to Full Access accounts.',
+      );
+    }
+
     final asyncData = getCompleteAnalyticsData(ref);
     final currency = ref.watch(currencyProvider);
 

@@ -94,11 +94,13 @@ class TablePricingConfig {
   ) {
     final tableType = table.type;
     if (table.billingOptions != null) {
-      String? key;
-      key = 'perMinute';
-      final option = table.billingOptions![key];
-      if (option != null && option.enabled) {
+      final option = table.billingOptions!['perMinute'];
+      if (option != null && option.price > 0) {
         return option.price;
+      }
+      final otOption = table.billingOptions!['overtime'];
+      if (otOption != null && otOption.price > 0) {
+        return otOption.price;
       }
     }
     
@@ -130,11 +132,43 @@ class TablePricingConfig {
         return pricingConfig.simulatorOneHour / 60.0;
       case TableType.iceHockey:
         return pricingConfig.iceHockeyOneHour / 60.0;
+      case TableType.other:
+        return pricingConfig.otherPerMinute;
       case TableType.arcade:
         return 0.0; // Arcade games do not use overtime
-      default:
-        return pricingConfig.snookerPerMinute;
     }
+  }
+
+  /// Returns the per-minute overtime price for a table.
+  /// Checks table.billingOptions['overtime'], then table.billingOptions['perMinute'],
+  /// then falls back to default per-minute price.
+  static double getOvertimePrice(
+    TableModel table,
+    GameType gameType,
+    PricingSettings pricingConfig,
+  ) {
+    if (table.billingOptions != null) {
+      final otOption = table.billingOptions!['overtime'];
+      if (otOption != null && otOption.price > 0) {
+        return otOption.price;
+      }
+      final pmOption = table.billingOptions!['perMinute'];
+      if (pmOption != null && pmOption.price > 0) {
+        return pmOption.price;
+      }
+    }
+    return getPerMinutePrice(table, gameType, pricingConfig);
+  }
+
+  /// Checks if overtime billing is enabled for this table in its config.
+  static bool isOvertimeConfiguredEnabled(TableModel table) {
+    if (table.billingOptions != null) {
+      final otOption = table.billingOptions!['overtime'];
+      if (otOption != null) {
+        return otOption.enabled;
+      }
+    }
+    return true;
   }
 
   /// Returns the price for a given table type, game type, and billing type.
@@ -176,16 +210,21 @@ class TablePricingConfig {
       String? key;
 
       if (billingType == BillingType.customMinute) {
-        key = 'perMinute';
+        final pmOption = table.billingOptions!['perMinute'];
+        if (pmOption != null && pmOption.price > 0) {
+          return pmOption.price;
+        }
+        final otOption = table.billingOptions!['overtime'];
+        if (otOption != null && otOption.price > 0) {
+          return otOption.price;
+        }
       } else {
         key =
             billingType.name; // 'perMinute', 'halfHour', 'oneHour', 'perFrame'
-      }
-
-      final option = table.billingOptions![key];
-
-      if (option != null && option.enabled) {
-        return option.price;
+        final option = table.billingOptions![key];
+        if (option != null && option.enabled) {
+          return option.price;
+        }
       }
 
       return null; // Explicitly configured but disabled or missing
@@ -254,6 +293,9 @@ class TablePricingConfig {
 
       case TableType.ps5:
         switch (billingType) {
+          case BillingType.perMinute:
+          case BillingType.customMinute:
+            return fallbackConfig.ps5OneHour / 60.0;
           case BillingType.halfHour:
             return fallbackConfig.ps5HalfHour;
 
@@ -266,6 +308,9 @@ class TablePricingConfig {
 
       case TableType.pc:
         switch (billingType) {
+          case BillingType.perMinute:
+          case BillingType.customMinute:
+            return fallbackConfig.pcOneHour / 60.0;
           case BillingType.halfHour:
             return fallbackConfig.pcHalfHour;
 
@@ -278,6 +323,9 @@ class TablePricingConfig {
 
       case TableType.carrom:
         switch (billingType) {
+          case BillingType.perMinute:
+          case BillingType.customMinute:
+            return fallbackConfig.carromOneHour / 60.0;
           case BillingType.halfHour:
             return fallbackConfig.carromHalfHour;
 
@@ -290,6 +338,9 @@ class TablePricingConfig {
 
       case TableType.foosball:
         switch (billingType) {
+          case BillingType.perMinute:
+          case BillingType.customMinute:
+            return fallbackConfig.foosballOneHour / 60.0;
           case BillingType.halfHour:
             return fallbackConfig.foosballHalfHour;
 
@@ -302,6 +353,9 @@ class TablePricingConfig {
 
       case TableType.chess:
         switch (billingType) {
+          case BillingType.perMinute:
+          case BillingType.customMinute:
+            return fallbackConfig.chessOneHour / 60.0;
           case BillingType.halfHour:
             return fallbackConfig.chessHalfHour;
 
@@ -315,6 +369,9 @@ class TablePricingConfig {
       case TableType.tableTennis:
       case TableType.steeringWheel:
         switch (billingType) {
+          case BillingType.perMinute:
+          case BillingType.customMinute:
+            return fallbackConfig.chessOneHour / 60.0;
           case BillingType.halfHour:
             return fallbackConfig.chessHalfHour;
           case BillingType.oneHour:
@@ -325,6 +382,9 @@ class TablePricingConfig {
 
       case TableType.ps4:
         switch (billingType) {
+          case BillingType.perMinute:
+          case BillingType.customMinute:
+            return fallbackConfig.ps4OneHour / 60.0;
           case BillingType.halfHour:
             return fallbackConfig.ps4HalfHour;
           case BillingType.oneHour:
@@ -335,6 +395,9 @@ class TablePricingConfig {
 
       case TableType.simulator:
         switch (billingType) {
+          case BillingType.perMinute:
+          case BillingType.customMinute:
+            return fallbackConfig.simulatorOneHour / 60.0;
           case BillingType.halfHour:
             return fallbackConfig.simulatorHalfHour;
           case BillingType.oneHour:
@@ -345,6 +408,9 @@ class TablePricingConfig {
 
       case TableType.iceHockey:
         switch (billingType) {
+          case BillingType.perMinute:
+          case BillingType.customMinute:
+            return fallbackConfig.iceHockeyOneHour / 60.0;
           case BillingType.halfHour:
             return fallbackConfig.iceHockeyHalfHour;
           case BillingType.oneHour:
@@ -358,18 +424,15 @@ class TablePricingConfig {
           return fallbackConfig.arcadeCoinPrice;
         return null;
 
-      default:
+      case TableType.other:
         switch (billingType) {
           case BillingType.perMinute:
           case BillingType.customMinute:
-            return fallbackConfig.snookerPerMinute;
-
+            return fallbackConfig.otherPerMinute;
           case BillingType.halfHour:
-            return fallbackConfig.snookerHalfHour;
-
+            return fallbackConfig.otherHalfHour;
           case BillingType.oneHour:
-            return fallbackConfig.snookerOneHour;
-
+            return fallbackConfig.otherOneHour;
           default:
             return null;
         }
@@ -384,11 +447,12 @@ class TablePricingConfig {
   ) {
     final types = _supportedBillingTypesInternal(table, gameType);
     final isConsole = table.type == TableType.ps4 || table.type == TableType.ps5;
+    final isArcade = table.type == TableType.arcade;
     
     // Convert to modifiable list if it isn't
     final List<BillingType> result = List.from(types);
     
-    if (!isConsole && !result.contains(BillingType.customMinute)) {
+    if (!isConsole && !isArcade && !result.contains(BillingType.customMinute)) {
       result.add(BillingType.customMinute);
     }
     
@@ -465,11 +529,11 @@ class TablePricingConfig {
       case TableType.arcade:
         return [BillingType.perCoin];
 
-      default:
+      case TableType.other:
         return [
-          BillingType.perMinute,
           BillingType.halfHour,
           BillingType.oneHour,
+          BillingType.perMinute,
         ];
     }
   }
@@ -538,9 +602,12 @@ class TablePricingConfig {
     if (billingType == BillingType.perMinute && customPrice != null) {
       perSecondRate = customPrice / 60.0;
     } else if (billingType == BillingType.customMinute && customPrice != null) {
-      perSecondRate = (customPrice / 60.0) / 60.0;
+      perSecondRate = customPrice / 60.0;
     } else if (tableType.isOtherGame && basePrice != null) {
-      if (billingType == BillingType.halfHour) {
+      final perMinuteOption = table.billingOptions?['perMinute'];
+      if (perMinuteOption != null && perMinuteOption.enabled && perMinuteOption.price > 0) {
+        perSecondRate = perMinuteOption.price / 60.0;
+      } else if (billingType == BillingType.halfHour) {
         perSecondRate = basePrice / (30 * 60.0);
       } else if (billingType == BillingType.oneHour) {
         perSecondRate = basePrice / (60 * 60.0);
@@ -553,8 +620,12 @@ class TablePricingConfig {
           getPerMinutePrice(table, gameType, pricingConfig) / 60.0;
     }
 
+    final double overtimePerSecondRate =
+        getOvertimePrice(table, gameType, pricingConfig) / 60.0;
+
+    final bool tableOtDefault = isOvertimeConfiguredEnabled(table);
     final bool overtimeEnabled =
-        isOvertimeEnabled ?? gameConfig.enableOvertimeBilling;
+        isOvertimeEnabled ?? (tableOtDefault && gameConfig.enableOvertimeBilling);
 
     GameChargeBreakdown rawBreakdown;
     switch (billingType) {
@@ -575,24 +646,22 @@ class TablePricingConfig {
       case BillingType.customMinute:
         final int targetMinutes = customMinutes ?? 0;
         final int targetSeconds = targetMinutes * 60;
-        final double rawBase = (customPrice != null)
-            ? (customPrice / 60.0) * targetMinutes
-            : targetMinutes * perSecondRate * 60.0;
+        final double perMinuteRate = (customPrice != null)
+            ? customPrice
+            : (perSecondRate * 60.0);
+        final double rawBase = targetMinutes * perMinuteRate;
         final double customBaseCharge = BillingUtils.roundAmount(rawBase);
         
-        final int overtimeSeconds = overtimeEnabled
-            ? (activeSeconds - targetSeconds)
+        final int elapsedOvertimeSeconds = activeSeconds - targetSeconds;
+        final int overtimeMins = (elapsedOvertimeSeconds > 0 && overtimeEnabled)
+            ? (elapsedOvertimeSeconds / 60.0).ceil()
             : 0;
             
-        final double rawOvertimeCharge = overtimeSeconds > 0
-            ? overtimeSeconds * perSecondRate
-            : 0;
-            
-        final int overtimeMins = overtimeSeconds > 0
-            ? (overtimeSeconds / 60.0).ceil()
+        final double rawOvertimeCharge = (elapsedOvertimeSeconds > 0 && overtimeEnabled)
+            ? elapsedOvertimeSeconds * overtimePerSecondRate
             : 0;
 
-        final double finalOvertimeCharge = (overtimeSeconds > 0 && overtimeEnabled)
+        final double finalOvertimeCharge = (elapsedOvertimeSeconds > 0 && overtimeEnabled)
             ? (BillingUtils.roundAmount(customBaseCharge + rawOvertimeCharge) - customBaseCharge)
             : 0.0;
             
@@ -633,22 +702,21 @@ class TablePricingConfig {
           final int currentOvertimeSeconds =
               currentFrameSeconds - (gracePeriodMinutes * 60);
 
-          if (currentOvertimeSeconds > 0 && overtimeEnabled) {
+          if (currentOvertimeSeconds > 0) {
             final int currentOvertimeMinutes = (currentOvertimeSeconds / 60.0)
                 .ceil();
 
-            final double currentOvertimeCharge =
-                currentOvertimeSeconds * perSecondRate;
-
             totalOvertimeMinutes += currentOvertimeMinutes;
 
-            totalOvertimeCharge += currentOvertimeCharge;
+            if (overtimeEnabled) {
+              final double currentOvertimeCharge =
+                  currentOvertimeSeconds * overtimePerSecondRate;
+              totalOvertimeCharge += currentOvertimeCharge;
+            }
           }
         }
 
         if (!overtimeEnabled) {
-          totalOvertimeMinutes = 0;
-
           totalOvertimeCharge = 0.0;
         }
 
@@ -661,19 +729,16 @@ class TablePricingConfig {
         );
 
       case BillingType.halfHour:
-        final int overtimeSeconds = overtimeEnabled
-            ? (activeSeconds - (30 * 60))
+        final int elapsedOvertimeSeconds = activeSeconds - (30 * 60);
+        final int overtimeMinutes = (elapsedOvertimeSeconds > 0 && overtimeEnabled)
+            ? (elapsedOvertimeSeconds / 60.0).ceil()
             : 0;
 
-        final double rawOvertimeCharge = overtimeSeconds > 0
-            ? overtimeSeconds * perSecondRate
+        final double rawOvertimeCharge = (elapsedOvertimeSeconds > 0 && overtimeEnabled)
+            ? elapsedOvertimeSeconds * overtimePerSecondRate
             : 0;
 
-        final int overtimeMinutes = overtimeSeconds > 0
-            ? (overtimeSeconds / 60.0).ceil()
-            : 0;
-
-        final double finalOvertimeCharge = (overtimeSeconds > 0 && overtimeEnabled)
+        final double finalOvertimeCharge = (elapsedOvertimeSeconds > 0 && overtimeEnabled)
             ? (BillingUtils.roundAmount(price + rawOvertimeCharge) - price)
             : 0.0;
 
@@ -684,19 +749,16 @@ class TablePricingConfig {
         );
 
       case BillingType.oneHour:
-        final int overtimeSeconds = overtimeEnabled
-            ? (activeSeconds - (60 * 60))
+        final int elapsedOvertimeSeconds = activeSeconds - (60 * 60);
+        final int overtimeMinutes = (elapsedOvertimeSeconds > 0 && overtimeEnabled)
+            ? (elapsedOvertimeSeconds / 60.0).ceil()
             : 0;
 
-        final double rawOvertimeCharge = overtimeSeconds > 0
-            ? overtimeSeconds * perSecondRate
+        final double rawOvertimeCharge = (elapsedOvertimeSeconds > 0 && overtimeEnabled)
+            ? elapsedOvertimeSeconds * overtimePerSecondRate
             : 0;
 
-        final int overtimeMinutes = overtimeSeconds > 0
-            ? (overtimeSeconds / 60.0).ceil()
-            : 0;
-
-        final double finalOvertimeCharge = (overtimeSeconds > 0 && overtimeEnabled)
+        final double finalOvertimeCharge = (elapsedOvertimeSeconds > 0 && overtimeEnabled)
             ? (BillingUtils.roundAmount(price + rawOvertimeCharge) - price)
             : 0.0;
 

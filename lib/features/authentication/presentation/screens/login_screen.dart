@@ -6,6 +6,7 @@ import 'package:snooker_club/core/theme/app_colors.dart';
 import 'package:snooker_club/core/widgets/buttons/app_primary_button.dart';
 import 'package:snooker_club/core/widgets/inputs/app_text_field.dart';
 import 'package:snooker_club/core/widgets/modals/app_modal.dart';
+import 'package:snooker_club/features/authentication/presentation/widgets/forgot_password_sheet.dart';
 import 'package:snooker_club/features/authentication/providers/auth_providers.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
@@ -56,6 +57,19 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         setState(() => _isLoading = false);
       }
     }
+  }
+
+  void _showForgotPassword(BuildContext context) {
+    AppModal.showBottomSheet(
+      useRootNavigator: true,
+      context: context,
+      isScrollControlled: true,
+      builder: (context) {
+        return ForgotPasswordSheet(
+          initialEmail: _emailController.text.trim(),
+        );
+      },
+    );
   }
 
   void _showHelpOptions(BuildContext context) {
@@ -236,7 +250,28 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       return null;
                     },
                   ),
-                  const Gap(32),
+                  const Gap(8),
+
+                  // Forgot Password Button
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: TextButton(
+                      onPressed: () => _showForgotPassword(context),
+                      style: TextButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+                        minimumSize: Size.zero,
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      ),
+                      child: Text(
+                        'Forgot Password?',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: AppColors.primary,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const Gap(24),
 
                   // Login button
                   AppPrimaryButton(

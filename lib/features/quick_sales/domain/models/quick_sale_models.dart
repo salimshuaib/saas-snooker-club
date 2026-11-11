@@ -17,6 +17,8 @@ class QuickSale {
   final double? paidAmount;
   final double? remainingAmount;
   final String employeeName;
+  final String? floorId;
+  final String? floorName;
   final DateTime date;
   final List<AuditLog> auditLogs;
 
@@ -35,6 +37,8 @@ class QuickSale {
     this.paidAmount,
     this.remainingAmount,
     required this.employeeName,
+    this.floorId,
+    this.floorName,
     required this.date,
     this.auditLogs = const [],
   });
@@ -54,6 +58,8 @@ class QuickSale {
     double? paidAmount,
     double? remainingAmount,
     String? employeeName,
+    String? floorId,
+    String? floorName,
     DateTime? date,
     List<AuditLog>? auditLogs,
   }) {
@@ -72,6 +78,8 @@ class QuickSale {
       paidAmount: paidAmount ?? this.paidAmount,
       remainingAmount: remainingAmount ?? this.remainingAmount,
       employeeName: employeeName ?? this.employeeName,
+      floorId: floorId ?? this.floorId,
+      floorName: floorName ?? this.floorName,
       date: date ?? this.date,
       auditLogs: auditLogs ?? this.auditLogs,
     );
@@ -92,6 +100,8 @@ class QuickSale {
       'paidAmount': paidAmount,
       'remainingAmount': remainingAmount,
       'employeeName': employeeName,
+      'floorId': floorId,
+      'floorName': floorName,
       'date': Timestamp.fromDate(date),
       'auditLogs': auditLogs.map((a) => a.toMap()).toList(),
     };
@@ -120,6 +130,8 @@ class QuickSale {
       paidAmount: (map['paidAmount'] as num?)?.toDouble(),
       remainingAmount: (map['remainingAmount'] as num?)?.toDouble(),
       employeeName: map['employeeName'] as String? ?? 'Admin',
+      floorId: map['floorId'] as String?,
+      floorName: map['floorName'] as String?,
       date: (map['date'] as Timestamp?)?.toDate() ?? DateTime.now(),
       auditLogs:
           (map['auditLogs'] as List<dynamic>?)

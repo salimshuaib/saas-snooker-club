@@ -7,6 +7,8 @@ import 'package:snooker_club/core/theme/app_colors.dart';
 import 'package:snooker_club/features/dashboard/providers/financial_providers.dart';
 import 'package:go_router/go_router.dart';
 import 'package:snooker_club/core/models/currency.dart';
+import 'package:snooker_club/core/widgets/cards/not_authorized_card.dart';
+import 'package:snooker_club/features/team/providers/team_providers.dart';
 
 class FinancialSummaryCard extends ConsumerWidget {
   final bool forSelectedDate;
@@ -20,6 +22,11 @@ class FinancialSummaryCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final currentStaff = ref.watch(currentStaffProvider).value;
+    if (currentStaff?.isLimitedAccess == true) {
+      return const NotAuthorizedCard(title: 'Not Authorized');
+    }
+
     final theme = Theme.of(context);
     final currency = ref.watch(currencyProvider);
     final asyncSummary = ref.watch(financialSummaryProvider);

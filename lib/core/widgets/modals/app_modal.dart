@@ -102,11 +102,12 @@ class AppModal {
             ),
           ),
         );
+        final isDesktop = MediaQuery.sizeOf(dialogContext).width > 800;
         return Align(
           alignment: Alignment.bottomCenter,
           child: ConstrainedBox(
             constraints: BoxConstraints(
-              maxWidth: maxWidth ?? double.infinity,
+              maxWidth: maxWidth ?? (isDesktop ? 680 : double.infinity),
             ),
             child: child,
           ),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:snooker_club/features/expenses/domain/models/expense_models.dart';
 
 /// Time horizons supported by the Analytics dashboard.
 enum AnalyticsTimeFilter {
@@ -62,6 +63,10 @@ class RevenueOverviewData {
   final double pendingBillsAmount;
   final double totalGameBilled;
   final double totalQuickSaleBilled;
+  final double totalExpenses;
+  final double cashExpenses;
+  final double upiExpenses;
+  final double creditExpenses;
 
   const RevenueOverviewData({
     required this.totalBilled,
@@ -73,7 +78,14 @@ class RevenueOverviewData {
     required this.pendingBillsAmount,
     required this.totalGameBilled,
     required this.totalQuickSaleBilled,
+    this.totalExpenses = 0.0,
+    this.cashExpenses = 0.0,
+    this.upiExpenses = 0.0,
+    this.creditExpenses = 0.0,
   });
+
+  double get netCashCollected => cashCollected - cashExpenses;
+  double get netEarnings => totalBilled - totalExpenses;
 }
 
 /// A generic data point for charts (Line/Bar charts).
@@ -330,6 +342,8 @@ class CompleteAnalyticsData {
 
   final BusinessInsightsData businessInsights;
   final InventoryAnalyticsData inventoryAnalytics;
+  final List<Expense> expenses;
+  final List<CategoryShare> expenseCategoryShare;
 
   const CompleteAnalyticsData({
     required this.timeRange,
@@ -347,5 +361,7 @@ class CompleteAnalyticsData {
     this.periodComparison,
     required this.businessInsights,
     required this.inventoryAnalytics,
+    this.expenses = const [],
+    this.expenseCategoryShare = const [],
   });
 }

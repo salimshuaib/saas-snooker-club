@@ -19,6 +19,25 @@ import 'package:snooker_club/features/games/providers/games_providers.dart';
 import 'package:snooker_club/core/providers/club_scope_provider.dart';
 import 'package:snooker_club/features/settings/providers/settings_providers.dart';
 import 'package:snooker_club/features/team/providers/team_providers.dart';
+import 'package:snooker_club/features/settings/domain/models/settings_models.dart';
+
+class _GameChargeEntry {
+  final String title;
+  final String? subtitle;
+  final double amount;
+  final double discount;
+  final int quantity;
+
+  const _GameChargeEntry({
+    required this.title,
+    this.subtitle,
+    required this.amount,
+    this.discount = 0.0,
+    this.quantity = 1,
+  });
+
+  double get finalAmount => (amount - discount).clamp(0.0, double.infinity);
+}
 
 class BillDetailsScreen extends ConsumerStatefulWidget {
   final GameSession session;
@@ -50,6 +69,143 @@ class _BillDetailsScreenState extends ConsumerState<BillDetailsScreen> {
     }
   }
 
+  List<_GameChargeEntry> _resolveGamesPlayed(
+    GameSession session,
+    List<TableModel> tables,
+    AppSettings appSettings,
+  ) {
+    final List<_GameChargeEntry> result = [];
+
+    // 1. If manualGameCharges is present
+    if (session.manualGameCharges.isNotEmpty) {
+      if (!session.tableName.contains(',') &&
+          (session.baseGameCharge ?? session.gameCharge ?? 0) > 0) {
+        final baseAmt = (session.baseGameCharge ?? session.gameCharge ?? 0) +
+            (session.overtimeCharge ?? 0.0);
+        result.add(
+          _GameChargeEntry(
+            title: session.tableName,
+            subtitle:
+                '${session.billingType.displayName} · ${_formatDuration(session.activeSeconds)}',
+            amount: baseAmt,
+            discount: session.currentGameDiscountAmount ?? 0.0,
+          ),
+        );
+      }
+
+      for (final group in session.manualGameCharges.grouped()) {
+        final g = group.charge;
+        final nameClean = g.tableName.startsWith('Manual:')
+            ? g.tableName.substring(7).trim()
+            : g.tableName;
+        final dur = (g.durationSeconds != null && g.durationSeconds! > 0)
+            ? ' · ${_formatDuration(g.durationSeconds!)}'
+            : '';
+        result.add(
+          _GameChargeEntry(
+            title: group.quantity > 1 ? '${group.quantity}x $nameClean' : nameClean,
+            subtitle: '${g.gameType.displayName}$dur',
+            amount: group.totalAmount,
+            discount: group.totalDiscountAmount,
+            quantity: group.quantity,
+          ),
+        );
+      }
+      return result;
+    }
+
+    // 2. If multiple tables in tableName (legacy combined bills with empty manualGameCharges)
+    if (session.tableName.contains(',')) {
+      final names = session.tableName
+          .split(',')
+          .map((t) => t.trim())
+          .where((t) => t.isNotEmpty)
+          .toList();
+      final double totalBase =
+          (session.baseGameCharge ?? session.gameCharge ?? 0.0);
+
+      final Map<int, double> tableAmounts = {};
+      double allocated = 0.0;
+
+      for (int i = 0; i < names.length; i++) {
+        final name = names[i];
+        final match = tables
+            .where((t) => t.name.trim().toLowerCase() == name.toLowerCase())
+            .firstOrNull;
+        if (match != null) {
+          if (match.type == TableType.americanPool ||
+              name.toLowerCase().contains('pool')) {
+            final p = match.billingOptions?['perFrame']?.price ??
+                appSettings.pricing.americanPoolPerFrame;
+            if (p > 0 && p < totalBase) {
+              tableAmounts[i] = p;
+              allocated += p;
+            }
+          } else if (match.type == TableType.indianPool) {
+            final p = match.billingOptions?['perFrame']?.price ??
+                appSettings.pricing.indianPoolPerFrame;
+            if (p > 0 && p < totalBase) {
+              tableAmounts[i] = p;
+              allocated += p;
+            }
+          }
+        } else if (name.toLowerCase().contains('pool')) {
+          final p = appSettings.pricing.americanPoolPerFrame;
+          if (p > 0 && p < totalBase) {
+            tableAmounts[i] = p;
+            allocated += p;
+          }
+        }
+      }
+
+      final unallocated = List.generate(names.length, (i) => i)
+          .where((i) => !tableAmounts.containsKey(i))
+          .toList();
+
+      if (unallocated.isNotEmpty) {
+        final remaining = (totalBase - allocated).clamp(0.0, double.infinity);
+        final perTable = remaining / unallocated.length;
+        for (final idx in unallocated) {
+          tableAmounts[idx] = perTable;
+        }
+      }
+
+      for (int i = 0; i < names.length; i++) {
+        final name = names[i];
+        final match = tables
+            .where((t) => t.name.trim().toLowerCase() == name.toLowerCase())
+            .firstOrNull;
+        final typeLabel = match?.type.displayName ??
+            (name.toLowerCase().contains('pool') ? 'American Pool' : 'Snooker');
+        result.add(
+          _GameChargeEntry(
+            title: name,
+            subtitle: typeLabel,
+            amount: tableAmounts[i] ?? (totalBase / names.length),
+          ),
+        );
+      }
+      return result;
+    }
+
+    // 3. Single game session
+    final baseAmt = (session.baseGameCharge ?? session.gameCharge ?? 0) +
+        (session.overtimeCharge ?? 0.0);
+    if (baseAmt > 0) {
+      result.add(
+        _GameChargeEntry(
+          title: session.tableName,
+          subtitle:
+              '${session.billingType.displayName} · ${_formatDuration(session.activeSeconds)}',
+          amount: baseAmt,
+          discount: session.currentGameDiscountAmount ?? 0.0,
+        ),
+      );
+    }
+
+    return result;
+  }
+
   @override
   Widget build(BuildContext context) {
     final clubId = ref.watch(clubIdProvider);
@@ -69,6 +225,14 @@ class _BillDetailsScreenState extends ConsumerState<BillDetailsScreen> {
             : widget.session;
         final theme = Theme.of(context);
         final dtFmt = DateFormat('d MMM yyyy, hh:mm a');
+        final tablesList = ref.watch(tablesProvider).asData?.value ?? [];
+        final appSettings = ref.watch(appSettingsProvider);
+        final isMultiGame = session.tableName.contains(',') ||
+            session.manualGameCharges.isNotEmpty;
+        final resolvedGames =
+            _resolveGamesPlayed(session, tablesList, appSettings);
+        final totalGamesSum =
+            resolvedGames.fold<double>(0.0, (sum, g) => sum + g.finalAmount);
 
         // Group orders by player
         final Map<String, List<GameOrder>> playerOrders = {};
@@ -87,11 +251,14 @@ class _BillDetailsScreenState extends ConsumerState<BillDetailsScreen> {
                 tooltip: 'View & Share Receipt',
                 onPressed: () {
                   final appSettings = ref.read(appSettingsProvider);
+                  final tables = ref.read(tablesProvider).asData?.value ?? [];
                   final receiptData = ReceiptData.fromGameSession(
                     session,
                     clubName: appSettings.business.clubName,
                     clubAddress: appSettings.business.address,
                     clubPhone: appSettings.business.contactNumber,
+                    tables: tables,
+                    pricingSettings: appSettings.pricing,
                   );
                   PaymentCompleteModal.show(context, receipt: receiptData);
                 },
@@ -264,7 +431,9 @@ class _BillDetailsScreenState extends ConsumerState<BillDetailsScreen> {
                         _InfoRow(label: 'Floor', value: session.floorName!),
                       _InfoRow(
                         label: 'Game Type',
-                        value: session.billingType.displayName,
+                        value: session.tableName.contains(',')
+                            ? 'Combined (${session.tableName.split(',').length} Games)'
+                            : session.billingType.displayName,
                       ),
                       _InfoRow(
                         label: 'Start Time',
@@ -279,7 +448,8 @@ class _BillDetailsScreenState extends ConsumerState<BillDetailsScreen> {
                         label: 'Total Duration',
                         value: _formatDuration(session.activeSeconds),
                       ),
-                      if (session.billingType == BillingType.perFrame)
+                      if (session.billingType == BillingType.perFrame &&
+                          !session.tableName.contains(','))
                         _InfoRow(
                           label: 'Frames Played',
                           value:
@@ -376,16 +546,38 @@ class _BillDetailsScreenState extends ConsumerState<BillDetailsScreen> {
                   const Gap(24),
                 ],
 
-                // ── Additional Games ──
-                if (session.manualGameCharges.isNotEmpty) ...[
-                  Text('Additional Games', style: theme.textTheme.titleMedium),
+                // ── Games Played ──
+                if (isMultiGame && resolvedGames.isNotEmpty) ...[
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text('Games Played', style: theme.textTheme.titleMedium),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 2,
+                        ),
+                        decoration: BoxDecoration(
+                          color: AppColors.primary.withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Text(
+                          '${resolvedGames.length} games',
+                          style: const TextStyle(
+                            color: AppColors.primary,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                   const Gap(8),
                   _SectionCard(
                     children: [
-                      ...session.manualGameCharges.grouped().map((group) {
-                        final g = group.charge;
+                      ...resolvedGames.map((item) {
                         return Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 4),
+                          padding: const EdgeInsets.symmetric(vertical: 6),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.stretch,
                             children: [
@@ -394,24 +586,47 @@ class _BillDetailsScreenState extends ConsumerState<BillDetailsScreen> {
                                     MainAxisAlignment.spaceBetween,
                                 children: [
                                   Expanded(
-                                    child: Text(
-                                      '${group.quantity}x ${g.tableName} - ${g.gameType.displayName}',
-                                      style: theme.textTheme.bodyMedium,
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          item.title,
+                                          style: theme.textTheme.bodyMedium
+                                              ?.copyWith(
+                                                fontWeight: FontWeight.w600,
+                                              ),
+                                        ),
+                                        if (item.subtitle != null &&
+                                            item.subtitle!.isNotEmpty) ...[
+                                          const Gap(2),
+                                          Text(
+                                            item.subtitle!,
+                                            style: theme.textTheme.bodySmall
+                                                ?.copyWith(
+                                                  color: theme
+                                                      .colorScheme
+                                                      .onSurfaceVariant,
+                                                ),
+                                          ),
+                                        ],
+                                      ],
                                     ),
                                   ),
+                                  const Gap(8),
                                   Column(
                                     crossAxisAlignment: CrossAxisAlignment.end,
                                     children: [
                                       Text(
-                                        '\u20B9${group.finalAmount.toStringAsFixed(2)}',
+                                        '₹${item.finalAmount.toStringAsFixed(2)}',
                                         style: theme.textTheme.bodyMedium
                                             ?.copyWith(
                                               fontWeight: FontWeight.w600,
                                             ),
                                       ),
-                                      if (group.totalDiscountAmount > 0)
+                                      if (item.discount > 0) ...[
                                         Text(
-                                          '\u20B9${group.totalAmount.toStringAsFixed(2)} before discount',
+                                          '₹${item.amount.toStringAsFixed(2)} before disc',
                                           style: theme.textTheme.bodySmall
                                               ?.copyWith(
                                                 color: theme
@@ -421,27 +636,44 @@ class _BillDetailsScreenState extends ConsumerState<BillDetailsScreen> {
                                                     TextDecoration.lineThrough,
                                               ),
                                         ),
+                                        Text(
+                                          'Discount: -₹${item.discount.toStringAsFixed(2)}',
+                                          style: theme.textTheme.bodySmall
+                                              ?.copyWith(
+                                                color: AppColors.success,
+                                              ),
+                                        ),
+                                      ],
                                     ],
                                   ),
                                 ],
                               ),
-                              if (group.totalDiscountAmount > 0)
-                                Align(
-                                  alignment: Alignment.centerRight,
-                                  child: Text(
-                                    'Discount: -\u20B9${group.totalDiscountAmount.toStringAsFixed(2)}',
-                                    style: theme.textTheme.bodySmall?.copyWith(
-                                      color: AppColors.success,
-                                    ),
-                                  ),
-                                ),
                             ],
                           ),
                         );
                       }),
+                      const Divider(height: 16),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            'Total Game Charges',
+                            style: theme.textTheme.bodyMedium?.copyWith(
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                          Text(
+                            '₹${totalGamesSum.toStringAsFixed(2)}',
+                            style: theme.textTheme.bodyMedium?.copyWith(
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.primary,
+                            ),
+                          ),
+                        ],
+                      ),
                     ],
                   ),
-                  const Gap(16),
+                  const Gap(24),
                 ],
 
                 // ── Ordered Items ──
@@ -547,36 +779,44 @@ class _BillDetailsScreenState extends ConsumerState<BillDetailsScreen> {
                 ],
                 _SectionCard(
                   children: [
-                    if (session.billingType == BillingType.perFrame) ...[
+                    if (isMultiGame) ...[
                       _InfoRow(
-                        label: 'Frame Charges',
-                        value:
-                            '₹${(session.baseGameCharge ?? session.gameCharge ?? 0).toStringAsFixed(2)}',
+                        label: 'Total Games Charge (${resolvedGames.length} games)',
+                        value: '₹${totalGamesSum.toStringAsFixed(2)}',
                       ),
-                      if (session.baseGameCharge != null)
-                        _InfoRow(
-                          label: 'Grace Period',
-                          value: session.tableType == TableType.indianPool
-                              ? '${ref.read(appSettingsProvider).game.indianPoolGracePeriodMinutes} Mins / Frame'
-                              : session.tableType == TableType.americanPool
-                              ? '${ref.read(appSettingsProvider).game.americanPoolGracePeriodMinutes} Mins / Frame'
-                              : 'Not Applicable',
-                        ),
                     ] else ...[
-                      _InfoRow(
-                        label: 'Package Charge',
-                        value:
-                            '₹${(session.baseGameCharge ?? session.gameCharge ?? 0).toStringAsFixed(2)}',
-                      ),
+                      if (session.billingType == BillingType.perFrame) ...[
+                        _InfoRow(
+                          label: 'Frame Charges',
+                          value:
+                              '₹${(session.baseGameCharge ?? session.gameCharge ?? 0).toStringAsFixed(2)}',
+                        ),
+                        if (session.baseGameCharge != null)
+                          _InfoRow(
+                            label: 'Grace Period',
+                            value: session.tableType == TableType.indianPool
+                                ? '${ref.read(appSettingsProvider).game.indianPoolGracePeriodMinutes} Mins / Frame'
+                                : session.tableType == TableType.americanPool
+                                ? '${ref.read(appSettingsProvider).game.americanPoolGracePeriodMinutes} Mins / Frame'
+                                : 'Not Applicable',
+                          ),
+                      ] else ...[
+                        _InfoRow(
+                          label: 'Package Charge',
+                          value:
+                              '₹${(session.baseGameCharge ?? session.gameCharge ?? 0).toStringAsFixed(2)}',
+                        ),
+                      ],
                     ],
-                    if ((session.overtimeMinutes ?? 0) > 0) ...[
+                    if (!isMultiGame && (session.overtimeMinutes ?? 0) > 0) ...[
                       _InfoRow(
                         label: 'Overtime (${session.overtimeMinutes} mins)',
                         value:
                             '₹${(session.overtimeCharge ?? 0).toStringAsFixed(2)}',
                       ),
                     ],
-                    if (session.overtimeMinutes != null &&
+                    if (!isMultiGame &&
+                        session.overtimeMinutes != null &&
                         session.overtimeMinutes! > 0) ...[
                       const Divider(height: 16),
                       _InfoRow(
@@ -603,17 +843,11 @@ class _BillDetailsScreenState extends ConsumerState<BillDetailsScreen> {
                         value:
                             '\u20B9${((session.gameCharge ?? 0) - (session.currentGameDiscountAmount ?? 0)).clamp(0.0, double.infinity).toStringAsFixed(2)}',
                       ),
-                    if (session.manualGameCharges.isNotEmpty)
-                      _InfoRow(
-                        label: 'Additional Games',
-                        value:
-                            '₹${session.manualGameCharges.fold<double>(0, (s, g) => s + g.finalAmount).toStringAsFixed(2)}',
-                      ),
                     if (session.manualGameCharges.any(
                       (charge) => charge.appliedDiscountAmount > 0,
                     ))
                       _InfoRow(
-                        label: 'Additional Game Discounts',
+                        label: 'Game Discounts',
                         value:
                             '-\u20B9${session.manualGameCharges.fold<double>(0, (sum, charge) => sum + charge.appliedDiscountAmount).toStringAsFixed(2)}',
                       ),

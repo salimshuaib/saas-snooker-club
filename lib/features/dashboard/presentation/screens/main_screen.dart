@@ -12,6 +12,7 @@ import 'package:snooker_club/features/team/providers/team_providers.dart';
 import 'package:snooker_club/core/providers/update_provider.dart';
 import 'package:snooker_club/core/providers/alarm_sync_controller.dart';
 import 'package:snooker_club/core/widgets/modals/app_modal.dart';
+import 'package:snooker_club/core/providers/printer_provider.dart';
 
 class MainScreen extends ConsumerStatefulWidget {
   final StatefulNavigationShell navigationShell;
@@ -24,6 +25,7 @@ class MainScreen extends ConsumerStatefulWidget {
 
 class _MainScreenState extends ConsumerState<MainScreen> {
   bool _hasInitialized = false;
+  AppLifecycleListener? _lifecycleListener;
 
   void _triggerInitialization(String clubId) {
     if (_hasInitialized) return;
@@ -41,6 +43,13 @@ class _MainScreenState extends ConsumerState<MainScreen> {
   void initState() {
     super.initState();
 
+    // Lifecycle listener to auto-reconnect printer when returning to foreground
+    _lifecycleListener = AppLifecycleListener(
+      onResume: () {
+        ref.read(printerSettingsProvider.notifier).autoConnect();
+      },
+    );
+
     // Artificial delay to let Firebase fully sync and prevent synchronous cache emission exceptions
     Future.delayed(const Duration(milliseconds: 500), () {
       if (mounted) {
@@ -51,6 +60,8 @@ class _MainScreenState extends ConsumerState<MainScreen> {
     });
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      // Background auto-reconnect to saved printer on app launch
+      ref.read(printerSettingsProvider.notifier).autoConnect();
       _subscriptions.add(
         ref.listenManual<String?>(clubIdProvider, (previous, next) {
           if (next != null) {
@@ -92,6 +103,7 @@ class _MainScreenState extends ConsumerState<MainScreen> {
 
   @override
   void dispose() {
+    _lifecycleListener?.dispose();
     for (final sub in _subscriptions) {
       sub.close();
     }

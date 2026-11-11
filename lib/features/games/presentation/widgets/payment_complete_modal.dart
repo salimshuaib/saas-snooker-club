@@ -8,15 +8,17 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
-import 'package:url_launcher/url_launcher.dart';
 import 'package:printing/printing.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
+import 'package:flutter/foundation.dart';
+import 'package:snooker_club/core/providers/printer_provider.dart';
+import 'package:snooker_club/core/services/receipt_formatter.dart';
+import 'package:snooker_club/features/settings/presentation/screens/printer_settings_screen.dart';
 
 import 'package:snooker_club/core/theme/app_colors.dart';
-import 'package:snooker_club/core/providers/app_providers.dart';
 import 'package:snooker_club/features/games/domain/models/game_models.dart';
-import 'package:snooker_club/features/credit/providers/credit_providers.dart';
+import 'package:snooker_club/features/settings/domain/models/settings_models.dart';
 
 /// Data object containing everything needed to render a clean receipt
 class ReceiptData {
@@ -36,6 +38,11 @@ class ReceiptData {
   final double roundingAmount;
   final double amountDue;
   final bool isPaid;
+  final bool isCredit;
+  final bool isPartialPayment;
+  final double? paidAmount;
+  final double? remainingAmount;
+  final Map<String, double>? paymentBreakdown;
   final double? prepaidAmount;
   final double? settlementAmount;
 
@@ -56,6 +63,11 @@ class ReceiptData {
     this.roundingAmount = 0.0,
     required this.amountDue,
     this.isPaid = true,
+    this.isCredit = false,
+    this.isPartialPayment = false,
+    this.paidAmount,
+    this.remainingAmount,
+    this.paymentBreakdown,
     this.prepaidAmount,
     this.settlementAmount,
   });
@@ -66,6 +78,8 @@ class ReceiptData {
     String? clubAddress,
     String? clubPhone,
     String? customerPhone,
+    List<TableModel>? tables,
+    PricingSettings? pricingSettings,
   }) {
     final cleanId = session.id.replaceAll(RegExp(r'[^a-zA-Z0-9]'), '').toUpperCase();
     final String invoiceId;
@@ -84,10 +98,75 @@ class ReceiptData {
         ? '${(minutes / 60).toStringAsFixed(1)}h'
         : '${minutes}m';
 
-    items.add(ReceiptLineItem(
-      description: '${session.tableName} time ($durationLabel)',
-      amount: baseGame,
-    ));
+    if (baseGame > 0) {
+      if (session.tableName.contains(',')) {
+        final tableNames = session.tableName
+            .split(',')
+            .map((t) => t.trim())
+            .where((t) => t.isNotEmpty)
+            .toList();
+
+        final Map<int, double> tableAmounts = {};
+        double allocated = 0.0;
+
+        for (int i = 0; i < tableNames.length; i++) {
+          final name = tableNames[i];
+          final match = tables
+              ?.where((t) => t.name.trim().toLowerCase() == name.toLowerCase())
+              .firstOrNull;
+          if (match != null) {
+            if (match.type == TableType.americanPool ||
+                name.toLowerCase().contains('pool')) {
+              final p = match.billingOptions?['perFrame']?.price ??
+                  pricingSettings?.americanPoolPerFrame;
+              if (p != null && p > 0 && p < baseGame) {
+                tableAmounts[i] = p;
+                allocated += p;
+              }
+            } else if (match.type == TableType.indianPool) {
+              final p = match.billingOptions?['perFrame']?.price ??
+                  pricingSettings?.indianPoolPerFrame;
+              if (p != null && p > 0 && p < baseGame) {
+                tableAmounts[i] = p;
+                allocated += p;
+              }
+            }
+          } else if (name.toLowerCase().contains('pool')) {
+            final p = pricingSettings?.americanPoolPerFrame ?? 60.0;
+            if (p > 0 && p < baseGame) {
+              tableAmounts[i] = p;
+              allocated += p;
+            }
+          }
+        }
+
+        final unallocated = List.generate(tableNames.length, (i) => i)
+            .where((i) => !tableAmounts.containsKey(i))
+            .toList();
+
+        if (unallocated.isNotEmpty) {
+          final remaining = (baseGame - allocated).clamp(0.0, double.infinity);
+          final perTable = remaining / unallocated.length;
+          for (final idx in unallocated) {
+            tableAmounts[idx] = perTable;
+          }
+        }
+
+        for (int i = 0; i < tableNames.length; i++) {
+          final name = tableNames[i];
+          final amt = tableAmounts[i] ?? (baseGame / tableNames.length);
+          items.add(ReceiptLineItem(
+            description: name,
+            amount: amt,
+          ));
+        }
+      } else {
+        items.add(ReceiptLineItem(
+          description: '${session.tableName} time ($durationLabel)',
+          amount: baseGame,
+        ));
+      }
+    }
 
     // Overtime if any
     if ((session.overtimeCharge ?? 0) > 0) {
@@ -107,9 +186,14 @@ class ReceiptData {
 
     // Manual Game Charges if any
     for (final mg in session.manualGameCharges) {
+      final nameClean = mg.tableName.startsWith('Manual:')
+          ? mg.tableName.substring(7).trim()
+          : mg.tableName;
+      final discountSuffix = mg.appliedDiscountAmount > 0
+          ? ' (disc -\u20B9${mg.appliedDiscountAmount.toStringAsFixed(0)})'
+          : '';
       items.add(ReceiptLineItem(
-        description:
-            'Manual: ${mg.tableName}${mg.appliedDiscountAmount > 0 ? ' (discount -\u20B9${mg.appliedDiscountAmount.toStringAsFixed(2)})' : ''}',
+        description: '$nameClean$discountSuffix',
         amount: mg.finalAmount,
       ));
     }
@@ -181,6 +265,92 @@ class ReceiptData {
       payLabel = '${session.prepaidPaymentMethod!.displayName} (Prepaid)';
     }
 
+    final Map<String, double> breakdown = {};
+    double totalCreditSplit = 0.0;
+    double totalPaidSplit = 0.0;
+
+    void addSplits(Map<String, Map<PaymentMethod, double>>? splits) {
+      if (splits == null) return;
+      for (final playerMap in splits.values) {
+        for (final entry in playerMap.entries) {
+          final name = entry.key.displayName;
+          breakdown[name] = (breakdown[name] ?? 0.0) + entry.value;
+          if (entry.key == PaymentMethod.credit) {
+            totalCreditSplit += entry.value;
+          } else {
+            totalPaidSplit += entry.value;
+          }
+        }
+      }
+    }
+
+    addSplits(session.playerPaymentSplits);
+    addSplits(session.settlementPaymentSplits);
+
+    if (session.isPrepaid && session.prepaidAmount > 0) {
+      final pMethodName = session.prepaidPaymentMethod?.displayName ?? 'Advance';
+      final label = '$pMethodName (Prepaid)';
+      breakdown[label] = (breakdown[label] ?? 0.0) + session.prepaidAmount;
+      if (session.prepaidPaymentMethod == PaymentMethod.credit) {
+        totalCreditSplit += session.prepaidAmount;
+      } else {
+        totalPaidSplit += session.prepaidAmount;
+      }
+    }
+
+    if (breakdown.isEmpty && session.paymentMethod != null) {
+      final name = session.paymentMethod!.displayName;
+      breakdown[name] = effectiveDue;
+      if (session.paymentMethod == PaymentMethod.credit) {
+        totalCreditSplit = effectiveDue;
+      } else {
+        totalPaidSplit = effectiveDue;
+      }
+    }
+
+    double calcRemaining = 0.0;
+    if (session.remainingAmount != null && session.remainingAmount! > 0) {
+      calcRemaining = session.remainingAmount!;
+    } else if (totalCreditSplit > 0) {
+      calcRemaining = totalCreditSplit;
+    } else if (session.paymentMethod == PaymentMethod.credit) {
+      calcRemaining = effectiveDue;
+    }
+
+    double calcPaid = 0.0;
+    if (session.paidAmount != null && session.paidAmount! > 0) {
+      calcPaid = session.paidAmount!;
+    } else if (totalPaidSplit > 0) {
+      calcPaid = totalPaidSplit;
+    } else if (session.paymentMethod != null && session.paymentMethod != PaymentMethod.credit) {
+      calcPaid = effectiveDue;
+    } else if (calcRemaining > 0 && effectiveDue > calcRemaining) {
+      calcPaid = (effectiveDue - calcRemaining).clamp(0.0, double.infinity);
+    }
+
+    final bool isStatusPartiallyPaid = session.paymentStatus != null &&
+        session.paymentStatus!.toLowerCase().contains('partially paid');
+    final bool isStatusOutstanding = session.paymentStatus != null &&
+        session.paymentStatus!.toLowerCase().contains('outstanding');
+
+    final bool hasCreditInPayLabel = payLabel.toLowerCase().contains('credit');
+    final bool hasOtherInPayLabel = payLabel.toLowerCase().contains('cash') ||
+        payLabel.toLowerCase().contains('upi') ||
+        payLabel.toLowerCase().contains('card');
+
+    final bool isPartial = isStatusPartiallyPaid ||
+        (hasCreditInPayLabel && hasOtherInPayLabel) ||
+        (calcPaid > 0.01 && calcRemaining > 0.01) ||
+        (breakdown.containsKey('Credit') && breakdown.entries.any((e) => e.key != 'Credit' && e.value > 0.01));
+
+    final bool isCredit = !isPartial &&
+        (session.paymentMethod == PaymentMethod.credit ||
+            isStatusOutstanding ||
+            (calcRemaining > 0.01 && calcPaid <= 0.01) ||
+            payLabel.trim().toLowerCase() == 'credit');
+
+    final bool isPaid = !isPartial && !isCredit && session.status != TableStatus.pendingBill;
+
     return ReceiptData(
       invoiceNumber: invoiceId,
       clubName: clubName,
@@ -196,7 +366,12 @@ class ReceiptData {
       grandTotal: grand,
       roundingAmount: roundDiff,
       amountDue: effectiveDue,
-      isPaid: session.status != TableStatus.pendingBill,
+      isPaid: isPaid,
+      isCredit: isCredit,
+      isPartialPayment: isPartial,
+      paidAmount: isPartial ? calcPaid : null,
+      remainingAmount: (isPartial || isCredit) ? (calcRemaining > 0 ? calcRemaining : effectiveDue) : null,
+      paymentBreakdown: breakdown.isNotEmpty ? breakdown : null,
       prepaidAmount: prepaid > 0 ? prepaid : null,
       settlementAmount: prepaid > 0 ? effectiveDue : null,
     );
@@ -214,7 +389,6 @@ class ReceiptData {
     final tableNames = sessions.map((s) => s.tableName).toSet().join(', ');
 
     final List<ReceiptLineItem> items = [];
-    double sub = 0.0;
     double grand = 0.0;
     double finalAmt = 0.0;
 
@@ -271,13 +445,23 @@ class ReceiptData {
         ));
       }
 
-      sub += s.gameCharge ?? s.grandTotal ?? 0.0;
       grand += ((s.grandTotal ?? (s.finalAmount ?? 0.0) + discounts) -
               discounts)
           .clamp(0.0, double.infinity)
           .toDouble();
       finalAmt += s.finalAmount ?? s.roundedAmount ?? s.grandTotal ?? 0.0;
     }
+
+    final hasCredit = paymentMethodLabel.toLowerCase().contains('credit');
+    final hasOther = paymentMethodLabel.toLowerCase().contains('cash') ||
+        paymentMethodLabel.toLowerCase().contains('upi') ||
+        paymentMethodLabel.toLowerCase().contains('card');
+
+    final bool isPartial = hasCredit && hasOther;
+    final bool isCredit = hasCredit && !hasOther;
+    final bool isPaid = !hasCredit;
+
+    final double effectiveGrand = grand > 0 ? grand : items.fold(0.0, (sum, i) => sum + i.amount);
 
     return ReceiptData(
       invoiceNumber: invoiceId,
@@ -289,10 +473,14 @@ class ReceiptData {
       paymentMethodLabel: paymentMethodLabel,
       lineItems: items,
       subtotal: items.fold(0.0, (sum, i) => sum + i.amount),
-      grandTotal: grand > 0 ? grand : items.fold(0.0, (sum, i) => sum + i.amount),
-      roundingAmount: finalAmt - (grand > 0 ? grand : items.fold(0.0, (sum, i) => sum + i.amount)),
+      grandTotal: effectiveGrand,
+      roundingAmount: finalAmt - effectiveGrand,
       amountDue: finalAmt,
-      isPaid: true,
+      isPaid: isPaid,
+      isCredit: isCredit,
+      isPartialPayment: isPartial,
+      paidAmount: isPartial ? (finalAmt > 0 ? finalAmt / 2 : 0.0) : null,
+      remainingAmount: (isPartial || isCredit) ? (finalAmt > 0 ? finalAmt / 2 : 0.0) : null,
     );
   }
 }
@@ -394,21 +582,36 @@ class ThermalReceiptWidget extends StatelessWidget {
           const SizedBox(height: 10),
 
           // Metadata Key-Values
-          _buildRow('Invoice', receipt.invoiceNumber, monoStyle, monoBold),
-          const SizedBox(height: 4),
-          _buildRow('Table', receipt.tableName, monoStyle, monoBold),
+          _buildMultiLineRow('Invoice', receipt.invoiceNumber, monoStyle, monoBold),
+          // In case of multiple games (comma in tableName), remove Table row after invoice number as requested
+          if (!receipt.tableName.contains(',')) ...[
+            const SizedBox(height: 4),
+            _buildMultiLineRow('Table', receipt.tableName, monoStyle, monoBold),
+          ],
           if (receipt.customerName != null && receipt.customerName!.isNotEmpty) ...[
             const SizedBox(height: 4),
             _buildMultiLineRow('Customer', receipt.customerName!, monoStyle, monoBold),
           ],
           if (receipt.customerPhone != null && receipt.customerPhone!.isNotEmpty) ...[
             const SizedBox(height: 4),
-            _buildRow('Phone', receipt.customerPhone!, monoStyle, monoBold),
+            _buildMultiLineRow('Phone', receipt.customerPhone!, monoStyle, monoBold),
           ],
           const SizedBox(height: 4),
-          _buildRow('Date', dateFormat.format(receipt.date), monoStyle, monoBold),
+          _buildMultiLineRow('Date', dateFormat.format(receipt.date), monoStyle, monoBold),
           const SizedBox(height: 4),
-          _buildRow('Payment', receipt.paymentMethodLabel, monoStyle, monoBold),
+          _buildMultiLineRow('Payment', receipt.paymentMethodLabel, monoStyle, monoBold),
+          if (receipt.paymentBreakdown != null && receipt.paymentBreakdown!.length > 1) ...[
+            const SizedBox(height: 2),
+            ...receipt.paymentBreakdown!.entries.map((entry) => Padding(
+              padding: const EdgeInsets.only(left: 14, top: 2),
+              child: _buildRow(
+                '• ${entry.key}',
+                '₹${entry.value.toStringAsFixed(0)}',
+                monoStyle.copyWith(fontSize: 11, color: Colors.black54),
+                monoBold.copyWith(fontSize: 11, color: Colors.black87),
+              ),
+            )),
+          ],
 
           const SizedBox(height: 10),
           _buildDashedLine(),
@@ -472,32 +675,75 @@ class ThermalReceiptWidget extends StatelessWidget {
             ),
           ],
 
-          const SizedBox(height: 6),
-          _buildRow(
-            (receipt.prepaidAmount != null && receipt.prepaidAmount! > 0)
-                ? (receipt.amountDue <= 0 ? 'BALANCE (PAID)' : 'BALANCE DUE')
-                : 'AMOUNT DUE',
-            '₹${receipt.amountDue.toStringAsFixed(0)}',
-            GoogleFonts.courierPrime(
-              color: Colors.black,
-              fontSize: 15,
-              fontWeight: FontWeight.w900,
+          if (receipt.isPartialPayment) ...[
+            const SizedBox(height: 8),
+            _buildRow(
+              'Amount Paid',
+              '₹${(receipt.paidAmount ?? 0.0).toStringAsFixed(0)}',
+              monoStyle.copyWith(color: const Color(0xFF16A34A)),
+              monoBold.copyWith(color: const Color(0xFF16A34A)),
             ),
-            GoogleFonts.courierPrime(
-              color: Colors.black,
-              fontSize: 16,
-              fontWeight: FontWeight.w900,
+            const SizedBox(height: 6),
+            _buildRow(
+              'REMAINING BALANCE',
+              '₹${(receipt.remainingAmount ?? 0.0).toStringAsFixed(0)}',
+              GoogleFonts.courierPrime(
+                color: const Color(0xFFD97706),
+                fontSize: 14,
+                fontWeight: FontWeight.w900,
+              ),
+              GoogleFonts.courierPrime(
+                color: const Color(0xFFD97706),
+                fontSize: 16,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+          ] else ...[
+            const SizedBox(height: 6),
+            _buildRow(
+              (receipt.prepaidAmount != null && receipt.prepaidAmount! > 0)
+                  ? (receipt.amountDue <= 0 ? 'BALANCE (PAID)' : 'BALANCE DUE')
+                  : 'AMOUNT DUE',
+              '₹${receipt.amountDue.toStringAsFixed(0)}',
+              GoogleFonts.courierPrime(
+                color: Colors.black,
+                fontSize: 15,
+                fontWeight: FontWeight.w900,
+              ),
+              GoogleFonts.courierPrime(
+                color: Colors.black,
+                fontSize: 16,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+          ],
+
+          const SizedBox(height: 10),
+          Center(
+            child: Text(
+              receipt.isPartialPayment
+                  ? '*** PARTIAL PAYMENT (₹${(receipt.remainingAmount ?? 0.0).toStringAsFixed(0)} LEFT) ***'
+                  : (receipt.isCredit
+                      ? '*** RECORDED ON CREDIT ***'
+                      : (receipt.isPaid ? '*** PAID FULLY ***' : '*** BALANCE PENDING ***')),
+              style: monoBold.copyWith(
+                fontSize: 12,
+                color: receipt.isPartialPayment || receipt.isCredit
+                    ? const Color(0xFFD97706)
+                    : (receipt.isPaid ? const Color(0xFF16A34A) : const Color(0xFFDC2626)),
+              ),
             ),
           ),
 
-          const SizedBox(height: 14),
+          const SizedBox(height: 10),
           _buildDashedLine(),
           const SizedBox(height: 12),
 
           // Footer
           Center(
             child: Text(
-              'Thank you! Please visit again',
+              'Thank you, visit again\nSoftware by S&B Manager',
+              textAlign: TextAlign.center,
               style: monoStyle.copyWith(
                 fontSize: 11,
                 color: Colors.black54,
@@ -600,6 +846,112 @@ class _PaymentCompleteModalState extends ConsumerState<PaymentCompleteModal> {
   final GlobalKey _repaintKey = GlobalKey();
   bool _isSharing = false;
   bool _isPrinting = false;
+  bool _isBtPrinting = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _checkAutoPrint();
+    });
+  }
+
+  Future<void> _checkAutoPrint() async {
+    if (kIsWeb) return;
+    final autoPrint = ref.read(printerSettingsProvider).autoPrint;
+    if (autoPrint) {
+      _printViaBluetooth(silent: true);
+    }
+  }
+
+  Future<void> _printViaBluetooth({bool silent = false}) async {
+    if (_isBtPrinting) return;
+    setState(() => _isBtPrinting = true);
+
+    try {
+      final service = ref.read(bluetoothPrinterServiceProvider);
+      bool isConnected = await service.isConnected;
+
+      if (!isConnected) {
+        // Try auto-reconnect to saved printer
+        final printerState = ref.read(printerSettingsProvider);
+        final savedMac = printerState.savedMac;
+        final savedName = printerState.savedName;
+        if (savedMac != null) {
+          isConnected = await service.connectByMac(savedMac, name: savedName);
+          if (isConnected) {
+            ref.read(printerSettingsProvider.notifier).setConnected(true);
+          }
+        }
+      }
+
+      if (!isConnected) {
+        if (!silent && mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: const Text(
+                'No Bluetooth printer connected. Go to Settings -> Thermal Bill Printer to connect your DC Code M21.',
+              ),
+              action: SnackBarAction(
+                label: 'Settings',
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const PrinterSettingsScreen(),
+                    ),
+                  );
+                },
+              ),
+              backgroundColor: AppColors.warning,
+            ),
+          );
+        }
+        return;
+      }
+
+      final printerState = ref.read(printerSettingsProvider);
+      final paper = printerState.paperWidth;
+      final copies = printerState.printCopies;
+      final receiptBytes = ReceiptFormatter.buildReceipt(widget.receipt, paper: paper);
+
+      bool allSuccess = true;
+      for (int i = 0; i < copies; i++) {
+        final success = await service.printBytes(receiptBytes);
+        if (!success) allSuccess = false;
+        if (i < copies - 1) {
+          await Future.delayed(const Duration(milliseconds: 600));
+        }
+      }
+
+      if (mounted && !silent) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              allSuccess
+                  ? (copies > 1 ? 'Printed $copies copies successfully!' : 'Receipt printed successfully!')
+                  : 'Printed with warnings. Please check paper.',
+            ),
+            backgroundColor: allSuccess ? AppColors.success : AppColors.warning,
+          ),
+        );
+      }
+    } catch (e) {
+      debugPrint('[PaymentCompleteModal] Bluetooth print error: $e');
+      if (mounted && !silent) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Print error: $e'),
+            backgroundColor: AppColors.error,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isBtPrinting = false);
+      }
+    }
+  }
 
   Future<Uint8List?> _captureReceiptPng() async {
     try {
@@ -629,7 +981,15 @@ class _PaymentCompleteModalState extends ConsumerState<PaymentCompleteModal> {
       final file = File('${tempDir.path}/receipt_${widget.receipt.invoiceNumber}.png');
       await file.writeAsBytes(pngBytes);
 
-      final text = '🧾 Invoice ${widget.receipt.invoiceNumber} from ${widget.receipt.clubName}\nTable: ${widget.receipt.tableName}\nAmount Paid: ₹${widget.receipt.amountDue.toStringAsFixed(0)}\nThank you for visiting ${widget.receipt.clubName}!';
+      final String amtLine;
+      if (widget.receipt.isPartialPayment) {
+        amtLine = 'Amount Paid: ₹${(widget.receipt.paidAmount ?? 0.0).toStringAsFixed(0)}\nRemaining Balance: ₹${(widget.receipt.remainingAmount ?? 0.0).toStringAsFixed(0)} (Added to Khata)';
+      } else if (widget.receipt.isCredit) {
+        amtLine = 'Credit Amount: ₹${widget.receipt.amountDue.toStringAsFixed(0)}';
+      } else {
+        amtLine = 'Amount Paid: ₹${widget.receipt.amountDue.toStringAsFixed(0)}';
+      }
+      final text = '🧾 Invoice ${widget.receipt.invoiceNumber} from ${widget.receipt.clubName}\nTable: ${widget.receipt.tableName}\n$amtLine\nThank you for visiting ${widget.receipt.clubName}!';
 
       // Native Share Sheet allows selecting WhatsApp directly with the receipt PNG image!
       await Share.shareXFiles(
@@ -727,12 +1087,23 @@ class _PaymentCompleteModalState extends ConsumerState<PaymentCompleteModal> {
                 Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: AppColors.success.withOpacity(0.15),
+                    color: (widget.receipt.isPartialPayment || widget.receipt.isCredit
+                            ? const Color(0xFFF59E0B)
+                            : (widget.receipt.isPaid ? AppColors.success : AppColors.error))
+                        .withValues(alpha: 0.15),
                     shape: BoxShape.circle,
                   ),
-                  child: const Icon(
-                    Icons.check_circle_outline,
-                    color: AppColors.success,
+                  child: Icon(
+                    widget.receipt.isPartialPayment
+                        ? Icons.payments_outlined
+                        : (widget.receipt.isCredit
+                            ? Icons.credit_score
+                            : (widget.receipt.isPaid
+                                ? Icons.check_circle_outline
+                                : Icons.pending_actions)),
+                    color: widget.receipt.isPartialPayment || widget.receipt.isCredit
+                        ? const Color(0xFFF59E0B)
+                        : (widget.receipt.isPaid ? AppColors.success : AppColors.error),
                     size: 22,
                   ),
                 ),
@@ -742,7 +1113,13 @@ class _PaymentCompleteModalState extends ConsumerState<PaymentCompleteModal> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Payment complete',
+                        widget.receipt.isPartialPayment
+                            ? 'Partial payment'
+                            : (widget.receipt.isCredit
+                                ? 'Credit recorded'
+                                : (widget.receipt.isPaid
+                                    ? 'Payment complete'
+                                    : 'Bill generated')),
                         style: theme.textTheme.titleMedium?.copyWith(
                           fontWeight: FontWeight.w700,
                         ),
@@ -814,18 +1191,44 @@ class _PaymentCompleteModalState extends ConsumerState<PaymentCompleteModal> {
 
                 // Action Buttons
                 if (isDesktop) ...[
-                  FilledButton.icon(
-                    onPressed: _isPrinting ? null : _printReceipt,
-                    icon: _isPrinting
-                        ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                        : const Icon(Icons.print, size: 18),
-                    label: const Text('Print Receipt'),
-                    style: FilledButton.styleFrom(
-                      backgroundColor: const Color(0xFF38BDF8),
-                      foregroundColor: Colors.black,
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  if (!kIsWeb) ...[
+                    FilledButton.icon(
+                      onPressed: _isBtPrinting ? null : () => _printViaBluetooth(),
+                      icon: _isBtPrinting
+                          ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.black))
+                          : const Icon(Icons.print, size: 18),
+                      label: const Text('Print Bill'),
+                      style: FilledButton.styleFrom(
+                        backgroundColor: const Color(0xFF38BDF8),
+                        foregroundColor: Colors.black,
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      ),
                     ),
-                  ),
+                    const SizedBox(width: 8),
+                    OutlinedButton.icon(
+                      onPressed: _isPrinting ? null : _printReceipt,
+                      icon: _isPrinting
+                          ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                          : const Icon(Icons.picture_as_pdf, size: 18),
+                      label: const Text('Save PDF'),
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                      ),
+                    ),
+                  ] else ...[
+                    FilledButton.icon(
+                      onPressed: _isPrinting ? null : _printReceipt,
+                      icon: _isPrinting
+                          ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                          : const Icon(Icons.print, size: 18),
+                      label: const Text('Print Receipt'),
+                      style: FilledButton.styleFrom(
+                        backgroundColor: const Color(0xFF38BDF8),
+                        foregroundColor: Colors.black,
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      ),
+                    ),
+                  ],
                   const SizedBox(width: 10),
                   OutlinedButton.icon(
                     onPressed: _isSharing ? null : _sendViaWhatsApp,
@@ -840,41 +1243,89 @@ class _PaymentCompleteModalState extends ConsumerState<PaymentCompleteModal> {
                     ),
                   ),
                 ] else ...[
-                  Expanded(
-                    child: FilledButton.icon(
+                  if (!kIsWeb) ...[
+                    Expanded(
+                      flex: 3,
+                      child: FilledButton.icon(
+                        onPressed: _isBtPrinting ? null : () => _printViaBluetooth(),
+                        icon: _isBtPrinting
+                            ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.black))
+                            : const Icon(Icons.print, size: 18),
+                        label: const FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Text('Print Bill'),
+                        ),
+                        style: FilledButton.styleFrom(
+                          backgroundColor: const Color(0xFF38BDF8),
+                          foregroundColor: Colors.black,
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    IconButton.outlined(
+                      tooltip: 'Save / System PDF',
                       onPressed: _isPrinting ? null : _printReceipt,
                       icon: _isPrinting
-                          ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                          : const Icon(Icons.print, size: 18),
-                      label: const FittedBox(
-                        fit: BoxFit.scaleDown,
-                        child: Text('Print Receipt'),
-                      ),
-                      style: FilledButton.styleFrom(
-                        backgroundColor: const Color(0xFF38BDF8),
-                        foregroundColor: Colors.black,
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+                          ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                          : const Icon(Icons.picture_as_pdf, size: 18),
+                    ),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      flex: 3,
+                      child: OutlinedButton.icon(
+                        onPressed: _isSharing ? null : _sendViaWhatsApp,
+                        icon: _isSharing
+                            ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.success))
+                            : const Icon(Icons.message, size: 18, color: AppColors.success),
+                        label: const FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Text('WhatsApp'),
+                        ),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: AppColors.success,
+                          side: const BorderSide(color: AppColors.success),
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+                        ),
                       ),
                     ),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: _isSharing ? null : _sendViaWhatsApp,
-                      icon: _isSharing
-                          ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.success))
-                          : const Icon(Icons.message, size: 18, color: AppColors.success),
-                      label: const FittedBox(
-                        fit: BoxFit.scaleDown,
-                        child: Text('Send Receipt'),
-                      ),
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: AppColors.success,
-                        side: const BorderSide(color: AppColors.success),
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+                  ] else ...[
+                    Expanded(
+                      child: FilledButton.icon(
+                        onPressed: _isPrinting ? null : _printReceipt,
+                        icon: _isPrinting
+                            ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                            : const Icon(Icons.print, size: 18),
+                        label: const FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Text('Print Receipt'),
+                        ),
+                        style: FilledButton.styleFrom(
+                          backgroundColor: const Color(0xFF38BDF8),
+                          foregroundColor: Colors.black,
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+                        ),
                       ),
                     ),
-                  ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: _isSharing ? null : _sendViaWhatsApp,
+                        icon: _isSharing
+                            ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.success))
+                            : const Icon(Icons.message, size: 18, color: AppColors.success),
+                        label: const FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Text('Send Receipt'),
+                        ),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: AppColors.success,
+                          side: const BorderSide(color: AppColors.success),
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+                        ),
+                      ),
+                    ),
+                  ],
                 ],
               ],
             ),
@@ -885,115 +1336,163 @@ class _PaymentCompleteModalState extends ConsumerState<PaymentCompleteModal> {
   }
 
   Widget _buildPaymentReceivedCard(ThemeData theme) {
+    final isPartial = widget.receipt.isPartialPayment;
+    final isCredit = widget.receipt.isCredit;
+    final isPrepaid = widget.receipt.prepaidAmount != null &&
+        widget.receipt.prepaidAmount! > 0;
+    final isFullyPaidUpfront = isPrepaid && widget.receipt.amountDue <= 0;
+
+    final Color statusColor = (isPartial || isCredit)
+        ? const Color(0xFFF59E0B)
+        : (widget.receipt.isPaid ? AppColors.success : AppColors.error);
+
+    final IconData statusIcon = isPartial
+        ? Icons.payments_outlined
+        : (isCredit
+            ? Icons.credit_score
+            : (widget.receipt.isPaid ? Icons.check : Icons.access_time));
+
+    final String headerText;
+    if (isPartial) {
+      headerText = 'PARTIAL PAYMENT';
+    } else if (isCredit) {
+      headerText = 'CREDIT RECORDED';
+    } else if (isFullyPaidUpfront) {
+      headerText = 'PREPAID SESSION SETTLED';
+    } else if (widget.receipt.isPaid) {
+      headerText = 'PAYMENT RECEIVED';
+    } else {
+      headerText = 'BILL PENDING';
+    }
+
+    final double displayAmount = isPartial
+        ? (widget.receipt.paidAmount ?? (widget.receipt.grandTotal - (widget.receipt.remainingAmount ?? 0.0)))
+        : (isFullyPaidUpfront
+            ? widget.receipt.prepaidAmount!
+            : widget.receipt.amountDue);
+
+    final String subtitle;
+    if (isPartial) {
+      final cust = widget.receipt.customerName;
+      final rem = (widget.receipt.remainingAmount ?? 0.0).toStringAsFixed(0);
+      subtitle = (cust != null && cust.isNotEmpty)
+          ? 'Paid of \u20B9${widget.receipt.grandTotal.toStringAsFixed(0)} total \u2022 \u20B9$rem to $cust\'s Khata'
+          : 'Paid of \u20B9${widget.receipt.grandTotal.toStringAsFixed(0)} total \u2022 \u20B9$rem on Credit';
+    } else if (isCredit) {
+      final cust = widget.receipt.customerName;
+      subtitle = (cust != null && cust.isNotEmpty)
+          ? 'Invoice #${widget.receipt.invoiceNumber} \u2022 Added to $cust\'s Khata'
+          : 'Invoice #${widget.receipt.invoiceNumber} \u2022 Added to Customer Khata';
+    } else if (isFullyPaidUpfront) {
+      subtitle = 'Invoice #${widget.receipt.invoiceNumber} \u2022 Prepaid advance settled';
+    } else if (isPrepaid) {
+      subtitle = 'Invoice #${widget.receipt.invoiceNumber} \u2022 Total Billed: \u20B9${widget.receipt.grandTotal.toStringAsFixed(0)}';
+    } else if (widget.receipt.isPaid) {
+      subtitle = 'Invoice #${widget.receipt.invoiceNumber} completed successfully';
+    } else {
+      subtitle = 'Invoice #${widget.receipt.invoiceNumber} pending settlement';
+    }
+
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceContainerHighest.withOpacity(0.3),
+        color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: theme.colorScheme.outlineVariant.withOpacity(0.3)),
+        border: Border.all(color: theme.colorScheme.outlineVariant.withValues(alpha: 0.3)),
       ),
       child: Column(
         children: [
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: AppColors.success.withOpacity(0.15),
+              color: statusColor.withValues(alpha: 0.15),
               shape: BoxShape.circle,
             ),
-            child: const Icon(
-              Icons.check,
-              color: AppColors.success,
-              size: 36,
+            child: Icon(
+              statusIcon,
+              color: statusColor,
+              size: 32,
             ),
           ),
           const SizedBox(height: 12),
-          Builder(
-            builder: (context) {
-              final isPrepaid = widget.receipt.prepaidAmount != null &&
-                  widget.receipt.prepaidAmount! > 0;
-              final isFullyPaidUpfront = isPrepaid && widget.receipt.amountDue <= 0;
-              final headerText = isFullyPaidUpfront
-                  ? 'PREPAID SESSION SETTLED'
-                  : 'PAYMENT RECEIVED';
-              final displayAmount = isFullyPaidUpfront
-                  ? widget.receipt.prepaidAmount!
-                  : widget.receipt.amountDue;
-              final subtitle = isFullyPaidUpfront
-                  ? 'Invoice #${widget.receipt.invoiceNumber} \u2022 Prepaid advance settled'
-                  : (isPrepaid
-                      ? 'Invoice #${widget.receipt.invoiceNumber} \u2022 Total Billed: \u20B9${widget.receipt.grandTotal.toStringAsFixed(0)}'
-                      : 'Invoice #${widget.receipt.invoiceNumber} completed successfully');
-
-              return Column(
-                children: [
-                  Text(
-                    headerText,
-                    style: const TextStyle(
-                      color: AppColors.success,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: 1.2,
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    '\u20B9${displayAmount.toStringAsFixed(0)}',
-                    style: theme.textTheme.headlineMedium?.copyWith(
-                      fontWeight: FontWeight.w900,
-                      color: theme.colorScheme.onSurface,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    subtitle,
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: theme.colorScheme.onSurfaceVariant,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                ],
-              );
-            },
+          Column(
+            children: [
+              Text(
+                headerText,
+                style: TextStyle(
+                  color: statusColor,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 1.2,
+                ),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                '\u20B9${displayAmount.toStringAsFixed(0)}',
+                style: theme.textTheme.headlineMedium?.copyWith(
+                  fontWeight: FontWeight.w900,
+                  color: theme.colorScheme.onSurface,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                subtitle,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ],
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 18),
 
           // Details List
           Container(
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
             decoration: BoxDecoration(
               color: theme.colorScheme.surface,
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: theme.colorScheme.outlineVariant.withOpacity(0.2)),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: theme.colorScheme.outlineVariant.withValues(alpha: 0.2)),
             ),
             child: Column(
               children: [
                 Row(
                   children: [
-                    Icon(Icons.table_bar, color: theme.colorScheme.onSurfaceVariant, size: 18),
+                    Icon(Icons.table_bar_outlined, color: theme.colorScheme.onSurfaceVariant, size: 18),
                     const SizedBox(width: 10),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('Table', style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
-                        Text(widget.receipt.tableName, style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600)),
-                      ],
-                    ),
+                    Text('Table', style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
+                    const Spacer(),
+                    Text(widget.receipt.tableName, style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600)),
                   ],
                 ),
-                Divider(height: 16, color: theme.colorScheme.outlineVariant.withOpacity(0.2)),
+                Divider(height: 16, color: theme.colorScheme.outlineVariant.withValues(alpha: 0.2)),
                 Row(
                   children: [
-                    Icon(Icons.account_balance_wallet_outlined, color: theme.colorScheme.onSurfaceVariant, size: 18),
+                    Icon(Icons.credit_card_outlined, color: theme.colorScheme.onSurfaceVariant, size: 18),
                     const SizedBox(width: 10),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('Payment', style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
-                        Text(widget.receipt.paymentMethodLabel, style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600)),
-                      ],
-                    ),
+                    Text('Payment', style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
+                    const Spacer(),
+                    Text(widget.receipt.paymentMethodLabel, style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600)),
                   ],
                 ),
+                if (isPartial) ...[
+                  Divider(height: 16, color: theme.colorScheme.outlineVariant.withValues(alpha: 0.2)),
+                  Row(
+                    children: [
+                      const Icon(Icons.bookmark_outline, color: Color(0xFFF59E0B), size: 18),
+                      const SizedBox(width: 10),
+                      Text('Balance Left', style: theme.textTheme.labelSmall?.copyWith(color: const Color(0xFFF59E0B))),
+                      const Spacer(),
+                      Text(
+                        '₹${(widget.receipt.remainingAmount ?? 0.0).toStringAsFixed(0)} (Khata)',
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          fontWeight: FontWeight.w700,
+                          color: const Color(0xFFF59E0B),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
               ],
             ),
           ),
@@ -1003,12 +1502,21 @@ class _PaymentCompleteModalState extends ConsumerState<PaymentCompleteModal> {
   }
 
   Widget _buildReceiptPreviewSection(ThemeData theme) {
+    final isPartial = widget.receipt.isPartialPayment;
+    final isCredit = widget.receipt.isCredit;
+    final Color badgeColor = (isPartial || isCredit)
+        ? const Color(0xFFF59E0B)
+        : (widget.receipt.isPaid ? AppColors.success : AppColors.error);
+    final String badgeLabel = isPartial
+        ? 'Partial'
+        : (isCredit ? 'Credit' : (widget.receipt.isPaid ? 'Paid' : 'Pending'));
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceContainerHighest.withOpacity(0.3),
+        color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: theme.colorScheme.outlineVariant.withOpacity(0.3)),
+        border: Border.all(color: theme.colorScheme.outlineVariant.withValues(alpha: 0.3)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1036,7 +1544,7 @@ class _PaymentCompleteModalState extends ConsumerState<PaymentCompleteModal> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
-                  color: AppColors.success.withOpacity(0.15),
+                  color: badgeColor.withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Row(
@@ -1045,16 +1553,16 @@ class _PaymentCompleteModalState extends ConsumerState<PaymentCompleteModal> {
                     Container(
                       width: 6,
                       height: 6,
-                      decoration: const BoxDecoration(
-                        color: AppColors.success,
+                      decoration: BoxDecoration(
+                        color: badgeColor,
                         shape: BoxShape.circle,
                       ),
                     ),
                     const SizedBox(width: 6),
                     Text(
-                      widget.receipt.isPaid ? 'Paid' : 'Pending',
-                      style: const TextStyle(
-                        color: AppColors.success,
+                      badgeLabel,
+                      style: TextStyle(
+                        color: badgeColor,
                         fontSize: 11,
                         fontWeight: FontWeight.w700,
                       ),

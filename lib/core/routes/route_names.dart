@@ -23,6 +23,9 @@ class RouteNames {
   static const String combinedSettlement = '/combined-settlement';
   static const String bookings = '/bookings';
   static const String floorManagement = '/floor-management';
+  static const String printerSettings = '/printer-settings';
+  static const String expenses = '/expenses';
+  static const String businessCreditExpenses = '/expenses/business-credit';
 
   static const String more = '/more';
   static const String forceUpdate = '/force-update';

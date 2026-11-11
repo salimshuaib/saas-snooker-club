@@ -87,6 +87,45 @@ class StaffPermissions {
     required this.canViewReports,
   });
 
+  factory StaffPermissions.fromStaff(StaffMember? staff) {
+    if (staff == null) {
+      return const StaffPermissions(
+        canManageTeam: false,
+        canManageSettings: false,
+        canDeleteRecords: false,
+        canClearCredit: false,
+        canViewReports: false,
+      );
+    }
+    final isLimited = staff.isLimitedAccess;
+    switch (staff.role) {
+      case StaffRole.owner:
+        return const StaffPermissions(
+          canManageTeam: true,
+          canManageSettings: true,
+          canDeleteRecords: true,
+          canClearCredit: true,
+          canViewReports: true,
+        );
+      case StaffRole.manager:
+        return StaffPermissions(
+          canManageTeam: false,
+          canManageSettings: false,
+          canDeleteRecords: false,
+          canClearCredit: true,
+          canViewReports: !isLimited,
+        );
+      case StaffRole.staff:
+        return StaffPermissions(
+          canManageTeam: false,
+          canManageSettings: false,
+          canDeleteRecords: false,
+          canClearCredit: true,
+          canViewReports: !isLimited,
+        );
+    }
+  }
+
   factory StaffPermissions.fromRole(StaffRole? role) {
     if (role == null) {
       return const StaffPermissions(
@@ -97,37 +136,21 @@ class StaffPermissions {
         canViewReports: false,
       );
     }
-    switch (role) {
-      case StaffRole.owner:
-        return const StaffPermissions(
-          canManageTeam: true,
-          canManageSettings: true,
-          canDeleteRecords: true,
-          canClearCredit: true,
-          canViewReports: true,
-        );
-      case StaffRole.manager:
-        return const StaffPermissions(
-          canManageTeam: false,
-          canManageSettings: false,
-          canDeleteRecords: false, // Cannot permanently delete
-          canClearCredit: true, // Can manage/clear credits
-          canViewReports: true, // Can view reports
-        );
-      case StaffRole.staff:
-        return const StaffPermissions(
-          canManageTeam: false,
-          canManageSettings: false,
-          canDeleteRecords: false,
-          canClearCredit: false, // Cannot clear credits, only create
-          canViewReports: false, // Cannot view full business reports
-        );
-    }
+    return StaffPermissions.fromStaff(
+      StaffMember(
+        id: '',
+        name: '',
+        email: '',
+        role: role,
+        createdAt: DateTime.now(),
+        updatedAt: DateTime.now(),
+      ),
+    );
   }
 }
 
 /// Helper provider to get current permissions synchronously
 final currentStaffPermissionsProvider = Provider<StaffPermissions>((ref) {
   final currentStaff = ref.watch(currentStaffProvider).value;
-  return StaffPermissions.fromRole(currentStaff?.role);
+  return StaffPermissions.fromStaff(currentStaff);
 });

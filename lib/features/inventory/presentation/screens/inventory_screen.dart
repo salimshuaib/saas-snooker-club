@@ -11,6 +11,7 @@ import 'package:snooker_club/features/quick_sales/providers/quick_sales_provider
 import 'package:snooker_club/features/inventory/presentation/widgets/inventory_stats_card.dart';
 import 'package:snooker_club/features/inventory/presentation/widgets/inventory_product_card.dart';
 import 'package:snooker_club/features/inventory/presentation/widgets/add_product_sheet.dart';
+import 'package:snooker_club/features/floors/providers/floor_providers.dart';
 
 class InventoryScreen extends ConsumerStatefulWidget {
   const InventoryScreen({super.key});
@@ -23,6 +24,13 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
   final Debouncer _debouncer = Debouncer(milliseconds: 300);
   String _searchQuery = '';
   String _selectedCategory = 'All';
+  String? _selectedFloorId;
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedFloorId = ref.read(selectedFloorIdProvider);
+  }
 
   @override
   void dispose() {
@@ -34,8 +42,9 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final itemsAsync = ref.watch(inventoryItemsProvider);
-    final stats = ref.watch(inventoryStatsProvider);
     final quickSalesTotal = ref.watch(todaysQuickSalesTotalProvider);
+    final hasFloors = ref.watch(hasFloorsProvider);
+    final floors = ref.watch(floorsProvider).value ?? [];
 
     return Scaffold(
       appBar: AppBar(
@@ -63,6 +72,16 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
             ...items.map((e) => e.category),
           };
 
+          // Floor-aware stats
+          final floorScopedItems = items.where((i) {
+            if (_selectedFloorId == null) return true;
+            return i.floorId == _selectedFloorId;
+          }).toList();
+          final stockItems = floorScopedItems.where((i) => !i.isFood).toList();
+          final totalStockItems = stockItems.fold(0, (sum, i) => sum + i.currentStock);
+          final lowStockCount = stockItems.where((i) => i.isLowStock).length;
+          final outOfStockCount = stockItems.where((i) => i.isOutOfStock).length;
+
           final filteredItems = items.where((item) {
             final matchesSearch = item.name.toLowerCase().contains(
               _searchQuery.toLowerCase(),
@@ -70,7 +89,9 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
             final matchesCategory =
                 _selectedCategory == 'All' ||
                 item.category == _selectedCategory;
-            return matchesSearch && matchesCategory;
+            final matchesFloor =
+                _selectedFloorId == null || item.floorId == _selectedFloorId;
+            return matchesSearch && matchesCategory && matchesFloor;
           }).toList();
 
           return CustomScrollView(
@@ -83,8 +104,8 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
                     children: [
                       Expanded(
                         child: InventoryStatsCard(
-                          title: 'Total Stock',
-                          value: '${stats['totalStockItems']}',
+                          title: _selectedFloorId != null ? 'Floor Stock' : 'Total Stock',
+                          value: '$totalStockItems',
                           icon: Icons.inventory_2,
                           color: AppColors.primary,
                         ),
@@ -93,10 +114,9 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
                       Expanded(
                         child: InventoryStatsCard(
                           title: 'Low/Out',
-                          value:
-                              '${stats['lowStockCount']}/${stats['outOfStockCount']}',
+                          value: '$lowStockCount/$outOfStockCount',
                           icon: Icons.warning,
-                          color: stats['outOfStockCount'] > 0
+                          color: outOfStockCount > 0
                               ? AppColors.error
                               : AppColors.warning,
                         ),
@@ -114,6 +134,100 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
                   ),
                 ),
               ),
+
+              // ── Floor Filter (If Multi-Floor Club) ──
+              if (hasFloors && floors.length > 1) ...[
+                SliverToBoxAdapter(
+                  child: SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    child: Row(
+                      children: [
+                        FilterChip(
+                          avatar: Icon(
+                            Icons.domain,
+                            size: 16,
+                            color: _selectedFloorId == null
+                                ? AppColors.primary
+                                : theme.colorScheme.onSurfaceVariant,
+                          ),
+                          label: const Text('All Floors'),
+                          selected: _selectedFloorId == null,
+                          onSelected: (_) {
+                            setState(() => _selectedFloorId = null);
+                            ref
+                                .read(selectedFloorIdProvider.notifier)
+                                .selectFloor(null);
+                          },
+                          backgroundColor: theme.colorScheme.surface,
+                          selectedColor: AppColors.primary.withValues(alpha: 0.15),
+                          labelStyle: TextStyle(
+                            color: _selectedFloorId == null
+                                ? AppColors.primary
+                                : theme.colorScheme.onSurface,
+                            fontWeight: _selectedFloorId == null
+                                ? FontWeight.w600
+                                : FontWeight.w400,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(20),
+                            side: BorderSide(
+                              color: _selectedFloorId == null
+                                  ? AppColors.primary
+                                  : theme.colorScheme.outlineVariant,
+                            ),
+                          ),
+                        ),
+                        ...floors.map((floor) {
+                          final isSelected = _selectedFloorId == floor.id;
+                          return Padding(
+                            padding: const EdgeInsets.only(left: 8),
+                            child: FilterChip(
+                              avatar: Icon(
+                                Icons.layers_outlined,
+                                size: 16,
+                                color: isSelected
+                                    ? AppColors.primary
+                                    : theme.colorScheme.onSurfaceVariant,
+                              ),
+                              label: Text(floor.name),
+                              selected: isSelected,
+                              onSelected: (val) {
+                                final newFloorId = val ? floor.id : null;
+                                setState(() {
+                                  _selectedFloorId = newFloorId;
+                                });
+                                ref
+                                    .read(selectedFloorIdProvider.notifier)
+                                    .selectFloor(newFloorId);
+                              },
+                              backgroundColor: theme.colorScheme.surface,
+                              selectedColor: AppColors.primary.withValues(alpha: 0.15),
+                              labelStyle: TextStyle(
+                                color: isSelected
+                                    ? AppColors.primary
+                                    : theme.colorScheme.onSurface,
+                                fontWeight: isSelected
+                                    ? FontWeight.w600
+                                    : FontWeight.w400,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(20),
+                                side: BorderSide(
+                                  color: isSelected
+                                      ? AppColors.primary
+                                      : theme.colorScheme.outlineVariant,
+                                ),
+                              ),
+                            ),
+                          );
+                        }),
+                      ],
+                    ),
+                  ),
+                ),
+                const SliverToBoxAdapter(child: Gap(12)),
+              ],
 
               // ── Search & Filters ──
               SliverToBoxAdapter(
@@ -207,7 +321,9 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
             useRootNavigator: true,
             context: context,
             isScrollControlled: true,
-            builder: (_) => const AddProductSheet(),
+            builder: (_) => AddProductSheet(
+              initialFloorId: _selectedFloorId,
+            ),
           );
         },
         icon: const Icon(Icons.add),

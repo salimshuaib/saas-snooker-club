@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:snooker_club/core/providers/app_providers.dart';
 import 'package:snooker_club/features/quick_sales/data/quick_sales_repository.dart';
 import 'package:snooker_club/features/quick_sales/domain/models/quick_sale_models.dart';
+import 'package:snooker_club/features/floors/providers/floor_providers.dart';
 
 import 'package:snooker_club/core/providers/club_scope_provider.dart';
 
@@ -53,9 +54,11 @@ final selectedDateQuickSalesStreamProvider = StreamProvider<List<QuickSale>>((
 /// Provider for Today's Quick Sales collected revenue (Cash & UPI only, Credit goes to unpaid accounts).
 final todaysQuickSalesRevenueProvider = Provider<double>((ref) {
   final salesAsync = ref.watch(todaysQuickSalesStreamProvider);
+  final floorId = ref.watch(selectedFloorIdProvider);
   return salesAsync.maybeWhen(
     data: (sales) {
-      return sales.fold(0.0, (sum, sale) => sum + sale.totalAmount);
+      final list = floorId != null ? sales.where((s) => s.floorId == floorId) : sales;
+      return list.fold(0.0, (sum, sale) => sum + sale.totalAmount);
     },
     orElse: () => 0.0,
   );
@@ -63,9 +66,11 @@ final todaysQuickSalesRevenueProvider = Provider<double>((ref) {
 
 final selectedDateQuickSalesRevenueProvider = Provider<double>((ref) {
   final salesAsync = ref.watch(selectedDateQuickSalesStreamProvider);
+  final floorId = ref.watch(selectedFloorIdProvider);
   return salesAsync.maybeWhen(
     data: (sales) {
-      return sales.fold(0.0, (sum, sale) => sum + sale.totalAmount);
+      final list = floorId != null ? sales.where((s) => s.floorId == floorId) : sales;
+      return list.fold(0.0, (sum, sale) => sum + sale.totalAmount);
     },
     orElse: () => 0.0,
   );
@@ -74,14 +79,27 @@ final selectedDateQuickSalesRevenueProvider = Provider<double>((ref) {
 /// Provider for counting Today's total completed quick sales.
 final todaysQuickSalesCountProvider = Provider<int>((ref) {
   final salesAsync = ref.watch(todaysQuickSalesStreamProvider);
-  return salesAsync.maybeWhen(data: (sales) => sales.length, orElse: () => 0);
+  final floorId = ref.watch(selectedFloorIdProvider);
+  return salesAsync.maybeWhen(
+    data: (sales) {
+      if (floorId != null) {
+        return sales.where((s) => s.floorId == floorId).length;
+      }
+      return sales.length;
+    },
+    orElse: () => 0,
+  );
 });
 
 /// A provider for Today's Quick Sales total amount (including credit, used for general volume).
 final todaysQuickSalesTotalProvider = Provider<double>((ref) {
   final salesAsync = ref.watch(todaysQuickSalesStreamProvider);
+  final floorId = ref.watch(selectedFloorIdProvider);
   return salesAsync.maybeWhen(
-    data: (sales) => sales.fold(0.0, (sum, sale) => sum + sale.totalAmount),
+    data: (sales) {
+      final list = floorId != null ? sales.where((s) => s.floorId == floorId) : sales;
+      return list.fold(0.0, (sum, sale) => sum + sale.totalAmount);
+    },
     orElse: () => 0.0,
   );
 });

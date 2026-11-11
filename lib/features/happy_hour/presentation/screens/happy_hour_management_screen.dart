@@ -174,10 +174,13 @@ class HappyHourManagementScreen extends ConsumerWidget {
             );
           }
 
-          return ListView.separated(
-            padding: const EdgeInsets.all(16),
-            itemCount: offers.length,
-            separatorBuilder: (_, _) => const Gap(12),
+          return Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 900),
+              child: ListView.separated(
+                padding: const EdgeInsets.all(16),
+                itemCount: offers.length,
+                separatorBuilder: (_, _) => const Gap(12),
             itemBuilder: (context, index) {
               final offer = offers[index];
               final isCurrentlyActive =
@@ -382,9 +385,11 @@ class HappyHourManagementScreen extends ConsumerWidget {
                 ),
               );
             },
-          );
-        },
-      ),
-    );
+          ),
+        ),
+      );
+    },
+  ),
+);
   }
 }

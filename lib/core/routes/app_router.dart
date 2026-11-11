@@ -33,12 +33,12 @@ import 'package:snooker_club/features/inventory/presentation/screens/inventory_s
 import 'package:snooker_club/features/inventory/presentation/screens/product_details_screen.dart';
 import 'package:snooker_club/features/inventory/presentation/screens/inventory_history_screen.dart';
 import 'package:snooker_club/features/inventory/domain/models/inventory_models.dart';
-import 'package:snooker_club/features/quick_sales/presentation/screens/quick_sales_screen.dart';
-import 'package:snooker_club/features/quick_sales/presentation/screens/new_quick_sale_screen.dart';
-import 'package:snooker_club/features/quick_sales/presentation/screens/quick_sale_details_screen.dart';
-import 'package:snooker_club/features/quick_sales/domain/models/quick_sale_models.dart';
 import 'package:snooker_club/features/reports/presentation/screens/reports_screen.dart';
 import 'package:snooker_club/features/settings/presentation/screens/settings_screen.dart';
+import 'package:snooker_club/features/settings/presentation/screens/printer_settings_screen.dart';
+import 'package:snooker_club/features/expenses/presentation/screens/expenses_screen.dart';
+import 'package:snooker_club/features/expenses/presentation/screens/business_credit_screen.dart';
+import 'package:snooker_club/features/expenses/presentation/screens/add_expense_screen.dart';
 import 'package:snooker_club/features/team/providers/team_providers.dart';
 import 'package:snooker_club/features/team/presentation/screens/team_screen.dart';
 import 'package:snooker_club/features/history/presentation/screens/transaction_history_screen.dart';
@@ -327,6 +327,32 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           path: RouteNames.floorManagement,
           builder: (context, state) =>
               const TickerMode(enabled: true, child: FloorManagementScreen()),
+        ),
+        GoRoute(
+          path: RouteNames.printerSettings,
+          builder: (context, state) =>
+              const TickerMode(enabled: true, child: PrinterSettingsScreen()),
+        ),
+        GoRoute(
+          path: RouteNames.expenses,
+          builder: (context, state) =>
+              const TickerMode(enabled: true, child: ExpensesScreen()),
+          routes: [
+            GoRoute(
+              path: 'business-credit',
+              builder: (context, state) => const TickerMode(
+                enabled: true,
+                child: BusinessCreditScreen(),
+              ),
+            ),
+            GoRoute(
+              path: 'add',
+              builder: (context, state) => const TickerMode(
+                enabled: true,
+                child: AddExpenseScreen(),
+              ),
+            ),
+          ],
         ),
         GoRoute(
           path: RouteNames.games,

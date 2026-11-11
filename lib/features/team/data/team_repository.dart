@@ -132,6 +132,7 @@ class TeamRepository {
     required String email,
     required String password,
     required StaffRole role,
+    StaffAccessLevel accessLevel = StaffAccessLevel.full,
   }) async {
     FirebaseApp? tempApp;
     try {
@@ -156,6 +157,7 @@ class TeamRepository {
         name: name.trim(),
         email: email.trim(),
         role: role,
+        accessLevel: role == StaffRole.owner ? StaffAccessLevel.full : accessLevel,
         isActive: true,
         createdAt: now,
         updatedAt: now,

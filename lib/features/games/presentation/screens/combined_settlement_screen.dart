@@ -414,6 +414,8 @@ class _CombinedSettlementScreenState
         currentOrders: targetBill.orders,
         currentManualGameCharges: targetBill.manualGameCharges,
         enableGamesTab: true,
+        floorId: targetBill.floorId,
+        floorName: targetBill.floorName,
       ),
     );
 

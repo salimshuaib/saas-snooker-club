@@ -3,6 +3,8 @@ import 'package:go_router/go_router.dart';
 import 'package:gap/gap.dart';
 import 'package:snooker_club/core/routes/route_names.dart';
 import 'package:snooker_club/core/theme/app_colors.dart';
+import 'package:snooker_club/features/team/domain/models/staff_member.dart';
+import 'package:snooker_club/features/team/presentation/screens/staff_attendance_screen.dart';
 import 'package:snooker_club/features/team/providers/team_providers.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 class MoreScreen extends ConsumerWidget {
@@ -57,12 +59,41 @@ class MoreScreen extends ConsumerWidget {
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
-                            Text(
-                              'Role: ${staff.role.name.toUpperCase()}',
-                              style: theme.textTheme.bodyMedium?.copyWith(
-                                color: theme.colorScheme.primary,
-                                fontWeight: FontWeight.w600,
-                              ),
+                            Row(
+                              children: [
+                                Text(
+                                  'Role: ${staff.role.name.toUpperCase()}',
+                                  style: theme.textTheme.bodyMedium?.copyWith(
+                                    color: theme.colorScheme.primary,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                                if (staff.role != StaffRole.owner) ...[
+                                  const Gap(8),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
+                                    decoration: BoxDecoration(
+                                      color: staff.isLimitedAccess
+                                          ? AppColors.warning.withValues(alpha: 0.15)
+                                          : Colors.green.withValues(alpha: 0.15),
+                                      borderRadius: BorderRadius.circular(6),
+                                      border: Border.all(
+                                        color: staff.isLimitedAccess
+                                            ? AppColors.warning.withValues(alpha: 0.4)
+                                            : Colors.green.withValues(alpha: 0.4),
+                                      ),
+                                    ),
+                                    child: Text(
+                                      staff.accessLevel.displayName.toUpperCase(),
+                                      style: TextStyle(
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.bold,
+                                        color: staff.isLimitedAccess ? AppColors.warning : Colors.green,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ],
                             ),
                             if (!staff.isActive)
                               Text(
@@ -87,6 +118,24 @@ class MoreScreen extends ConsumerWidget {
                 letterSpacing: 1.2,
                 fontWeight: FontWeight.bold,
               ),
+            ),
+            const Gap(12),
+            _MoreMenuItem(
+              icon: Icons.calendar_month,
+              title: 'My Attendance',
+              subtitle: 'Check-in history & working hours',
+              iconColor: AppColors.primary,
+              onTap: () {
+                final staff = ref.read(currentStaffProvider).value;
+                if (staff != null) {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => StaffAttendanceScreen(staffMember: staff),
+                    ),
+                  );
+                }
+              },
             ),
             const Gap(12),
             _MoreMenuItem(
