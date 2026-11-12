@@ -234,163 +234,167 @@ class DashboardScreen extends ConsumerWidget {
                 },
               ),
 
-              // Staff Shift & Check-In Status Card
+              // Staff Shift & Check-In Status Bar (Clean, de-cluttered single-row)
               if (currentStaff != null) ...[
                 Container(
                   margin: const EdgeInsets.only(bottom: 16),
-                  padding: const EdgeInsets.all(14),
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                   decoration: BoxDecoration(
-                    color: theme.colorScheme.surface,
-                    borderRadius: BorderRadius.circular(16),
+                    color: AppColors.darkSurface,
+                    borderRadius: BorderRadius.circular(14),
                     border: Border.all(
                       color: currentStaff.isCheckedIn
-                          ? Colors.green.withValues(alpha: 0.4)
-                          : theme.colorScheme.outlineVariant,
+                          ? Colors.green.withValues(alpha: 0.35)
+                          : Colors.white10,
                     ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.15),
+                        blurRadius: 6,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
                   ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                  child: Row(
                     children: [
-                      Row(
-                        children: [
-                          CircleAvatar(
-                            radius: 18,
-                            backgroundColor: currentStaff.isCheckedIn
-                                ? Colors.green.withValues(alpha: 0.15)
-                                : Colors.grey.withValues(alpha: 0.15),
-                            child: Icon(
-                              currentStaff.isCheckedIn ? Icons.check_circle : Icons.power_settings_new,
-                              color: currentStaff.isCheckedIn ? Colors.green : Colors.grey,
-                              size: 20,
-                            ),
-                          ),
-                          const Gap(12),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
+                      // Status Dot & Indicator
+                      Container(
+                        width: 8,
+                        height: 8,
+                        decoration: BoxDecoration(
+                          color: currentStaff.isCheckedIn ? Colors.green : Colors.white30,
+                          shape: BoxShape.circle,
+                          boxShadow: currentStaff.isCheckedIn
+                              ? [
+                                  BoxShadow(
+                                    color: Colors.green.withValues(alpha: 0.6),
+                                    blurRadius: 6,
+                                    spreadRadius: 1,
+                                  ),
+                                ]
+                              : null,
+                        ),
+                      ),
+                      const Gap(10),
+                      // Status Label + Role / Limited Badge
+                      Expanded(
+                        child: InkWell(
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => StaffAttendanceScreen(staffMember: currentStaff),
+                              ),
+                            );
+                          },
+                          borderRadius: BorderRadius.circular(8),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 4),
+                            child: Row(
                               children: [
-                                Row(
-                                  children: [
-                                    Flexible(
-                                      child: Text(
-                                        currentStaff.isCheckedIn ? 'Shift Active' : 'Currently Checked Out',
-                                        style: theme.textTheme.titleSmall?.copyWith(
-                                          fontWeight: FontWeight.bold,
-                                          color: currentStaff.isCheckedIn ? Colors.green : null,
-                                        ),
-                                        overflow: TextOverflow.ellipsis,
+                                Flexible(
+                                  child: Text(
+                                    currentStaff.isCheckedIn ? 'Shift Active' : 'Currently Checked Out',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.w600,
+                                      fontSize: 13.5,
+                                      color: currentStaff.isCheckedIn ? Colors.greenAccent : Colors.white70,
+                                    ),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                                if (currentStaff.isLimitedAccess) ...[
+                                  const Gap(6),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
+                                    decoration: BoxDecoration(
+                                      color: AppColors.warning.withValues(alpha: 0.15),
+                                      borderRadius: BorderRadius.circular(4),
+                                    ),
+                                    child: const Text(
+                                      'LIMITED',
+                                      style: TextStyle(
+                                        color: AppColors.warning,
+                                        fontSize: 9,
+                                        fontWeight: FontWeight.bold,
                                       ),
                                     ),
-                                    if (currentStaff.isLimitedAccess) ...[
-                                      const Gap(6),
-                                      Container(
-                                        padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
-                                        decoration: BoxDecoration(
-                                          color: AppColors.warning.withValues(alpha: 0.15),
-                                          borderRadius: BorderRadius.circular(4),
-                                        ),
-                                        child: const Text(
-                                          'LIMITED',
-                                          style: TextStyle(
-                                            color: AppColors.warning,
-                                            fontSize: 9,
-                                            fontWeight: FontWeight.bold,
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  ],
-                                ),
-                                const Gap(2),
-                                Text(
-                                  currentStaff.isCheckedIn
-                                      ? 'You are active & receiving table alarms'
-                                      : 'Check in to start shift & receive alarms',
-                                  style: theme.textTheme.bodySmall?.copyWith(
-                                    color: theme.colorScheme.onSurfaceVariant,
-                                    fontSize: 11,
                                   ),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
+                                ],
                               ],
                             ),
                           ),
-                        ],
+                        ),
                       ),
-                      const Gap(12),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: OutlinedButton.icon(
-                              style: OutlinedButton.styleFrom(
-                                visualDensity: VisualDensity.compact,
-                                padding: const EdgeInsets.symmetric(vertical: 8),
-                                side: BorderSide(
-                                  color: theme.colorScheme.outlineVariant,
-                                ),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(10),
-                                ),
-                              ),
-                              icon: const Icon(Icons.calendar_month, size: 16),
-                              label: const Text(
-                                'Attendance',
-                                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
-                              ),
-                              onPressed: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (_) => StaffAttendanceScreen(staffMember: currentStaff),
-                                  ),
-                                );
-                              },
+                      const Gap(8),
+                      // Attendance History Icon Button
+                      IconButton(
+                        icon: const Icon(
+                          Icons.calendar_month_outlined,
+                          size: 19,
+                          color: Colors.white60,
+                        ),
+                        tooltip: 'Attendance Log',
+                        splashRadius: 18,
+                        visualDensity: VisualDensity.compact,
+                        constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                        padding: EdgeInsets.zero,
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => StaffAttendanceScreen(staffMember: currentStaff),
+                            ),
+                          );
+                        },
+                      ),
+                      const Gap(4),
+                      // Primary Check In / Check Out Action Button
+                      FilledButton.icon(
+                        style: FilledButton.styleFrom(
+                          visualDensity: VisualDensity.compact,
+                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                          backgroundColor: currentStaff.isCheckedIn
+                              ? Colors.red.withValues(alpha: 0.16)
+                              : Colors.green.withValues(alpha: 0.16),
+                          foregroundColor: currentStaff.isCheckedIn ? Colors.redAccent : Colors.greenAccent,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                            side: BorderSide(
+                              color: currentStaff.isCheckedIn
+                                  ? Colors.red.withValues(alpha: 0.35)
+                                  : Colors.green.withValues(alpha: 0.35),
+                              width: 0.8,
                             ),
                           ),
-                          const Gap(10),
-                          Expanded(
-                            child: FilledButton.tonalIcon(
-                              style: FilledButton.styleFrom(
-                                visualDensity: VisualDensity.compact,
-                                padding: const EdgeInsets.symmetric(vertical: 8),
-                                backgroundColor: currentStaff.isCheckedIn
-                                    ? Colors.red.withValues(alpha: 0.15)
-                                    : Colors.green.withValues(alpha: 0.15),
-                                foregroundColor: currentStaff.isCheckedIn ? Colors.red : Colors.green,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(10),
-                                ),
-                              ),
-                              icon: Icon(
-                                currentStaff.isCheckedIn ? Icons.logout : Icons.login,
-                                size: 16,
-                              ),
-                              label: Text(
-                                currentStaff.isCheckedIn ? 'Check Out' : 'Check In',
-                                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
-                              ),
-                              onPressed: () async {
-                                final repo = ref.read(teamRepositoryProvider);
-                                if (currentStaff.isCheckedIn) {
-                                  await repo.checkOutStaff(currentStaff.id);
-                                  if (context.mounted) {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(content: Text('Checked out successfully. Alarms paused.')),
-                                    );
-                                  }
-                                } else {
-                                  await repo.checkInStaff(currentStaff.id);
-                                  if (context.mounted) {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(content: Text('Checked in successfully. You will now receive table alarms.')),
-                                    );
-                                  }
-                                }
-                              },
-                            ),
-                          ),
-                        ],
+                          elevation: 0,
+                        ),
+                        icon: Icon(
+                          currentStaff.isCheckedIn ? Icons.logout_rounded : Icons.login_rounded,
+                          size: 15,
+                        ),
+                        label: Text(
+                          currentStaff.isCheckedIn ? 'Check Out' : 'Check In',
+                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+                        ),
+                        onPressed: () async {
+                          final repo = ref.read(teamRepositoryProvider);
+                          if (currentStaff.isCheckedIn) {
+                            await repo.checkOutStaff(currentStaff.id);
+                            if (context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text('Checked out successfully. Alarms paused.')),
+                              );
+                            }
+                          } else {
+                            await repo.checkInStaff(currentStaff.id);
+                            if (context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text('Checked in successfully. You will now receive table alarms.')),
+                              );
+                            }
+                          }
+                        },
                       ),
                     ],
                   ),
@@ -561,16 +565,6 @@ class DashboardScreen extends ConsumerWidget {
                             value: '$myGamesCount',
                             icon: Icons.sports_esports_outlined,
                             iconColor: AppColors.primary,
-                            onTap: () {
-                              if (currentStaff != null) {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (_) => StaffAttendanceScreen(staffMember: currentStaff),
-                                  ),
-                                );
-                              }
-                            },
                           );
                         },
                       ),
