@@ -10,6 +10,253 @@ import 'package:snooker_club/features/floors/presentation/widgets/floor_selector
 import 'package:snooker_club/features/settings/providers/settings_providers.dart';
 import 'package:snooker_club/features/settings/domain/models/settings_models.dart';
 
+import 'package:snooker_club/features/games/domain/config/pricing_config.dart';
+
+double _getDefaultOneHourPrice(PricingSettings fallback, TableType type) {
+  switch (type) {
+    case TableType.snooker: return fallback.snookerOneHour;
+    case TableType.indianPool: return fallback.indianPoolOneHour;
+    case TableType.americanPool: return fallback.americanPoolOneHour;
+    case TableType.ps5: return fallback.ps5OneHour;
+    case TableType.arcade: return fallback.ps5OneHour;
+    case TableType.ps4: return fallback.ps4OneHour;
+    case TableType.pc: return fallback.pcOneHour;
+    case TableType.carrom: return fallback.carromOneHour;
+    case TableType.foosball: return fallback.foosballOneHour;
+    case TableType.chess: return fallback.chessOneHour;
+    case TableType.tableTennis: return fallback.chessOneHour;
+    case TableType.steeringWheel: return fallback.chessOneHour;
+    case TableType.simulator: return fallback.simulatorOneHour;
+    case TableType.iceHockey: return fallback.iceHockeyOneHour;
+    case TableType.other: return fallback.otherOneHour;
+  }
+}
+
+double _getDefaultHalfHourPrice(PricingSettings fallback, TableType type) {
+  switch (type) {
+    case TableType.snooker: return fallback.snookerHalfHour;
+    case TableType.indianPool: return fallback.indianPoolHalfHour;
+    case TableType.americanPool: return fallback.americanPoolHalfHour;
+    case TableType.ps5: return fallback.ps5HalfHour;
+    case TableType.arcade: return fallback.ps5HalfHour;
+    case TableType.ps4: return fallback.ps4HalfHour;
+    case TableType.pc: return fallback.pcHalfHour;
+    case TableType.carrom: return fallback.carromHalfHour;
+    case TableType.foosball: return fallback.foosballHalfHour;
+    case TableType.chess: return fallback.chessHalfHour;
+    case TableType.tableTennis: return fallback.chessHalfHour;
+    case TableType.steeringWheel: return fallback.chessHalfHour;
+    case TableType.simulator: return fallback.simulatorHalfHour;
+    case TableType.iceHockey: return fallback.iceHockeyHalfHour;
+    case TableType.other: return fallback.otherHalfHour;
+  }
+}
+
+double _getDefaultPerMinutePrice(PricingSettings fallback, TableType type) {
+  switch (type) {
+    case TableType.snooker: return fallback.snookerPerMinute;
+    case TableType.indianPool: return fallback.indianPoolPerMinute;
+    case TableType.americanPool: return fallback.americanPoolPerMinute;
+    case TableType.ps5: return fallback.ps5OneHour / 60.0;
+    case TableType.arcade: return fallback.ps5OneHour / 60.0;
+    case TableType.ps4: return fallback.ps4OneHour / 60.0;
+    case TableType.pc: return fallback.pcOneHour / 60.0;
+    case TableType.carrom: return fallback.carromOneHour / 60.0;
+    case TableType.foosball: return fallback.foosballOneHour / 60.0;
+    case TableType.chess: return fallback.chessOneHour / 60.0;
+    case TableType.tableTennis: return fallback.chessOneHour / 60.0;
+    case TableType.steeringWheel: return fallback.chessOneHour / 60.0;
+    case TableType.simulator: return fallback.simulatorOneHour / 60.0;
+    case TableType.iceHockey: return fallback.iceHockeyOneHour / 60.0;
+    case TableType.other: return fallback.otherPerMinute;
+  }
+}
+
+enum TablePriceBadgeType { standard, frame, minute, overtime, minimumBill }
+
+class TablePriceBadge {
+  final String label;
+  final TablePriceBadgeType type;
+
+  const TablePriceBadge({required this.label, required this.type});
+}
+
+List<TablePriceBadge> resolveTablePriceBadges(
+  TableModel table,
+  PricingSettings fallback,
+) {
+  final options = table.billingOptions;
+  final List<TablePriceBadge> badges = [];
+
+  String formatPrice(double p) =>
+      p % 1 == 0 ? p.toStringAsFixed(0) : p.toStringAsFixed(2);
+
+  final bool isB4 = TablePricingConfig.isBasement4Ps5(table);
+
+  if (options != null && options.isNotEmpty) {
+    if (isB4 && (table.type == TableType.ps5 || table.type == TableType.arcade)) {
+      badges.add(const TablePriceBadge(
+        label: 'Basement 4 Rates',
+        type: TablePriceBadgeType.minimumBill,
+      ));
+    }
+
+    final bool isControllerTiered =
+        table.type == TableType.ps5 || table.type == TableType.arcade;
+
+    final frameOpt = options['perFrame'];
+    if (frameOpt != null && frameOpt.enabled) {
+      badges.add(TablePriceBadge(
+        label: '₹${formatPrice(frameOpt.price)}/frame',
+        type: TablePriceBadgeType.frame,
+      ));
+    }
+
+    final oneHourOpt = options['oneHour'];
+    if (oneHourOpt != null && oneHourOpt.enabled) {
+      if (isControllerTiered) {
+        final p1 = oneHourOpt.controllerPrices?[1] ?? (isB4 ? 150.0 : 200.0);
+        final p4 = oneHourOpt.controllerPrices?[4] ?? 480.0;
+        badges.add(TablePriceBadge(
+          label: '1h: ₹${formatPrice(p1)}–₹${formatPrice(p4)} (1-4 Ctrls)',
+          type: TablePriceBadgeType.standard,
+        ));
+      } else {
+        String text = '₹${formatPrice(oneHourOpt.price)}/hr';
+        if (oneHourOpt.extraCharge != null && oneHourOpt.extraCharge! > 0) {
+          text += ' (+₹${formatPrice(oneHourOpt.extraCharge!)} extra ctrl)';
+        }
+        badges.add(TablePriceBadge(
+          label: text,
+          type: TablePriceBadgeType.standard,
+        ));
+      }
+    }
+
+    final oneHourThirtyOpt = options['oneHourThirty'];
+    if (oneHourThirtyOpt != null && oneHourThirtyOpt.enabled) {
+      if (isControllerTiered) {
+        final p1 =
+            oneHourThirtyOpt.controllerPrices?[1] ?? (isB4 ? 225.0 : 300.0);
+        final p4 = oneHourThirtyOpt.controllerPrices?[4] ?? 760.0;
+        badges.add(TablePriceBadge(
+          label: '1.5h: ₹${formatPrice(p1)}–₹${formatPrice(p4)} (1-4 Ctrls)',
+          type: TablePriceBadgeType.standard,
+        ));
+      } else {
+        badges.add(TablePriceBadge(
+          label: '₹${formatPrice(oneHourThirtyOpt.price)}/1.5hr',
+          type: TablePriceBadgeType.standard,
+        ));
+      }
+    }
+
+    final halfHourOpt = options['halfHour'];
+    if (halfHourOpt != null && halfHourOpt.enabled) {
+      if (isControllerTiered) {
+        final p1 = halfHourOpt.controllerPrices?[1] ?? (isB4 ? 80.0 : 100.0);
+        final p4 = halfHourOpt.controllerPrices?[4] ?? 280.0;
+        badges.add(TablePriceBadge(
+          label: '30m: ₹${formatPrice(p1)}–₹${formatPrice(p4)} (1-4 Ctrls)',
+          type: TablePriceBadgeType.standard,
+        ));
+      } else {
+        String text = '₹${formatPrice(halfHourOpt.price)}/30m';
+        if (halfHourOpt.extraCharge != null && halfHourOpt.extraCharge! > 0) {
+          text += ' (+₹${formatPrice(halfHourOpt.extraCharge!)} extra ctrl)';
+        }
+        badges.add(TablePriceBadge(
+          label: text,
+          type: TablePriceBadgeType.standard,
+        ));
+      }
+    }
+
+    final pmOpt = options['perMinute'];
+    if (pmOpt != null && pmOpt.enabled) {
+      badges.add(TablePriceBadge(
+        label: '₹${formatPrice(pmOpt.price)}/min',
+        type: TablePriceBadgeType.minute,
+      ));
+    }
+
+    final otOpt = options['overtime'];
+    if (otOpt != null && otOpt.enabled) {
+      badges.add(TablePriceBadge(
+        label: 'OT: ₹${formatPrice(otOpt.price)}/min',
+        type: TablePriceBadgeType.overtime,
+      ));
+    }
+
+    final coinOpt = options['perCoin'];
+    if (coinOpt != null && coinOpt.enabled) {
+      badges.add(TablePriceBadge(
+        label: '₹${formatPrice(coinOpt.price)}/coin',
+        type: TablePriceBadgeType.standard,
+      ));
+    }
+  } else {
+    // Fallback default pricing
+    if (isB4 && (table.type == TableType.ps5 || table.type == TableType.arcade)) {
+      badges.add(const TablePriceBadge(
+        label: 'Basement 4 Rates',
+        type: TablePriceBadgeType.minimumBill,
+      ));
+    }
+
+    if (table.type == TableType.indianPool || table.type == TableType.americanPool) {
+      final pFrame = table.type == TableType.indianPool
+          ? fallback.indianPoolPerFrame
+          : fallback.americanPoolPerFrame;
+      badges.add(TablePriceBadge(
+        label: '₹${formatPrice(pFrame)}/frame',
+        type: TablePriceBadgeType.frame,
+      ));
+    }
+
+    if (table.type == TableType.ps5 || table.type == TableType.arcade) {
+      final p1h = isB4 ? 150.0 : fallback.ps5OneHour;
+      final p30m = isB4 ? 80.0 : fallback.ps5HalfHour;
+      final p1_5h = isB4 ? 225.0 : (fallback.ps5OneHour * 1.5);
+      badges.add(TablePriceBadge(
+        label: '1h: ₹${formatPrice(p1h)}–₹480 (1-4 Ctrls)',
+        type: TablePriceBadgeType.standard,
+      ));
+      badges.add(TablePriceBadge(
+        label: '1.5h: ₹${formatPrice(p1_5h)}–₹760 (1-4 Ctrls)',
+        type: TablePriceBadgeType.standard,
+      ));
+      badges.add(TablePriceBadge(
+        label: '30m: ₹${formatPrice(p30m)}–₹280 (1-4 Ctrls)',
+        type: TablePriceBadgeType.standard,
+      ));
+      if (table.type == TableType.arcade) {
+        badges.add(TablePriceBadge(
+          label: '₹${formatPrice(fallback.arcadeCoinPrice)}/coin',
+          type: TablePriceBadgeType.standard,
+        ));
+      }
+    } else {
+      final p1h = _getDefaultOneHourPrice(fallback, table.type);
+      final p30m = _getDefaultHalfHourPrice(fallback, table.type);
+      final pMin = _getDefaultPerMinutePrice(fallback, table.type);
+
+      badges.add(TablePriceBadge(label: '₹${formatPrice(p1h)}/hr', type: TablePriceBadgeType.standard));
+      badges.add(TablePriceBadge(label: '₹${formatPrice(p30m)}/30m', type: TablePriceBadgeType.standard));
+      badges.add(TablePriceBadge(label: '₹${formatPrice(pMin)}/min', type: TablePriceBadgeType.minute));
+    }
+  }
+
+  if (table.isMinimumBillEnabled && table.minimumBillAmount > 0) {
+    badges.add(TablePriceBadge(
+      label: 'Min: ₹${formatPrice(table.minimumBillAmount)}',
+      type: TablePriceBadgeType.minimumBill,
+    ));
+  }
+
+  return badges;
+}
+
 class ResourceManagementScreen extends ConsumerStatefulWidget {
   const ResourceManagementScreen({super.key});
   @override
@@ -19,6 +266,68 @@ class ResourceManagementScreen extends ConsumerStatefulWidget {
 
 class _ResourceManagementScreenState
     extends ConsumerState<ResourceManagementScreen> {
+
+  Widget _buildPricingBadges(
+    BuildContext context,
+    TableModel table,
+    PricingSettings fallback,
+  ) {
+    final theme = Theme.of(context);
+    final badges = resolveTablePriceBadges(table, fallback);
+
+    if (badges.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    return Padding(
+      padding: const EdgeInsets.only(top: 6),
+      child: Wrap(
+        spacing: 6,
+        runSpacing: 4,
+        children: badges.map((b) {
+          Color color;
+          switch (b.type) {
+            case TablePriceBadgeType.standard:
+              color = theme.colorScheme.primary;
+              break;
+            case TablePriceBadgeType.frame:
+              color = Colors.teal;
+              break;
+            case TablePriceBadgeType.minute:
+              color = Colors.blueGrey;
+              break;
+            case TablePriceBadgeType.overtime:
+              color = Colors.deepPurpleAccent;
+              break;
+            case TablePriceBadgeType.minimumBill:
+              color = Colors.orange;
+              break;
+          }
+
+          return Container(
+            padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2.5),
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(6),
+              border: Border.all(
+                color: color.withValues(alpha: 0.35),
+                width: 1,
+              ),
+            ),
+            child: Text(
+              b.label,
+              style: TextStyle(
+                color: color,
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          );
+        }).toList(),
+      ),
+    );
+  }
+
   void _showResourceSheet(String? defaultFloorId, [TableModel? table]) {
     AppModal.showBottomSheet(
       context: context,
@@ -38,6 +347,7 @@ class _ResourceManagementScreenState
     final isFloorsEnabled = ref.watch(hasFloorsProvider);
     final floors = ref.watch(floorsProvider).value ?? [];
     final hasMultipleFloors = isFloorsEnabled && floors.length > 1;
+    final fallbackPricing = ref.watch(appSettingsProvider).pricing;
     final theme = Theme.of(context);
 
     String headerTitle = 'Manage Games & Tables';
@@ -133,10 +443,37 @@ class _ResourceManagementScreenState
                             table.name,
                             style: const TextStyle(fontWeight: FontWeight.bold),
                           ),
-                          subtitle: Text(
-                            table.customGameName?.isNotEmpty == true
-                                ? '${table.type.displayName} • ${table.customGameName}'
-                                : table.type.displayName,
+                          subtitle: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                () {
+                                  String base = table.customGameName?.isNotEmpty == true
+                                      ? '${table.type.displayName} • ${table.customGameName}'
+                                      : table.type.displayName;
+                                  if (hasMultipleFloors && selectedFloor == null) {
+                                    final fName = table.floorName ??
+                                        floors
+                                            .where((f) => f.id == table.floorId)
+                                            .firstOrNull
+                                            ?.name;
+                                    if (fName != null && fName.isNotEmpty) {
+                                      return '$fName • $base';
+                                    }
+                                  }
+                                  return base;
+                                }(),
+                                style: TextStyle(
+                                  color: theme.colorScheme.onSurfaceVariant,
+                                  fontSize: 12,
+                                ),
+                              ),
+                              _buildPricingBadges(
+                                context,
+                                table,
+                                fallbackPricing,
+                              ),
+                            ],
                           ),
                           trailing: Row(
                             mainAxisSize: MainAxisSize.min,
@@ -221,9 +558,25 @@ class _ResourceSheetState extends ConsumerState<_ResourceSheet> {
   late TextEditingController _extraHalfHourController;
   late TextEditingController _minimumBillController;
 
+  late TextEditingController _h1_c1;
+  late TextEditingController _h1_c2;
+  late TextEditingController _h1_c3;
+  late TextEditingController _h1_c4;
+
+  late TextEditingController _h15_c1;
+  late TextEditingController _h15_c2;
+  late TextEditingController _h15_c3;
+  late TextEditingController _h15_c4;
+
+  late TextEditingController _m30_c1;
+  late TextEditingController _m30_c2;
+  late TextEditingController _m30_c3;
+  late TextEditingController _m30_c4;
+
   late TableType _type;
   String? _selectedFloorId;
   bool _oneHourEnabled = true;
+  bool _oneHourThirtyEnabled = true;
   bool _halfHourEnabled = true;
   bool _perMinuteEnabled = true;
   bool _overtimeEnabled = true;
@@ -250,11 +603,57 @@ class _ResourceSheetState extends ConsumerState<_ResourceSheet> {
     final existingOptions = edit?.billingOptions;
 
     _oneHourEnabled = existingOptions?['oneHour']?.enabled ?? true;
+    _oneHourThirtyEnabled =
+        existingOptions?['oneHourThirty']?.enabled ?? true;
     _halfHourEnabled = existingOptions?['halfHour']?.enabled ?? true;
     _perMinuteEnabled = existingOptions?['perMinute']?.enabled ?? true;
     _overtimeEnabled = existingOptions?['overtime']?.enabled ?? true;
     _perFrameEnabled = existingOptions?['perFrame']?.enabled ?? true;
     _perCoinEnabled = existingOptions?['perCoin']?.enabled ?? true;
+
+    final isB4 = edit != null && TablePricingConfig.isBasement4Ps5(edit);
+
+    final h1Map = existingOptions?['oneHour']?.controllerPrices;
+    _h1_c1 = TextEditingController(
+      text: (h1Map?[1] ?? (isB4 ? 150.0 : 200.0)).toStringAsFixed(0),
+    );
+    _h1_c2 = TextEditingController(
+      text: (h1Map?[2] ?? 240.0).toStringAsFixed(0),
+    );
+    _h1_c3 = TextEditingController(
+      text: (h1Map?[3] ?? 360.0).toStringAsFixed(0),
+    );
+    _h1_c4 = TextEditingController(
+      text: (h1Map?[4] ?? 480.0).toStringAsFixed(0),
+    );
+
+    final h15Map = existingOptions?['oneHourThirty']?.controllerPrices;
+    _h15_c1 = TextEditingController(
+      text: (h15Map?[1] ?? (isB4 ? 225.0 : 300.0)).toStringAsFixed(0),
+    );
+    _h15_c2 = TextEditingController(
+      text: (h15Map?[2] ?? 390.0).toStringAsFixed(0),
+    );
+    _h15_c3 = TextEditingController(
+      text: (h15Map?[3] ?? 570.0).toStringAsFixed(0),
+    );
+    _h15_c4 = TextEditingController(
+      text: (h15Map?[4] ?? 760.0).toStringAsFixed(0),
+    );
+
+    final m30Map = existingOptions?['halfHour']?.controllerPrices;
+    _m30_c1 = TextEditingController(
+      text: (m30Map?[1] ?? (isB4 ? 80.0 : 100.0)).toStringAsFixed(0),
+    );
+    _m30_c2 = TextEditingController(
+      text: (m30Map?[2] ?? 150.0).toStringAsFixed(0),
+    );
+    _m30_c3 = TextEditingController(
+      text: (m30Map?[3] ?? 220.0).toStringAsFixed(0),
+    );
+    _m30_c4 = TextEditingController(
+      text: (m30Map?[4] ?? 280.0).toStringAsFixed(0),
+    );
 
     final oneHourPrice = existingOptions?['oneHour']?.price ??
         _getDefaultOneHourPrice(fallback, _type);
@@ -307,6 +706,7 @@ class _ResourceSheetState extends ConsumerState<_ResourceSheet> {
       case TableType.indianPool: return fallback.indianPoolOneHour;
       case TableType.americanPool: return fallback.americanPoolOneHour;
       case TableType.ps5: return fallback.ps5OneHour;
+      case TableType.arcade: return fallback.ps5OneHour;
       case TableType.ps4: return fallback.ps4OneHour;
       case TableType.pc: return fallback.pcOneHour;
       case TableType.carrom: return fallback.carromOneHour;
@@ -317,7 +717,6 @@ class _ResourceSheetState extends ConsumerState<_ResourceSheet> {
       case TableType.simulator: return fallback.simulatorOneHour;
       case TableType.iceHockey: return fallback.iceHockeyOneHour;
       case TableType.other: return fallback.otherOneHour;
-      case TableType.arcade: return 0.0;
     }
   }
 
@@ -327,6 +726,7 @@ class _ResourceSheetState extends ConsumerState<_ResourceSheet> {
       case TableType.indianPool: return fallback.indianPoolHalfHour;
       case TableType.americanPool: return fallback.americanPoolHalfHour;
       case TableType.ps5: return fallback.ps5HalfHour;
+      case TableType.arcade: return fallback.ps5HalfHour;
       case TableType.ps4: return fallback.ps4HalfHour;
       case TableType.pc: return fallback.pcHalfHour;
       case TableType.carrom: return fallback.carromHalfHour;
@@ -337,7 +737,6 @@ class _ResourceSheetState extends ConsumerState<_ResourceSheet> {
       case TableType.simulator: return fallback.simulatorHalfHour;
       case TableType.iceHockey: return fallback.iceHockeyHalfHour;
       case TableType.other: return fallback.otherHalfHour;
-      case TableType.arcade: return 0.0;
     }
   }
 
@@ -347,6 +746,7 @@ class _ResourceSheetState extends ConsumerState<_ResourceSheet> {
       case TableType.indianPool: return fallback.indianPoolPerMinute;
       case TableType.americanPool: return fallback.americanPoolPerMinute;
       case TableType.ps5: return fallback.ps5OneHour / 60.0;
+      case TableType.arcade: return fallback.ps5OneHour / 60.0;
       case TableType.ps4: return fallback.ps4OneHour / 60.0;
       case TableType.pc: return fallback.pcOneHour / 60.0;
       case TableType.carrom: return fallback.carromOneHour / 60.0;
@@ -357,7 +757,6 @@ class _ResourceSheetState extends ConsumerState<_ResourceSheet> {
       case TableType.simulator: return fallback.simulatorOneHour / 60.0;
       case TableType.iceHockey: return fallback.iceHockeyOneHour / 60.0;
       case TableType.other: return fallback.otherPerMinute;
-      case TableType.arcade: return 0.0;
     }
   }
 
@@ -374,6 +773,18 @@ class _ResourceSheetState extends ConsumerState<_ResourceSheet> {
     _extraOneHourController.dispose();
     _extraHalfHourController.dispose();
     _minimumBillController.dispose();
+    _h1_c1.dispose();
+    _h1_c2.dispose();
+    _h1_c3.dispose();
+    _h1_c4.dispose();
+    _h15_c1.dispose();
+    _h15_c2.dispose();
+    _h15_c3.dispose();
+    _h15_c4.dispose();
+    _m30_c1.dispose();
+    _m30_c2.dispose();
+    _m30_c3.dispose();
+    _m30_c4.dispose();
     super.dispose();
   }
 
@@ -442,10 +853,52 @@ class _ResourceSheetState extends ConsumerState<_ResourceSheet> {
     try {
       final billingOptions = <String, TableBillingOption>{};
 
-      if (_type == TableType.arcade) {
-        billingOptions['perCoin'] = TableBillingOption(
-          enabled: _perCoinEnabled,
-          price: double.tryParse(_perCoinPriceController.text.trim()) ?? 20.0,
+      if (_type == TableType.arcade || _type == TableType.ps5) {
+        if (_type == TableType.arcade) {
+          billingOptions['perCoin'] = TableBillingOption(
+            enabled: _perCoinEnabled,
+            price: double.tryParse(_perCoinPriceController.text.trim()) ?? 20.0,
+          );
+        }
+        billingOptions['oneHour'] = TableBillingOption(
+          enabled: _oneHourEnabled,
+          price: double.tryParse(_h1_c1.text.trim()) ?? 200.0,
+          controllerPrices: {
+            1: double.tryParse(_h1_c1.text.trim()) ?? 200.0,
+            2: double.tryParse(_h1_c2.text.trim()) ?? 240.0,
+            3: double.tryParse(_h1_c3.text.trim()) ?? 360.0,
+            4: double.tryParse(_h1_c4.text.trim()) ?? 480.0,
+          },
+        );
+        billingOptions['oneHourThirty'] = TableBillingOption(
+          enabled: _oneHourThirtyEnabled,
+          price: double.tryParse(_h15_c1.text.trim()) ?? 300.0,
+          controllerPrices: {
+            1: double.tryParse(_h15_c1.text.trim()) ?? 300.0,
+            2: double.tryParse(_h15_c2.text.trim()) ?? 390.0,
+            3: double.tryParse(_h15_c3.text.trim()) ?? 570.0,
+            4: double.tryParse(_h15_c4.text.trim()) ?? 760.0,
+          },
+        );
+        billingOptions['halfHour'] = TableBillingOption(
+          enabled: _halfHourEnabled,
+          price: double.tryParse(_m30_c1.text.trim()) ?? 100.0,
+          controllerPrices: {
+            1: double.tryParse(_m30_c1.text.trim()) ?? 100.0,
+            2: double.tryParse(_m30_c2.text.trim()) ?? 150.0,
+            3: double.tryParse(_m30_c3.text.trim()) ?? 220.0,
+            4: double.tryParse(_m30_c4.text.trim()) ?? 280.0,
+          },
+        );
+        billingOptions['perMinute'] = TableBillingOption(
+          enabled: _perMinuteEnabled,
+          price: double.tryParse(_perMinutePriceController.text.trim()) ?? 3.50,
+        );
+        billingOptions['overtime'] = TableBillingOption(
+          enabled: _overtimeEnabled,
+          price: double.tryParse(_overtimePriceController.text.trim()) ??
+              double.tryParse(_perMinutePriceController.text.trim()) ??
+              3.50,
         );
       } else {
         if (_type == TableType.indianPool || _type == TableType.americanPool) {
@@ -457,14 +910,14 @@ class _ResourceSheetState extends ConsumerState<_ResourceSheet> {
         billingOptions['oneHour'] = TableBillingOption(
           enabled: _oneHourEnabled,
           price: double.tryParse(_oneHourPriceController.text.trim()) ?? 200.0,
-          extraCharge: (_type == TableType.ps5 || _type == TableType.ps4)
+          extraCharge: (_type == TableType.ps4)
               ? double.tryParse(_extraOneHourController.text.trim())
               : null,
         );
         billingOptions['halfHour'] = TableBillingOption(
           enabled: _halfHourEnabled,
           price: double.tryParse(_halfHourPriceController.text.trim()) ?? 100.0,
-          extraCharge: (_type == TableType.ps5 || _type == TableType.ps4)
+          extraCharge: (_type == TableType.ps4)
               ? double.tryParse(_extraHalfHourController.text.trim())
               : null,
         );
@@ -533,6 +986,141 @@ class _ResourceSheetState extends ConsumerState<_ResourceSheet> {
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
+  }
+
+  Widget _buildControllerTierCard({
+    required BuildContext context,
+    required String title,
+    required String durationBadge,
+    required bool enabled,
+    required ValueChanged<bool> onToggle,
+    required TextEditingController c1,
+    required TextEditingController c2,
+    required TextEditingController c3,
+    required TextEditingController c4,
+  }) {
+    final theme = Theme.of(context);
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surface,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: enabled
+              ? theme.colorScheme.primary.withValues(alpha: 0.35)
+              : theme.colorScheme.outlineVariant.withValues(alpha: 0.25),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Switch(
+                value: enabled,
+                onChanged: onToggle,
+              ),
+              const Gap(8),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Text(
+                          title,
+                          style: TextStyle(
+                            fontWeight:
+                                enabled ? FontWeight.bold : FontWeight.normal,
+                            color: enabled ? null : theme.disabledColor,
+                          ),
+                        ),
+                        const Gap(8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 2,
+                          ),
+                          decoration: BoxDecoration(
+                            color: theme.colorScheme.primary
+                                .withValues(alpha: 0.12),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Text(
+                            durationBadge,
+                            style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                              color: theme.colorScheme.primary,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    Text(
+                      'Price per controller (Single, Double, Triple, Four)',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        fontSize: 11,
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          if (enabled) ...[
+            const Gap(10),
+            Row(
+              children: [
+                _buildControllerInput('1 Ctrl', c1),
+                const Gap(8),
+                _buildControllerInput('2 Ctrls', c2),
+                const Gap(8),
+                _buildControllerInput('3 Ctrls', c3),
+                const Gap(8),
+                _buildControllerInput('4 Ctrls', c4),
+              ],
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildControllerInput(
+    String label,
+    TextEditingController controller,
+  ) {
+    return Expanded(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600),
+          ),
+          const Gap(4),
+          TextFormField(
+            controller: controller,
+            keyboardType: TextInputType.number,
+            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+            decoration: InputDecoration(
+              prefixText: '₹ ',
+              isDense: true,
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 6,
+                vertical: 8,
+              ),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -872,7 +1460,7 @@ class _ResourceSheetState extends ConsumerState<_ResourceSheet> {
                           const Gap(4),
                           Text(
                             _type == TableType.arcade
-                                ? 'Configure token/coin price and session rules'
+                                ? 'Configure token/coin price, hourly rates, and controller rules'
                                 : 'Configure supported rates (1 hour, half hour, per frame/minute, extra controllers)',
                             style: theme.textTheme.bodySmall?.copyWith(
                               color: theme.colorScheme.onSurfaceVariant,
@@ -941,6 +1529,46 @@ class _ResourceSheetState extends ConsumerState<_ResourceSheet> {
                                   ),
                                 ),
                               ],
+                            ),
+                            const Gap(12),
+                          ],
+                          if (_type == TableType.arcade ||
+                              _type == TableType.ps5) ...[
+                            _buildControllerTierCard(
+                              context: context,
+                              title: 'One Hour',
+                              durationBadge: '60 Mins',
+                              enabled: _oneHourEnabled,
+                              onToggle: (v) =>
+                                  setState(() => _oneHourEnabled = v),
+                              c1: _h1_c1,
+                              c2: _h1_c2,
+                              c3: _h1_c3,
+                              c4: _h1_c4,
+                            ),
+                            _buildControllerTierCard(
+                              context: context,
+                              title: 'One and a Half Hours',
+                              durationBadge: '90 Mins',
+                              enabled: _oneHourThirtyEnabled,
+                              onToggle: (v) =>
+                                  setState(() => _oneHourThirtyEnabled = v),
+                              c1: _h15_c1,
+                              c2: _h15_c2,
+                              c3: _h15_c3,
+                              c4: _h15_c4,
+                            ),
+                            _buildControllerTierCard(
+                              context: context,
+                              title: 'Half Hour',
+                              durationBadge: '30 Mins',
+                              enabled: _halfHourEnabled,
+                              onToggle: (v) =>
+                                  setState(() => _halfHourEnabled = v),
+                              c1: _m30_c1,
+                              c2: _m30_c2,
+                              c3: _m30_c3,
+                              c4: _m30_c4,
                             ),
                           ] else ...[
                             // Cue Sports (Indian Pool & American Pool): Per Frame
@@ -1060,8 +1688,7 @@ class _ResourceSheetState extends ConsumerState<_ResourceSheet> {
                                 ),
                               ],
                             ),
-                            if (_type == TableType.ps5 ||
-                                _type == TableType.ps4) ...[
+                            if (_type == TableType.ps4) ...[
                               const Gap(6),
                               Row(
                                 children: [
@@ -1154,8 +1781,7 @@ class _ResourceSheetState extends ConsumerState<_ResourceSheet> {
                                 ),
                               ],
                             ),
-                            if (_type == TableType.ps5 ||
-                                _type == TableType.ps4) ...[
+                            if (_type == TableType.ps4) ...[
                               const Gap(6),
                               Row(
                                 children: [
@@ -1199,6 +1825,7 @@ class _ResourceSheetState extends ConsumerState<_ResourceSheet> {
                               ),
                             ],
                             const Gap(12),
+                          ],
 
                             // Per Minute Rate
                             Row(
@@ -1330,7 +1957,6 @@ class _ResourceSheetState extends ConsumerState<_ResourceSheet> {
                                 ),
                               ],
                             ),
-                          ],
                           const Gap(16),
                           const Divider(),
                           const Gap(8),

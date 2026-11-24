@@ -82,11 +82,11 @@ class _FloorSetupSheetState extends ConsumerState<FloorSetupSheet> {
           final toAdd = desiredCount - currentTables.length;
           final allTypeTables = allTables.where((t) => t.type == type).toList();
           int maxNum = 0;
-          final r = RegExp(r'\d+');
+          final r = RegExp(r'(\d+)\s*$');
           for (final t in allTypeTables) {
             final m = r.firstMatch(t.name);
             if (m != null) {
-              final num = int.tryParse(m.group(0)!);
+              final num = int.tryParse(m.group(1)!);
               if (num != null && num > maxNum) maxNum = num;
             }
           }

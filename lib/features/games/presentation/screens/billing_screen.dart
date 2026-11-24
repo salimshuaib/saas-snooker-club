@@ -82,9 +82,7 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
         ? widget.session.copyWith(endTime: DateTime.now())
         : widget.session;
     _selectedPayers = List.from(_session.selectedPayers ?? _session.allPlayers);
-    if (_session.isPrepaid) {
-      _applyOvertimeCharges = _session.isOvertimeEnabled;
-    }
+    _applyOvertimeCharges = _session.isOvertimeEnabled;
     _discountAmount = _session.discountAmount ?? 0.0;
     _currentGameDiscountAmount = _session.currentGameDiscountAmount ?? 0.0;
     _hasDiscount = _discountAmount > 0;
@@ -742,7 +740,8 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
         }
       }
 
-      if (_session.tableType != TableType.arcade &&
+      if ((_session.tableType != TableType.arcade ||
+              _session.billingType != BillingType.perCoin) &&
           !billingFeatures.manualFinalAmountEnabled) {
         for (final p in _session.allPlayers) {
           liabilities[p] = BillingUtils.roundAmount(liabilities[p] ?? 0.0);
@@ -832,7 +831,8 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
       completedRounds: _session.rounds,
       customPrice: effectiveCustomPrice,
       customExtraCharge: _session.customExtraCharge,
-      playersCount: math.max(_session.allPlayers.length, _session.playerIds.length),
+      playersCount: _session.controllersCount ??
+          math.max(_session.allPlayers.length, _session.playerIds.length),
       coinQuantity: _session.coinQuantity,
       customMinutes: _session.customMinutes,
       isMinimumBillEnabled: _appliedOffer == null && _session.isMinimumBillEnabled,
@@ -845,6 +845,7 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
     final bool canHaveOvertime =
         _session.billingType == BillingType.oneHour ||
         _session.billingType == BillingType.halfHour ||
+        _session.billingType == BillingType.oneHourThirty ||
         _session.billingType == BillingType.customMinute;
 
     double charge;
@@ -921,7 +922,8 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
       .toDouble();
 
   double get _roundedTotal {
-    if (_session.tableType == TableType.arcade) {
+    if (_session.tableType == TableType.arcade &&
+        _session.billingType == BillingType.perCoin) {
       return _finalTotal;
     }
 
@@ -1342,7 +1344,9 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
                     if (_overtimeMinutes > 0) ...[
                       _InfoRow(
                         label: 'Overtime (${_overtimeMinutes} mins)',
-                        value: '\u20B9${_overtimeCharge.toStringAsFixed(2)}',
+                        value: _applyOvertimeCharges && _overtimeCharge > 0
+                            ? '\u20B9${_overtimeCharge.toStringAsFixed(2)}'
+                            : '\u20B90.00 (No Charge)',
                       ),
                     ],
                     const Divider(height: 16),
@@ -1390,15 +1394,31 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
 
                   if ((_session.billingType == BillingType.oneHour ||
                           _session.billingType == BillingType.halfHour ||
+                          _session.billingType == BillingType.oneHourThirty ||
                           _session.billingType == BillingType.customMinute) &&
                       _overtimeMinutes > 0) ...[
                     const Gap(16),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text(
-                          'Apply Overtime Charges',
-                          style: theme.textTheme.titleSmall,
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Apply Overtime Charges',
+                                style: theme.textTheme.titleSmall,
+                              ),
+                              Text(
+                                _applyOvertimeCharges
+                                    ? 'Overtime fee added to total bill'
+                                    : 'Overtime fee waived (\u20B90.00)',
+                                style: theme.textTheme.bodySmall?.copyWith(
+                                  color: theme.colorScheme.onSurfaceVariant,
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                         Switch(
                           value: _applyOvertimeCharges,
@@ -2584,6 +2604,7 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
         baseGameCharge: _baseGameCharge,
         overtimeMinutes: _overtimeMinutes,
         overtimeCharge: _overtimeCharge,
+        isOvertimeEnabled: _applyOvertimeCharges,
         ordersTotal: _ordersTotal,
 
         grandTotal: _grandTotal,
@@ -2985,6 +3006,7 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
       baseGameCharge: _baseGameCharge,
       overtimeMinutes: _overtimeMinutes,
       overtimeCharge: _overtimeCharge,
+      isOvertimeEnabled: _applyOvertimeCharges,
       ordersTotal: _ordersTotal,
       grandTotal: _grandTotal,
       roundedAmount: _roundedTotal,
@@ -3475,7 +3497,9 @@ class _ExpandableSessionCardState extends State<_ExpandableSessionCard> {
                         children: [
                           _InfoRow(
                             label: 'Billing',
-                            value: s.billingType.displayName,
+                            value: s.controllersCount != null
+                                ? '${s.billingType.displayName} (${s.controllersCount} Controllers)'
+                                : s.billingType.displayName,
                           ),
                           _InfoRow(
                             label: 'Players',

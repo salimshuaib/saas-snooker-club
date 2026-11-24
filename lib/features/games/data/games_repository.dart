@@ -106,7 +106,17 @@ class GamesRepository {
       final tables = snapshot.docs
           .map((doc) => TableModel.fromMap(doc.data() as Map<String, dynamic>))
           .toList();
-      tables.sort((a, b) => a.order.compareTo(b.order));
+      tables.sort((a, b) {
+        final t = a.type.index.compareTo(b.type.index);
+        if (t != 0) return t;
+        if (a.floorId != b.floorId) {
+          if (a.floorId == null) return 1;
+          if (b.floorId == null) return -1;
+          final f = a.floorId!.compareTo(b.floorId!);
+          if (f != 0) return f;
+        }
+        return a.name.compareTo(b.name);
+      });
       return tables;
     });
   }
@@ -963,7 +973,9 @@ class GamesRepository {
       }
     }
 
-    if (session.isManualEntry || session.tableType == TableType.arcade) {
+    if (session.isManualEntry ||
+        (session.tableType == TableType.arcade &&
+            session.billingType == BillingType.perCoin)) {
       final fullMap = session.toMap();
       fullMap['status'] = TableStatus.available.name;
       fullMap['paymentStatus'] =

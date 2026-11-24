@@ -49,6 +49,75 @@ class TablePricingConfig {
 
   static MatchType defaultMatchType = MatchType.friendly;
 
+  /// Checks if a PS5 or Arcade table qualifies for Basement 4 rates:
+  /// PS5 12-15, Arcade 12-15, or tables situated on Basement 4.
+  static bool isBasement4Ps5(TableModel table) {
+    if (table.type != TableType.ps5 && table.type != TableType.arcade) return false;
+    final name = table.name.toUpperCase();
+    final regex = RegExp(r'(PS5|ARCADE)\s*[-_ ]?\s*(12|13|14|15)\b');
+    if (regex.hasMatch(name)) return true;
+    final floor = (table.floorName ?? '').toLowerCase();
+    if (floor.contains('basement 4') ||
+        floor.contains('b4') ||
+        floor.contains('basement-4')) {
+      return true;
+    }
+    return false;
+  }
+
+  /// Calculates the rate for PS5 according to the Controller-Tiered Matrix:
+  /// - 30 Minutes: 1: ₹100 (B4: ₹80), 2: ₹150, 3: ₹220, 4: ₹280 (+₹60/extra)
+  /// - 1 Hour: 1: ₹200 (B4: ₹150), 2: ₹240, 3: ₹360, 4: ₹480 (+₹120/extra)
+  /// - 1.5 Hours: 1: ₹300 (B4: ₹225), 2: ₹390, 3: ₹570, 4: ₹760 (+₹190/extra)
+  static double getPs5TieredRate({
+    required TableModel table,
+    required BillingType billingType,
+    required int controllers,
+  }) {
+    final bool isB4 = isBasement4Ps5(table);
+    final count = controllers < 1 ? 1 : controllers;
+
+    // Check if table has custom controller prices configured
+    final customPrices =
+        table.billingOptions?[billingType.name]?.controllerPrices;
+    if (customPrices != null && customPrices.isNotEmpty) {
+      if (customPrices.containsKey(count)) {
+        return customPrices[count]!;
+      } else if (count > 4 && customPrices.containsKey(4)) {
+        final p4 = customPrices[4]!;
+        final p3 = customPrices[3] ?? (p4 * 0.75);
+        final diff = (p4 - p3) > 0 ? (p4 - p3) : 100.0;
+        return p4 + (count - 4) * diff;
+      }
+    }
+
+    switch (billingType) {
+      case BillingType.halfHour:
+        if (count == 1) return isB4 ? 80.0 : 100.0;
+        if (count == 2) return 150.0;
+        if (count == 3) return 220.0;
+        if (count == 4) return 280.0;
+        return 280.0 + (count - 4) * 60.0;
+
+      case BillingType.oneHour:
+        if (count == 1) return isB4 ? 150.0 : 200.0;
+        if (count == 2) return 240.0;
+        if (count == 3) return 360.0;
+        if (count == 4) return 480.0;
+        return 480.0 + (count - 4) * 120.0;
+
+      case BillingType.oneHourThirty:
+        if (count == 1) return isB4 ? 225.0 : 300.0;
+        if (count == 2) return 390.0;
+        if (count == 3) return 570.0;
+        if (count == 4) return 760.0;
+        return 760.0 + (count - 4) * 190.0;
+
+      default:
+        return 200.0;
+    }
+  }
+
   /// Update active in-memory pricing configuration from AppSettings.
 
   static void updateFromSettings(AppSettings settings) {
@@ -181,9 +250,11 @@ class TablePricingConfig {
     BillingType billingType,
     PricingSettings fallbackConfig,
   ) {
-    if (table.type != TableType.ps5 && table.type != TableType.ps4) return 0.0;
+    if (table.type != TableType.ps5 &&
+        table.type != TableType.ps4 &&
+        table.type != TableType.arcade) return 0.0;
 
-    if (table.billingOptions != null) {
+    if (table.billingOptions != null && table.billingOptions!.isNotEmpty) {
       final key = billingType.name;
       final option = table.billingOptions![key];
       if (option != null && option.enabled && option.extraCharge != null) {
@@ -195,6 +266,8 @@ class TablePricingConfig {
       return fallbackConfig.extraControllerFeeHalfHour;
     if (billingType == BillingType.oneHour)
       return fallbackConfig.extraControllerFeeOneHour;
+    if (billingType == BillingType.oneHourThirty)
+      return fallbackConfig.extraControllerFeeOneHour * 1.5;
     return 0.0;
   }
 
@@ -206,7 +279,7 @@ class TablePricingConfig {
   ) {
     // If the table has specific billing options configured
 
-    if (table.billingOptions != null) {
+    if (table.billingOptions != null && table.billingOptions!.isNotEmpty) {
       String? key;
 
       if (billingType == BillingType.customMinute) {
@@ -301,6 +374,9 @@ class TablePricingConfig {
 
           case BillingType.oneHour:
             return fallbackConfig.ps5OneHour;
+
+          case BillingType.oneHourThirty:
+            return fallbackConfig.ps5OneHour * 1.5;
 
           default:
             return null;
@@ -420,9 +496,18 @@ class TablePricingConfig {
         }
 
       case TableType.arcade:
-        if (billingType == BillingType.perCoin)
-          return fallbackConfig.arcadeCoinPrice;
-        return null;
+        switch (billingType) {
+          case BillingType.halfHour:
+            return fallbackConfig.ps5HalfHour;
+          case BillingType.oneHour:
+            return fallbackConfig.ps5OneHour;
+          case BillingType.oneHourThirty:
+            return fallbackConfig.ps5OneHour * 1.5;
+          case BillingType.perCoin:
+            return fallbackConfig.arcadeCoinPrice;
+          default:
+            return null;
+        }
 
       case TableType.other:
         switch (billingType) {
@@ -463,7 +548,7 @@ class TablePricingConfig {
     TableModel table,
     GameType gameType,
   ) {
-    if (table.billingOptions != null) {
+    if (table.billingOptions != null && table.billingOptions!.isNotEmpty) {
       final List<BillingType> types = [];
 
       
@@ -479,6 +564,10 @@ class TablePricingConfig {
 
       if (table.billingOptions!['oneHour']?.enabled == true)
         types.add(BillingType.oneHour);
+
+      if (table.billingOptions!['oneHourThirty']?.enabled == true)
+        types.add(BillingType.oneHourThirty);
+
       if (table.billingOptions!['perCoin']?.enabled == true)
         types.add(BillingType.perCoin);
 
@@ -516,6 +605,12 @@ class TablePricingConfig {
         ];
 
       case TableType.ps5:
+        return [
+          BillingType.halfHour,
+          BillingType.oneHour,
+          BillingType.oneHourThirty,
+        ];
+
       case TableType.ps4:
       case TableType.pc:
       case TableType.carrom:
@@ -527,7 +622,12 @@ class TablePricingConfig {
       case TableType.iceHockey:
         return [BillingType.halfHour, BillingType.oneHour];
       case TableType.arcade:
-        return [BillingType.perCoin];
+        return [
+          BillingType.halfHour,
+          BillingType.oneHour,
+          BillingType.oneHourThirty,
+          BillingType.perCoin,
+        ];
 
       case TableType.other:
         return [
@@ -567,22 +667,40 @@ class TablePricingConfig {
     bool? isOvertimeEnabled,
   }) {
     final tableType = table.type;
+    final bool isTieredCandidate =
+        (tableType == TableType.ps5 || tableType == TableType.arcade) &&
+            (billingType == BillingType.halfHour ||
+                billingType == BillingType.oneHour ||
+                billingType == BillingType.oneHourThirty);
+    final bool isPs5Tiered =
+        isTieredCandidate && gameConfig.isPs5ControllerPricingEnabled();
+    final controllers = (playersCount != null && playersCount > 0)
+        ? playersCount
+        : 1;
 
-    double? basePrice =
-        customPrice ??
-        getPrice(table, gameType, billingType, pricingConfig);
+    double? basePrice;
+    if (isPs5Tiered) {
+      basePrice = customPrice ??
+          getPs5TieredRate(
+            table: table,
+            billingType: billingType,
+            controllers: controllers,
+          );
+    } else {
+      basePrice = customPrice ??
+          getPrice(table, gameType, billingType, pricingConfig);
 
-    if (basePrice != null &&
-        (tableType == TableType.ps5 || tableType == TableType.ps4)) {
-      final controllers = (playersCount != null && playersCount > 0)
-          ? playersCount
-          : 1;
-      if (controllers > 1) {
-        final extraCharge =
-            customExtraCharge ??
-            getExtraCharge(table, gameType, billingType, pricingConfig) ??
-            0.0;
-        basePrice += (controllers - 1) * extraCharge;
+      if (basePrice != null &&
+          (tableType == TableType.ps5 ||
+              tableType == TableType.ps4 ||
+              tableType == TableType.arcade)) {
+        if (controllers > 1) {
+          final extraCharge =
+              customExtraCharge ??
+              getExtraCharge(table, gameType, billingType, pricingConfig) ??
+              0.0;
+          basePrice += (controllers - 1) * extraCharge;
+        }
       }
     }
 
@@ -611,6 +729,8 @@ class TablePricingConfig {
         perSecondRate = basePrice / (30 * 60.0);
       } else if (billingType == BillingType.oneHour) {
         perSecondRate = basePrice / (60 * 60.0);
+      } else if (billingType == BillingType.oneHourThirty) {
+        perSecondRate = basePrice / (90 * 60.0);
       } else {
         perSecondRate =
             getPerMinutePrice(table, gameType, pricingConfig) / 60.0;
@@ -653,7 +773,7 @@ class TablePricingConfig {
         final double customBaseCharge = BillingUtils.roundAmount(rawBase);
         
         final int elapsedOvertimeSeconds = activeSeconds - targetSeconds;
-        final int overtimeMins = (elapsedOvertimeSeconds > 0 && overtimeEnabled)
+        final int overtimeMins = elapsedOvertimeSeconds > 0
             ? (elapsedOvertimeSeconds / 60.0).ceil()
             : 0;
             
@@ -730,7 +850,7 @@ class TablePricingConfig {
 
       case BillingType.halfHour:
         final int elapsedOvertimeSeconds = activeSeconds - (30 * 60);
-        final int overtimeMinutes = (elapsedOvertimeSeconds > 0 && overtimeEnabled)
+        final int overtimeMinutes = elapsedOvertimeSeconds > 0
             ? (elapsedOvertimeSeconds / 60.0).ceil()
             : 0;
 
@@ -750,7 +870,27 @@ class TablePricingConfig {
 
       case BillingType.oneHour:
         final int elapsedOvertimeSeconds = activeSeconds - (60 * 60);
-        final int overtimeMinutes = (elapsedOvertimeSeconds > 0 && overtimeEnabled)
+        final int overtimeMinutes = elapsedOvertimeSeconds > 0
+            ? (elapsedOvertimeSeconds / 60.0).ceil()
+            : 0;
+
+        final double rawOvertimeCharge = (elapsedOvertimeSeconds > 0 && overtimeEnabled)
+            ? elapsedOvertimeSeconds * overtimePerSecondRate
+            : 0;
+
+        final double finalOvertimeCharge = (elapsedOvertimeSeconds > 0 && overtimeEnabled)
+            ? (BillingUtils.roundAmount(price + rawOvertimeCharge) - price)
+            : 0.0;
+
+        rawBreakdown = GameChargeBreakdown(
+          baseCharge: price,
+          overtimeMinutes: overtimeMinutes,
+          overtimeCharge: finalOvertimeCharge,
+        );
+
+      case BillingType.oneHourThirty:
+        final int elapsedOvertimeSeconds = activeSeconds - (90 * 60);
+        final int overtimeMinutes = elapsedOvertimeSeconds > 0
             ? (elapsedOvertimeSeconds / 60.0).ceil()
             : 0;
 

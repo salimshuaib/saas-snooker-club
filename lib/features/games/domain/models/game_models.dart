@@ -167,6 +167,7 @@ enum BillingType {
   perFrame,
   halfHour,
   oneHour,
+  oneHourThirty,
   customMinute,
   perCoin;
 
@@ -180,6 +181,8 @@ enum BillingType {
         return 'Half Hour (30 min)';
       case BillingType.oneHour:
         return 'One Hour (60 min)';
+      case BillingType.oneHourThirty:
+        return '1.5 Hours (90 min)';
       case BillingType.customMinute:
         return 'Custom Minute';
       case BillingType.perCoin:
@@ -227,22 +230,26 @@ class TableBillingOption {
   final bool enabled;
   final double price;
   final double? extraCharge;
+  final Map<int, double>? controllerPrices;
 
   const TableBillingOption({
     required this.enabled,
     required this.price,
     this.extraCharge,
+    this.controllerPrices,
   });
 
   TableBillingOption copyWith({
     bool? enabled,
     double? price,
     double? extraCharge,
+    Map<int, double>? controllerPrices,
   }) {
     return TableBillingOption(
       enabled: enabled ?? this.enabled,
       price: price ?? this.price,
       extraCharge: extraCharge ?? this.extraCharge,
+      controllerPrices: controllerPrices ?? this.controllerPrices,
     );
   }
 
@@ -251,6 +258,10 @@ class TableBillingOption {
       'enabled': enabled,
       'price': price,
       if (extraCharge != null) 'extraCharge': extraCharge,
+      if (controllerPrices != null)
+        'controllerPrices': controllerPrices!.map(
+          (k, v) => MapEntry(k.toString(), v),
+        ),
     };
   }
 
@@ -259,6 +270,11 @@ class TableBillingOption {
       enabled: map['enabled'] as bool? ?? true,
       price: (map['price'] as num?)?.toDouble() ?? 0.0,
       extraCharge: (map['extraCharge'] as num?)?.toDouble(),
+      controllerPrices: map['controllerPrices'] != null
+          ? (map['controllerPrices'] as Map<String, dynamic>).map(
+              (k, v) => MapEntry(int.tryParse(k) ?? 1, (v as num).toDouble()),
+            )
+          : null,
     );
   }
 }
@@ -846,6 +862,7 @@ class GameSession {
   final String? appliedOfferCode;
   final double? appliedOfferPrice;
   final double? standardPrice;
+  final int? controllersCount;
   final bool isPrepaid;
   final double prepaidAmount;
   final int? prepaidDurationMinutes;
@@ -945,6 +962,7 @@ class GameSession {
     this.appliedOfferCode,
     this.appliedOfferPrice,
     this.standardPrice,
+    this.controllersCount,
     this.isPrepaid = false,
     this.prepaidAmount = 0.0,
     this.prepaidDurationMinutes,
@@ -1094,6 +1112,7 @@ class GameSession {
     String? appliedOfferCode,
     double? appliedOfferPrice,
     double? standardPrice,
+    int? controllersCount,
     bool? isPrepaid,
     double? prepaidAmount,
     int? prepaidDurationMinutes,
@@ -1195,6 +1214,7 @@ class GameSession {
       appliedOfferCode: appliedOfferCode ?? this.appliedOfferCode,
       appliedOfferPrice: appliedOfferPrice ?? this.appliedOfferPrice,
       standardPrice: standardPrice ?? this.standardPrice,
+      controllersCount: controllersCount ?? this.controllersCount,
       isPrepaid: isPrepaid ?? this.isPrepaid,
       prepaidAmount: prepaidAmount ?? this.prepaidAmount,
       prepaidDurationMinutes: prepaidDurationMinutes ?? this.prepaidDurationMinutes,
@@ -1303,6 +1323,7 @@ class GameSession {
       'appliedOfferCode': appliedOfferCode,
       'appliedOfferPrice': appliedOfferPrice,
       'standardPrice': standardPrice,
+      if (controllersCount != null) 'controllersCount': controllersCount,
       'isPrepaid': isPrepaid,
       'prepaidAmount': prepaidAmount,
       'prepaidDurationMinutes': prepaidDurationMinutes,
@@ -1511,6 +1532,7 @@ class GameSession {
       appliedOfferCode: map['appliedOfferCode'] as String?,
       appliedOfferPrice: (map['appliedOfferPrice'] as num?)?.toDouble(),
       standardPrice: (map['standardPrice'] as num?)?.toDouble(),
+      controllersCount: (map['controllersCount'] as num?)?.toInt(),
       isPrepaid: map['isPrepaid'] as bool? ?? false,
       prepaidAmount: (map['prepaidAmount'] as num?)?.toDouble() ?? 0.0,
       prepaidDurationMinutes: (map['prepaidDurationMinutes'] as num?)?.toInt(),

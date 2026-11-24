@@ -86,7 +86,7 @@ class _BillDetailsScreenState extends ConsumerState<BillDetailsScreen> {
           _GameChargeEntry(
             title: session.tableName,
             subtitle:
-                '${session.billingType.displayName} · ${_formatDuration(session.activeSeconds)}',
+                '${session.billingType.displayName}${session.controllersCount != null ? ' (${session.controllersCount} Ctrls)' : ''} · ${_formatDuration(session.activeSeconds)}',
             amount: baseAmt,
             discount: session.currentGameDiscountAmount ?? 0.0,
           ),
@@ -196,7 +196,7 @@ class _BillDetailsScreenState extends ConsumerState<BillDetailsScreen> {
         _GameChargeEntry(
           title: session.tableName,
           subtitle:
-              '${session.billingType.displayName} · ${_formatDuration(session.activeSeconds)}',
+              '${session.billingType.displayName}${session.controllersCount != null ? ' (${session.controllersCount} Ctrls)' : ''} · ${_formatDuration(session.activeSeconds)}',
           amount: baseAmt,
           discount: session.currentGameDiscountAmount ?? 0.0,
         ),
@@ -433,7 +433,7 @@ class _BillDetailsScreenState extends ConsumerState<BillDetailsScreen> {
                         label: 'Game Type',
                         value: session.tableName.contains(',')
                             ? 'Combined (${session.tableName.split(',').length} Games)'
-                            : session.billingType.displayName,
+                            : '${session.billingType.displayName}${session.controllersCount != null ? ' (${session.controllersCount} Ctrls)' : ''}',
                       ),
                       _InfoRow(
                         label: 'Start Time',
@@ -811,8 +811,9 @@ class _BillDetailsScreenState extends ConsumerState<BillDetailsScreen> {
                     if (!isMultiGame && (session.overtimeMinutes ?? 0) > 0) ...[
                       _InfoRow(
                         label: 'Overtime (${session.overtimeMinutes} mins)',
-                        value:
-                            '₹${(session.overtimeCharge ?? 0).toStringAsFixed(2)}',
+                        value: (session.overtimeCharge ?? 0) > 0
+                            ? '₹${(session.overtimeCharge!).toStringAsFixed(2)}'
+                            : '₹0.00 (No Charge)',
                       ),
                     ],
                     if (!isMultiGame &&

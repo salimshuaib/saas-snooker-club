@@ -247,6 +247,20 @@ class AdministrativeSettingsScreen extends ConsumerWidget {
         ),
         SwitchListTile(
           contentPadding: EdgeInsets.zero,
+          title: const Text('PS5 Controller-Tiered Pricing'),
+          subtitle: const Text(
+            'Use fixed controller matrix (1-4 ctrls for 30m, 1hr, 1.5hr with Basement 4 rates). Default enabled for Arcade Gaming.',
+          ),
+          value: settings.game.isPs5ControllerPricingEnabled(
+            clubName: settings.business.clubName,
+            slug: settings.business.slug,
+          ),
+          onChanged: (val) => notifier.updateGameSettings(
+            settings.game.copyWith(enablePs5ControllerPricing: val),
+          ),
+        ),
+        SwitchListTile(
+          contentPadding: EdgeInsets.zero,
           title: const Text('Enable Overtime Billing'),
           subtitle: const Text(
             'Automatically calculate extra charges after grace period',

@@ -1,15 +1,14 @@
+import 'dart:math' as math;
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:snooker_club/core/constants/firebase_constants.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:snooker_club/features/games/data/games_repository.dart';
-import 'package:snooker_club/features/games/domain/config/tables_config.dart';
 import 'package:snooker_club/features/games/domain/models/game_models.dart';
 import 'package:snooker_club/core/models/audit_log.dart';
 import 'package:snooker_club/core/services/table_alarm_service.dart';
 import 'package:snooker_club/core/providers/app_providers.dart';
 import 'package:snooker_club/features/quick_sales/providers/quick_sales_providers.dart';
-import 'package:snooker_club/features/team/providers/team_providers.dart';
 
 import 'package:snooker_club/core/providers/club_scope_provider.dart';
 import 'package:snooker_club/features/floors/providers/floor_providers.dart';
@@ -58,38 +57,86 @@ final tablesProvider = StreamProvider<List<TableModel>>((ref) {
   return repo.watchTables().handleError((_) {});
 });
 
+/// Natural alphanumeric comparator for human-friendly table and game ordering.
+/// e.g. "Arcade 1" < "Arcade 2" < "Arcade 10", "Tekken 7 Machine 1" < "Tekken 7 Machine 2"
+int naturalTableCompare(String a, String b) {
+  final regex = RegExp(r'(\d+|\D+)');
+  final matchesA = regex.allMatches(a).map((m) => m.group(0)!).toList();
+  final matchesB = regex.allMatches(b).map((m) => m.group(0)!).toList();
+
+  final len = math.min(matchesA.length, matchesB.length);
+  for (int i = 0; i < len; i++) {
+    final partA = matchesA[i];
+    final partB = matchesB[i];
+
+    final numA = int.tryParse(partA);
+    final numB = int.tryParse(partB);
+
+    if (numA != null && numB != null) {
+      final comp = numA.compareTo(numB);
+      if (comp != 0) return comp;
+    } else {
+      final comp = partA.toLowerCase().compareTo(partB.toLowerCase());
+      if (comp != 0) return comp;
+    }
+  }
+  return matchesA.length.compareTo(matchesB.length);
+}
+
+/// Sort tables logically: Category -> Floor Order -> Natural Alphanumeric Name.
+List<TableModel> sortTables(List<TableModel> list, {Map<String, int>? floorOrderMap}) {
+  return List<TableModel>.from(list)..sort((a, b) {
+    // 1. Sort by Category (Snooker, Pool, PS5, Arcade, etc.)
+    final t = a.type.index.compareTo(b.type.index);
+    if (t != 0) return t;
+
+    // 2. Sort by Floor order (keeps games on the same floor grouped together)
+    if (floorOrderMap != null && floorOrderMap.isNotEmpty) {
+      final rankA = a.floorId != null ? (floorOrderMap[a.floorId!] ?? 999) : 1000;
+      final rankB = b.floorId != null ? (floorOrderMap[b.floorId!] ?? 999) : 1000;
+      final f = rankA.compareTo(rankB);
+      if (f != 0) return f;
+    } else if (a.floorId != b.floorId) {
+      if (a.floorId == null) return 1;
+      if (b.floorId == null) return -1;
+      final f = a.floorId!.compareTo(b.floorId!);
+      if (f != 0) return f;
+    } else if (a.floorName != b.floorName) {
+      if (a.floorName == null) return 1;
+      if (b.floorName == null) return -1;
+      final f = a.floorName!.compareTo(b.floorName!);
+      if (f != 0) return f;
+    }
+
+    // 3. Sort by natural alphanumeric name (e.g. "Arcade 1", "Arcade 2", "Arcade 10")
+    final n = naturalTableCompare(a.name, b.name);
+    if (n != 0) return n;
+
+    // 4. Stable tie-breakers: explicit order if set, then id
+    final o = a.order.compareTo(b.order);
+    if (o != 0) return o;
+
+    return a.id.compareTo(b.id);
+  });
+}
+
 /// Resolved tables: Firestore data if available, otherwise central default tables.
 final resolvedTablesProvider = Provider<List<TableModel>>((ref) {
   final async = ref.watch(tablesProvider);
-
-  List<TableModel> sortTables(List<TableModel> list) {
-    return List<TableModel>.from(list)..sort((a, b) {
-      // 1. Sort by Category
-      final t = a.type.index.compareTo(b.type.index);
-      if (t != 0) return t;
-
-      // 2. Sort by explicitly set order
-      final o = a.order.compareTo(b.order);
-      if (o != 0) return o;
-
-      // 3. Sort by numeric value in the name (if any)
-      final r = RegExp(r'\d+');
-      final mA = r.firstMatch(a.name);
-      final mB = r.firstMatch(b.name);
-      if (mA != null && mB != null) {
-        final c = int.parse(mA.group(0)!).compareTo(int.parse(mB.group(0)!));
-        if (c != 0) return c;
-      }
-
-      // 4. Alphabetical fallback
-      return a.name.compareTo(b.name);
-    });
+  final floors = ref.watch(floorsProvider).value ?? [];
+  final floorOrderMap = <String, int>{};
+  for (int i = 0; i < floors.length; i++) {
+    floorOrderMap[floors[i].id] = i;
   }
 
   return async.when(
-    data: (tables) => sortTables(tables),
-    loading: () => async.value != null ? sortTables(async.value!) : [],
-    error: (_, __) => async.value != null ? sortTables(async.value!) : [],
+    data: (tables) => sortTables(tables, floorOrderMap: floorOrderMap),
+    loading: () => async.value != null
+        ? sortTables(async.value!, floorOrderMap: floorOrderMap)
+        : [],
+    error: (_, __) => async.value != null
+        ? sortTables(async.value!, floorOrderMap: floorOrderMap)
+        : [],
   );
 });
 

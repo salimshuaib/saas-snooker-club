@@ -320,6 +320,8 @@ class _ManualGameSetupScreenState extends ConsumerState<ManualGameSetupScreen> {
           initialAlarmTime = finalStartTime!.add(const Duration(minutes: 30));
         } else if (_billingType == BillingType.oneHour) {
           initialAlarmTime = finalStartTime!.add(const Duration(minutes: 60));
+        } else if (_billingType == BillingType.oneHourThirty) {
+          initialAlarmTime = finalStartTime!.add(const Duration(minutes: 90));
         } else if (_billingType == BillingType.customMinute && _customMinutes != null) {
           initialAlarmTime = finalStartTime!.add(Duration(minutes: _customMinutes!));
         }
@@ -720,6 +722,9 @@ class _ManualGameSetupScreenState extends ConsumerState<ManualGameSetupScreen> {
                                 break;
                               case BillingType.oneHour:
                                 label = 'One Hour';
+                                break;
+                              case BillingType.oneHourThirty:
+                                label = '1.5 Hours (90 min)';
                                 break;
                               case BillingType.perFrame:
                                 label = 'Per Frame';

@@ -157,6 +157,8 @@ class _ManualGameChargeSetupSheetState extends ConsumerState<ManualGameChargeSet
                     activeSeconds = 30 * 60;
                   } else if (_billingType == BillingType.oneHour) {
                     activeSeconds = 60 * 60;
+                  } else if (_billingType == BillingType.oneHourThirty) {
+                    activeSeconds = 90 * 60;
                   }
 
                   final breakdown = TablePricingConfig.calculateCharge(

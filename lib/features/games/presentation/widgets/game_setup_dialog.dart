@@ -50,6 +50,7 @@ class _GameSetupDialogState extends ConsumerState<GameSetupDialog> {
   bool _isPrepaid = false;
   bool _enableOvertime = true;
   int _prepaidFrames = 1;
+  int _selectedControllers = 1;
   late List<PlayerSelection?> _playerSelections;
   late List<WaitlistPlayer> _remainingWaitlist;
   int _nextDefaultNumber = 2;
@@ -151,11 +152,15 @@ class _GameSetupDialogState extends ConsumerState<GameSetupDialog> {
                   children: [
                     _buildPrepaidSegmentedControl(theme),
                     _buildBillingTypeSelector(theme),
+                    if ((_tableType == TableType.arcade ||
+                            _tableType == TableType.ps5) &&
+                        _billingType != BillingType.perCoin)
+                      _buildControllersSelector(theme),
                     _buildOvertimeToggle(theme),
                     const SizedBox(height: 24),
                     _buildTeamSection('Players', _playerSelections, 10, theme),
                     const SizedBox(height: 24),
-                    if (_tableType == TableType.arcade) ...[
+                    if (_billingType == BillingType.perCoin) ...[
                       Text('Coins', style: theme.textTheme.labelMedium),
                       const SizedBox(height: 8),
                       Container(
@@ -232,7 +237,7 @@ class _GameSetupDialogState extends ConsumerState<GameSetupDialog> {
                           ),
                         )
                       : Text(
-                          _tableType == TableType.arcade
+                          _billingType == BillingType.perCoin
                               ? 'Purchase Tokens'
                               : _isPrepaid
                                   ? 'Pay ₹${_calculatePrepaidAmount().toStringAsFixed(0)} & Start Game'
@@ -263,6 +268,21 @@ class _GameSetupDialogState extends ConsumerState<GameSetupDialog> {
       return customP;
     }
 
+    final bool isPs5Tiered = (_tableType == TableType.ps5 ||
+            _tableType == TableType.arcade) &&
+        appSettings.game.isPs5ControllerPricingEnabled(
+          clubName: appSettings.business.clubName,
+          slug: appSettings.business.slug,
+        );
+
+    if (isPs5Tiered) {
+      return TablePricingConfig.getPs5TieredRate(
+        table: widget.table,
+        billingType: _billingType,
+        controllers: _selectedControllers,
+      );
+    }
+
     final basePrice = TablePricingConfig.getPrice(
           widget.table,
           GameType.standard,
@@ -290,7 +310,9 @@ class _GameSetupDialogState extends ConsumerState<GameSetupDialog> {
       total = basePrice;
     }
 
-    if (_tableType == TableType.ps5 || _tableType == TableType.ps4) {
+    if (_tableType == TableType.ps5 ||
+        _tableType == TableType.ps4 ||
+        _tableType == TableType.arcade) {
       final activePlayers = _playerSelections
           .where((p) => p != null && p.name.trim().isNotEmpty)
           .length;
@@ -303,7 +325,7 @@ class _GameSetupDialogState extends ConsumerState<GameSetupDialog> {
   }
 
   Widget _buildPrepaidSegmentedControl(ThemeData theme) {
-    if (_tableType == TableType.arcade) return const SizedBox.shrink();
+    if (_billingType == BillingType.perCoin) return const SizedBox.shrink();
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -360,8 +382,50 @@ class _GameSetupDialogState extends ConsumerState<GameSetupDialog> {
     );
   }
 
+  Widget _buildControllersSelector(ThemeData theme) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text('Number of Controllers', style: theme.textTheme.labelMedium),
+            Text(
+              '$_selectedControllers Controller${_selectedControllers > 1 ? "s" : ""}',
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+                color: theme.colorScheme.primary,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        SizedBox(
+          width: double.infinity,
+          child: SegmentedButton<int>(
+            showSelectedIcon: false,
+            segments: const [
+              ButtonSegment<int>(value: 1, label: Text('1 Ctrl')),
+              ButtonSegment<int>(value: 2, label: Text('2 Ctrls')),
+              ButtonSegment<int>(value: 3, label: Text('3 Ctrls')),
+              ButtonSegment<int>(value: 4, label: Text('4 Ctrls')),
+            ],
+            selected: {_selectedControllers},
+            onSelectionChanged: (Set<int> newSelection) {
+              setState(() {
+                _selectedControllers = newSelection.first;
+              });
+            },
+          ),
+        ),
+        const SizedBox(height: 16),
+      ],
+    );
+  }
+
   Widget _buildOvertimeToggle(ThemeData theme) {
-    if (!_isPrepaid || _tableType == TableType.arcade) {
+    if (!_isPrepaid || _billingType == BillingType.perCoin) {
       return const SizedBox.shrink();
     }
     return Container(
@@ -852,6 +916,9 @@ class _GameSetupDialogState extends ConsumerState<GameSetupDialog> {
       } else if (_billingType == BillingType.oneHour) {
         prepaidDurationMins = 60;
         initialAlarmTime = DateTime.now().add(const Duration(minutes: 60));
+      } else if (_billingType == BillingType.oneHourThirty) {
+        prepaidDurationMins = 90;
+        initialAlarmTime = DateTime.now().add(const Duration(minutes: 90));
       } else if (_billingType == BillingType.customMinute) {
         prepaidDurationMins = _customMinutes;
         initialAlarmTime = DateTime.now().add(
@@ -916,6 +983,10 @@ class _GameSetupDialogState extends ConsumerState<GameSetupDialog> {
         customPrice: resolvedPrice,
         customExtraCharge: resolvedExtraCharge,
         coinQuantity: _coinQuantity,
+        controllersCount: (_tableType == TableType.ps5 ||
+                _tableType == TableType.arcade)
+            ? _selectedControllers
+            : null,
         pricingSnapshot: appSettings.pricing,
         isMinimumBillEnabled: widget.table.isMinimumBillEnabled,
         minimumBillAmount: widget.table.minimumBillAmount,
@@ -932,7 +1003,7 @@ class _GameSetupDialogState extends ConsumerState<GameSetupDialog> {
         isOvertimeEnabled: _isPrepaid ? _enableOvertime : TablePricingConfig.isOvertimeConfiguredEnabled(widget.table),
       );
 
-      if (_tableType == TableType.arcade) {
+      if (_billingType == BillingType.perCoin) {
         gameSession = gameSession.copyWith(
           status: TableStatus.billing,
           endTime: DateTime.now(),
@@ -952,7 +1023,7 @@ class _GameSetupDialogState extends ConsumerState<GameSetupDialog> {
           for (final profile in newProfilesToCreate) {
             await creditRepo.savePlayerProfile(profile);
           }
-          if (_tableType != TableType.arcade) {
+          if (_billingType != BillingType.perCoin) {
             await gamesRepo.startGame(gameSession);
           }
         } catch (e) {

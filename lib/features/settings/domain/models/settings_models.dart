@@ -77,6 +77,7 @@ class GameSettings {
   final bool allowPauseResume;
   final int maxPlayersPerTeam;
   final bool hideBillingDetails;
+  final bool? enablePs5ControllerPricing;
 
   const GameSettings({
     this.frameGracePeriodMinutes = 20,
@@ -86,7 +87,17 @@ class GameSettings {
     this.allowPauseResume = true,
     this.maxPlayersPerTeam = 3,
     this.hideBillingDetails = false,
+    this.enablePs5ControllerPricing,
   });
+
+  bool isPs5ControllerPricingEnabled({String? clubName, String? slug}) {
+    if (enablePs5ControllerPricing != null) {
+      return enablePs5ControllerPricing!;
+    }
+    final name = (clubName ?? '').toLowerCase();
+    final s = (slug ?? '').toLowerCase();
+    return name.contains('arcade') || s.contains('arcade');
+  }
 
   GameSettings copyWith({
     int? frameGracePeriodMinutes,
@@ -96,6 +107,7 @@ class GameSettings {
     bool? allowPauseResume,
     int? maxPlayersPerTeam,
     bool? hideBillingDetails,
+    bool? enablePs5ControllerPricing,
   }) {
     return GameSettings(
       frameGracePeriodMinutes:
@@ -109,6 +121,8 @@ class GameSettings {
       allowPauseResume: allowPauseResume ?? this.allowPauseResume,
       maxPlayersPerTeam: maxPlayersPerTeam ?? this.maxPlayersPerTeam,
       hideBillingDetails: hideBillingDetails ?? this.hideBillingDetails,
+      enablePs5ControllerPricing:
+          enablePs5ControllerPricing ?? this.enablePs5ControllerPricing,
     );
   }
 
@@ -121,6 +135,8 @@ class GameSettings {
       'allowPauseResume': allowPauseResume,
       'maxPlayersPerTeam': maxPlayersPerTeam,
       'hideBillingDetails': hideBillingDetails,
+      if (enablePs5ControllerPricing != null)
+        'enablePs5ControllerPricing': enablePs5ControllerPricing,
     };
   }
 
@@ -137,6 +153,7 @@ class GameSettings {
       allowPauseResume: map['allowPauseResume'] as bool? ?? true,
       maxPlayersPerTeam: (map['maxPlayersPerTeam'] as num?)?.toInt() ?? 3,
       hideBillingDetails: map['hideBillingDetails'] as bool? ?? false,
+      enablePs5ControllerPricing: map['enablePs5ControllerPricing'] as bool?,
     );
   }
 }

@@ -169,10 +169,14 @@ class ReceiptData {
     }
 
     // Overtime if any
-    if ((session.overtimeCharge ?? 0) > 0) {
+    final otMinutes = session.overtimeMinutes ?? 0;
+    final otCharge = session.overtimeCharge ?? 0.0;
+    if (otMinutes > 0) {
       items.add(ReceiptLineItem(
-        description: 'Overtime (${session.overtimeMinutes ?? 0}m)',
-        amount: session.overtimeCharge!,
+        description: otCharge > 0
+            ? 'Overtime (${otMinutes}m)'
+            : 'Overtime (${otMinutes}m - No Charge)',
+        amount: otCharge,
       ));
     }
 

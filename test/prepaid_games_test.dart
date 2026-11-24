@@ -140,7 +140,7 @@ void main() {
 
       // Half hour base price is 120.0
       expect(charge.baseCharge, 120.0);
-      expect(charge.overtimeMinutes, 0);
+      expect(charge.overtimeMinutes, 15);
       expect(charge.overtimeCharge, 0.0);
       expect(charge.totalCharge, 120.0);
     });
@@ -178,7 +178,7 @@ void main() {
 
       // One hour base price is 200.0
       expect(charge.baseCharge, 200.0);
-      expect(charge.overtimeMinutes, 0);
+      expect(charge.overtimeMinutes, 20);
       expect(charge.overtimeCharge, 0.0);
       expect(charge.totalCharge, 200.0);
     });
@@ -285,6 +285,31 @@ void main() {
       expect(charge.overtimeMinutes, 3);
       expect(charge.overtimeCharge, 15.0);
       expect(charge.totalCharge, 285.0);
+    });
+
+    test('Custom Minute game with overtime disabled preserves overtimeMinutes with ₹0 charge', () {
+      const snookerPricing = PricingSettings(
+        snookerOneHour: 270.0,
+      );
+
+      // 18 minutes elapsed for 15 min game (3 minutes overtime)
+      final charge = TablePricingConfig.calculateCharge(
+        table: table,
+        gameType: GameType.standard,
+        billingType: BillingType.customMinute,
+        customMinutes: 15,
+        activeSeconds: 18 * 60,
+        framesPlayed: 0,
+        pricingConfig: snookerPricing,
+        gameConfig: const GameSettings(),
+        isOvertimeEnabled: false,
+      );
+
+      // Base: 70.0, Overtime mins: 3, Overtime charge: 0.0
+      expect(charge.baseCharge, 70.0);
+      expect(charge.overtimeMinutes, 3);
+      expect(charge.overtimeCharge, 0.0);
+      expect(charge.totalCharge, 70.0);
     });
   });
 
@@ -412,6 +437,64 @@ void main() {
       // When custom liabilities are 0.0, total bill is prepaidAmount + sum(customLiabilities) = 120.0
       final totalBill = session.prepaidAmount + liabilities.values.fold<double>(0.0, (s, v) => s + v);
       expect(totalBill, 120.0);
+    });
+
+    test('ReceiptData formats overtime with charge and overtime without charge', () {
+      final now = DateTime(2026, 11, 21, 12, 0);
+      final sessionWithCharge = GameSession(
+        id: 'session_ot_charge',
+        tableId: 't1',
+        tableName: 'Snooker 1',
+        tableType: TableType.snooker,
+        gameType: GameType.standard,
+        mode: GameMode.solo,
+        billingType: BillingType.oneHour,
+        matchType: MatchType.friendly,
+        teamA: const ['Player 1'],
+        teamB: const [],
+        playerIds: const [],
+        status: TableStatus.available,
+        startTime: now,
+        endTime: now.add(const Duration(minutes: 75)),
+        pauseTimes: const [],
+        resumeTimes: const [],
+        totalFrames: 1,
+        framesPlayed: 0,
+        orders: const [],
+        manualGameCharges: const [],
+        rounds: const [],
+        date: '2026-11-21',
+        auditLogs: const [],
+        baseGameCharge: 270.0,
+        overtimeMinutes: 15,
+        overtimeCharge: 70.0,
+        gameCharge: 340.0,
+      );
+
+      final receiptCharge = ReceiptData.fromGameSession(
+        sessionWithCharge,
+        clubName: 'Cue Chalk',
+      );
+
+      expect(
+        receiptCharge.lineItems.any((i) => i.description == 'Overtime (15m)' && i.amount == 70.0),
+        isTrue,
+      );
+
+      final sessionNoCharge = sessionWithCharge.copyWith(
+        overtimeCharge: 0.0,
+        gameCharge: 270.0,
+      );
+
+      final receiptNoCharge = ReceiptData.fromGameSession(
+        sessionNoCharge,
+        clubName: 'Cue Chalk',
+      );
+
+      expect(
+        receiptNoCharge.lineItems.any((i) => i.description == 'Overtime (15m - No Charge)' && i.amount == 0.0),
+        isTrue,
+      );
     });
   });
 }
